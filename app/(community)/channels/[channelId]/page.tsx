@@ -11,12 +11,13 @@ export default async function ChannelPage({
 }) {
   const { user } = await requireProfile();
 
-  const [channel, userGroupIds] = await Promise.all([
+  const [channel, userGroupIds, dbUser] = await Promise.all([
     prisma.channel.findUnique({
       where: { id: params.channelId },
       include: { groups: { select: { id: true } } },
     }),
     getUserGroupIds(user.id),
+    prisma.user.findUnique({ where: { id: user.id }, select: { mutedUntil: true } }),
   ]);
   if (!channel || !canAccessChannel(user.role, channel, userGroupIds)) {
     notFound();
@@ -24,7 +25,9 @@ export default async function ChannelPage({
 
   const messages = await prisma.message.findMany({
     where: { channelId: channel.id },
-    include: { user: { select: { id: true, name: true, image: true, role: true } } },
+    include: {
+      user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
@@ -34,7 +37,9 @@ export default async function ChannelPage({
     <ChatView
       channel={{ id: channel.id, name: channel.name, description: channel.description }}
       currentUserId={user.id}
+      currentUserRole={user.role}
       initialMessages={initialMessages}
+      initialMutedUntil={dbUser?.mutedUntil ?? null}
     />
   );
 }

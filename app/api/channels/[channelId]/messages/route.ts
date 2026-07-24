@@ -3,6 +3,7 @@ import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
+import { isMuted } from "@/lib/moderation";
 import { postMessageSchema } from "@/lib/validations/message";
 
 async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
@@ -35,22 +36,27 @@ export async function GET(
 
   const after = req.nextUrl.searchParams.get("after");
 
-  const messages = await prisma.message.findMany({
-    where: {
-      channelId: channel.id,
-      ...(after ? { createdAt: { gt: new Date(after) } } : {}),
-    },
-    include: { user: { select: { id: true, name: true, image: true, role: true } } },
-    // Polling for new messages (`after` set) reads oldest-first; the initial
-    // load reads newest-first (then gets reversed) so we grab the most
-    // recent N messages rather than the oldest N.
-    orderBy: { createdAt: after ? "asc" : "desc" },
-    take: after ? 100 : 50,
-  });
+  const [messages, viewer] = await Promise.all([
+    prisma.message.findMany({
+      where: {
+        channelId: channel.id,
+        ...(after ? { createdAt: { gt: new Date(after) } } : {}),
+      },
+      include: {
+        user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      },
+      // Polling for new messages (`after` set) reads oldest-first; the initial
+      // load reads newest-first (then gets reversed) so we grab the most
+      // recent N messages rather than the oldest N.
+      orderBy: { createdAt: after ? "asc" : "desc" },
+      take: after ? 100 : 50,
+    }),
+    prisma.user.findUnique({ where: { id: result.user.id }, select: { mutedUntil: true } }),
+  ]);
 
   const ordered = after ? messages : [...messages].reverse();
 
-  return NextResponse.json({ messages: ordered });
+  return NextResponse.json({ messages: ordered, mutedUntil: viewer?.mutedUntil ?? null });
 }
 
 export async function POST(
@@ -66,6 +72,20 @@ export async function POST(
   const channel = await getAccessibleChannel(params.channelId, result.user.id, result.user.role);
   if (!channel) {
     return NextResponse.json({ error: "Channel not found" }, { status: 404 });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: result.user.id },
+    select: { mutedUntil: true },
+  });
+  if (dbUser && isMuted(dbUser)) {
+    return NextResponse.json(
+      {
+        error: `You're muted until ${dbUser.mutedUntil!.toLocaleString()}`,
+        mutedUntil: dbUser.mutedUntil,
+      },
+      { status: 403 }
+    );
   }
 
   let body: unknown;
@@ -89,7 +109,9 @@ export async function POST(
       userId: result.user.id,
       content: parsed.data.content,
     },
-    include: { user: { select: { id: true, name: true, image: true, role: true } } },
+    include: {
+      user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+    },
   });
 
   return NextResponse.json({ message }, { status: 201 });

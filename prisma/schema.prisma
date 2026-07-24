@@ -70,18 +70,22 @@ model User {
   image         String?
   role          UserRole   @default(MEMBER)
   status        UserStatus @default(PENDING_APPLICATION)
+  mutedUntil    DateTime? // null = not muted; future timestamp = muted until then
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  accounts             Account[]
-  sessions             Session[]
-  application          Application?
-  profile              Profile?
-  messages             Message[]
-  dailyTasks           DailyTask[]
-  xpEvents             XPEvent[]
-  reviewedApplications Application[] @relation("ReviewedBy")
-  groupMemberships     GroupMember[]
+  accounts                   Account[]
+  sessions                   Session[]
+  application                Application?
+  profile                    Profile?
+  messages                   Message[]
+  dailyTasks                 DailyTask[]
+  xpEvents                   XPEvent[]
+  reviewedApplications       Application[]      @relation("ReviewedBy")
+  groupMemberships           GroupMember[]
+  moderationActionsPerformed ModerationAction[] @relation("ModeratorActions")
+  moderationActionsReceived  ModerationAction[] @relation("ModerationTargets")
+  rewardRedemptions          RewardRedemption[]
 }
 
 // ---------- Application / invite flow ----------
@@ -231,6 +235,8 @@ model DailyTask {
 enum XPSource {
   TASK_COMPLETION
   MANUAL_ADJUSTMENT
+  REWARD_REDEMPTION
+  REWARD_REFUND
 }
 
 model XPEvent {
@@ -245,4 +251,67 @@ model XPEvent {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// ---------- Moderation ----------
+
+enum ModerationActionType {
+  MESSAGE_DELETED
+  USER_MUTED
+  USER_UNMUTED
+}
+
+model ModerationAction {
+  id              String               @id @default(cuid())
+  type            ModerationActionType
+  moderatorId     String
+  targetUserId    String?
+  channelId       String?
+  messageSnapshot String?
+  reason          String?
+  createdAt       DateTime             @default(now())
+
+  moderator  User  @relation("ModeratorActions", fields: [moderatorId], references: [id], onDelete: Cascade)
+  targetUser User? @relation("ModerationTargets", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+// ---------- Rewards store ----------
+
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  costPoints  Int
+  imageUrl    String?
+  stock       Int? // null = unlimited
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  redemptions RewardRedemption[]
+}
+
+enum RedemptionStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+model RewardRedemption {
+  id          String           @id @default(cuid())
+  userId      String
+  rewardId    String
+  pointsSpent Int
+  status      RedemptionStatus @default(PENDING)
+  notes       String?
+  redeemedAt  DateTime         @default(now())
+  fulfilledAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward Reward @relation(fields: [rewardId], references: [id])
+
+  @@index([userId])
+  @@index([rewardId])
 }
