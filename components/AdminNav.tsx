@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/applications", label: "Applications" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/tasks", label: "Task Templates" },
+  { href: "/admin/groups", label: "Groups" },
 ];
 
 export default function AdminNav() {

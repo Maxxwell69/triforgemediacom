@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { startOfTodayUTC } from "@/lib/tiktask";
+import { hasTikTaskAccess } from "@/lib/groups";
 
 export async function POST(
   _req: Request,
@@ -13,6 +14,10 @@ export async function POST(
     return NextResponse.json(body, { status });
   }
   const { user } = result;
+
+  if (!(await hasTikTaskAccess(user.id))) {
+    return NextResponse.json({ error: "TikTask isn't available for your group." }, { status: 403 });
+  }
 
   const dailyTask = await prisma.dailyTask.findUnique({
     where: { id: params.dailyTaskId },

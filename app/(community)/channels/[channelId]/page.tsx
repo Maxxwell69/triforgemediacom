@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { meetsMinRole } from "@/lib/rbac";
+import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 import ChatView from "@/components/chat/ChatView";
 
 export default async function ChannelPage({
@@ -11,8 +11,14 @@ export default async function ChannelPage({
 }) {
   const { user } = await requireProfile();
 
-  const channel = await prisma.channel.findUnique({ where: { id: params.channelId } });
-  if (!channel || !meetsMinRole(user.role, channel.minRole)) {
+  const [channel, userGroupIds] = await Promise.all([
+    prisma.channel.findUnique({
+      where: { id: params.channelId },
+      include: { groups: { select: { id: true } } },
+    }),
+    getUserGroupIds(user.id),
+  ]);
+  if (!channel || !canAccessChannel(user.role, channel, userGroupIds)) {
     notFound();
   }
 

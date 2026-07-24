@@ -1,9 +1,22 @@
 import { requireProfile } from "@/lib/session";
 import { getOrGenerateTodayTasks } from "@/lib/tiktask";
+import { hasTikTaskAccess } from "@/lib/groups";
 import TaskList from "@/components/tiktask/TaskList";
 
 export default async function TikTaskPage() {
-  const { profile } = await requireProfile();
+  const { user, profile } = await requireProfile();
+
+  if (!(await hasTikTaskAccess(user.id))) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-6">
+        <p className="glass max-w-md rounded-2xl p-8 text-center font-body text-off-white/60">
+          TikTask isn&apos;t available for your current group. Reach out to an admin if you think
+          this is a mistake.
+        </p>
+      </main>
+    );
+  }
+
   const tasks = await getOrGenerateTodayTasks(profile.userId, profile);
   const doneCount = tasks.filter((t) => t.status === "DONE").length;
 

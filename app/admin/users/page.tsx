@@ -1,7 +1,10 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserPointsTotals } from "@/lib/points";
+import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
+import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +19,16 @@ export default async function AdminUsersPage() {
   const session = await auth();
   const currentUserId = session!.user.id;
 
-  const users = await prisma.user.findMany({
-    where: { status: { in: ["ACTIVE", "INVITED", "BANNED"] } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [users, allGroups] = await Promise.all([
+    prisma.user.findMany({
+      where: { status: { in: ["ACTIVE", "INVITED", "BANNED"] } },
+      orderBy: { createdAt: "desc" },
+      include: { groupMemberships: { include: { group: true } } },
+    }),
+    prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+  ]);
+
+  const pointsTotals = await getUserPointsTotals(users.map((u) => u.id));
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
@@ -32,29 +41,81 @@ export default async function AdminUsersPage() {
         {users.map((user) => {
           const isSelf = user.id === currentUserId;
           const isBanned = user.status === "BANNED";
+          const groups = user.groupMemberships.map((m) => m.group);
+
           return (
-            <div
-              key={user.id}
-              className="glass flex flex-wrap items-center justify-between gap-4 rounded-xl p-4"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-body font-medium text-off-white">
-                  {user.name || "Unnamed"}
-                  {isSelf && <span className="ml-2 text-xs text-off-white/40">(you)</span>}
-                </p>
-                <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
+            <div key={user.id} className="glass flex flex-col gap-3 rounded-xl p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate font-body font-medium text-off-white">
+                    {user.name || "Unnamed"}
+                    {isSelf && <span className="ml-2 text-xs text-off-white/40">(you)</span>}
+                  </p>
+                  <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span
+                    className={`font-body text-xs font-semibold uppercase tracking-wide ${
+                      statusStyles[user.status] || "text-off-white/50"
+                    }`}
+                  >
+                    {user.status}
+                  </span>
+                  <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
+                  <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
+                </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <span
-                  className={`font-body text-xs font-semibold uppercase tracking-wide ${
-                    statusStyles[user.status] || "text-off-white/50"
-                  }`}
-                >
-                  {user.status}
-                </span>
-                <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
-                <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-off-white/10 pt-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {groups.length === 0 && (
+                    <span className="font-body text-xs text-off-white/30">No groups</span>
+                  )}
+                  {groups.map((g) => (
+                    <span
+                      key={g.id}
+                      className="rounded-full border px-2 py-0.5 font-body text-xs"
+                      style={{ borderColor: `${g.color}66`, color: g.color }}
+                    >
+                      {g.name}
+                    </span>
+                  ))}
+                  <UserGroupsEditor
+                    userId={user.id}
+                    allGroups={allGroups}
+                    memberGroupIds={groups.map((g) => g.id)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="font-body text-sm text-off-white/70">
+                    {pointsTotals[user.id] ?? 0} pts
+                  </span>
+                  <form action={adjustUserPoints} className="flex items-center gap-1.5">
+                    <input type="hidden" name="userId" value={user.id} />
+                    <input
+                      type="number"
+                      name="amount"
+                      placeholder="\u00b1XP"
+                      required
+                      className="w-16 rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 font-body text-xs text-off-white outline-none transition focus:border-cyan/60"
+                    />
+                    <input
+                      type="text"
+                      name="note"
+                      placeholder="Note (optional)"
+                      maxLength={280}
+                      className="w-36 rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 font-body text-xs text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-cyan/40 px-2.5 py-1 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                    >
+                      Apply
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           );

@@ -1,12 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
+import { changePasswordSchema } from "@/lib/validations/account";
 import type { ProfileFormState } from "@/components/ProfileForm";
 
-export async function completeOnboarding(
+export async function updateProfile(
   _prevState: ProfileFormState,
   formData: FormData
 ): Promise<ProfileFormState> {
@@ -52,5 +54,40 @@ export async function completeOnboarding(
     },
   });
 
-  redirect("/channels");
+  revalidatePath("/account");
+  return { success: true };
+}
+
+export type ChangePasswordState = { error?: string; success?: boolean } | null;
+
+export async function changePassword(
+  _prevState: ChangePasswordState,
+  formData: FormData
+): Promise<ChangePasswordState> {
+  const user = await requireUser();
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!dbUser?.passwordHash) {
+    return { error: "No password is set for this account." };
+  }
+
+  const valid = await bcrypt.compare(parsed.data.currentPassword, dbUser.passwordHash);
+  if (!valid) {
+    return { error: "Current password is incorrect." };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  return { success: true };
 }

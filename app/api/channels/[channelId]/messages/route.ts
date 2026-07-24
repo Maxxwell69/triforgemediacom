@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
-import { meetsMinRole } from "@/lib/rbac";
+import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 import { postMessageSchema } from "@/lib/validations/message";
 
-async function getAccessibleChannel(channelId: string, userRole: Parameters<typeof meetsMinRole>[0]) {
-  const channel = await prisma.channel.findUnique({ where: { id: channelId } });
+async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
+  const [channel, userGroupIds] = await Promise.all([
+    prisma.channel.findUnique({
+      where: { id: channelId },
+      include: { groups: { select: { id: true } } },
+    }),
+    getUserGroupIds(userId),
+  ]);
   if (!channel) return null;
-  if (!meetsMinRole(userRole, channel.minRole)) return null;
+  if (!canAccessChannel(userRole, channel, userGroupIds)) return null;
   return channel;
 }
 
@@ -21,7 +28,7 @@ export async function GET(
     return NextResponse.json(body, { status });
   }
 
-  const channel = await getAccessibleChannel(params.channelId, result.user.role);
+  const channel = await getAccessibleChannel(params.channelId, result.user.id, result.user.role);
   if (!channel) {
     return NextResponse.json({ error: "Channel not found" }, { status: 404 });
   }
@@ -56,7 +63,7 @@ export async function POST(
     return NextResponse.json(body, { status });
   }
 
-  const channel = await getAccessibleChannel(params.channelId, result.user.role);
+  const channel = await getAccessibleChannel(params.channelId, result.user.id, result.user.role);
   if (!channel) {
     return NextResponse.json({ error: "Channel not found" }, { status: 404 });
   }
