@@ -9,7 +9,7 @@ content, engage, etc.) based on their platform and goals.
 
 This is a **separate repo and separate deployment** from the existing TriForge marketing
 site (`triforge-web`, deployed on Vercel at triforgemedia.com). This repo deploys to
-`community.triforgemedia.com`.
+`hub.triforgemedia.com`.
 
 ## Architecture decision (important — do not split into microservices)
 Build this as a **modular monolith**: one Next.js app, one Postgres database, one auth
