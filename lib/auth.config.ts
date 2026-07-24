@@ -7,6 +7,10 @@ import type { NextAuthConfig } from "next-auth";
  * and is used everywhere else (API routes, server components/actions).
  */
 export const authConfig = {
+  // Required behind reverse proxies (Railway, Vercel, Docker, etc.) where the
+  // incoming Host header won't exactly match AUTH_URL/NEXTAUTH_URL — otherwise
+  // Auth.js rejects every request with an UntrustedHost error.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
