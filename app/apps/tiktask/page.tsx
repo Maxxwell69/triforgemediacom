@@ -1,0 +1,26 @@
+import { requireProfile } from "@/lib/session";
+import { getOrGenerateTodayTasks } from "@/lib/tiktask";
+import TaskList from "@/components/tiktask/TaskList";
+
+export default async function TikTaskPage() {
+  const { profile } = await requireProfile();
+  const tasks = await getOrGenerateTodayTasks(profile.userId, profile);
+  const doneCount = tasks.filter((t) => t.status === "DONE").length;
+
+  return (
+    <main className="flex-1 px-6 py-10">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-5xl tracking-wide">
+          TODAY&apos;S <span className="text-gradient">TASKS</span>
+        </h1>
+        <p className="mt-2 font-body text-off-white/60">
+          {doneCount}/{tasks.length} complete &middot; 🔥 {profile.streakCount} day streak
+        </p>
+
+        <div className="mt-8">
+          <TaskList tasks={tasks} />
+        </div>
+      </div>
+    </main>
+  );
+}

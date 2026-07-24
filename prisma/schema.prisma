@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth (Auth.js / NextAuth Prisma adapter) ----------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Core identity ----------
+
+enum UserRole {
+  ADMIN
+  MOD
+  CREATOR
+  MEMBER
+}
+
+enum UserStatus {
+  PENDING_APPLICATION
+  INVITED
+  ACTIVE
+  BANNED
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String? // null until account is set up via invite
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  role          UserRole   @default(MEMBER)
+  status        UserStatus @default(PENDING_APPLICATION)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  application          Application?
+  profile              Profile?
+  messages             Message[]
+  dailyTasks           DailyTask[]
+  xpEvents             XPEvent[]
+  reviewedApplications Application[] @relation("ReviewedBy")
+}
+
+// ---------- Application / invite flow ----------
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  userId       String            @unique
+  answers      Json // form responses: platform, socials, why you want in, etc.
+  status       ApplicationStatus @default(PENDING)
+  reviewedById String?
+  reviewNotes  String?
+  inviteToken  String?           @unique
+  submittedAt  DateTime          @default(now())
+  reviewedAt   DateTime?
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReviewedBy", fields: [reviewedById], references: [id])
+}
+
+// ---------- Profile (drives TikTask personalization) ----------
+
+enum Platform {
+  TIKTOK
+  TWITCH
+  YOUTUBE
+  KICK
+  INSTAGRAM
+  OTHER
+}
+
+model Profile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  platform     Platform
+  goals        Json // e.g. { growFollowers: true, consistentSchedule: true }
+  bio          String?
+  socialLinks  Json? // { tiktok: "...", twitch: "..." }
+  streakCount  Int       @default(0)
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Chat core ----------
+
+model Channel {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  minRole     UserRole @default(MEMBER) // minimum role required to view/post
+  createdAt   DateTime @default(now())
+
+  messages Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+// ---------- TikTask ----------
+
+model TaskTemplate {
+  id        String    @id @default(cuid())
+  platform  Platform?
+  // null platform = applies to everyone regardless of platform
+  goalKey   String? // matches a key inside Profile.goals, e.g. "growFollowers"
+  taskText  String
+  xpValue   Int       @default(10)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  dailyTasks DailyTask[]
+}
+
+enum TaskStatus {
+  PENDING
+  DONE
+  SKIPPED
+}
+
+model DailyTask {
+  id          String     @id @default(cuid())
+  userId      String
+  templateId  String
+  date        DateTime   @db.Date
+  status      TaskStatus @default(PENDING)
+  completedAt DateTime?
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template TaskTemplate @relation(fields: [templateId], references: [id])
+
+  @@unique([userId, templateId, date])
+  @@index([userId, date])
+}
+
+// ---------- XP (append-only log, not just a counter) ----------
+
+enum XPSource {
+  TASK_COMPLETION
+  MANUAL_ADJUSTMENT
+}
+
+model XPEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  source    XPSource
+  refId     String? // e.g. the DailyTask id that triggered this
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

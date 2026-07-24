@@ -1,0 +1,25 @@
+{
+  "name": "@trifirge/realtime-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Fastify + Socket.io service for real-time chat delivery. Deploys separately (Railway) from the Next.js app, since Vercel serverless can't hold long-lived WebSocket connections. See README.md — this is currently a scaffold/stub; the Next.js app's chat works today via polling (see app/(community)).",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "fastify": "^5.10.0",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.23.1",
+    "typescript": "^5"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}
