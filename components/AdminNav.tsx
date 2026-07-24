@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/groups", label: "Groups" },
   { href: "/admin/channels", label: "Channels" },
   { href: "/admin/rewards", label: "Rewards" },
+  { href: "/admin/courses", label: "Courses" },
   { href: "/admin/moderation", label: "Moderation Log" },
 ];
 

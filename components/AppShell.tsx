@@ -52,6 +52,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
             Rewards
           </Link>
           <Link
+            href="/learn"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Learn
+          </Link>
+          <Link
             href="/account"
             className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
           >

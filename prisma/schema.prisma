@@ -86,6 +86,10 @@ model User {
   moderationActionsPerformed ModerationAction[] @relation("ModeratorActions")
   moderationActionsReceived  ModerationAction[] @relation("ModerationTargets")
   rewardRedemptions          RewardRedemption[]
+  enrollments                Enrollment[]
+  lessonProgress             LessonProgress[]
+  quizAttempts               QuizAttempt[]
+  userBadges                 UserBadge[]
 }
 
 // ---------- Application / invite flow ----------
@@ -237,6 +241,7 @@ enum XPSource {
   MANUAL_ADJUSTMENT
   REWARD_REDEMPTION
   REWARD_REFUND
+  COURSE_COMPLETION
 }
 
 model XPEvent {
@@ -314,4 +319,138 @@ model RewardRedemption {
 
   @@index([userId])
   @@index([rewardId])
+}
+
+// ---------- Learning Center (courses, lessons, quizzes, badges) ----------
+
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  thumbnailUrl String?
+  category     String?
+  isPublished  Boolean  @default(false)
+  order        Int      @default(0)
+  xpReward     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  badges      Badge[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int      @default(0)
+  videoUrl  String?
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quiz     Quiz?
+  progress LessonProgress[]
+
+  @@index([courseId, order])
+}
+
+model Quiz {
+  id        String   @id @default(cuid())
+  lessonId  String   @unique
+  title     String
+  passScore Int      @default(70)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lesson    Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  MULTI_SELECT
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  quizId        String
+  type          QuestionType
+  text          String
+  options       Json
+  correctAnswer Json
+  order         Int          @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, order])
+}
+
+model QuizAttempt {
+  id            String   @id @default(cuid())
+  userId        String
+  quizId        String
+  answers       Json
+  score         Int
+  passed        Boolean
+  attemptNumber Int
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId])
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  courseId    String?
+  createdAt   DateTime @default(now())
+
+  course     Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
 }

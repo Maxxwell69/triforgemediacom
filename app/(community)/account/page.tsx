@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
@@ -6,7 +7,14 @@ import ChangePasswordForm from "./ChangePasswordForm";
 
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
-  const points = await getUserPointsTotal(user.id);
+  const [points, userBadges] = await Promise.all([
+    getUserPointsTotal(user.id),
+    prisma.userBadge.findMany({
+      where: { userId: user.id },
+      include: { badge: true },
+      orderBy: { awardedAt: "desc" },
+    }),
+  ]);
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
 
   return (
@@ -32,6 +40,30 @@ export default async function AccountPage() {
               Day streak
             </p>
           </div>
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">Badges</h2>
+        <div className="mt-4">
+          {userBadges.length === 0 ? (
+            <p className="glass rounded-2xl p-6 text-center font-body text-sm text-off-white/40">
+              Complete a course in the Learning Center to earn your first badge.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {userBadges.map(({ badge, awardedAt }) => (
+                <div
+                  key={badge.id}
+                  className="glass flex flex-col items-center gap-1 rounded-xl p-4 text-center"
+                >
+                  <span className="text-3xl">{badge.icon || "🏆"}</span>
+                  <p className="font-body text-sm font-medium text-off-white">{badge.name}</p>
+                  <p className="font-body text-xs text-off-white/40">
+                    {awardedAt.toLocaleDateString([], { dateStyle: "medium" })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">Profile</h2>
