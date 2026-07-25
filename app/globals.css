@@ -5,11 +5,22 @@
 :root {
   --background: #0a0a0a;
   --foreground: #f5f5f5;
+  /* Tells the browser to render native form controls (select dropdowns,
+     date/time pickers, scrollbars) in dark mode instead of defaulting to
+     a light popup with our light theme text inherited into it. */
+  color-scheme: dark;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+}
+
+/* Belt-and-suspenders for browsers that also respect direct styling on
+   <option> (color-scheme above is the primary fix for the popup itself). */
+select option {
+  background-color: #171717;
+  color: var(--foreground);
 }
 
 @layer utilities {
