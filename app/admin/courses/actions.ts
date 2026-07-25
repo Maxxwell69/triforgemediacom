@@ -34,11 +34,11 @@ function revalidateCourse(courseId: string) {
 
 function parseCourseForm(formData: FormData) {
   const parsed = courseSchema.safeParse({
-    title: formData.get("title"),
-    description: formData.get("description"),
-    thumbnailUrl: formData.get("thumbnailUrl"),
-    category: formData.get("category"),
-    xpReward: formData.get("xpReward"),
+    title: formData.get("title") ?? "",
+    description: formData.get("description") ?? "",
+    thumbnailUrl: formData.get("thumbnailUrl") ?? "",
+    category: formData.get("category") ?? "",
+    xpReward: formData.get("xpReward") ?? "0",
     completionGroupId: formData.get("completionGroupId") ?? "",
   });
   if (!parsed.success) {
@@ -139,8 +139,8 @@ export async function moveCourseOrder(courseId: string, direction: "up" | "down"
 
 function parseModuleForm(formData: FormData) {
   const parsed = moduleSchema.safeParse({
-    title: formData.get("title"),
-    description: formData.get("description"),
+    title: formData.get("title") ?? "",
+    description: formData.get("description") ?? "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid module");
@@ -527,9 +527,9 @@ export async function upsertCourseBadge(formData: FormData) {
   const badgeId = formData.get("badgeId");
 
   const parsed = badgeSchema.safeParse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    icon: formData.get("icon"),
+    name: formData.get("name") ?? "",
+    description: formData.get("description") ?? "",
+    icon: formData.get("icon") ?? "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid badge");
