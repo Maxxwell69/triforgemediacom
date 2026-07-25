@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateCourse } from "@/app/admin/courses/actions";
+import ImageUploadField from "@/components/ImageUploadField";
 
 type Group = { id: string; name: string };
 
@@ -55,11 +56,11 @@ export default function CourseEditForm({
         placeholder="Description"
         className={fieldClass}
       />
-      <input
+      <ImageUploadField
         name="thumbnailUrl"
-        defaultValue={course.thumbnailUrl ?? ""}
-        placeholder="Thumbnail URL (optional)"
-        className={fieldClass}
+        folder="course-thumbnails"
+        defaultValue={course.thumbnailUrl}
+        label="Thumbnail"
       />
       <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
         Completion group

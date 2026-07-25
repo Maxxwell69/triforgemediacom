@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateReward } from "@/app/admin/rewards/actions";
 import RewardActiveToggle from "./RewardActiveToggle";
+import ImageUploadField from "@/components/ImageUploadField";
 
 type Reward = {
   id: string;
@@ -30,15 +31,8 @@ export default function RewardRow({ reward }: { reward: Reward }) {
         className="glass flex flex-col gap-3 rounded-xl p-4"
       >
         <input type="hidden" name="id" value={reward.id} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input name="name" defaultValue={reward.name} required className={fieldClass} />
-          <input
-            name="imageUrl"
-            defaultValue={reward.imageUrl ?? ""}
-            placeholder="Image URL (optional)"
-            className={fieldClass}
-          />
-        </div>
+        <input name="name" defaultValue={reward.name} required className={fieldClass} />
+        <ImageUploadField name="imageUrl" folder="reward-images" defaultValue={reward.imageUrl} label="Image" />
         <textarea
           name="description"
           defaultValue={reward.description ?? ""}

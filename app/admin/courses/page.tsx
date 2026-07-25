@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { createCourse } from "./actions";
 import CourseRow from "@/components/admin/CourseRow";
+import ImageUploadField from "@/components/ImageUploadField";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function AdminCoursesPage() {
           placeholder="Optional description"
           className={fieldClass}
         />
+        <ImageUploadField name="thumbnailUrl" folder="course-thumbnails" label="Thumbnail" />
         <div className="flex items-center gap-3">
           <input
             type="number"

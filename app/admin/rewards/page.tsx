@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createReward } from "./actions";
 import RewardRow from "@/components/admin/RewardRow";
 import RedemptionActions from "@/components/admin/RedemptionActions";
+import ImageUploadField from "@/components/ImageUploadField";
 
 export const dynamic = "force-dynamic";
 
@@ -37,16 +38,14 @@ export default async function AdminRewardsPage() {
 
       <form action={createReward} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
         <h2 className="font-display text-xl tracking-wide text-off-white/80">New reward</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input name="name" required placeholder="e.g. TriForge Hoodie" className={fieldClass} />
-          <input name="imageUrl" placeholder="Image URL (optional)" className={fieldClass} />
-        </div>
+        <input name="name" required placeholder="e.g. TriForge Hoodie" className={fieldClass} />
         <textarea
           name="description"
           rows={2}
           placeholder="Optional description"
           className={fieldClass}
         />
+        <ImageUploadField name="imageUrl" folder="reward-images" label="Image" />
         <div className="grid grid-cols-2 gap-3">
           <input
             type="number"
