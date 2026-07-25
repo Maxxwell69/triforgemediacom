@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds, hasTikTaskAccess } from "@/lib/groups";
+import { isAdminRole } from "@/lib/rbac";
 import Logo from "@/components/Logo";
 import ChannelSidebar from "@/components/ChannelSidebar";
 import SignOutButton from "@/components/SignOutButton";
@@ -21,6 +22,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   ]);
   const channels = allChannels.filter((c) => canAccessChannel(user.role, c, userGroupIds));
   const totalXp = xpAgg._sum.amount ?? 0;
+  const isAdmin = isAdminRole(user.role);
 
   const sidebar = (
     <>
@@ -68,6 +70,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
       <ChannelSidebar channels={channels} />
 
       <div className="mt-auto flex flex-col gap-3 border-t border-off-white/10 pt-4">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-between rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/15"
+          >
+            Admin Panel
+            <span>→</span>
+          </Link>
+        )}
         <div className="flex items-center justify-between px-2 font-body text-xs text-off-white/50">
           <span>🔥 {profile.streakCount} day streak</span>
           <span>{totalXp} XP</span>
@@ -82,5 +93,19 @@ export default async function AppShell({ children }: { children: React.ReactNode
     </>
   );
 
-  return <MobileShell sidebar={sidebar}>{children}</MobileShell>;
+  return (
+    <>
+      <MobileShell sidebar={sidebar}>{children}</MobileShell>
+      {isAdmin && (
+        <Link
+          href="/admin"
+          aria-label="Go to admin panel"
+          className="fixed bottom-20 left-4 z-40 flex items-center gap-2 rounded-full border border-cyan/40 bg-charcoal/95 px-4 py-2.5 font-body text-sm font-semibold text-cyan shadow-glow-cyan backdrop-blur transition hover:bg-cyan/10 md:hidden print:hidden"
+        >
+          <span aria-hidden="true">🛠️</span>
+          Admin
+        </Link>
+      )}
+    </>
+  );
 }
