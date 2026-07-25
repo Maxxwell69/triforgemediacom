@@ -42,6 +42,11 @@ export const questionSchema = z.object({
   text: z.string().trim().min(2, "Question text is too short").max(500),
 });
 
+export const assignmentSchema = z.object({
+  title: z.string().trim().min(2, "Title must be at least 2 characters").max(150),
+  instructions: z.string().trim().max(5000).optional().or(z.literal("")),
+});
+
 export const badgeSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(80),
   description: z.string().trim().max(300).optional().or(z.literal("")),

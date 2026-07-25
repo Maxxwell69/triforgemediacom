@@ -4,9 +4,20 @@ import { useState, useTransition } from "react";
 import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
 import { toDatetimeLocalValue } from "@/lib/validations/course";
 import QuizSection from "./QuizSection";
+import AssignmentSection from "./AssignmentSection";
 import type { QuestionData } from "./QuestionForm";
 
 type ModuleOption = { id: string; title: string };
+
+type SubmissionData = {
+  id: string;
+  userName: string;
+  submissionUrl: string | null;
+  submissionText: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  feedback: string | null;
+  submittedAt: Date;
+};
 
 type Lesson = {
   id: string;
@@ -19,6 +30,7 @@ type Lesson = {
   dripDaysAfterEnroll: number | null;
   dripUnlockAt: Date | string | null;
   quiz: { id: string; title: string; passScore: number; questions: QuestionData[] } | null;
+  assignment: { id: string; title: string; instructions: string | null; submissions: SubmissionData[] } | null;
 };
 
 const fieldClass =
@@ -90,6 +102,8 @@ export default function LessonRow({
                   lesson.audioUrl ? "Audio" : null,
                   lesson.htmlEmbed ? "Embed" : null,
                   lesson.content ? "Text" : null,
+                  lesson.quiz ? "Quiz" : null,
+                  lesson.assignment ? "Assignment" : null,
                 ]
                   .filter(Boolean)
                   .join(" · ") || "No content"}
@@ -216,6 +230,7 @@ export default function LessonRow({
       )}
 
       <QuizSection courseId={courseId} lessonId={lesson.id} quiz={lesson.quiz} />
+      <AssignmentSection courseId={courseId} lessonId={lesson.id} assignment={lesson.assignment} />
     </div>
   );
 }

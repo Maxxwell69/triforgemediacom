@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -55,6 +56,28 @@ export function isLessonUnlocked(
   return now.getTime() >= unlockAt.getTime();
 }
 
+type OrderableLesson = { id: string; moduleId: string | null; order: number };
+type OrderableModule = { id: string; order: number };
+
+/**
+ * Flattens a course's modules/lessons into the same sequential order shown
+ * on the course detail page (unsorted lessons first, then each module in
+ * order). Used to drive "Lesson X of Y" and Previous/Next navigation.
+ */
+export function getOrderedLessonSequence<L extends OrderableLesson>(
+  modules: OrderableModule[],
+  lessons: L[]
+): L[] {
+  const sortedModules = [...modules].sort((a, b) => a.order - b.order);
+  const byModule = (moduleId: string | null) =>
+    lessons.filter((l) => l.moduleId === moduleId).sort((a, b) => a.order - b.order);
+
+  return [
+    ...byModule(null),
+    ...sortedModules.flatMap((mod) => byModule(mod.id)),
+  ];
+}
+
 /**
  * Call whenever a LessonProgress.completedAt gets set. If every lesson in
  * the course is now complete for this user, marks the Enrollment complete,
@@ -88,6 +111,21 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
     include: { badges: true },
   });
   if (!course) return;
+
+  if (course.certificateEnabled) {
+    const existingCert = await tx.certificate.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!existingCert) {
+      await tx.certificate.create({
+        data: {
+          userId,
+          courseId,
+          certNumber: `TFC-${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`,
+        },
+      });
+    }
+  }
 
   if (course.xpReward > 0) {
     await tx.xPEvent.create({

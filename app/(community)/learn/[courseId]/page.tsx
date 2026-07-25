@@ -2,7 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { getOrCreateEnrollment, getLessonUnlockAt, isLessonUnlocked } from "@/lib/learning";
+import {
+  getLessonUnlockAt,
+  getOrCreateEnrollment,
+  getOrderedLessonSequence,
+  isLessonUnlocked,
+} from "@/lib/learning";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 
@@ -30,12 +35,13 @@ export default async function CourseDetailPage({
     where: { id: params.courseId },
     include: {
       groups: { select: { id: true } },
+      badges: { select: { id: true, name: true, icon: true } },
       modules: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       },
       lessons: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        include: { quiz: { select: { id: true } } },
+        include: { quiz: { select: { id: true } }, assignment: { select: { id: true } } },
       },
     },
   });
@@ -64,6 +70,19 @@ export default async function CourseDetailPage({
   const completedCount = completedLessonIds.size;
   const progressPct =
     totalLessons === 0 ? 0 : Math.round((completedCount / totalLessons) * 100);
+  const isCourseComplete = !!enrollment.completedAt;
+
+  const orderedSequence = getOrderedLessonSequence(published.modules, published.lessons);
+  const nextUpLesson = orderedSequence.find((l) => {
+    if (completedLessonIds.has(l.id)) return false;
+    return bypassDrip || isLessonUnlocked(l, enrollment, now);
+  });
+  const ctaLesson = nextUpLesson ?? orderedSequence[0];
+  const ctaLabel = isCourseComplete
+    ? "Review course"
+    : completedCount > 0
+      ? "Continue"
+      : "Start course";
 
   type LessonRow = (typeof published.lessons)[number];
   const unsortedLessons = published.lessons.filter((l) => !l.moduleId);
@@ -122,8 +141,10 @@ export default async function CourseDetailPage({
           </span>
           <div>
             <p className="font-body text-sm font-medium text-off-white">{lesson.title}</p>
-            {lesson.quiz && (
-              <p className="mt-0.5 font-body text-xs text-off-white/40">Includes quiz</p>
+            {(lesson.quiz || lesson.assignment) && (
+              <p className="mt-0.5 font-body text-xs text-off-white/40">
+                {lesson.quiz ? "Includes quiz" : "Includes assignment"}
+              </p>
             )}
           </div>
         </div>
@@ -140,15 +161,64 @@ export default async function CourseDetailPage({
         >
           &larr; Learning Center
         </Link>
+
+        <div className="relative mt-4 flex h-40 w-full items-center justify-center overflow-hidden rounded-2xl bg-off-white/5">
+          {published.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={published.thumbnailUrl}
+              alt={published.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-6xl">🎓</span>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/10 to-transparent" />
+          {isCourseComplete && (
+            <span className="absolute right-3 top-3 rounded-full border border-cyan/40 bg-charcoal/80 px-3 py-1 font-body text-xs font-semibold text-cyan">
+              ✓ Completed
+            </span>
+          )}
+        </div>
+
         <h1 className="mt-4 font-display text-5xl tracking-wide text-gradient">{published.title}</h1>
         {published.description && (
           <p className="mt-2 font-body text-off-white/60">{published.description}</p>
         )}
-        {published.xpReward > 0 && (
-          <p className="mt-2 font-body text-sm text-orange">
-            Complete this course for +{published.xpReward} XP
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {published.xpReward > 0 && (
+            <span className="rounded-full border border-orange/40 bg-orange/10 px-3 py-1 font-body text-xs font-semibold text-orange">
+              +{published.xpReward} XP on completion
+            </span>
+          )}
+          {published.badges.map((badge) => (
+            <span
+              key={badge.id}
+              className="rounded-full border border-cyan/40 bg-cyan/10 px-3 py-1 font-body text-xs font-semibold text-cyan"
+            >
+              {badge.icon || "🏅"} {badge.name}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {ctaLesson && (
+            <Link
+              href={`/learn/${published.id}/lessons/${ctaLesson.id}`}
+              className="inline-flex rounded-lg bg-orange px-6 py-2.5 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
+            >
+              {ctaLabel}
+            </Link>
+          )}
+          {isCourseComplete && published.certificateEnabled && (
+            <Link
+              href={`/learn/${published.id}/certificate`}
+              className="inline-flex rounded-lg border border-cyan/40 px-6 py-2.5 font-body font-semibold text-cyan transition hover:bg-cyan/10"
+            >
+              🎓 View certificate
+            </Link>
+          )}
+        </div>
 
         <div className="mt-6">
           <div className="mb-1 flex items-center justify-between font-body text-xs text-off-white/50">

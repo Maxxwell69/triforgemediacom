@@ -31,6 +31,14 @@ export default async function AdminCourseDetailPage({
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           include: {
             quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
+            assignment: {
+              include: {
+                submissions: {
+                  include: { user: { select: { id: true, name: true, email: true } } },
+                  orderBy: { submittedAt: "desc" },
+                },
+              },
+            },
           },
         },
         badges: true,
@@ -112,6 +120,22 @@ export default async function AdminCourseDetailPage({
                 })) satisfies QuestionData[],
               }
             : null,
+          assignment: lesson.assignment
+            ? {
+                id: lesson.assignment.id,
+                title: lesson.assignment.title,
+                instructions: lesson.assignment.instructions,
+                submissions: lesson.assignment.submissions.map((s) => ({
+                  id: s.id,
+                  userName: s.user.name || s.user.email,
+                  submissionUrl: s.submissionUrl,
+                  submissionText: s.submissionText,
+                  status: s.status,
+                  feedback: s.feedback,
+                  submittedAt: s.submittedAt,
+                })),
+              }
+            : null,
         }}
       />
     );
@@ -143,6 +167,7 @@ export default async function AdminCourseDetailPage({
             isPublished: detail.isPublished,
             xpReward: detail.xpReward,
             completionGroupId: detail.completionGroupId,
+            certificateEnabled: detail.certificateEnabled,
           }}
           groups={allGroups.map((g) => ({ id: g.id, name: g.name }))}
         />

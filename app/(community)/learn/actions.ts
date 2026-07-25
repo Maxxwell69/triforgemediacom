@@ -20,6 +20,7 @@ async function assertLessonAccessible(userId: string, userRole: UserRole, lesson
     where: { id: lessonId },
     include: {
       quiz: { select: { id: true } },
+      assignment: { select: { id: true } },
       course: {
         select: {
           id: true,
@@ -48,6 +49,9 @@ export async function markLessonComplete(lessonId: string) {
   const { user } = await requireProfile();
   const lesson = await assertLessonAccessible(user.id, user.role, lessonId);
   if (lesson.quiz) throw new Error("This lesson requires passing its quiz to complete.");
+  if (lesson.assignment) {
+    throw new Error("This lesson requires an approved assignment submission to complete.");
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.lessonProgress.upsert({
@@ -130,4 +134,45 @@ export async function submitQuizAttempt(
   revalidateLesson(lesson.courseId, lessonId);
 
   return { score, passed, passScore: quiz.passScore };
+}
+
+export async function submitAssignment(
+  lessonId: string,
+  input: { submissionUrl: string; submissionText: string }
+) {
+  const { user } = await requireProfile();
+  await assertLessonAccessible(user.id, user.role, lessonId);
+
+  const submissionUrl = input.submissionUrl.trim();
+  const submissionText = input.submissionText.trim();
+  if (!submissionUrl && !submissionText) {
+    throw new Error("Add a link or a written response before submitting.");
+  }
+
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    include: { assignment: true },
+  });
+  if (!lesson || !lesson.assignment) throw new Error("This lesson doesn't have an assignment.");
+
+  await prisma.assignmentSubmission.upsert({
+    where: { assignmentId_userId: { assignmentId: lesson.assignment.id, userId: user.id } },
+    update: {
+      submissionUrl: submissionUrl || null,
+      submissionText: submissionText || null,
+      status: "PENDING",
+      feedback: null,
+      submittedAt: new Date(),
+      reviewedAt: null,
+      reviewedById: null,
+    },
+    create: {
+      assignmentId: lesson.assignment.id,
+      userId: user.id,
+      submissionUrl: submissionUrl || null,
+      submissionText: submissionText || null,
+    },
+  });
+
+  revalidateLesson(lesson.courseId, lessonId);
 }

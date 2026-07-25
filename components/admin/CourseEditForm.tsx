@@ -14,6 +14,7 @@ type Course = {
   isPublished: boolean;
   xpReward: number;
   completionGroupId: string | null;
+  certificateEnabled: boolean;
 };
 
 const fieldClass =
@@ -98,6 +99,15 @@ export default function CourseEditForm({
             className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
           />
           Published (visible to members)
+        </label>
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="certificateEnabled"
+            defaultChecked={course.certificateEnabled}
+            className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-cyan"
+          />
+          Issue a certificate on completion
         </label>
       </div>
       <button

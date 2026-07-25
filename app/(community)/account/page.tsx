@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
@@ -7,12 +8,17 @@ import ChangePasswordForm from "./ChangePasswordForm";
 
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
-  const [points, userBadges] = await Promise.all([
+  const [points, userBadges, certificates] = await Promise.all([
     getUserPointsTotal(user.id),
     prisma.userBadge.findMany({
       where: { userId: user.id },
       include: { badge: true },
       orderBy: { awardedAt: "desc" },
+    }),
+    prisma.certificate.findMany({
+      where: { userId: user.id },
+      include: { course: { select: { title: true } } },
+      orderBy: { issuedAt: "desc" },
     }),
   ]);
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
@@ -61,6 +67,37 @@ export default async function AccountPage() {
                     {awardedAt.toLocaleDateString([], { dateStyle: "medium" })}
                   </p>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          Certificates
+        </h2>
+        <div className="mt-4">
+          {certificates.length === 0 ? (
+            <p className="glass rounded-2xl p-6 text-center font-body text-sm text-off-white/40">
+              Complete a certificate-eligible course to earn one.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {certificates.map((cert) => (
+                <Link
+                  key={cert.id}
+                  href={`/learn/${cert.courseId}/certificate`}
+                  className="glass flex items-center justify-between gap-3 rounded-xl p-4 transition hover:border-cyan/40"
+                >
+                  <div>
+                    <p className="font-body text-sm font-medium text-off-white">
+                      🎓 {cert.course.title}
+                    </p>
+                    <p className="mt-0.5 font-body text-xs text-off-white/40">
+                      Issued {cert.issuedAt.toLocaleDateString([], { dateStyle: "medium" })}
+                    </p>
+                  </div>
+                  <span className="font-body text-xs text-cyan">View &rarr;</span>
+                </Link>
               ))}
             </div>
           )}

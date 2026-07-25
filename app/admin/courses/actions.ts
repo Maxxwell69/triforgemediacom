@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
+import { checkCourseCompletion } from "@/lib/learning";
 import {
+  assignmentSchema,
   badgeSchema,
   courseSchema,
   lessonSchema,
@@ -71,6 +73,7 @@ export async function updateCourse(formData: FormData) {
   const id = String(formData.get("id"));
   const data = parseCourseForm(formData);
   const isPublished = formData.get("isPublished") === "on";
+  const certificateEnabled = formData.get("certificateEnabled") === "on";
 
   await prisma.course.update({
     where: { id },
@@ -81,6 +84,7 @@ export async function updateCourse(formData: FormData) {
       category: data.category || null,
       xpReward: data.xpReward,
       isPublished,
+      certificateEnabled,
       completionGroupId: data.completionGroupId || null,
     },
   });
@@ -389,6 +393,98 @@ export async function deleteQuiz(quizId: string, courseId: string) {
   await requireAdmin();
   await prisma.quiz.delete({ where: { id: quizId } });
   revalidateCourse(courseId);
+}
+
+// ---------- Assignment ----------
+
+function parseAssignmentForm(formData: FormData) {
+  const parsed = assignmentSchema.safeParse({
+    title: formData.get("title") ?? "",
+    instructions: formData.get("instructions") ?? "",
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Invalid assignment");
+  }
+  return parsed.data;
+}
+
+export async function createAssignment(formData: FormData) {
+  await requireAdmin();
+  const lessonId = String(formData.get("lessonId"));
+  const courseId = String(formData.get("courseId"));
+  const data = parseAssignmentForm(formData);
+
+  await prisma.assignment.create({
+    data: {
+      lessonId,
+      title: data.title,
+      instructions: data.instructions || null,
+    },
+  });
+
+  revalidateCourse(courseId);
+}
+
+export async function updateAssignment(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const courseId = String(formData.get("courseId"));
+  const data = parseAssignmentForm(formData);
+
+  await prisma.assignment.update({
+    where: { id },
+    data: {
+      title: data.title,
+      instructions: data.instructions || null,
+    },
+  });
+
+  revalidateCourse(courseId);
+}
+
+export async function deleteAssignment(assignmentId: string, courseId: string) {
+  await requireAdmin();
+  await prisma.assignment.delete({ where: { id: assignmentId } });
+  revalidateCourse(courseId);
+}
+
+export async function reviewSubmission(
+  submissionId: string,
+  status: "APPROVED" | "REJECTED",
+  feedback: string
+) {
+  const session = await requireAdmin();
+
+  const submission = await prisma.assignmentSubmission.findUnique({
+    where: { id: submissionId },
+    include: { assignment: { include: { lesson: { select: { id: true, courseId: true } } } } },
+  });
+  if (!submission) throw new Error("Submission not found");
+
+  const { lesson } = submission.assignment;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        status,
+        feedback: feedback.trim() || null,
+        reviewedAt: new Date(),
+        reviewedById: session.user.id,
+      },
+    });
+
+    if (status === "APPROVED") {
+      await tx.lessonProgress.upsert({
+        where: { userId_lessonId: { userId: submission.userId, lessonId: lesson.id } },
+        update: { completedAt: new Date() },
+        create: { userId: submission.userId, lessonId: lesson.id, completedAt: new Date() },
+      });
+      await checkCourseCompletion(tx, submission.userId, lesson.courseId);
+    }
+  });
+
+  revalidateCourse(lesson.courseId);
 }
 
 // ---------- Question ----------

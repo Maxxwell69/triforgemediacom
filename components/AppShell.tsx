@@ -23,7 +23,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-off-white/10 bg-off-white/[0.02] px-4 py-5">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-off-white/10 bg-off-white/[0.02] px-4 py-5 print:hidden">
         <div className="mb-6 px-2">
           <Logo height={22} />
         </div>

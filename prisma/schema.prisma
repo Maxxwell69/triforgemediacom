@@ -81,15 +81,18 @@ model User {
   messages                   Message[]
   dailyTasks                 DailyTask[]
   xpEvents                   XPEvent[]
-  reviewedApplications       Application[]      @relation("ReviewedBy")
+  reviewedApplications       Application[]          @relation("ReviewedBy")
   groupMemberships           GroupMember[]
-  moderationActionsPerformed ModerationAction[] @relation("ModeratorActions")
-  moderationActionsReceived  ModerationAction[] @relation("ModerationTargets")
+  moderationActionsPerformed ModerationAction[]     @relation("ModeratorActions")
+  moderationActionsReceived  ModerationAction[]     @relation("ModerationTargets")
   rewardRedemptions          RewardRedemption[]
   enrollments                Enrollment[]
   lessonProgress             LessonProgress[]
   quizAttempts               QuizAttempt[]
   userBadges                 UserBadge[]
+  assignmentSubmissions      AssignmentSubmission[] @relation("SubmittedBy")
+  assignmentReviews          AssignmentSubmission[] @relation("ReviewedBy")
+  certificates               Certificate[]
 }
 
 // ---------- Application / invite flow ----------
@@ -326,24 +329,26 @@ model RewardRedemption {
 // ---------- Learning Center (courses, lessons, quizzes, badges) ----------
 
 model Course {
-  id                String   @id @default(cuid())
-  title             String
-  description       String?
-  thumbnailUrl      String?
-  category          String?
-  isPublished       Boolean  @default(false)
-  order             Int      @default(0)
-  xpReward          Int      @default(0)
-  completionGroupId String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  title              String
+  description        String?
+  thumbnailUrl       String?
+  category           String?
+  isPublished        Boolean  @default(false)
+  order              Int      @default(0)
+  xpReward           Int      @default(0)
+  completionGroupId  String?
+  certificateEnabled Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   lessons         Lesson[]
   modules         Module[]
   enrollments     Enrollment[]
   badges          Badge[]
-  groups          Group[]      @relation("CourseGroups")
-  completionGroup Group?       @relation("CourseCompletionGroup", fields: [completionGroupId], references: [id], onDelete: SetNull)
+  certificates    Certificate[]
+  groups          Group[]       @relation("CourseGroups")
+  completionGroup Group?        @relation("CourseCompletionGroup", fields: [completionGroupId], references: [id], onDelete: SetNull)
 }
 
 model Module {
@@ -376,10 +381,11 @@ model Lesson {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module   Module?          @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  quiz     Quiz?
-  progress LessonProgress[]
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module     Module?          @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  quiz       Quiz?
+  assignment Assignment?
+  progress   LessonProgress[]
 
   @@index([courseId, order])
   @@index([moduleId, order])
@@ -481,4 +487,59 @@ model UserBadge {
   badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
+}
+
+// ---------- Assignments (file/link submission + admin review) ----------
+
+model Assignment {
+  id           String   @id @default(cuid())
+  lessonId     String   @unique
+  title        String
+  instructions String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lesson      Lesson                 @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  submissions AssignmentSubmission[]
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AssignmentSubmission {
+  id             String           @id @default(cuid())
+  assignmentId   String
+  userId         String
+  submissionUrl  String?
+  submissionText String?
+  status         SubmissionStatus @default(PENDING)
+  feedback       String?
+  submittedAt    DateTime         @default(now())
+  reviewedAt     DateTime?
+  reviewedById   String?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User       @relation("SubmittedBy", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?      @relation("ReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId, status])
+}
+
+// ---------- Certificates ----------
+
+model Certificate {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  certNumber String   @unique
+  issuedAt   DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
 }

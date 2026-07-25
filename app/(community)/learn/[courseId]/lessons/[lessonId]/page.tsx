@@ -2,13 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { getOrCreateEnrollment, isLessonUnlocked } from "@/lib/learning";
+import { getOrCreateEnrollment, getOrderedLessonSequence, isLessonUnlocked } from "@/lib/learning";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import VideoEmbed from "@/components/VideoEmbed";
 import HtmlEmbed from "@/components/HtmlEmbed";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
 import QuizPlayer from "@/components/QuizPlayer";
+import AssignmentSubmissionForm from "@/components/AssignmentSubmissionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function LessonPage({
         },
       },
       quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
+      assignment: true,
     },
   });
 
@@ -49,10 +51,31 @@ export default async function LessonPage({
     redirect(`/learn/${lesson.courseId}`);
   }
 
-  const progress = await prisma.lessonProgress.findUnique({
-    where: { userId_lessonId: { userId: user.id, lessonId: lesson.id } },
-  });
+  const [progress, modules, siblingLessons, mySubmission] = await Promise.all([
+    prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: user.id, lessonId: lesson.id } },
+    }),
+    prisma.module.findMany({
+      where: { courseId: lesson.courseId },
+      select: { id: true, order: true },
+    }),
+    prisma.lesson.findMany({
+      where: { courseId: lesson.courseId },
+      select: { id: true, title: true, moduleId: true, order: true },
+    }),
+    lesson.assignment
+      ? prisma.assignmentSubmission.findUnique({
+          where: { assignmentId_userId: { assignmentId: lesson.assignment.id, userId: user.id } },
+        })
+      : Promise.resolve(null),
+  ]);
   const isComplete = !!progress?.completedAt;
+
+  const sequence = getOrderedLessonSequence(modules, siblingLessons);
+  const currentIndex = sequence.findIndex((l) => l.id === lesson.id);
+  const prevLesson = currentIndex > 0 ? sequence[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex >= 0 && currentIndex < sequence.length - 1 ? sequence[currentIndex + 1] : null;
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -63,7 +86,12 @@ export default async function LessonPage({
         >
           &larr; {lesson.course.title}
         </Link>
-        <h1 className="mt-4 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
+        {currentIndex >= 0 && (
+          <p className="mt-4 font-body text-xs font-semibold uppercase tracking-wide text-cyan/70">
+            Lesson {currentIndex + 1} of {sequence.length}
+          </p>
+        )}
+        <h1 className="mt-1 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
 
         {lesson.videoUrl && (
           <div className="mt-6">
@@ -108,8 +136,42 @@ export default async function LessonPage({
                 })),
               }}
             />
+          ) : lesson.assignment ? (
+            <AssignmentSubmissionForm
+              lessonId={lesson.id}
+              title={lesson.assignment.title}
+              instructions={lesson.assignment.instructions}
+              submission={mySubmission}
+            />
           ) : (
             <LessonCompleteButton lessonId={lesson.id} completed={isComplete} />
+          )}
+        </div>
+
+        <div className="mt-10 flex items-center justify-between gap-4 border-t border-off-white/10 pt-6">
+          {prevLesson ? (
+            <Link
+              href={`/learn/${lesson.courseId}/lessons/${prevLesson.id}`}
+              className="glass flex min-w-0 flex-1 flex-col rounded-xl px-4 py-3 transition hover:border-cyan/40 sm:flex-none sm:max-w-[45%]"
+            >
+              <span className="font-body text-[10px] font-semibold uppercase tracking-wide text-off-white/40">
+                &larr; Previous
+              </span>
+              <span className="truncate font-body text-sm text-off-white/80">{prevLesson.title}</span>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {nextLesson && (
+            <Link
+              href={`/learn/${lesson.courseId}/lessons/${nextLesson.id}`}
+              className="glass flex min-w-0 flex-1 flex-col rounded-xl px-4 py-3 text-right transition hover:border-cyan/40 sm:flex-none sm:max-w-[45%]"
+            >
+              <span className="font-body text-[10px] font-semibold uppercase tracking-wide text-off-white/40">
+                Next &rarr;
+              </span>
+              <span className="truncate font-body text-sm text-off-white/80">{nextLesson.title}</span>
+            </Link>
           )}
         </div>
       </div>
