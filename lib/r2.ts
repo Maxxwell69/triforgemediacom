@@ -1,5 +1,8 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import { ALLOWED_IMAGE_EXTENSIONS, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
+
+export { MAX_UPLOAD_BYTES };
 
 function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -19,15 +22,6 @@ function getR2Client() {
   });
 }
 
-const ALLOWED_IMAGE_TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
-
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
-
 /**
  * Uploads an image buffer to the R2 bucket under the given folder prefix
  * and returns its public URL. Throws on invalid type/size or missing config.
@@ -36,7 +30,7 @@ export async function uploadImage(
   folder: string,
   file: { buffer: Buffer; type: string; size: number }
 ): Promise<string> {
-  const extension = ALLOWED_IMAGE_TYPES[file.type];
+  const extension = ALLOWED_IMAGE_EXTENSIONS[file.type];
   if (!extension) {
     throw new Error("Unsupported file type. Use JPG, PNG, WEBP, or GIF.");
   }

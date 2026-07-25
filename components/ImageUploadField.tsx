@@ -1,9 +1,26 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ALLOWED_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
+
+const MAX_MB = MAX_UPLOAD_BYTES / (1024 * 1024);
+
+const RECOMMENDATIONS: Record<
+  "course-thumbnails" | "reward-images",
+  { dimensions: string; hint: string }
+> = {
+  "course-thumbnails": {
+    dimensions: "1280\u00D7720px (16:9)",
+    hint: "Shows as a wide banner and card thumbnail \u2014 landscape images crop best.",
+  },
+  "reward-images": {
+    dimensions: "800\u00D7450px (16:9)",
+    hint: "Shows as a card image \u2014 landscape images crop best.",
+  },
+};
 
 export default function ImageUploadField({
   name,
@@ -20,12 +37,25 @@ export default function ImageUploadField({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recommendation = RECOMMENDATIONS[folder];
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setError(null);
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_MIME_TYPES)[number])) {
+      setError("Unsupported file type. Use JPG, PNG, WEBP, or GIF.");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max size is ${MAX_MB}MB.`);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -63,12 +93,15 @@ export default function ImageUploadField({
             className="h-16 w-28 rounded-lg border border-off-white/15 object-cover"
           />
         )}
-        <label className="cursor-pointer rounded-lg border border-cyan/40 px-3 py-2 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10">
+        <label
+          title={`Recommended: ${recommendation.dimensions}. JPG, PNG, WEBP, or GIF, up to ${MAX_MB}MB.`}
+          className="cursor-pointer rounded-lg border border-cyan/40 px-3 py-2 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+        >
           {isUploading ? "Uploading..." : url ? "Replace image" : "Upload image"}
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept={ALLOWED_IMAGE_MIME_TYPES.join(",")}
             onChange={handleFileChange}
             disabled={isUploading}
             className="hidden"
@@ -84,6 +117,11 @@ export default function ImageUploadField({
           </button>
         )}
       </div>
+
+      <p className="font-body text-xs text-off-white/35">
+        Recommended {recommendation.dimensions} &middot; {recommendation.hint} &middot; JPG/PNG/WEBP/GIF, max{" "}
+        {MAX_MB}MB.
+      </p>
 
       <input
         value={url}
