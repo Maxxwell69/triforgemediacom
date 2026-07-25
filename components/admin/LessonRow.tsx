@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
 import { toDatetimeLocalValue } from "@/lib/validations/course";
 import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
+import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import QuizSection from "./QuizSection";
 import AssignmentSection from "./AssignmentSection";
 import type { QuestionData } from "./QuestionForm";
@@ -201,7 +202,7 @@ export default function LessonRow({
             </div>
             {showPreview ? (
               <div
-                className="prose prose-invert min-h-[6rem] max-w-none rounded-lg border border-off-white/15 bg-off-white/5 p-3 text-sm prose-headings:font-display prose-a:text-cyan prose-img:rounded-lg prose-strong:text-off-white"
+                className={`min-h-[6rem] rounded-lg border border-off-white/15 bg-off-white/5 p-3 ${LESSON_CONTENT_CLASSES}`}
                 dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) || "<p class=\"text-off-white/30\">Nothing to preview yet.</p>" }}
               />
             ) : (
