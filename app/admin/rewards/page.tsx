@@ -36,7 +36,11 @@ export default async function AdminRewardsPage() {
         Manage what members can redeem their points for, and process incoming redemptions.
       </p>
 
-      <form action={createReward} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
+      <form
+        key={rewards.length}
+        action={createReward}
+        className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6"
+      >
         <h2 className="font-display text-xl tracking-wide text-off-white/80">New reward</h2>
         <input name="name" required placeholder="e.g. TriForge Hoodie" className={fieldClass} />
         <textarea

@@ -25,7 +25,11 @@ export default async function AdminCoursesPage() {
         Build courses out of ordered lessons, quizzes, and badges for the Learning Center.
       </p>
 
-      <form action={createCourse} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
+      <form
+        key={courses.length}
+        action={createCourse}
+        className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6"
+      >
         <h2 className="font-display text-xl tracking-wide text-off-white/80">New course</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input name="title" required placeholder="e.g. TikTok Growth 101" className={fieldClass} />

@@ -25,7 +25,11 @@ export default async function AdminGroupsPage() {
         and toggle TikTask access per group.
       </p>
 
-      <form action={createGroup} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
+      <form
+        key={groups.length}
+        action={createGroup}
+        className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6"
+      >
         <h2 className="font-display text-xl tracking-wide text-off-white/80">New group</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
           <input

@@ -23,6 +23,7 @@ export default async function AdminTasksPage() {
       </p>
 
       <form
+        key={templates.length}
         action={createTaskTemplate}
         className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6"
       >

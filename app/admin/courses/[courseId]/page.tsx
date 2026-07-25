@@ -213,6 +213,7 @@ export default async function AdminCourseDetailPage({
         </div>
 
         <form
+          key={detail.modules.length}
           action={createModule}
           className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6"
         >
@@ -278,6 +279,7 @@ export default async function AdminCourseDetailPage({
         </div>
 
         <form
+          key={detail.lessons.length}
           action={createLesson}
           className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6"
         >
