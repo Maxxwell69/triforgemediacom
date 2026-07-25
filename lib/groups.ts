@@ -1,6 +1,6 @@
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { meetsMinRole } from "@/lib/rbac";
+import { isAdminRole, meetsMinRole } from "@/lib/rbac";
 
 /**
  * Groups grant exceptions on top of the baseline role gates:
@@ -11,6 +11,9 @@ import { meetsMinRole } from "@/lib/rbac";
  *  - TikTask access is open by default; it's only restricted once a user
  *    belongs to at least one group and ALL of their groups opt out via
  *    grantsTikTaskAccess = false.
+ *  - Course access: zero groups = open to anyone with a profile; one or
+ *    more groups = member of at least one attached group. Admins/Mods
+ *    always pass (preview).
  */
 
 export async function getUserGroupIds(userId: string): Promise<string[]> {
@@ -30,6 +33,17 @@ export function canAccessChannel(
   if (channel.groups.length === 0) return false;
   const userGroupSet = new Set(userGroupIds);
   return channel.groups.some((g) => userGroupSet.has(g.id));
+}
+
+export function canAccessCourse(
+  userRole: UserRole,
+  course: { groups: { id: string }[] },
+  userGroupIds: string[]
+): boolean {
+  if (isAdminRole(userRole)) return true;
+  if (course.groups.length === 0) return true;
+  const userGroupSet = new Set(userGroupIds);
+  return course.groups.some((g) => userGroupSet.has(g.id));
 }
 
 export async function hasTikTaskAccess(userId: string): Promise<boolean> {

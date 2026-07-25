@@ -1,9 +1,12 @@
 "use server";
 
+import type { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { checkCourseCompletion } from "@/lib/learning";
+import { checkCourseCompletion, getOrCreateEnrollment, isLessonUnlocked } from "@/lib/learning";
+import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
+import { isAdminRole } from "@/lib/rbac";
 
 function revalidateLesson(courseId: string, lessonId: string) {
   revalidatePath("/learn");
@@ -12,14 +15,38 @@ function revalidateLesson(courseId: string, lessonId: string) {
   revalidatePath("/account");
 }
 
-export async function markLessonComplete(lessonId: string) {
-  const { user } = await requireProfile();
-
+async function assertLessonAccessible(userId: string, userRole: UserRole, lessonId: string) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    include: { quiz: { select: { id: true } } },
+    include: {
+      quiz: { select: { id: true } },
+      course: {
+        select: {
+          id: true,
+          isPublished: true,
+          groups: { select: { id: true } },
+        },
+      },
+    },
   });
-  if (!lesson) throw new Error("Lesson not found");
+  if (!lesson || !lesson.course.isPublished) throw new Error("Lesson not found");
+
+  const userGroupIds = await getUserGroupIds(userId);
+  if (!canAccessCourse(userRole, lesson.course, userGroupIds)) {
+    throw new Error("You don't have access to this course");
+  }
+
+  const enrollment = await getOrCreateEnrollment(userId, lesson.courseId);
+  if (!isAdminRole(userRole) && !isLessonUnlocked(lesson, enrollment)) {
+    throw new Error("This lesson is still locked");
+  }
+
+  return lesson;
+}
+
+export async function markLessonComplete(lessonId: string) {
+  const { user } = await requireProfile();
+  const lesson = await assertLessonAccessible(user.id, user.role, lessonId);
   if (lesson.quiz) throw new Error("This lesson requires passing its quiz to complete.");
 
   await prisma.$transaction(async (tx) => {
@@ -41,6 +68,7 @@ export async function submitQuizAttempt(
   answers: Record<string, string | string[]>
 ): Promise<QuizSubmitResult> {
   const { user } = await requireProfile();
+  await assertLessonAccessible(user.id, user.role, lessonId);
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },

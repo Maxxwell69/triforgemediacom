@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { updateCourse } from "@/app/admin/courses/actions";
 
+type Group = { id: string; name: string };
+
 type Course = {
   id: string;
   title: string;
@@ -11,12 +13,19 @@ type Course = {
   category: string | null;
   isPublished: boolean;
   xpReward: number;
+  completionGroupId: string | null;
 };
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
-export default function CourseEditForm({ course }: { course: Course }) {
+export default function CourseEditForm({
+  course,
+  groups,
+}: {
+  course: Course;
+  groups: Group[];
+}) {
   const [saved, setSaved] = useState(false);
 
   return (
@@ -51,6 +60,24 @@ export default function CourseEditForm({ course }: { course: Course }) {
         placeholder="Thumbnail URL (optional)"
         className={fieldClass}
       />
+      <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
+        Completion group
+        <select
+          name="completionGroupId"
+          defaultValue={course.completionGroupId ?? ""}
+          className={fieldClass}
+        >
+          <option value="">None</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <span className="text-off-white/40">
+          Auto-add members to this group when they finish the course.
+        </span>
+      </label>
       <div className="flex flex-wrap items-center gap-6">
         <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
           XP reward

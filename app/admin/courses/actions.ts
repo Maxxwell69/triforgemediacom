@@ -8,6 +8,8 @@ import {
   badgeSchema,
   courseSchema,
   lessonSchema,
+  moduleSchema,
+  parseDatetimeLocal,
   quizSchema,
   questionSchema,
   type QuestionTypeValue,
@@ -37,6 +39,7 @@ function parseCourseForm(formData: FormData) {
     thumbnailUrl: formData.get("thumbnailUrl"),
     category: formData.get("category"),
     xpReward: formData.get("xpReward"),
+    completionGroupId: formData.get("completionGroupId") ?? "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid course");
@@ -78,10 +81,20 @@ export async function updateCourse(formData: FormData) {
       category: data.category || null,
       xpReward: data.xpReward,
       isPublished,
+      completionGroupId: data.completionGroupId || null,
     },
   });
 
   revalidateCourse(id);
+}
+
+export async function setCourseGroups(courseId: string, groupIds: string[]) {
+  await requireAdmin();
+  await prisma.course.update({
+    where: { id: courseId },
+    data: { groups: { set: groupIds.map((id) => ({ id })) } },
+  });
+  revalidateCourse(courseId);
 }
 
 export async function deleteCourse(courseId: string) {
@@ -122,24 +135,123 @@ export async function moveCourseOrder(courseId: string, direction: "up" | "down"
   revalidatePath("/learn");
 }
 
+// ---------- Module ----------
+
+function parseModuleForm(formData: FormData) {
+  const parsed = moduleSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Invalid module");
+  }
+  return parsed.data;
+}
+
+export async function createModule(formData: FormData) {
+  await requireAdmin();
+  const courseId = String(formData.get("courseId"));
+  const data = parseModuleForm(formData);
+  const maxOrder = await prisma.module.aggregate({
+    where: { courseId },
+    _max: { order: true },
+  });
+
+  await prisma.module.create({
+    data: {
+      courseId,
+      title: data.title,
+      description: data.description || null,
+      order: (maxOrder._max.order ?? -1) + 1,
+    },
+  });
+
+  revalidateCourse(courseId);
+}
+
+export async function updateModule(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const courseId = String(formData.get("courseId"));
+  const data = parseModuleForm(formData);
+
+  await prisma.module.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description || null,
+    },
+  });
+
+  revalidateCourse(courseId);
+}
+
+export async function deleteModule(moduleId: string, courseId: string) {
+  await requireAdmin();
+  await prisma.module.delete({ where: { id: moduleId } });
+  revalidateCourse(courseId);
+}
+
+export async function moveModuleOrder(
+  moduleId: string,
+  courseId: string,
+  direction: "up" | "down"
+) {
+  await requireAdmin();
+
+  const modules = await prisma.module.findMany({
+    where: { courseId },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: { id: true, order: true },
+  });
+  const index = modules.findIndex((m) => m.id === moduleId);
+  if (index === -1) return;
+
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (swapIndex < 0 || swapIndex >= modules.length) return;
+
+  const current = modules[index];
+  const swapWith = modules[swapIndex];
+
+  await prisma.$transaction([
+    prisma.module.update({ where: { id: current.id }, data: { order: swapWith.order } }),
+    prisma.module.update({ where: { id: swapWith.id }, data: { order: current.order } }),
+  ]);
+
+  revalidateCourse(courseId);
+}
+
 // ---------- Lesson ----------
 
 function parseLessonForm(formData: FormData) {
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
-    videoUrl: formData.get("videoUrl"),
-    content: formData.get("content"),
+    videoUrl: formData.get("videoUrl") ?? "",
+    audioUrl: formData.get("audioUrl") ?? "",
+    htmlEmbed: formData.get("htmlEmbed") ?? "",
+    content: formData.get("content") ?? "",
+    moduleId: formData.get("moduleId") ?? "",
+    dripDaysAfterEnroll: formData.get("dripDaysAfterEnroll") ?? "",
+    dripUnlockAt: formData.get("dripUnlockAt") ?? "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid lesson");
   }
-  return parsed.data;
+  const dripUnlockAt = parseDatetimeLocal(parsed.data.dripUnlockAt);
+  return { ...parsed.data, dripUnlockAt };
 }
 
 export async function createLesson(formData: FormData) {
   await requireAdmin();
   const courseId = String(formData.get("courseId"));
   const data = parseLessonForm(formData);
+  const moduleId = data.moduleId || null;
+
+  if (moduleId) {
+    const mod = await prisma.module.findFirst({ where: { id: moduleId, courseId } });
+    if (!mod) throw new Error("Module not found on this course");
+  }
+
   const maxOrder = await prisma.lesson.aggregate({
     where: { courseId },
     _max: { order: true },
@@ -148,9 +260,14 @@ export async function createLesson(formData: FormData) {
   await prisma.lesson.create({
     data: {
       courseId,
+      moduleId,
       title: data.title,
       videoUrl: data.videoUrl || null,
+      audioUrl: data.audioUrl || null,
+      htmlEmbed: data.htmlEmbed || null,
       content: data.content || null,
+      dripDaysAfterEnroll: data.dripDaysAfterEnroll,
+      dripUnlockAt: data.dripUnlockAt,
       order: (maxOrder._max.order ?? -1) + 1,
     },
   });
@@ -163,13 +280,24 @@ export async function updateLesson(formData: FormData) {
   const id = String(formData.get("id"));
   const courseId = String(formData.get("courseId"));
   const data = parseLessonForm(formData);
+  const moduleId = data.moduleId || null;
+
+  if (moduleId) {
+    const mod = await prisma.module.findFirst({ where: { id: moduleId, courseId } });
+    if (!mod) throw new Error("Module not found on this course");
+  }
 
   await prisma.lesson.update({
     where: { id },
     data: {
       title: data.title,
+      moduleId,
       videoUrl: data.videoUrl || null,
+      audioUrl: data.audioUrl || null,
+      htmlEmbed: data.htmlEmbed || null,
       content: data.content || null,
+      dripDaysAfterEnroll: data.dripDaysAfterEnroll,
+      dripUnlockAt: data.dripUnlockAt,
     },
   });
 
@@ -189,8 +317,14 @@ export async function moveLessonOrder(
 ) {
   await requireAdmin();
 
+  const target = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { id: true, moduleId: true },
+  });
+  if (!target) return;
+
   const lessons = await prisma.lesson.findMany({
-    where: { courseId },
+    where: { courseId, moduleId: target.moduleId },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     select: { id: true, order: true },
   });

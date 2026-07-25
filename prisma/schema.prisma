@@ -168,8 +168,10 @@ model Group {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  members  GroupMember[]
-  channels Channel[]     @relation("ChannelGroups")
+  members           GroupMember[]
+  channels          Channel[]     @relation("ChannelGroups")
+  courses           Course[]      @relation("CourseGroups")
+  completionCourses Course[]      @relation("CourseCompletionGroup")
 }
 
 model GroupMember {
@@ -324,37 +326,63 @@ model RewardRedemption {
 // ---------- Learning Center (courses, lessons, quizzes, badges) ----------
 
 model Course {
-  id           String   @id @default(cuid())
-  title        String
-  description  String?
-  thumbnailUrl String?
-  category     String?
-  isPublished  Boolean  @default(false)
-  order        Int      @default(0)
-  xpReward     Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  title             String
+  description       String?
+  thumbnailUrl      String?
+  category          String?
+  isPublished       Boolean  @default(false)
+  order             Int      @default(0)
+  xpReward          Int      @default(0)
+  completionGroupId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  lessons     Lesson[]
-  enrollments Enrollment[]
-  badges      Badge[]
+  lessons         Lesson[]
+  modules         Module[]
+  enrollments     Enrollment[]
+  badges          Badge[]
+  groups          Group[]      @relation("CourseGroups")
+  completionGroup Group?       @relation("CourseCompletionGroup", fields: [completionGroupId], references: [id], onDelete: SetNull)
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId, order])
 }
 
 model Lesson {
-  id        String   @id @default(cuid())
-  courseId  String
-  title     String
-  order     Int      @default(0)
-  videoUrl  String?
-  content   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  courseId            String
+  moduleId            String?
+  title               String
+  order               Int       @default(0)
+  videoUrl            String?
+  audioUrl            String?
+  htmlEmbed           String?
+  content             String?
+  dripDaysAfterEnroll Int?
+  dripUnlockAt        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module   Module?          @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   quiz     Quiz?
   progress LessonProgress[]
 
   @@index([courseId, order])
+  @@index([moduleId, order])
 }
 
 model Quiz {

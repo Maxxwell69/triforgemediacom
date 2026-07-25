@@ -11,11 +11,55 @@ export function getOrCreateEnrollment(userId: string, courseId: string) {
   });
 }
 
+type DripLesson = {
+  dripDaysAfterEnroll: number | null;
+  dripUnlockAt: Date | null;
+};
+
+type DripEnrollment = {
+  enrolledAt: Date;
+} | null;
+
+/**
+ * Returns the datetime when a lesson becomes available for this enrollment,
+ * or null if there is no drip schedule (available immediately).
+ * When both relative and absolute drips are set, the later of the two wins.
+ */
+export function getLessonUnlockAt(
+  lesson: DripLesson,
+  enrollment: DripEnrollment
+): Date | null {
+  const candidates: Date[] = [];
+
+  if (lesson.dripDaysAfterEnroll != null && enrollment) {
+    const relative = new Date(enrollment.enrolledAt);
+    relative.setUTCDate(relative.getUTCDate() + lesson.dripDaysAfterEnroll);
+    candidates.push(relative);
+  }
+
+  if (lesson.dripUnlockAt) {
+    candidates.push(new Date(lesson.dripUnlockAt));
+  }
+
+  if (candidates.length === 0) return null;
+  return new Date(Math.max(...candidates.map((d) => d.getTime())));
+}
+
+export function isLessonUnlocked(
+  lesson: DripLesson,
+  enrollment: DripEnrollment,
+  now: Date = new Date()
+): boolean {
+  const unlockAt = getLessonUnlockAt(lesson, enrollment);
+  if (!unlockAt) return true;
+  return now.getTime() >= unlockAt.getTime();
+}
+
 /**
  * Call whenever a LessonProgress.completedAt gets set. If every lesson in
  * the course is now complete for this user, marks the Enrollment complete,
- * awards course XP, and awards the course's badge (if any) — all within the
- * same transaction as the completion write that triggered it.
+ * awards course XP, awards the course's badge (if any), and auto-adds the
+ * user to the course's completion group — all within the same transaction.
  */
 export async function checkCourseCompletion(tx: TxClient, userId: string, courseId: string) {
   const lessons = await tx.lesson.findMany({ where: { courseId }, select: { id: true } });
@@ -62,6 +106,19 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
     });
     if (!existing) {
       await tx.userBadge.create({ data: { userId, badgeId: badge.id } });
+    }
+  }
+
+  if (course.completionGroupId) {
+    const existingMember = await tx.groupMember.findUnique({
+      where: {
+        userId_groupId: { userId, groupId: course.completionGroupId },
+      },
+    });
+    if (!existingMember) {
+      await tx.groupMember.create({
+        data: { userId, groupId: course.completionGroupId },
+      });
     }
   }
 }

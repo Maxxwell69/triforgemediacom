@@ -1,8 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
+import { getOrCreateEnrollment, isLessonUnlocked } from "@/lib/learning";
+import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
+import { isAdminRole } from "@/lib/rbac";
 import VideoEmbed from "@/components/VideoEmbed";
+import HtmlEmbed from "@/components/HtmlEmbed";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
 import QuizPlayer from "@/components/QuizPlayer";
 
@@ -14,17 +18,35 @@ export default async function LessonPage({
   params: { courseId: string; lessonId: string };
 }) {
   const { user } = await requireProfile();
+  const userGroupIds = await getUserGroupIds(user.id);
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: params.lessonId },
     include: {
-      course: { select: { id: true, title: true, isPublished: true } },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          isPublished: true,
+          groups: { select: { id: true } },
+        },
+      },
       quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
     },
   });
 
   if (!lesson || lesson.courseId !== params.courseId || !lesson.course.isPublished) {
     notFound();
+  }
+
+  if (!canAccessCourse(user.role, lesson.course, userGroupIds)) {
+    redirect("/learn");
+  }
+
+  const enrollment = await getOrCreateEnrollment(user.id, lesson.courseId);
+  const bypassDrip = isAdminRole(user.role);
+  if (!bypassDrip && !isLessonUnlocked(lesson, enrollment)) {
+    redirect(`/learn/${lesson.courseId}`);
   }
 
   const progress = await prisma.lessonProgress.findUnique({
@@ -46,6 +68,20 @@ export default async function LessonPage({
         {lesson.videoUrl && (
           <div className="mt-6">
             <VideoEmbed url={lesson.videoUrl} />
+          </div>
+        )}
+
+        {lesson.audioUrl && (
+          <div className="glass mt-6 rounded-2xl p-4">
+            <audio controls src={lesson.audioUrl} className="w-full" preload="metadata">
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        )}
+
+        {lesson.htmlEmbed && (
+          <div className="mt-6">
+            <HtmlEmbed html={lesson.htmlEmbed} />
           </div>
         )}
 

@@ -2,14 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
+import { toDatetimeLocalValue } from "@/lib/validations/course";
 import QuizSection from "./QuizSection";
 import type { QuestionData } from "./QuestionForm";
+
+type ModuleOption = { id: string; title: string };
 
 type Lesson = {
   id: string;
   title: string;
+  moduleId: string | null;
   videoUrl: string | null;
+  audioUrl: string | null;
+  htmlEmbed: string | null;
   content: string | null;
+  dripDaysAfterEnroll: number | null;
+  dripUnlockAt: Date | string | null;
   quiz: { id: string; title: string; passScore: number; questions: QuestionData[] } | null;
 };
 
@@ -19,16 +27,33 @@ const fieldClass =
 export default function LessonRow({
   courseId,
   lesson,
+  modules,
   isFirst,
   isLast,
 }: {
   courseId: string;
   lesson: Lesson;
+  modules: ModuleOption[];
   isFirst: boolean;
   isLast: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const unlockAt =
+    lesson.dripUnlockAt instanceof Date
+      ? lesson.dripUnlockAt
+      : lesson.dripUnlockAt
+        ? new Date(lesson.dripUnlockAt)
+        : null;
+
+  const dripBits: string[] = [];
+  if (lesson.dripDaysAfterEnroll != null) {
+    dripBits.push(`${lesson.dripDaysAfterEnroll}d after enroll`);
+  }
+  if (unlockAt) {
+    dripBits.push(`unlocks ${unlockAt.toLocaleDateString([], { dateStyle: "medium" })}`);
+  }
 
   return (
     <div className="glass rounded-xl p-4">
@@ -60,9 +85,15 @@ export default function LessonRow({
                 {lesson.title}
               </p>
               <p className="mt-0.5 font-body text-xs text-off-white/40">
-                {lesson.videoUrl ? "🎬 Video" : "No video"}
-                {" \u00b7 "}
-                {lesson.content ? "Has text content" : "No text content"}
+                {[
+                  lesson.videoUrl ? "Video" : null,
+                  lesson.audioUrl ? "Audio" : null,
+                  lesson.htmlEmbed ? "Embed" : null,
+                  lesson.content ? "Text" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "No content"}
+                {dripBits.length > 0 ? ` · Drip: ${dripBits.join(", ")}` : ""}
               </p>
             </div>
           )}
@@ -102,10 +133,38 @@ export default function LessonRow({
           <input type="hidden" name="id" value={lesson.id} />
           <input type="hidden" name="courseId" value={courseId} />
           <input name="title" defaultValue={lesson.title} required className={fieldClass} />
+          <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
+            Module
+            <select
+              name="moduleId"
+              defaultValue={lesson.moduleId ?? ""}
+              className={fieldClass}
+            >
+              <option value="">No module / Unsorted</option>
+              {modules.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <input
             name="videoUrl"
             defaultValue={lesson.videoUrl ?? ""}
             placeholder="YouTube or Vimeo URL (optional)"
+            className={fieldClass}
+          />
+          <input
+            name="audioUrl"
+            defaultValue={lesson.audioUrl ?? ""}
+            placeholder="Audio file URL (optional)"
+            className={fieldClass}
+          />
+          <textarea
+            name="htmlEmbed"
+            defaultValue={lesson.htmlEmbed ?? ""}
+            rows={3}
+            placeholder="HTML iframe embed (Loom, Slides, etc. — optional)"
             className={fieldClass}
           />
           <textarea
@@ -115,6 +174,29 @@ export default function LessonRow({
             placeholder="Lesson text content (optional)"
             className={fieldClass}
           />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
+              Days after enrollment
+              <input
+                type="number"
+                name="dripDaysAfterEnroll"
+                min={0}
+                max={3650}
+                defaultValue={lesson.dripDaysAfterEnroll ?? ""}
+                placeholder="Leave empty = no drip"
+                className={fieldClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
+              Unlock at
+              <input
+                type="datetime-local"
+                name="dripUnlockAt"
+                defaultValue={toDatetimeLocalValue(unlockAt)}
+                className={fieldClass}
+              />
+            </label>
+          </div>
           <div className="flex items-center gap-3">
             <button
               type="submit"
