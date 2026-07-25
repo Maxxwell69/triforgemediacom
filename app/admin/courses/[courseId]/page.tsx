@@ -314,8 +314,8 @@ export default async function AdminCourseDetailPage({
           <textarea
             name="content"
             rows={3}
-            placeholder="Lesson text content (optional)"
-            className={fieldClass}
+            placeholder="Lesson content — plain text or HTML (optional). You can add rich formatting after creating the lesson."
+            className={`${fieldClass} font-mono text-xs`}
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">

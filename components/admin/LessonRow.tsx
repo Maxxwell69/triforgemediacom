@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
 import { toDatetimeLocalValue } from "@/lib/validations/course";
+import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import QuizSection from "./QuizSection";
 import AssignmentSection from "./AssignmentSection";
 import type { QuestionData } from "./QuestionForm";
@@ -51,6 +52,8 @@ export default function LessonRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [content, setContent] = useState(lesson.content ?? "");
+  const [showPreview, setShowPreview] = useState(false);
 
   const unlockAt =
     lesson.dripUnlockAt instanceof Date
@@ -181,13 +184,38 @@ export default function LessonRow({
             placeholder="HTML iframe embed (Loom, Slides, etc. — optional)"
             className={fieldClass}
           />
-          <textarea
-            name="content"
-            defaultValue={lesson.content ?? ""}
-            rows={4}
-            placeholder="Lesson text content (optional)"
-            className={fieldClass}
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-body text-xs text-off-white/50">
+                Lesson content &mdash; plain text or HTML (headings, bold, lists, links,
+                images, tables, inline <code>style</code>). Tailwind classes won&apos;t apply
+                here; use inline styles instead.
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPreview((v) => !v)}
+                className="shrink-0 rounded-lg border border-off-white/15 px-2 py-1 font-body text-xs text-off-white/60 transition hover:border-cyan/40 hover:text-cyan"
+              >
+                {showPreview ? "Edit" : "Preview"}
+              </button>
+            </div>
+            {showPreview ? (
+              <div
+                className="prose prose-invert min-h-[6rem] max-w-none rounded-lg border border-off-white/15 bg-off-white/5 p-3 text-sm prose-headings:font-display prose-a:text-cyan prose-img:rounded-lg prose-strong:text-off-white"
+                dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) || "<p class=\"text-off-white/30\">Nothing to preview yet.</p>" }}
+              />
+            ) : (
+              <textarea
+                name="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                placeholder="e.g. <h2>Welcome</h2><p>Some <strong>bold</strong> text and a list:</p><ul><li>Step one</li></ul>"
+                className={`${fieldClass} font-mono text-xs`}
+              />
+            )}
+            {showPreview && <input type="hidden" name="content" value={content} />}
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
               Days after enrollment

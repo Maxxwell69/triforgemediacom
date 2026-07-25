@@ -7,6 +7,7 @@ import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import VideoEmbed from "@/components/VideoEmbed";
 import HtmlEmbed from "@/components/HtmlEmbed";
+import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
 import QuizPlayer from "@/components/QuizPlayer";
 import AssignmentSubmissionForm from "@/components/AssignmentSubmissionForm";
@@ -114,9 +115,10 @@ export default async function LessonPage({
         )}
 
         {lesson.content && (
-          <div className="glass mt-6 whitespace-pre-wrap rounded-2xl p-6 font-body text-sm leading-relaxed text-off-white/80">
-            {lesson.content}
-          </div>
+          <div
+            className="glass prose prose-invert mt-6 max-w-none whitespace-pre-wrap rounded-2xl p-6 font-body text-sm leading-relaxed text-off-white/80 prose-headings:font-display prose-headings:tracking-wide prose-a:text-cyan prose-img:rounded-xl prose-strong:text-off-white"
+            dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(lesson.content) }}
+          />
         )}
 
         <div className="mt-8">
