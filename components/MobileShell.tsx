@@ -22,7 +22,7 @@ export default function MobileShell({
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
-        <Logo height={20} />
+        <Logo height={20} href="/home" />
         <button
           type="button"
           onClick={() => setOpen(true)}
