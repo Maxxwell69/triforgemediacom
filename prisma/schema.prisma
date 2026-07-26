@@ -213,6 +213,24 @@ model Announcement {
   updatedByName String?
 }
 
+// ---------- Company social links (admin-managed) ----------
+// One row per platform — any admin can add/edit/clear these from
+// /admin/social. Shown as "follow us" / share links on the member dashboard.
+
+enum SocialPlatform {
+  TIKTOK
+  INSTAGRAM
+  YOUTUBE
+  FACEBOOK
+}
+
+model CompanySocial {
+  id        String         @id @default(cuid())
+  platform  SocialPlatform @unique
+  url       String
+  updatedAt DateTime       @updatedAt
+}
+
 // ---------- TikTask ----------
 
 model TaskTemplate {

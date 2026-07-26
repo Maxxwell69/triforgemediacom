@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
@@ -33,7 +34,11 @@ export default async function MembersPage() {
             const platform = member.profile?.platform;
 
             return (
-              <div key={member.id} className="glass flex flex-col gap-3 rounded-2xl p-5">
+              <Link
+                key={member.id}
+                href={`/members/${member.id}`}
+                className="glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
+              >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-lg text-charcoal">
                     {initial}
@@ -67,7 +72,7 @@ export default async function MembersPage() {
                 <p className="font-body text-sm text-off-white/50">
                   {pointsTotals[member.id] ?? 0} points
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>

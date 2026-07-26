@@ -5,6 +5,7 @@ import { canAccessChannel, getUserGroupIds, hasTikTaskAccess } from "@/lib/group
 import { isAdminRole } from "@/lib/rbac";
 import { getOrGenerateTodayTasks } from "@/lib/tiktask";
 import DashboardCard from "@/components/DashboardCard";
+import CompanySocialPanel from "@/components/CompanySocialPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,8 @@ export default async function HomePage() {
             />
           )}
         </div>
+
+        <CompanySocialPanel />
       </div>
     </main>
   );
