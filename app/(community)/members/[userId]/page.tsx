@@ -5,6 +5,7 @@ import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
+import { formatCount } from "@/lib/formatCount";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
 
@@ -35,7 +36,11 @@ export default async function MemberProfilePage({
 
   const member = await prisma.user.findFirst({
     where: { id: params.userId, status: "ACTIVE", profile: { isNot: null } },
-    include: { profile: true, groupMemberships: { include: { group: true } } },
+    include: {
+      profile: true,
+      groupMemberships: { include: { group: true } },
+      tiktokConnection: true,
+    },
   });
   if (!member || !member.profile) notFound();
 
@@ -142,6 +147,35 @@ export default async function MemberProfilePage({
                   />
                 </div>
               </div>
+
+              {member.tiktokConnection && (
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border border-off-white/10 py-2">
+                    <p className="font-display text-sm text-off-white">
+                      {formatCount(member.tiktokConnection.followerCount ?? 0)}
+                    </p>
+                    <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">
+                      Followers
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-off-white/10 py-2">
+                    <p className="font-display text-sm text-off-white">
+                      {formatCount(member.tiktokConnection.likesCount ?? 0)}
+                    </p>
+                    <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">
+                      Likes
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-off-white/10 py-2">
+                    <p className="font-display text-sm text-off-white">
+                      {formatCount(member.tiktokConnection.videoCount ?? 0)}
+                    </p>
+                    <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">
+                      Videos
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {tiktokEmbedHtml ? (
                 <div className="mt-4">

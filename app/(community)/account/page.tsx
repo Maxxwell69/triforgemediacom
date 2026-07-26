@@ -3,12 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
+import { formatCount } from "@/lib/formatCount";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangePasswordForm from "./ChangePasswordForm";
+import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams?: { tiktok?: string; tiktok_message?: string };
+}) {
   const { user, profile } = await requireProfile();
-  const [points, userBadges, certificates] = await Promise.all([
+  const [points, userBadges, certificates, tiktokConnection] = await Promise.all([
     getUserPointsTotal(user.id),
     prisma.userBadge.findMany({
       where: { userId: user.id },
@@ -20,6 +26,7 @@ export default async function AccountPage() {
       include: { course: { select: { title: true } } },
       orderBy: { issuedAt: "desc" },
     }),
+    prisma.tikTokConnection.findUnique({ where: { userId: user.id } }),
   ]);
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
 
@@ -116,6 +123,104 @@ export default async function AccountPage() {
               pinnedTiktokVideoUrl: profile.pinnedTiktokVideoUrl ?? "",
             }}
           />
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          TikTok stats
+        </h2>
+        <div className="mt-4">
+          {searchParams?.tiktok === "connected" && (
+            <p className="mb-3 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
+              TikTok connected!
+            </p>
+          )}
+          {searchParams?.tiktok === "error" && (
+            <p className="mb-3 rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+              {searchParams.tiktok_message || "Couldn't connect your TikTok account."}
+            </p>
+          )}
+
+          {tiktokConnection ? (
+            <div className="glass flex flex-col gap-4 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                {tiktokConnection.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- external TikTok CDN avatar
+                  <img
+                    src={tiktokConnection.avatarUrl}
+                    alt=""
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-charcoal">
+                    🎵
+                  </div>
+                )}
+                <div>
+                  <p className="font-body text-sm font-semibold text-off-white">
+                    {tiktokConnection.displayName || "TikTok account connected"}
+                  </p>
+                  <p className="font-body text-xs text-off-white/40">
+                    {tiktokConnection.statsUpdatedAt
+                      ? `Stats updated ${tiktokConnection.statsUpdatedAt.toLocaleDateString([], { dateStyle: "medium" })}`
+                      : "Connected via TikTok Login"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl border border-off-white/10 py-3">
+                  <p className="font-display text-xl text-off-white">
+                    {formatCount(tiktokConnection.followerCount ?? 0)}
+                  </p>
+                  <p className="font-body text-xs text-off-white/40">Followers</p>
+                </div>
+                <div className="rounded-xl border border-off-white/10 py-3">
+                  <p className="font-display text-xl text-off-white">
+                    {formatCount(tiktokConnection.likesCount ?? 0)}
+                  </p>
+                  <p className="font-body text-xs text-off-white/40">Likes</p>
+                </div>
+                <div className="rounded-xl border border-off-white/10 py-3">
+                  <p className="font-display text-xl text-off-white">
+                    {formatCount(tiktokConnection.videoCount ?? 0)}
+                  </p>
+                  <p className="font-body text-xs text-off-white/40">Videos</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <form action={refreshTikTokStatsAction}>
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                  >
+                    Refresh stats
+                  </button>
+                </form>
+                <form action={disconnectTikTok}>
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/60 transition hover:border-orange/40 hover:text-orange"
+                  >
+                    Disconnect
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div className="glass flex flex-col items-center gap-3 rounded-2xl p-6 text-center">
+              <p className="font-body text-sm text-off-white/60">
+                Connect your TikTok account to show your real follower, like, and video counts
+                right on your community profile.
+              </p>
+              <a
+                href="/api/tiktok/connect"
+                className="rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow transition hover:brightness-110"
+              >
+                🎵 Connect TikTok
+              </a>
+            </div>
+          )}
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">

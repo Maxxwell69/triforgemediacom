@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
 import { changePasswordSchema } from "@/lib/validations/account";
+import { refreshTikTokStats } from "@/lib/tiktokOAuth";
 import type { ProfileFormState } from "@/components/ProfileForm";
 
 export async function updateProfile(
@@ -94,4 +95,20 @@ export async function changePassword(
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
 
   return { success: true };
+}
+
+export async function disconnectTikTok() {
+  const user = await requireUser();
+  await prisma.tikTokConnection.deleteMany({ where: { userId: user.id } });
+  revalidatePath("/account");
+}
+
+export async function refreshTikTokStatsAction() {
+  const user = await requireUser();
+  try {
+    await refreshTikTokStats(user.id);
+  } catch (err) {
+    console.error("Failed to refresh TikTok stats:", err);
+  }
+  revalidatePath("/account");
 }

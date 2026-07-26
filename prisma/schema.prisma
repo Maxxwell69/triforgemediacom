@@ -93,6 +93,7 @@ model User {
   assignmentSubmissions      AssignmentSubmission[] @relation("SubmittedBy")
   assignmentReviews          AssignmentSubmission[] @relation("ReviewedBy")
   certificates               Certificate[]
+  tiktokConnection           TikTokConnection?
 }
 
 // ---------- Application / invite flow ----------
@@ -230,6 +231,32 @@ model CompanySocial {
   platform  SocialPlatform @unique
   url       String
   updatedAt DateTime       @updatedAt
+}
+
+// ---------- TikTok OAuth (Login Kit) ----------
+// A member connects their own TikTok account so we can show real, live
+// follower/like/video stats on their profile. TikTok's public API has no
+// endpoint for liking/commenting on behalf of a user — this is read-only
+// identity + stats, nothing more.
+model TikTokConnection {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  openId                String
+  displayName           String?
+  avatarUrl             String?
+  followerCount         Int?
+  followingCount        Int?
+  likesCount            Int?
+  videoCount            Int?
+  statsUpdatedAt        DateTime?
+  accessToken           String
+  refreshToken          String
+  accessTokenExpiresAt  DateTime
+  refreshTokenExpiresAt DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ---------- TikTask ----------
