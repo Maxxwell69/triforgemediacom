@@ -113,6 +113,7 @@ export default async function AccountPage() {
               tiktokUrl: socialLinks.tiktok ?? "",
               twitchUrl: socialLinks.twitch ?? "",
               youtubeUrl: socialLinks.youtube ?? "",
+              pinnedTiktokVideoUrl: profile.pinnedTiktokVideoUrl ?? "",
             }}
           />
         </div>

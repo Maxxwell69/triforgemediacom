@@ -19,13 +19,15 @@ export async function completeOnboarding(
     tiktokUrl: formData.get("tiktokUrl"),
     twitchUrl: formData.get("twitchUrl"),
     youtubeUrl: formData.get("youtubeUrl"),
+    pinnedTiktokVideoUrl: formData.get("pinnedTiktokVideoUrl"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  const { platform, goals, bio, tiktokUrl, twitchUrl, youtubeUrl } = parsed.data;
+  const { platform, goals, bio, tiktokUrl, twitchUrl, youtubeUrl, pinnedTiktokVideoUrl } =
+    parsed.data;
 
   const goalsJson: Record<string, boolean> = {};
   for (const key of goals) goalsJson[key] = true;
@@ -42,6 +44,7 @@ export async function completeOnboarding(
       goals: goalsJson,
       bio: bio || null,
       socialLinks,
+      pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
     },
     create: {
       userId: user.id,
@@ -49,6 +52,7 @@ export async function completeOnboarding(
       goals: goalsJson,
       bio: bio || null,
       socialLinks,
+      pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
     },
   });
 

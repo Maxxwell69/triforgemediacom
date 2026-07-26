@@ -130,16 +130,17 @@ enum Platform {
 }
 
 model Profile {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  platform     Platform
-  goals        Json // e.g. { growFollowers: true, consistentSchedule: true }
-  bio          String?
-  socialLinks  Json? // { tiktok: "...", twitch: "..." }
-  streakCount  Int       @default(0)
-  lastActiveAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  platform             Platform
+  goals                Json // e.g. { growFollowers: true, consistentSchedule: true }
+  bio                  String?
+  socialLinks          Json? // { tiktok: "...", twitch: "..." }
+  pinnedTiktokVideoUrl String? // a specific video to feature/embed on their profile
+  streakCount          Int       @default(0)
+  lastActiveAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

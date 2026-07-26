@@ -11,4 +11,12 @@ export const onboardingSchema = z.object({
   tiktokUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
   twitchUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
   youtubeUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
+  pinnedTiktokVideoUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(300)
+    .refine((v) => v.includes("tiktok.com"), { message: "Must be a tiktok.com video link" })
+    .optional()
+    .or(z.literal("")),
 });

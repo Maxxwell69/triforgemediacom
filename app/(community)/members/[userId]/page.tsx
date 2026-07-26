@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { PLATFORM_LABELS } from "@/lib/platforms";
+import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import ShareButton from "@/components/ShareButton";
+import TikTokEmbed from "@/components/TikTokEmbed";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,11 @@ const SOCIAL_LINK_META: Record<string, { label: string; icon: string }> = {
 function profileShareUrl(userId: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   return `${base}/members/${userId}`;
+}
+
+function tiktokHandle(url: string): string | null {
+  const match = url.match(/@([\w.-]+)/);
+  return match ? `@${match[1]}` : null;
 }
 
 export default async function MemberProfilePage({
@@ -36,7 +43,10 @@ export default async function MemberProfilePage({
   const initial = (member.name || member.email).trim().charAt(0).toUpperCase();
   const groups = member.groupMemberships.map((m) => m.group);
   const socialLinks = (member.profile.socialLinks as Record<string, string> | null) ?? {};
-  const socialEntries = Object.entries(socialLinks).filter(([, url]) => !!url);
+  const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
+  const tiktokUrl = socialLinks.tiktok || null;
+  const pinnedVideoUrl = member.profile.pinnedTiktokVideoUrl || null;
+  const tiktokEmbedHtml = pinnedVideoUrl ? await getTikTokEmbedHtml(pinnedVideoUrl) : null;
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -95,6 +105,59 @@ export default async function MemberProfilePage({
           )}
 
           <p className="font-body text-sm text-off-white/50">{points} points</p>
+
+          {tiktokUrl && (
+            <div className="rounded-2xl border border-off-white/10 bg-gradient-to-br from-off-white/[0.04] to-transparent p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <a
+                  href={tiktokUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 transition hover:text-cyan"
+                >
+                  <span className="text-2xl" aria-hidden="true">
+                    🎵
+                  </span>
+                  <div>
+                    <p className="font-body text-sm font-semibold text-off-white">TikTok</p>
+                    <p className="font-body text-xs text-off-white/50">
+                      {tiktokHandle(tiktokUrl) ?? "View profile"}
+                    </p>
+                  </div>
+                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                  >
+                    Visit profile
+                  </a>
+                  <ShareButton
+                    title={`${member.name || "This creator"} on TikTok`}
+                    url={tiktokUrl}
+                    label="Share"
+                    className="rounded-lg border border-off-white/15 px-2.5 py-1.5 font-body text-xs text-off-white/60 transition hover:border-cyan/40 hover:text-cyan"
+                  />
+                </div>
+              </div>
+
+              {tiktokEmbedHtml ? (
+                <div className="mt-4">
+                  <TikTokEmbed html={tiktokEmbedHtml} />
+                </div>
+              ) : pinnedVideoUrl ? (
+                <p className="mt-4 font-body text-xs text-off-white/40">
+                  Couldn&apos;t load the featured video —{" "}
+                  <a href={pinnedVideoUrl} target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                    watch it on TikTok
+                  </a>
+                  .
+                </p>
+              ) : null}
+            </div>
+          )}
 
           {socialEntries.length > 0 && (
             <div className="border-t border-off-white/10 pt-5">

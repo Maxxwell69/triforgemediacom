@@ -14,6 +14,7 @@ export type ProfileFormDefaults = {
   tiktokUrl?: string;
   twitchUrl?: string;
   youtubeUrl?: string;
+  pinnedTiktokVideoUrl?: string;
 };
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -146,6 +147,23 @@ export default function ProfileForm({
           />
         </label>
       </div>
+
+      <label htmlFor="pinnedTiktokVideoUrl" className="flex flex-col gap-1.5">
+        <span className="font-body text-sm font-medium text-off-white/80">
+          Feature a TikTok video (optional)
+        </span>
+        <input
+          id="pinnedTiktokVideoUrl"
+          name="pinnedTiktokVideoUrl"
+          type="url"
+          defaultValue={defaultValues?.pinnedTiktokVideoUrl ?? ""}
+          className={inputClass}
+          placeholder="https://www.tiktok.com/@you/video/1234567890123456789"
+        />
+        <span className="font-body text-xs text-off-white/40">
+          Paste a link to one of your videos and it&apos;ll play right on your community profile.
+        </span>
+      </label>
 
       <SubmitButton label={submitLabel} pendingLabel={pendingLabel} />
     </form>
