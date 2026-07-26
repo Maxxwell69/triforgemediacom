@@ -8,18 +8,32 @@ import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
-export default async function MembersPage() {
+export default async function MembersPage({
+  searchParams,
+}: {
+  searchParams?: { tag?: string };
+}) {
   await requireProfile();
 
-  const members = await prisma.user.findMany({
-    where: { status: "ACTIVE", profile: { isNot: null } },
-    include: {
-      profile: true,
-      groupMemberships: { include: { group: true } },
-      tiktokConnection: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const activeTagId = searchParams?.tag;
+
+  const [allTags, members] = await Promise.all([
+    prisma.tag.findMany({ orderBy: { name: "asc" } }),
+    prisma.user.findMany({
+      where: {
+        status: "ACTIVE",
+        profile: { isNot: null },
+        ...(activeTagId ? { tags: { some: { tagId: activeTagId } } } : {}),
+      },
+      include: {
+        profile: true,
+        groupMemberships: { include: { group: true } },
+        tiktokConnection: true,
+        tags: { include: { tag: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   const pointsTotals = await getUserPointsTotals(members.map((m) => m.id));
 
@@ -33,12 +47,51 @@ export default async function MembersPage() {
           {members.length} active member{members.length === 1 ? "" : "s"}
         </p>
 
+        {allTags.length > 0 && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href="/members"
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+                !activeTagId
+                  ? "border-off-white/40 bg-off-white/10 text-off-white"
+                  : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+              }`}
+            >
+              All
+            </Link>
+            {allTags.map((tag) => {
+              const active = activeTagId === tag.id;
+              return (
+                <Link
+                  key={tag.id}
+                  href={`/members?tag=${tag.id}`}
+                  className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition"
+                  style={
+                    active
+                      ? { borderColor: tag.color, color: "#0A0A0A", backgroundColor: tag.color }
+                      : { borderColor: `${tag.color}66`, color: tag.color }
+                  }
+                >
+                  {tag.name}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {members.length === 0 && (
+          <p className="glass mt-8 rounded-2xl p-8 text-center font-body text-off-white/50">
+            No members with this tag yet.
+          </p>
+        )}
+
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {members.map((member) => {
             const displayName = getMemberDisplayName(member);
             const avatarUrl = getMemberAvatarUrl(member);
             const initial = getMemberInitial(member);
             const groups = member.groupMemberships.map((m) => m.group);
+            const tags = member.tags.map((ut) => ut.tag);
             const platform = member.profile?.platform;
 
             return (
@@ -68,6 +121,20 @@ export default async function MembersPage() {
                         style={{ borderColor: `${g.color}66`, color: g.color }}
                       >
                         {g.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
+                        style={{ borderColor: `${tag.color}66`, color: tag.color }}
+                      >
+                        {tag.name}
                       </span>
                     ))}
                   </div>

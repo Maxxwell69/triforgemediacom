@@ -9,6 +9,7 @@ const links = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/tasks", label: "Task Templates" },
   { href: "/admin/groups", label: "Groups" },
+  { href: "/admin/tags", label: "Tags" },
   { href: "/admin/channels", label: "Channels" },
   { href: "/admin/rewards", label: "Rewards" },
   { href: "/admin/courses", label: "Courses" },

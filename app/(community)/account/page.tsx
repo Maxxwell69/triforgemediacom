@@ -6,6 +6,7 @@ import { activeGoalKeys } from "@/lib/goals";
 import { formatCount } from "@/lib/formatCount";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangePasswordForm from "./ChangePasswordForm";
+import TagPicker from "@/components/TagPicker";
 import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
 
 export default async function AccountPage({
@@ -14,20 +15,26 @@ export default async function AccountPage({
   searchParams?: { tiktok?: string; tiktok_message?: string };
 }) {
   const { user, profile } = await requireProfile();
-  const [points, userBadges, certificates, tiktokConnection] = await Promise.all([
-    getUserPointsTotal(user.id),
-    prisma.userBadge.findMany({
-      where: { userId: user.id },
-      include: { badge: true },
-      orderBy: { awardedAt: "desc" },
-    }),
-    prisma.certificate.findMany({
-      where: { userId: user.id },
-      include: { course: { select: { title: true } } },
-      orderBy: { issuedAt: "desc" },
-    }),
-    prisma.tikTokConnection.findUnique({ where: { userId: user.id } }),
-  ]);
+  const [points, userBadges, certificates, tiktokConnection, selfAssignableTags, myTags] =
+    await Promise.all([
+      getUserPointsTotal(user.id),
+      prisma.userBadge.findMany({
+        where: { userId: user.id },
+        include: { badge: true },
+        orderBy: { awardedAt: "desc" },
+      }),
+      prisma.certificate.findMany({
+        where: { userId: user.id },
+        include: { course: { select: { title: true } } },
+        orderBy: { issuedAt: "desc" },
+      }),
+      prisma.tikTokConnection.findUnique({ where: { userId: user.id } }),
+      prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
+      prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
+    ]);
+
+  const myTagIds = myTags.map((ut) => ut.tagId);
+  const adminOnlyTags = myTags.map((ut) => ut.tag).filter((tag) => !tag.selfAssignable);
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
 
   return (
@@ -123,6 +130,37 @@ export default async function AccountPage({
               pinnedTiktokVideoUrl: profile.pinnedTiktokVideoUrl ?? "",
             }}
           />
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">Tags</h2>
+        <div className="mt-4">
+          <div className="glass flex flex-col gap-4 rounded-2xl p-6">
+            {adminOnlyTags.length > 0 && (
+              <div>
+                <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-off-white/40">
+                  Awarded by admin
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {adminOnlyTags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      title={tag.description ?? undefined}
+                      className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold"
+                      style={{ borderColor: `${tag.color}66`, color: tag.color }}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div>
+              <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-off-white/40">
+                Tap to add or remove &mdash; shown on your profile so other members can find you
+              </p>
+              <TagPicker tags={selfAssignableTags} myTagIds={myTagIds} />
+            </div>
+          </div>
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">

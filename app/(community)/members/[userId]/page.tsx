@@ -42,6 +42,7 @@ export default async function MemberProfilePage({
       profile: true,
       groupMemberships: { include: { group: true } },
       tiktokConnection: true,
+      tags: { include: { tag: true } },
     },
   });
   if (!member || !member.profile) notFound();
@@ -51,6 +52,7 @@ export default async function MemberProfilePage({
   const avatarUrl = getMemberAvatarUrl(member);
   const initial = getMemberInitial(member);
   const groups = member.groupMemberships.map((m) => m.group);
+  const tags = member.tags.map((ut) => ut.tag);
   const socialLinks = (member.profile.socialLinks as Record<string, string> | null) ?? {};
   const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
   const tiktokUrl = socialLinks.tiktok || null;
@@ -104,6 +106,21 @@ export default async function MemberProfilePage({
                   style={{ borderColor: `${g.color}66`, color: g.color }}
                 >
                   {g.name}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  title={tag.description ?? undefined}
+                  className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
+                  style={{ borderColor: `${tag.color}66`, color: tag.color }}
+                >
+                  {tag.name}
                 </span>
               ))}
             </div>

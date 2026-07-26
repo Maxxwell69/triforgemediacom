@@ -94,6 +94,7 @@ model User {
   assignmentReviews          AssignmentSubmission[] @relation("ReviewedBy")
   certificates               Certificate[]
   tiktokConnection           TikTokConnection?
+  tags                       UserTag[]
 }
 
 // ---------- Application / invite flow ----------
@@ -257,6 +258,36 @@ model TikTokConnection {
   updatedAt             DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Tags (searchable creator attributes) ----------
+// Admin-managed labels members can be found by (e.g. "Live Host", "Gamer").
+// selfAssignable controls whether members can add/remove it themselves from
+// their account page, or whether it's admin-only (e.g. an official "CN"
+// designation an admin grants, that members can't just give themselves).
+
+model Tag {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  color          String   @default("#00D4FF")
+  description    String?
+  selfAssignable Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users UserTag[]
+}
+
+model UserTag {
+  id        String   @id @default(cuid())
+  userId    String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tagId])
 }
 
 // ---------- TikTask ----------

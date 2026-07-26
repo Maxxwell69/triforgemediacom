@@ -112,3 +112,26 @@ export async function refreshTikTokStatsAction() {
   }
   revalidatePath("/account");
 }
+
+export async function toggleMyTag(tagId: string, added: boolean) {
+  const user = await requireUser();
+
+  const tag = await prisma.tag.findUnique({ where: { id: tagId }, select: { selfAssignable: true } });
+  if (!tag || !tag.selfAssignable) {
+    throw new Error("This tag can't be self-assigned.");
+  }
+
+  if (added) {
+    await prisma.userTag.upsert({
+      where: { userId_tagId: { userId: user.id, tagId } },
+      update: {},
+      create: { userId: user.id, tagId },
+    });
+  } else {
+    await prisma.userTag.deleteMany({ where: { userId: user.id, tagId } });
+  }
+
+  revalidatePath("/account");
+  revalidatePath("/members");
+  revalidatePath(`/members/${user.id}`);
+}

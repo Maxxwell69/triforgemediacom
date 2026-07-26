@@ -65,6 +65,25 @@ async function main() {
       console.log(`Created task template: ${t.taskText}`);
     }
   }
+
+  const defaultTags: { name: string; color: string; selfAssignable: boolean }[] = [
+    { name: "CN", color: "#FD4802", selfAssignable: false },
+    { name: "Live Host", color: "#00D4FF", selfAssignable: true },
+    { name: "Music Maker", color: "#A855F7", selfAssignable: true },
+    { name: "Shop Owner", color: "#22C55E", selfAssignable: true },
+    { name: "Battle", color: "#EF4444", selfAssignable: true },
+    { name: "Engagement Host", color: "#EAB308", selfAssignable: true },
+    { name: "Gamer", color: "#3B82F6", selfAssignable: true },
+  ];
+
+  for (const t of defaultTags) {
+    await prisma.tag.upsert({
+      where: { name: t.name },
+      update: {},
+      create: t,
+    });
+  }
+  console.log(`Seeded ${defaultTags.length} tags`);
 }
 
 main()
