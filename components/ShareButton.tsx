@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SHARE_XP_REWARD } from "@/lib/shareRewards";
 
 // Real, official share-intent popups. These accept ANY external url — they
 // are the "share channel", not the platform the content lives on. TikTok,
@@ -54,6 +55,22 @@ function openSharePopup(href: string) {
   window.open(href, "_blank", "noopener,noreferrer,width=600,height=500");
 }
 
+type AwardResult = { alreadyClaimed: boolean; xpAwarded: number };
+
+async function recordShare(context: string): Promise<AwardResult | null> {
+  try {
+    const res = await fetch("/api/share/award", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as AwardResult;
+  } catch {
+    return null;
+  }
+}
+
 export default function ShareButton({
   title,
   text,
@@ -68,7 +85,7 @@ export default function ShareButton({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
   const shareText = text || title;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,23 +106,46 @@ export default function ShareButton({
     };
   }, [open]);
 
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.prompt("Copy this link:", url);
+  function showFeedback(message: string) {
+    setFeedback(message);
+    setTimeout(() => setFeedback(null), 3500);
+  }
+
+  async function awardAndAnnounce(actionLabel: string, context: string) {
+    const result = await recordShare(context);
+    if (result && !result.alreadyClaimed) {
+      showFeedback(`${actionLabel} +${result.xpAwarded} XP!`);
+    } else if (result?.alreadyClaimed) {
+      showFeedback(`${actionLabel} (today's bonus already claimed)`);
+    } else {
+      showFeedback(actionLabel);
     }
   }
 
+  async function handleTargetClick(target: (typeof SHARE_TARGETS)[number]) {
+    openSharePopup(target.buildUrl(url, shareText, title));
+    setOpen(false);
+    await awardAndAnnounce(`Shared to ${target.label}!`, `${target.label}: ${title}`);
+  }
+
   async function handleNativeShare() {
+    setOpen(false);
     try {
       await navigator.share({ title, text: shareText, url });
     } catch {
-      // User cancelled the native share sheet — no-op.
+      return; // user cancelled the native share sheet — no award, no message
     }
+    await awardAndAnnounce("Shared!", `native share: ${title}`);
+  }
+
+  async function handleCopy() {
     setOpen(false);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+    await awardAndAnnounce("Link copied!", `copy link: ${title}`);
   }
 
   return (
@@ -118,19 +158,19 @@ export default function ShareButton({
           "rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
         }
       >
-        {copied ? "Link copied!" : `🔗 ${label}`}
+        {feedback ?? `🔗 ${label}`}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-off-white/15 bg-charcoal p-1.5 shadow-xl">
+        <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-off-white/15 bg-charcoal p-1.5 shadow-xl">
+          <p className="px-3 py-1.5 font-body text-[11px] text-off-white/40">
+            Earn +{SHARE_XP_REWARD} XP for your first share today
+          </p>
           {SHARE_TARGETS.map((target) => (
             <button
               key={target.key}
               type="button"
-              onClick={() => {
-                openSharePopup(target.buildUrl(url, shareText, title));
-                setOpen(false);
-              }}
+              onClick={() => handleTargetClick(target)}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-body text-sm text-off-white/80 transition hover:bg-off-white/10 hover:text-off-white"
             >
               <span aria-hidden="true">{target.icon}</span>
@@ -151,10 +191,7 @@ export default function ShareButton({
 
           <button
             type="button"
-            onClick={() => {
-              handleCopy();
-              setOpen(false);
-            }}
+            onClick={handleCopy}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-body text-sm text-off-white/80 transition hover:bg-off-white/10 hover:text-off-white"
           >
             <span aria-hidden="true">🔗</span>
@@ -162,6 +199,7 @@ export default function ShareButton({
           </button>
         </div>
       )}
+
     </div>
   );
 }

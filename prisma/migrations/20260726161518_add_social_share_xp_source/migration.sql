@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "XPSource" ADD VALUE 'SOCIAL_SHARE';
