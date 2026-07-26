@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
 import { PLATFORM_LABELS } from "@/lib/platforms";
+import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,11 @@ export default async function MembersPage() {
 
   const members = await prisma.user.findMany({
     where: { status: "ACTIVE", profile: { isNot: null } },
-    include: { profile: true, groupMemberships: { include: { group: true } } },
+    include: {
+      profile: true,
+      groupMemberships: { include: { group: true } },
+      tiktokConnection: true,
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -29,7 +35,9 @@ export default async function MembersPage() {
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {members.map((member) => {
-            const initial = (member.name || member.email).trim().charAt(0).toUpperCase();
+            const displayName = getMemberDisplayName(member);
+            const avatarUrl = getMemberAvatarUrl(member);
+            const initial = getMemberInitial(member);
             const groups = member.groupMemberships.map((m) => m.group);
             const platform = member.profile?.platform;
 
@@ -40,13 +48,9 @@ export default async function MembersPage() {
                 className="glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-lg text-charcoal">
-                    {initial}
-                  </div>
+                  <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={44} />
                   <div className="min-w-0">
-                    <p className="truncate font-body font-medium text-off-white">
-                      {member.name || "Unnamed"}
-                    </p>
+                    <p className="truncate font-body font-medium text-off-white">{displayName}</p>
                     {platform && (
                       <span className="inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
                         {PLATFORM_LABELS[platform]}

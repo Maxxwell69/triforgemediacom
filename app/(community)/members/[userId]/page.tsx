@@ -6,8 +6,10 @@ import { getUserPointsTotal } from "@/lib/points";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { formatCount } from "@/lib/formatCount";
+import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +47,9 @@ export default async function MemberProfilePage({
   if (!member || !member.profile) notFound();
 
   const points = await getUserPointsTotal(member.id);
-  const initial = (member.name || member.email).trim().charAt(0).toUpperCase();
+  const displayName = getMemberDisplayName(member);
+  const avatarUrl = getMemberAvatarUrl(member);
+  const initial = getMemberInitial(member);
   const groups = member.groupMemberships.map((m) => m.group);
   const socialLinks = (member.profile.socialLinks as Record<string, string> | null) ?? {};
   const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
@@ -66,13 +70,9 @@ export default async function MemberProfilePage({
         <div className="glass mt-4 flex flex-col gap-5 rounded-2xl p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-2xl text-charcoal">
-                {initial}
-              </div>
+              <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={64} textSize="text-2xl" />
               <div>
-                <p className="font-display text-2xl tracking-wide text-off-white">
-                  {member.name || "Unnamed"}
-                </p>
+                <p className="font-display text-2xl tracking-wide text-off-white">{displayName}</p>
                 {member.profile.platform && (
                   <span className="mt-1 inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
                     {PLATFORM_LABELS[member.profile.platform]}
@@ -82,8 +82,8 @@ export default async function MemberProfilePage({
             </div>
 
             <ShareButton
-              title={member.name || "TriForge Media creator"}
-              text={`Check out ${member.name || "this creator"} on TriForge Media.`}
+              title={displayName}
+              text={`Check out ${displayName} on TriForge Media.`}
               url={profileShareUrl(member.id)}
               label="Share profile"
             />
@@ -140,7 +140,7 @@ export default async function MemberProfilePage({
                     Visit profile
                   </a>
                   <ShareButton
-                    title={`${member.name || "This creator"} on TikTok`}
+                    title={`${displayName} on TikTok`}
                     url={tiktokUrl}
                     label="Share"
                     className="rounded-lg border border-off-white/15 px-2.5 py-1.5 font-body text-xs text-off-white/60 transition hover:border-cyan/40 hover:text-cyan"
@@ -216,7 +216,7 @@ export default async function MemberProfilePage({
                         <span className="truncate">{meta.label}</span>
                       </a>
                       <ShareButton
-                        title={`${member.name || "This creator"} on ${meta.label}`}
+                        title={`${displayName} on ${meta.label}`}
                         url={url}
                         label="Share"
                         className="shrink-0 rounded-lg border border-off-white/15 px-2.5 py-1 font-body text-xs text-off-white/60 transition hover:border-cyan/40 hover:text-cyan"
