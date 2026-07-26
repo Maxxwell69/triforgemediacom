@@ -27,8 +27,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
   const sidebar = (
     <>
       <div className="mb-6 px-2 md:block">
-        <Logo height={22} />
+        <Logo height={22} href="/home" />
       </div>
+
+      <Link
+        href="/home"
+        className="mb-2 flex items-center justify-between rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+      >
+        Dashboard
+      </Link>
 
       {tikTaskAccess && (
         <Link

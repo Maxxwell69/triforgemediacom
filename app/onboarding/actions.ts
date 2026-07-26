@@ -52,5 +52,5 @@ export async function completeOnboarding(
     },
   });
 
-  redirect("/channels");
+  redirect("/home");
 }

@@ -8,7 +8,7 @@ export default async function OnboardingPage() {
 
   const existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
   if (existingProfile) {
-    redirect("/channels");
+    redirect("/home");
   }
 
   return (

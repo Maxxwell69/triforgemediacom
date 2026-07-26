@@ -8,7 +8,7 @@ import Link from "next/link";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/channels";
+  const callbackUrl = searchParams.get("callbackUrl") || "/home";
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
