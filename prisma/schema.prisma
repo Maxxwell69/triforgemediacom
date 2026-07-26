@@ -202,6 +202,17 @@ model Message {
   @@index([channelId, createdAt])
 }
 
+// Singleton row (fixed id "global") holding the current company-wide banner
+// shown at the top of the member dashboard. isActive lets admins hide it
+// without losing the last message they wrote.
+model Announcement {
+  id            String   @id @default("global")
+  message       String
+  isActive      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+  updatedByName String?
+}
+
 // ---------- TikTask ----------
 
 model TaskTemplate {

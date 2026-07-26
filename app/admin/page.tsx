@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { setAnnouncement, clearAnnouncement } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+const fieldClass =
+  "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
+
 export default async function AdminDashboardPage() {
-  const [pendingCount, userCount] = await Promise.all([
+  const [pendingCount, userCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
+    prisma.announcement.findUnique({ where: { id: "global" } }),
   ]);
 
   return (
@@ -29,6 +34,49 @@ export default async function AdminDashboardPage() {
           <p className="mt-2 font-display text-4xl">{userCount}</p>
         </div>
       </div>
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl tracking-wide text-off-white/80">
+          Company announcement
+        </h2>
+        <p className="mt-1 font-body text-sm text-off-white/50">
+          Shows as a banner at the top of every member&apos;s dashboard until you clear it.
+        </p>
+
+        <form action={setAnnouncement} className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6">
+          {announcement?.isActive && (
+            <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 font-body text-xs text-cyan">
+              Currently live{announcement.updatedByName ? ` — last set by ${announcement.updatedByName}` : ""}
+              {" \u00b7 "}
+              {announcement.updatedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+            </p>
+          )}
+          <textarea
+            name="message"
+            required
+            defaultValue={announcement?.message ?? ""}
+            rows={2}
+            placeholder="e.g. Server maintenance tonight at 10pm EST — chat will be briefly unavailable."
+            className={fieldClass}
+          />
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
+            >
+              {announcement?.isActive ? "Update announcement" : "Post announcement"}
+            </button>
+            {announcement?.isActive && (
+              <button
+                formAction={clearAnnouncement}
+                className="font-body text-sm text-off-white/50 transition hover:text-orange"
+              >
+                Clear (hide banner)
+              </button>
+            )}
+          </div>
+        </form>
+      </section>
     </main>
   );
 }

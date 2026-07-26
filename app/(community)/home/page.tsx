@@ -19,7 +19,7 @@ export default async function HomePage() {
   const { user, profile } = await requireProfile();
   const isAdmin = isAdminRole(user.role);
 
-  const [allChannels, userGroupIds, tikTaskAccess, points, enrollments, memberCount, pendingRedemptions] =
+  const [allChannels, userGroupIds, tikTaskAccess, points, enrollments, memberCount, pendingRedemptions, announcement] =
     await Promise.all([
       prisma.channel.findMany({ include: { groups: { select: { id: true } } } }),
       getUserGroupIds(user.id),
@@ -30,6 +30,7 @@ export default async function HomePage() {
       isAdmin
         ? prisma.rewardRedemption.count({ where: { status: "PENDING" } })
         : Promise.resolve(0),
+      prisma.announcement.findUnique({ where: { id: "global" } }),
     ]);
 
   const visibleChannelCount = allChannels.filter((c) =>
@@ -49,6 +50,15 @@ export default async function HomePage() {
   return (
     <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-5xl">
+        {announcement?.isActive && (
+          <div className="glass mb-8 flex items-start gap-3 rounded-2xl border border-orange/30 bg-orange/5 p-4">
+            <span className="mt-0.5 text-xl" aria-hidden="true">
+              📣
+            </span>
+            <p className="font-body text-sm text-off-white/90">{announcement.message}</p>
+          </div>
+        )}
+
         <h1 className="font-display text-5xl tracking-wide">
           {getGreeting()}, <span className="text-gradient">{firstName}</span>
         </h1>
