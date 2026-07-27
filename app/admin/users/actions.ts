@@ -58,6 +58,17 @@ export async function setReceivesAdminAlerts(userId: string, receives: boolean) 
   revalidatePath("/admin/users");
 }
 
+export async function setHiddenFromDirectory(userId: string, hidden: boolean) {
+  await requireAdmin();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { hiddenFromDirectory: hidden },
+  });
+  revalidatePath("/admin/users");
+  revalidatePath("/members");
+}
+
 export async function toggleUserGroup(userId: string, groupId: string, isMember: boolean) {
   await requireAdmin();
 

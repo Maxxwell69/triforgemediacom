@@ -37,7 +37,12 @@ export default async function MemberProfilePage({
   await requireProfile();
 
   const member = await prisma.user.findFirst({
-    where: { id: params.userId, status: "ACTIVE", profile: { isNot: null } },
+    where: {
+      id: params.userId,
+      status: "ACTIVE",
+      profile: { isNot: null },
+      hiddenFromDirectory: false,
+    },
     include: {
       profile: true,
       groupMemberships: { include: { group: true } },

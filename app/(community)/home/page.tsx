@@ -27,7 +27,9 @@ export default async function HomePage() {
       hasTikTaskAccess(user.id),
       getUserPointsTotal(user.id),
       prisma.enrollment.findMany({ where: { userId: user.id }, select: { completedAt: true } }),
-      prisma.user.count({ where: { status: "ACTIVE", profile: { isNot: null } } }),
+      prisma.user.count({
+        where: { status: "ACTIVE", profile: { isNot: null }, hiddenFromDirectory: false },
+      }),
       isAdmin
         ? prisma.rewardRedemption.count({ where: { status: "PENDING" } })
         : Promise.resolve(0),

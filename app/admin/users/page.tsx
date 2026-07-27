@@ -10,6 +10,7 @@ import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import AddMemberForm from "@/components/admin/AddMemberForm";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
+import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,7 @@ export default async function AdminUsersPage() {
                   {user.role === "ADMIN" && (
                     <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
                   )}
+                  <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
                   <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
                   <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
                 </div>

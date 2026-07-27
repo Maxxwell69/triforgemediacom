@@ -23,6 +23,7 @@ export default async function MembersPage({
       where: {
         status: "ACTIVE",
         profile: { isNot: null },
+        hiddenFromDirectory: false,
         ...(activeTagId ? { tags: { some: { tagId: activeTagId } } } : {}),
       },
       include: {
