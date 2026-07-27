@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
-import { changePasswordSchema } from "@/lib/validations/account";
+import { changeEmailSchema, changePasswordSchema } from "@/lib/validations/account";
 import { refreshTikTokStats } from "@/lib/tiktokOAuth";
+import { sendEmailChangedNotice } from "@/lib/email";
 import type { ProfileFormState } from "@/components/ProfileForm";
 
 export async function updateProfile(
@@ -94,6 +95,56 @@ export async function changePassword(
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
 
+  return { success: true };
+}
+
+export type ChangeEmailState = { error?: string; success?: boolean } | null;
+
+export async function changeEmail(
+  _prevState: ChangeEmailState,
+  formData: FormData
+): Promise<ChangeEmailState> {
+  const user = await requireUser();
+
+  const parsed = changeEmailSchema.safeParse({
+    newEmail: formData.get("newEmail"),
+    currentPassword: formData.get("currentPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const { newEmail, currentPassword } = parsed.data;
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!dbUser?.passwordHash) {
+    return { error: "No password is set for this account." };
+  }
+
+  const valid = await bcrypt.compare(currentPassword, dbUser.passwordHash);
+  if (!valid) {
+    return { error: "Current password is incorrect." };
+  }
+
+  if (newEmail === dbUser.email) {
+    return { error: "That's already your current email." };
+  }
+
+  const taken = await prisma.user.findUnique({ where: { email: newEmail } });
+  if (taken) {
+    return { error: "That email is already in use." };
+  }
+
+  await prisma.user.update({ where: { id: user.id }, data: { email: newEmail } });
+
+  try {
+    await sendEmailChangedNotice(dbUser.email, newEmail, dbUser.name || "there");
+  } catch (err) {
+    console.error("Failed to send email-changed notice:", err);
+  }
+
+  revalidatePath("/account");
   return { success: true };
 }
 

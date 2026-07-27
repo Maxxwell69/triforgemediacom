@@ -5,6 +5,7 @@ import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
 import { formatCount } from "@/lib/formatCount";
 import ProfileEditForm from "./ProfileEditForm";
+import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
 import TagPicker from "@/components/TagPicker";
 import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
@@ -259,6 +260,13 @@ export default async function AccountPage({
               </a>
             </div>
           )}
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          Change email
+        </h2>
+        <div className="mt-4">
+          <ChangeEmailForm currentEmail={user.email ?? ""} />
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const changeEmailSchema = z.object({
+  newEmail: z.string().trim().toLowerCase().email("Enter a valid email"),
+  currentPassword: z.string().min(1, "Enter your current password"),
+});
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password"),

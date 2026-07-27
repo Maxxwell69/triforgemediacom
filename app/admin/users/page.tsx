@@ -5,6 +5,9 @@ import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
 import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
+import UserTagsEditor from "@/components/admin/UserTagsEditor";
+import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
+import AddMemberForm from "@/components/admin/AddMemberForm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +22,19 @@ export default async function AdminUsersPage() {
   const session = await auth();
   const currentUserId = session!.user.id;
 
-  const [users, allGroups] = await Promise.all([
+  const [users, allGroups, allTags, allBadges] = await Promise.all([
     prisma.user.findMany({
       where: { status: { in: ["ACTIVE", "INVITED", "BANNED"] } },
       orderBy: { createdAt: "desc" },
-      include: { groupMemberships: { include: { group: true } } },
+      include: {
+        groupMemberships: { include: { group: true } },
+        tags: { select: { tagId: true } },
+        userBadges: { select: { badgeId: true } },
+      },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+    prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+    prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, icon: true } }),
   ]);
 
   const pointsTotals = await getUserPointsTotals(users.map((u) => u.id));
@@ -37,11 +46,17 @@ export default async function AdminUsersPage() {
       </h1>
       <p className="mt-2 font-body text-off-white/60">{users.length} members</p>
 
+      <div className="mt-8">
+        <AddMemberForm />
+      </div>
+
       <div className="mt-10 flex flex-col gap-2">
         {users.map((user) => {
           const isSelf = user.id === currentUserId;
           const isBanned = user.status === "BANNED";
           const groups = user.groupMemberships.map((m) => m.group);
+          const tagIds = user.tags.map((t) => t.tagId);
+          const badgeIds = user.userBadges.map((b) => b.badgeId);
 
           return (
             <div key={user.id} className="glass flex flex-col gap-3 rounded-xl p-4">
@@ -86,6 +101,8 @@ export default async function AdminUsersPage() {
                     allGroups={allGroups}
                     memberGroupIds={groups.map((g) => g.id)}
                   />
+                  <UserTagsEditor userId={user.id} allTags={allTags} memberTagIds={tagIds} />
+                  <UserBadgesEditor userId={user.id} allBadges={allBadges} memberBadgeIds={badgeIds} />
                 </div>
 
                 <div className="flex items-center gap-3">

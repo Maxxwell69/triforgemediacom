@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { createStandaloneBadge } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const fieldClass =
+  "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
 export default async function AdminBadgesPage() {
   const badges = await prisma.badge.findMany({
@@ -18,8 +22,41 @@ export default async function AdminBadgesPage() {
         ALL <span className="text-gradient">BADGES</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Badges are managed from each course&apos;s detail page. This is a read-only overview.
+        Course-linked badges are managed from each course&apos;s detail page. Standalone badges
+        (below) can be awarded to anyone from the Users page, independent of any course.
       </p>
+
+      <form
+        key={badges.length}
+        action={createStandaloneBadge}
+        className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6"
+      >
+        <h2 className="font-display text-xl tracking-wide text-off-white/80">
+          New standalone badge
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+          <input name="name" required placeholder="e.g. MVP, Early Supporter" className={fieldClass} />
+          <input
+            name="icon"
+            type="text"
+            placeholder="🏆"
+            maxLength={10}
+            className={`${fieldClass} sm:w-24`}
+          />
+        </div>
+        <textarea
+          name="description"
+          rows={2}
+          placeholder="Optional description"
+          className={fieldClass}
+        />
+        <button
+          type="submit"
+          className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
+        >
+          Create badge
+        </button>
+      </form>
 
       <div className="mt-8 flex flex-col gap-2">
         {badges.length === 0 && (

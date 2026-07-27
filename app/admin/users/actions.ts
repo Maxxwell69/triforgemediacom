@@ -5,6 +5,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { pointsAdjustmentSchema } from "@/lib/validations/points";
+import { addMemberSchema } from "@/lib/validations/addMember";
+import { generateInviteToken, inviteUrl } from "@/lib/invite";
+import { sendInviteEmail } from "@/lib/email";
 import type { UserRole } from "@prisma/client";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER"];
@@ -59,6 +62,59 @@ export async function toggleUserGroup(userId: string, groupId: string, isMember:
   }
 
   revalidatePath("/admin/users");
+}
+
+export type AddMemberState = { error?: string; success?: boolean } | null;
+
+/**
+ * Adds someone straight to the network, bypassing the /apply review queue —
+ * for people you already know and want to invite directly (e.g. staff,
+ * partners, existing talent). Creates the same INVITED user + approved
+ * Application + invite email as the normal approval flow, just skipped
+ * ahead to "approved".
+ */
+export async function addMemberDirectly(
+  _prevState: AddMemberState,
+  formData: FormData
+): Promise<AddMemberState> {
+  await requireAdmin();
+
+  const parsed = addMemberSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+  const { name, email } = parsed.data;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return { error: "A user with that email already exists." };
+  }
+
+  const token = generateInviteToken();
+
+  await prisma.user.create({
+    data: {
+      email,
+      name,
+      status: "INVITED",
+      application: {
+        create: {
+          answers: { name, addedDirectlyByAdmin: true },
+          status: "APPROVED",
+          inviteToken: token,
+          reviewedAt: new Date(),
+        },
+      },
+    },
+  });
+
+  await sendInviteEmail(email, name, inviteUrl(token));
+
+  revalidatePath("/admin/users");
+  return { success: true };
 }
 
 export async function adjustUserPoints(formData: FormData) {

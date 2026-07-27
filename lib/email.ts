@@ -186,6 +186,21 @@ export async function sendCreatorNetworkInfoEmail(to: string, name: string) {
   );
 }
 
+export async function sendEmailChangedNotice(oldEmail: string, newEmail: string, name: string) {
+  await send(
+    oldEmail,
+    "Your TriForge Community login email was changed",
+    layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Login email changed</h1>
+      <p style="line-height:1.6;">Hi ${name}, the login email on your TriForge Community account was just changed
+        from <strong>${oldEmail}</strong> to <strong style="color:#00D4FF;">${newEmail}</strong>.</p>
+      <p style="line-height:1.6;color:rgba(245,245,245,0.6);font-size:13px;">
+        If you made this change, no action is needed. If you didn't, contact an admin right away.
+      </p>
+    `)
+  );
+}
+
 export async function sendBroadcastEmail(to: string, subject: string, bodyHtml: string) {
   await send(to, subject, layout(bodyHtml));
 }
