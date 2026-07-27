@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applySchema } from "@/lib/validations/apply";
-import { sendNewApplicationAdminAlert } from "@/lib/email";
+import { sendCreatorNetworkInfoEmail, sendNewApplicationAdminAlert } from "@/lib/email";
+import { syncMnMembership } from "@/lib/mnCn";
 
 async function alertAdmins(applicantName: string, applicantEmail: string, platform: string) {
   try {
@@ -21,6 +22,17 @@ async function alertAdmins(applicantName: string, applicantEmail: string, platfo
   }
 }
 
+async function routeByAgencyStatus(userId: string, name: string, email: string, hasAgency: boolean) {
+  try {
+    await syncMnMembership(userId, hasAgency);
+    if (!hasAgency) {
+      await sendCreatorNetworkInfoEmail(email, name);
+    }
+  } catch (err) {
+    console.error("Failed to route applicant by agency status:", err);
+  }
+}
+
 export async function POST(req: NextRequest) {
   let body: unknown;
   try {
@@ -37,8 +49,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, platform, handle, socialLink, goals, whyJoin } = parsed.data;
+  const { name, email, platform, handle, socialLink, goals, whyJoin, hasAgency } = parsed.data;
   const normalizedEmail = email.toLowerCase();
+  const hasAgencyBool = hasAgency === "yes";
 
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail },
@@ -64,7 +77,7 @@ export async function POST(req: NextRequest) {
       await prisma.application.update({
         where: { userId: existingUser.id },
         data: {
-          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin },
+          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
           status: "PENDING",
           reviewNotes: null,
           reviewedById: null,
@@ -72,7 +85,10 @@ export async function POST(req: NextRequest) {
           submittedAt: new Date(),
         },
       });
-      await alertAdmins(name, normalizedEmail, platform);
+      await Promise.all([
+        alertAdmins(name, normalizedEmail, platform),
+        routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
+      ]);
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
@@ -80,26 +96,32 @@ export async function POST(req: NextRequest) {
     await prisma.application.create({
       data: {
         userId: existingUser.id,
-        answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin },
+        answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
       },
     });
-    await alertAdmins(name, normalizedEmail, platform);
+    await Promise.all([
+      alertAdmins(name, normalizedEmail, platform),
+      routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
+    ]);
     return NextResponse.json({ ok: true }, { status: 201 });
   }
 
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       email: normalizedEmail,
       name,
       status: "PENDING_APPLICATION",
       application: {
         create: {
-          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin },
+          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
         },
       },
     },
   });
-  await alertAdmins(name, normalizedEmail, platform);
+  await Promise.all([
+    alertAdmins(name, normalizedEmail, platform),
+    routeByAgencyStatus(newUser.id, name, normalizedEmail, hasAgencyBool),
+  ]);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

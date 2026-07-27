@@ -170,6 +170,22 @@ export async function sendNewApplicationAdminAlert(
   );
 }
 
+export async function sendCreatorNetworkInfoEmail(to: string, name: string) {
+  await send(
+    to,
+    "Your application + how to join the Creator Network",
+    layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Thanks for applying, ${name}!</h1>
+      <p style="line-height:1.6;">We've got your application and our team will review it soon.</p>
+      <p style="line-height:1.6;">In the meantime &mdash; since you're not currently represented by an agency, you're
+        eligible to work toward joining the <strong style="color:#00D4FF;">TriForge Creator Network (CN)</strong>,
+        our official roster of managed talent. Once you're approved and in, keep an eye out for the
+        <strong>&ldquo;Joining the Creator Network&rdquo;</strong> course in the Learning Center &mdash; it walks
+        through exactly what we look for and how to apply.</p>
+    `)
+  );
+}
+
 export async function sendBroadcastEmail(to: string, subject: string, bodyHtml: string) {
   await send(to, subject, layout(bodyHtml));
 }

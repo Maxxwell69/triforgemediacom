@@ -84,6 +84,82 @@ async function main() {
     });
   }
   console.log(`Seeded ${defaultTags.length} tags`);
+
+  // MN (Media Network — agency-represented creators) / CN (Creator Network)
+  // routing: see lib/mnCn.ts. MN Group+Tag are also upserted on demand the
+  // first time someone applies, but we create them here too so they're
+  // visible in admin immediately on a fresh environment.
+  await prisma.group.upsert({
+    where: { name: "MN" },
+    update: {},
+    create: {
+      name: "MN",
+      description: "Creators represented by an outside agency for live hosting.",
+      color: "#00D4FF",
+      grantsTikTaskAccess: true,
+    },
+  });
+  await prisma.tag.upsert({
+    where: { name: "MN" },
+    update: {},
+    create: {
+      name: "MN",
+      description: "Represented by an outside agency for live hosting.",
+      color: "#00D4FF",
+      selfAssignable: false,
+    },
+  });
+  const cnGroup = await prisma.group.upsert({
+    where: { name: "CN" },
+    update: {},
+    create: {
+      name: "CN",
+      description: "Official TriForge Creator Network members.",
+      color: "#FD4802",
+      grantsTikTaskAccess: true,
+    },
+  });
+  const existingCnChannel = await prisma.channel.findFirst({ where: { name: "creator-network" } });
+  const cnChannel =
+    existingCnChannel ??
+    (await prisma.channel.create({
+      data: {
+        name: "creator-network",
+        description: "Official Creator Network members only.",
+        minRole: "MOD",
+      },
+    }));
+  await prisma.group.update({
+    where: { id: cnGroup.id },
+    data: { channels: { connect: { id: cnChannel.id } } },
+  });
+  const existingCnCourse = await prisma.course.findFirst({
+    where: { title: "Joining the Creator Network" },
+  });
+  if (!existingCnCourse) {
+    await prisma.course.create({
+      data: {
+        title: "Joining the Creator Network",
+        description:
+          "What the Creator Network is, what we look for, and how to apply once you're active.",
+        category: "Creator Network",
+        isPublished: true,
+        order: 0,
+        xpReward: 0,
+        lessons: {
+          create: [
+            {
+              title: "What is the Creator Network?",
+              order: 0,
+              content:
+                "<p>Placeholder content — replace this in the admin Courses editor with the real overview of the Creator Network (CN) program, requirements, and application steps.</p>",
+            },
+          ],
+        },
+      },
+    });
+  }
+  console.log("Seeded MN/CN groups, channel, and placeholder course");
 }
 
 main()

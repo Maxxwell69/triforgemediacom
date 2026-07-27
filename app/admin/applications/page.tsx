@@ -39,9 +39,20 @@ export default async function AdminApplicationsPage() {
           return (
             <div key={app.id} className="glass rounded-2xl p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-2xl tracking-wide">
-                  {app.user.name || "Unnamed"}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-2xl tracking-wide">
+                    {app.user.name || "Unnamed"}
+                  </h2>
+                  {answers.hasAgency === "yes" ? (
+                    <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2.5 py-0.5 font-body text-xs font-semibold text-cyan">
+                      MN &middot; has agency
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-orange/40 bg-orange/10 px-2.5 py-0.5 font-body text-xs font-semibold text-orange">
+                      CN track &middot; no agency
+                    </span>
+                  )}
+                </div>
                 <span className="font-body text-sm text-off-white/50">{app.user.email}</span>
               </div>
 

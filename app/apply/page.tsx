@@ -29,6 +29,7 @@ export default function ApplyPage() {
       socialLink: data.get("socialLink"),
       goals: data.get("goals"),
       whyJoin: data.get("whyJoin"),
+      hasAgency: data.get("hasAgency"),
     };
 
     try {
@@ -180,6 +181,20 @@ export default function ApplyPage() {
               className={inputClass}
               placeholder="Tell us a bit about yourself and why this is a fit"
             />
+          </Field>
+
+          <Field
+            label="Do you currently have an agency/management representing you as a live host?"
+            name="hasAgency"
+            errors={fieldErrors.hasAgency}
+          >
+            <select id="hasAgency" name="hasAgency" required defaultValue="" className={inputClass}>
+              <option value="" disabled>
+                Select one
+              </option>
+              <option value="no">No, I don&apos;t have an agency</option>
+              <option value="yes">Yes, an agency already represents me</option>
+            </select>
           </Field>
 
           <button

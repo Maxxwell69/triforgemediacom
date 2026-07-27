@@ -33,6 +33,9 @@ export const applySchema = z.object({
     .trim()
     .min(10, "Tell us a bit more about why you want in (10+ characters)")
     .max(1000),
+  hasAgency: z.enum(["yes", "no"], {
+    error: "Let us know if you have an agency representing you",
+  }),
 });
 
 export type ApplyInput = z.infer<typeof applySchema>;
