@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getFreshSessionUser } from "@/lib/session";
 import { canModerate, canBeModerationTarget } from "@/lib/moderation";
 
 export async function POST(_req: Request, { params }: { params: { userId: string } }) {
-  const session = await auth();
-  if (!session?.user) {
+  const user = await getFreshSessionUser();
+  if (!user) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
-  if (!canModerate(session.user.role)) {
+  if (!canModerate(user.role)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -25,7 +25,7 @@ export async function POST(_req: Request, { params }: { params: { userId: string
     prisma.moderationAction.create({
       data: {
         type: "USER_UNMUTED",
-        moderatorId: session.user.id,
+        moderatorId: user.id,
         targetUserId: targetUser.id,
       },
     }),

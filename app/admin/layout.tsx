@@ -1,8 +1,11 @@
 import Logo from "@/components/Logo";
 import AdminNav from "@/components/AdminNav";
 import SignOutButton from "@/components/SignOutButton";
+import { requireAdminPage } from "@/lib/session";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await requireAdminPage();
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-off-white/10 px-4 py-3 sm:px-10 sm:py-4">

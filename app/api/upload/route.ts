@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getFreshSessionUser } from "@/lib/session";
 import { isAdminRole } from "@/lib/rbac";
 import { uploadImage } from "@/lib/r2";
 
@@ -8,8 +8,8 @@ import { uploadImage } from "@/lib/r2";
 const ALLOWED_FOLDERS = new Set(["course-thumbnails", "reward-images"]);
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) {
+  const user = await getFreshSessionUser();
+  if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

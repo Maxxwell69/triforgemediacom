@@ -1,28 +1,29 @@
-import type { Session } from "next-auth";
 import type { Profile } from "@prisma/client";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getFreshSessionUser } from "@/lib/session";
 
 type ApiAuthResult =
   | { error: "unauthorized" | "no-profile" }
-  | { user: Session["user"]; profile: Profile };
+  | { user: NonNullable<Awaited<ReturnType<typeof getFreshSessionUser>>>; profile: Profile };
 
 /**
  * API-route equivalent of lib/session.ts's requireProfile(): returns a typed
  * result instead of redirecting, since API routes can't use next/navigation.
+ * Uses getFreshSessionUser() so a ban takes effect immediately rather than
+ * waiting for the caller's session to expire.
  */
 export async function getApiUserWithProfile(): Promise<ApiAuthResult> {
-  const session = await auth();
-  if (!session?.user) {
+  const user = await getFreshSessionUser();
+  if (!user) {
     return { error: "unauthorized" };
   }
 
-  const profile = await prisma.profile.findUnique({ where: { userId: session.user.id } });
+  const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
   if (!profile) {
     return { error: "no-profile" };
   }
 
-  return { user: session.user, profile };
+  return { user, profile };
 }
 
 export function apiAuthErrorResponse(error: "unauthorized" | "no-profile") {

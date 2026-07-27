@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { pointsAdjustmentSchema } from "@/lib/validations/points";
 import { addMemberSchema } from "@/lib/validations/addMember";
-import { generateInviteToken, inviteUrl } from "@/lib/invite";
+import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
 import { sendInviteEmail } from "@/lib/email";
 import type { UserRole } from "@prisma/client";
 
@@ -17,7 +17,19 @@ async function requireAdmin() {
   if (!session || !isAdminRole(session.user.role)) {
     throw new Error("Not authorized");
   }
-  return session;
+  // Re-validate against the database instead of trusting the JWT claim alone —
+  // closes the window where a banned/demoted admin's existing session would
+  // otherwise stay valid until it naturally expires, and makes sure the role
+  // used for the escalation guards below (e.g. in updateUserRole) can't be a
+  // stale, already-revoked ADMIN claim.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, status: true },
+  });
+  if (!dbUser || dbUser.status !== "ACTIVE" || !isAdminRole(dbUser.role)) {
+    throw new Error("Not authorized");
+  }
+  return { ...session, user: { ...session.user, role: dbUser.role, status: dbUser.status } };
 }
 
 export async function updateUserRole(userId: string, role: string) {
@@ -30,6 +42,20 @@ export async function updateUserRole(userId: string, role: string) {
     throw new Error("You can't change your own role");
   }
 
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!target) {
+    throw new Error("User not found");
+  }
+
+  // A MOD can manage MEMBER/CREATOR roles, but only a true ADMIN may touch an
+  // existing ADMIN/MOD's role or grant ADMIN/MOD to anyone — otherwise a MOD
+  // could promote a sock-puppet to ADMIN or demote a real admin.
+  const touchesPrivilegedTarget = isAdminRole(target.role);
+  const grantsPrivilegedRole = isAdminRole(role as UserRole);
+  if ((touchesPrivilegedTarget || grantsPrivilegedRole) && session.user.role !== "ADMIN") {
+    throw new Error("Only an admin can grant or change admin/mod roles");
+  }
+
   await prisma.user.update({ where: { id: userId }, data: { role: role as UserRole } });
   revalidatePath("/admin/users");
 }
@@ -39,6 +65,15 @@ export async function setUserBanned(userId: string, banned: boolean) {
 
   if (userId === session.user.id) {
     throw new Error("You can't ban yourself");
+  }
+
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!target) {
+    throw new Error("User not found");
+  }
+  // A MOD can never ban an ADMIN or another MOD — only a true ADMIN can.
+  if (isAdminRole(target.role) && session.user.role !== "ADMIN") {
+    throw new Error("Only an admin can ban another admin or mod");
   }
 
   await prisma.user.update({
@@ -126,6 +161,7 @@ export async function addMemberDirectly(
           answers: { name, addedDirectlyByAdmin: true },
           status: "APPROVED",
           inviteToken: token,
+          inviteTokenExpiresAt: inviteTokenExpiry(),
           reviewedAt: new Date(),
         },
       },
@@ -158,22 +194,26 @@ export async function resendInvite(userId: string) {
   if (!user) throw new Error("User not found");
   if (user.status !== "INVITED") throw new Error("This user isn't in an invited state");
 
-  let token = user.application?.inviteToken;
-  if (!token) {
-    token = generateInviteToken();
-    if (user.application) {
-      await prisma.application.update({ where: { id: user.application.id }, data: { inviteToken: token } });
-    } else {
-      await prisma.application.create({
-        data: {
-          userId: user.id,
-          answers: { name: user.name, addedDirectlyByAdmin: true },
-          status: "APPROVED",
-          inviteToken: token,
-          reviewedAt: new Date(),
-        },
-      });
-    }
+  // Always issue a fresh token + expiry on resend rather than reusing a
+  // possibly-expired one, so "resend" reliably gives the user a working link.
+  const token = generateInviteToken();
+  const expiresAt = inviteTokenExpiry();
+  if (user.application) {
+    await prisma.application.update({
+      where: { id: user.application.id },
+      data: { inviteToken: token, inviteTokenExpiresAt: expiresAt },
+    });
+  } else {
+    await prisma.application.create({
+      data: {
+        userId: user.id,
+        answers: { name: user.name, addedDirectlyByAdmin: true },
+        status: "APPROVED",
+        inviteToken: token,
+        inviteTokenExpiresAt: expiresAt,
+        reviewedAt: new Date(),
+      },
+    });
   }
 
   await sendInviteEmail(user.email, user.name || "there", inviteUrl(token));

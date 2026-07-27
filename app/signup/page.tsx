@@ -19,7 +19,8 @@ export default async function SignupPage({
   const isValid =
     !!application &&
     application.status === "APPROVED" &&
-    application.user.status === "INVITED";
+    application.user.status === "INVITED" &&
+    (!application.inviteTokenExpiresAt || application.inviteTokenExpiresAt.getTime() > Date.now());
 
   if (!isValid) {
     return (

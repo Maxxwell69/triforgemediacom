@@ -28,8 +28,11 @@ export async function completeSignup(
     include: { user: true },
   });
 
-  if (!application || application.status !== "APPROVED" || application.user.status !== "INVITED") {
-    return { error: "This invite link is invalid or has already been used." };
+  const expired =
+    !!application?.inviteTokenExpiresAt && application.inviteTokenExpiresAt.getTime() <= Date.now();
+
+  if (!application || application.status !== "APPROVED" || application.user.status !== "INVITED" || expired) {
+    return { error: "This invite link is invalid, expired, or has already been used." };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -41,7 +44,7 @@ export async function completeSignup(
     }),
     prisma.application.update({
       where: { id: application.id },
-      data: { inviteToken: null },
+      data: { inviteToken: null, inviteTokenExpiresAt: null },
     }),
   ]);
 

@@ -17,8 +17,20 @@ async function requireAdmin() {
   if (!session || !isAdminRole(session.user.role)) {
     throw new Error("Not authorized");
   }
-  return session;
+  // Re-validate against the database instead of trusting the JWT claim alone —
+  // closes the window where a banned/demoted admin's existing session would
+  // otherwise stay valid until it naturally expires.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, status: true },
+  });
+  if (!dbUser || dbUser.status !== "ACTIVE" || !isAdminRole(dbUser.role)) {
+    throw new Error("Not authorized");
+  }
+  return { ...session, user: { ...session.user, role: dbUser.role, status: dbUser.status } };
 }
+
+const BROADCAST_COOLDOWN_MS = 60_000;
 
 export type BroadcastDraftResult = { subject: string; bodyText: string; error: null } | { subject: null; bodyText: null; error: string };
 
@@ -94,6 +106,25 @@ export type SendBroadcastResult = { sent: number; error: null } | { sent: null; 
 
 export async function sendBroadcastAction(formData: FormData): Promise<SendBroadcastResult> {
   const session = await requireAdmin();
+
+  // Guards against a double-click, a retried failed request, or resubmitting
+  // the form re-sending the same broadcast to the whole audience twice.
+  const recentBroadcast = await prisma.broadcast.findFirst({
+    where: {
+      sentById: session.user.id,
+      sentAt: { gt: new Date(Date.now() - BROADCAST_COOLDOWN_MS) },
+    },
+    orderBy: { sentAt: "desc" },
+  });
+  if (recentBroadcast) {
+    const secondsLeft = Math.ceil(
+      (BROADCAST_COOLDOWN_MS - (Date.now() - recentBroadcast.sentAt.getTime())) / 1000
+    );
+    return {
+      sent: null,
+      error: `You just sent a broadcast — wait ${Math.max(secondsLeft, 1)}s before sending another to avoid duplicate sends.`,
+    };
+  }
 
   const content = broadcastContentSchema.safeParse({
     subject: formData.get("subject"),

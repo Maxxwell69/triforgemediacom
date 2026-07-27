@@ -5,6 +5,15 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+
+// Compared against on every "unknown email" / "no password set" path so a
+// login attempt against a nonexistent account takes roughly the same time as
+// one against a real account — avoids leaking which emails are registered
+// via response-time differences.
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
@@ -25,11 +34,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
         });
-        if (!user || !user.passwordHash) return null;
+
+        if (!user || !user.passwordHash) {
+          await bcrypt.compare(password, DUMMY_HASH);
+          return null;
+        }
         if (user.status === "BANNED") return null;
 
+        // Locked out from too many recent failed attempts — reject without
+        // even checking the password, and without revealing the lockout
+        // state to the caller (same generic failure as wrong credentials).
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+          return null;
+        }
+
         const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return null;
+
+        if (!valid) {
+          const attempts = user.failedLoginAttempts + 1;
+          const lock = attempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: lock ? 0 : attempts,
+              lockedUntil: lock ? new Date(Date.now() + LOGIN_LOCKOUT_MS) : user.lockedUntil,
+            },
+          });
+          return null;
+        }
+
+        if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lockedUntil: null },
+          });
+        }
 
         return {
           id: user.id,

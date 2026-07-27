@@ -4,6 +4,19 @@ import { applySchema } from "@/lib/validations/apply";
 import { sendCreatorNetworkInfoEmail, sendNewApplicationAdminAlert } from "@/lib/email";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { syncMnMembership } from "@/lib/mnCn";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+
+// A genuine applicant only ever needs to submit once (or once more after a
+// rejection). This is generous enough for real usage but blocks scripted
+// spam/enumeration against the public, unauthenticated endpoint.
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+// Shown for every "you already have an application" case regardless of its
+// actual status — a distinct message per status (pending vs. approved vs.
+// doesn't exist) would let someone enumerate which emails have applied.
+const ALREADY_APPLIED_MESSAGE =
+  "We already have an application on file for this email. If you're waiting to hear back, sit tight — otherwise check your inbox for next steps.";
 
 async function alertAdmins(application: {
   name: string;
@@ -49,6 +62,15 @@ async function routeByAgencyStatus(userId: string, name: string, email: string, 
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimit = checkRateLimit(`apply:${ip}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: "Too many applications submitted from this connection. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -107,17 +129,8 @@ export async function POST(req: NextRequest) {
   if (existingUser) {
     if (existingUser.application) {
       const status = existingUser.application.status;
-      if (status === "PENDING") {
-        return NextResponse.json(
-          { error: "You already have an application pending review." },
-          { status: 409 }
-        );
-      }
-      if (status === "APPROVED") {
-        return NextResponse.json(
-          { error: "You've already been approved — check your email for an invite." },
-          { status: 409 }
-        );
+      if (status === "PENDING" || status === "APPROVED") {
+        return NextResponse.json({ error: ALREADY_APPLIED_MESSAGE }, { status: 409 });
       }
       // REJECTED: fall through and allow them to update their answers + reapply.
       await prisma.application.update({
@@ -140,7 +153,7 @@ export async function POST(req: NextRequest) {
       data: { userId: existingUser.id, answers },
     });
     await notify(existingUser.id);
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return NextResponse.json({ ok: true }, { status: 200 });
   }
 
   const newUser = await prisma.user.create({
@@ -153,5 +166,5 @@ export async function POST(req: NextRequest) {
   });
   await notify(newUser.id);
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true }, { status: 200 });
 }
