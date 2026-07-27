@@ -4,6 +4,17 @@ import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
 
 export const dynamic = "force-dynamic";
 
+type ApplicationAnswers = {
+  platform?: string;
+  handle?: string;
+  phone?: string;
+  smsConsent?: boolean;
+  socialLink?: string | null;
+  goals?: string;
+  whyJoin?: string;
+  hasAgency?: string;
+};
+
 export default async function AdminApplicationsPage() {
   const applications = await prisma.application.findMany({
     where: { status: "PENDING" },
@@ -35,7 +46,7 @@ export default async function AdminApplicationsPage() {
         )}
 
         {applications.map((app) => {
-          const answers = app.answers as Record<string, string | null>;
+          const answers = app.answers as ApplicationAnswers;
           return (
             <div key={app.id} className="glass rounded-2xl p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -64,6 +75,28 @@ export default async function AdminApplicationsPage() {
                   }
                 />
                 <Detail label="Handle" value={answers.handle || "—"} />
+                <Detail
+                  label="Phone"
+                  value={
+                    answers.phone ? (
+                      <a href={`tel:${answers.phone}`} className="text-cyan hover:underline">
+                        {answers.phone}
+                      </a>
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
+                <Detail
+                  label="SMS consent"
+                  value={
+                    answers.smsConsent ? (
+                      <span className="text-cyan">Yes, opted in</span>
+                    ) : (
+                      <span className="text-off-white/40">Not given</span>
+                    )
+                  }
+                />
                 {answers.socialLink && (
                   <Detail
                     label="Link"

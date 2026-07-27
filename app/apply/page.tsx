@@ -26,6 +26,8 @@ export default function ApplyPage() {
       email: data.get("email"),
       platform: data.get("platform"),
       handle: data.get("handle"),
+      phone: data.get("phone"),
+      smsConsent: data.get("smsConsent") === "on",
       socialLink: data.get("socialLink"),
       goals: data.get("goals"),
       whyJoin: data.get("whyJoin"),
@@ -142,6 +144,31 @@ export default function ApplyPage() {
               placeholder="@yourhandle"
             />
           </Field>
+
+          <Field label="Phone number" name="phone" errors={fieldErrors.phone}>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              className={inputClass}
+              placeholder="(555) 555-5555"
+            />
+          </Field>
+
+          <label className="flex items-start gap-3 rounded-lg border border-off-white/10 bg-off-white/5 p-4">
+            <input
+              id="smsConsent"
+              name="smsConsent"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            <span className="font-body text-xs leading-relaxed text-off-white/60">
+              By checking this box, I consent to receive non-marketing text messages from
+              TriForgeMedia about transactions and events. Message frequency varies, message &amp;
+              data rates may apply. Text HELP for assistance, reply STOP to opt out.
+            </span>
+          </label>
 
           <Field
             label="Link to your channel/profile (optional)"

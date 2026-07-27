@@ -150,6 +150,8 @@ export type NewApplicationAlertData = {
   email: string;
   platform: string;
   handle: string;
+  phone: string;
+  smsConsent: boolean;
   socialLink: string | null;
   goals: string;
   whyJoin: string;
@@ -188,6 +190,13 @@ export async function sendNewApplicationAdminAlert(
           <div style="margin:0 0 20px;">${trackBadge}</div>
           ${row("Name", escapeHtml(application.name))}
           ${row("Email", escapeHtml(application.email))}
+          ${row("Phone", escapeHtml(application.phone))}
+          ${row(
+            "SMS consent",
+            application.smsConsent
+              ? `<span style="color:#00D4FF;">Yes &mdash; opted in to texts</span>`
+              : `<span style="color:rgba(245,245,245,0.5);">Not given</span>`
+          )}
           ${row("Main platform", escapeHtml(application.platform))}
           ${row("Handle / username", escapeHtml(application.handle))}
           ${row(

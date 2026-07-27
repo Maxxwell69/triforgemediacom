@@ -10,6 +10,8 @@ async function alertAdmins(application: {
   email: string;
   platform: string;
   handle: string;
+  phone: string;
+  smsConsent: boolean;
   socialLink: string | null;
   goals: string;
   whyJoin: string;
@@ -22,6 +24,8 @@ async function alertAdmins(application: {
       email: application.email,
       platform: application.platform,
       handle: application.handle,
+      phone: application.phone,
+      smsConsent: application.smsConsent,
       socialLink: application.socialLink,
       goals: application.goals,
       whyJoin: application.whyJoin,
@@ -60,9 +64,40 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, platform, handle, socialLink, goals, whyJoin, hasAgency } = parsed.data;
+  const { name, email, platform, handle, phone, smsConsent, socialLink, goals, whyJoin, hasAgency } =
+    parsed.data;
   const normalizedEmail = email.toLowerCase();
   const hasAgencyBool = hasAgency === "yes";
+
+  const answers = {
+    name,
+    platform,
+    handle,
+    phone,
+    smsConsent,
+    socialLink: socialLink || null,
+    goals,
+    whyJoin,
+    hasAgency,
+  };
+
+  async function notify(userId: string) {
+    await Promise.all([
+      alertAdmins({
+        name,
+        email: normalizedEmail,
+        platform,
+        handle,
+        phone,
+        smsConsent,
+        socialLink: socialLink || null,
+        goals,
+        whyJoin,
+        hasAgency: hasAgencyBool,
+      }),
+      routeByAgencyStatus(userId, name, normalizedEmail, hasAgencyBool),
+    ]);
+  }
 
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail },
@@ -88,7 +123,7 @@ export async function POST(req: NextRequest) {
       await prisma.application.update({
         where: { userId: existingUser.id },
         data: {
-          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
+          answers,
           status: "PENDING",
           reviewNotes: null,
           reviewedById: null,
@@ -96,42 +131,15 @@ export async function POST(req: NextRequest) {
           submittedAt: new Date(),
         },
       });
-      await Promise.all([
-        alertAdmins({
-          name,
-          email: normalizedEmail,
-          platform,
-          handle,
-          socialLink: socialLink || null,
-          goals,
-          whyJoin,
-          hasAgency: hasAgencyBool,
-        }),
-        routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
-      ]);
+      await notify(existingUser.id);
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     // User row exists (e.g. from a prior partial signup) but no application yet.
     await prisma.application.create({
-      data: {
-        userId: existingUser.id,
-        answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
-      },
+      data: { userId: existingUser.id, answers },
     });
-    await Promise.all([
-      alertAdmins({
-        name,
-        email: normalizedEmail,
-        platform,
-        handle,
-        socialLink: socialLink || null,
-        goals,
-        whyJoin,
-        hasAgency: hasAgencyBool,
-      }),
-      routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
-    ]);
+    await notify(existingUser.id);
     return NextResponse.json({ ok: true }, { status: 201 });
   }
 
@@ -140,26 +148,10 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
       name,
       status: "PENDING_APPLICATION",
-      application: {
-        create: {
-          answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin, hasAgency },
-        },
-      },
+      application: { create: { answers } },
     },
   });
-  await Promise.all([
-    alertAdmins({
-      name,
-      email: normalizedEmail,
-      platform,
-      handle,
-      socialLink: socialLink || null,
-      goals,
-      whyJoin,
-      hasAgency: hasAgencyBool,
-    }),
-    routeByAgencyStatus(newUser.id, name, normalizedEmail, hasAgencyBool),
-  ]);
+  await notify(newUser.id);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

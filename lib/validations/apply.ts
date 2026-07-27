@@ -16,6 +16,13 @@ export const applySchema = z.object({
     error: "Select your main platform",
   }),
   handle: z.string().trim().min(1, "Enter your handle/username").max(100),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Enter a valid phone number")
+    .max(20)
+    .regex(/^[0-9+()\-.\s]+$/, "Enter a valid phone number"),
+  smsConsent: z.boolean().optional().default(false),
   socialLink: z
     .string()
     .trim()
