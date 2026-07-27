@@ -8,6 +8,7 @@ import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
 import UserTagsEditor from "@/components/admin/UserTagsEditor";
 import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import AddMemberForm from "@/components/admin/AddMemberForm";
+import ResendInviteButton from "@/components/admin/ResendInviteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,7 @@ export default async function AdminUsersPage() {
                   >
                     {user.status}
                   </span>
+                  {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
                   <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
                   <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
                 </div>

@@ -111,10 +111,52 @@ export async function addMemberDirectly(
     },
   });
 
-  await sendInviteEmail(email, name, inviteUrl(token));
+  try {
+    await sendInviteEmail(email, name, inviteUrl(token));
+  } catch (err) {
+    console.error("Failed to send invite email to", email, err);
+    revalidatePath("/admin/users");
+    return {
+      error: `Member was added, but the invite email failed to send (${
+        err instanceof Error ? err.message : "unknown error"
+      }). Check RESEND_API_KEY / RESEND_FROM_EMAIL, then resend from the Users list.`,
+    };
+  }
 
   revalidatePath("/admin/users");
   return { success: true };
+}
+
+export async function resendInvite(userId: string) {
+  await requireAdmin();
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { application: true },
+  });
+  if (!user) throw new Error("User not found");
+  if (user.status !== "INVITED") throw new Error("This user isn't in an invited state");
+
+  let token = user.application?.inviteToken;
+  if (!token) {
+    token = generateInviteToken();
+    if (user.application) {
+      await prisma.application.update({ where: { id: user.application.id }, data: { inviteToken: token } });
+    } else {
+      await prisma.application.create({
+        data: {
+          userId: user.id,
+          answers: { name: user.name, addedDirectlyByAdmin: true },
+          status: "APPROVED",
+          inviteToken: token,
+          reviewedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  await sendInviteEmail(user.email, user.name || "there", inviteUrl(token));
+  revalidatePath("/admin/users");
 }
 
 export async function adjustUserPoints(formData: FormData) {
