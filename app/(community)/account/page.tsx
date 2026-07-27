@@ -252,12 +252,17 @@ export default async function AccountPage({
                 Connect your TikTok account to show your real follower, like, and video counts
                 right on your community profile.
               </p>
-              <a
-                href="/api/tiktok/connect"
-                className="rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow transition hover:brightness-110"
+              <button
+                type="button"
+                disabled
+                title="Our TikTok app is pending approval from TikTok"
+                className="cursor-not-allowed rounded-lg bg-off-white/10 px-6 py-2.5 font-body text-sm font-semibold text-off-white/40"
               >
                 🎵 Connect TikTok
-              </a>
+              </button>
+              <p className="font-body text-xs text-off-white/40">
+                Waiting for TikTok approval for our app.
+              </p>
             </div>
           )}
         </div>
