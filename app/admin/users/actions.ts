@@ -48,6 +48,16 @@ export async function setUserBanned(userId: string, banned: boolean) {
   revalidatePath("/admin/users");
 }
 
+export async function setReceivesAdminAlerts(userId: string, receives: boolean) {
+  await requireAdmin();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { receivesAdminAlerts: receives },
+  });
+  revalidatePath("/admin/users");
+}
+
 export async function toggleUserGroup(userId: string, groupId: string, isMember: boolean) {
   await requireAdmin();
 

@@ -2,20 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applySchema } from "@/lib/validations/apply";
 import { sendCreatorNetworkInfoEmail, sendNewApplicationAdminAlert } from "@/lib/email";
+import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { syncMnMembership } from "@/lib/mnCn";
 
-async function alertAdmins(applicantName: string, applicantEmail: string, platform: string) {
+async function alertAdmins(application: {
+  name: string;
+  email: string;
+  platform: string;
+  handle: string;
+  socialLink: string | null;
+  goals: string;
+  whyJoin: string;
+  hasAgency: boolean;
+}) {
   try {
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMIN", status: "ACTIVE" },
-      select: { email: true },
+    const admins = await getAlertableAdminEmails();
+    await sendNewApplicationAdminAlert(admins, {
+      name: application.name,
+      email: application.email,
+      platform: application.platform,
+      handle: application.handle,
+      socialLink: application.socialLink,
+      goals: application.goals,
+      whyJoin: application.whyJoin,
+      track: application.hasAgency ? "MN" : "CN",
     });
-    await sendNewApplicationAdminAlert(
-      admins.map((a) => a.email),
-      applicantName,
-      applicantEmail,
-      platform
-    );
   } catch (err) {
     // Never fail the application submission because the notification email failed.
     console.error("Failed to send new-application admin alert:", err);
@@ -86,7 +97,16 @@ export async function POST(req: NextRequest) {
         },
       });
       await Promise.all([
-        alertAdmins(name, normalizedEmail, platform),
+        alertAdmins({
+          name,
+          email: normalizedEmail,
+          platform,
+          handle,
+          socialLink: socialLink || null,
+          goals,
+          whyJoin,
+          hasAgency: hasAgencyBool,
+        }),
         routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
       ]);
       return NextResponse.json({ ok: true }, { status: 200 });
@@ -100,7 +120,16 @@ export async function POST(req: NextRequest) {
       },
     });
     await Promise.all([
-      alertAdmins(name, normalizedEmail, platform),
+      alertAdmins({
+        name,
+        email: normalizedEmail,
+        platform,
+        handle,
+        socialLink: socialLink || null,
+        goals,
+        whyJoin,
+        hasAgency: hasAgencyBool,
+      }),
       routeByAgencyStatus(existingUser.id, name, normalizedEmail, hasAgencyBool),
     ]);
     return NextResponse.json({ ok: true }, { status: 201 });
@@ -119,7 +148,16 @@ export async function POST(req: NextRequest) {
     },
   });
   await Promise.all([
-    alertAdmins(name, normalizedEmail, platform),
+    alertAdmins({
+      name,
+      email: normalizedEmail,
+      platform,
+      handle,
+      socialLink: socialLink || null,
+      goals,
+      whyJoin,
+      hasAgency: hasAgencyBool,
+    }),
     routeByAgencyStatus(newUser.id, name, normalizedEmail, hasAgencyBool),
   ]);
 

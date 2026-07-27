@@ -145,24 +145,59 @@ export async function sendCertificateEmail(
   );
 }
 
+export type NewApplicationAlertData = {
+  name: string;
+  email: string;
+  platform: string;
+  handle: string;
+  socialLink: string | null;
+  goals: string;
+  whyJoin: string;
+  track: "MN" | "CN";
+};
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function row(label: string, value: string): string {
+  return `<p style="line-height:1.5;margin:0 0 10px;"><strong style="color:rgba(245,245,245,0.5);display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">${label}</strong>${value}</p>`;
+}
+
 export async function sendNewApplicationAdminAlert(
   adminEmails: string[],
-  applicantName: string,
-  applicantEmail: string,
-  platform: string
+  application: NewApplicationAlertData
 ) {
   if (adminEmails.length === 0) return;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const trackBadge =
+    application.track === "MN"
+      ? `<span style="background:rgba(0,212,255,0.15);color:#00D4FF;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">MN &middot; has agency</span>`
+      : `<span style="background:rgba(253,72,2,0.15);color:#FD4802;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">CN track &middot; no agency</span>`;
+
   await Promise.all(
     adminEmails.map((to) =>
       send(
         to,
-        `New application: ${applicantName}`,
+        `New application (${application.track}): ${application.name}`,
         layout(`
-          <h1 style="color:#FD4802;font-size:20px;margin:0 0 12px;">New membership application</h1>
-          <p style="line-height:1.6;margin:4px 0;"><strong>Name:</strong> ${applicantName}</p>
-          <p style="line-height:1.6;margin:4px 0;"><strong>Email:</strong> ${applicantEmail}</p>
-          <p style="line-height:1.6;margin:4px 0;"><strong>Platform:</strong> ${platform}</p>
+          <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New membership application</h1>
+          <div style="margin:0 0 20px;">${trackBadge}</div>
+          ${row("Name", escapeHtml(application.name))}
+          ${row("Email", escapeHtml(application.email))}
+          ${row("Main platform", escapeHtml(application.platform))}
+          ${row("Handle / username", escapeHtml(application.handle))}
+          ${row(
+            "Social link",
+            application.socialLink
+              ? `<a href="${application.socialLink}" style="color:#00D4FF;">${escapeHtml(application.socialLink)}</a>`
+              : "&mdash;"
+          )}
+          ${row("Goals", escapeHtml(application.goals).replace(/\n/g, "<br/>"))}
+          ${row("Why they want in", escapeHtml(application.whyJoin).replace(/\n/g, "<br/>"))}
           ${button(`${appUrl}/admin/applications`, "Review applications")}
         `)
       )
