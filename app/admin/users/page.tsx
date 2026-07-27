@@ -116,7 +116,7 @@ export default async function AdminUsersPage() {
                     <input
                       type="number"
                       name="amount"
-                      placeholder="\u00b1XP"
+                      placeholder="±XP"
                       required
                       className="w-16 rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 font-body text-xs text-off-white outline-none transition focus:border-cyan/60"
                     />
