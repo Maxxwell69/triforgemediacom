@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applySchema } from "@/lib/validations/apply";
+import { sendNewApplicationAdminAlert } from "@/lib/email";
+
+async function alertAdmins(applicantName: string, applicantEmail: string, platform: string) {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN", status: "ACTIVE" },
+      select: { email: true },
+    });
+    await sendNewApplicationAdminAlert(
+      admins.map((a) => a.email),
+      applicantName,
+      applicantEmail,
+      platform
+    );
+  } catch (err) {
+    // Never fail the application submission because the notification email failed.
+    console.error("Failed to send new-application admin alert:", err);
+  }
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -53,6 +72,7 @@ export async function POST(req: NextRequest) {
           submittedAt: new Date(),
         },
       });
+      await alertAdmins(name, normalizedEmail, platform);
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
@@ -63,6 +83,7 @@ export async function POST(req: NextRequest) {
         answers: { name, platform, handle, socialLink: socialLink || null, goals, whyJoin },
       },
     });
+    await alertAdmins(name, normalizedEmail, platform);
     return NextResponse.json({ ok: true }, { status: 201 });
   }
 
@@ -78,6 +99,7 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+  await alertAdmins(name, normalizedEmail, platform);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

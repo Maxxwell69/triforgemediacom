@@ -4,7 +4,12 @@ import type { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { checkCourseCompletion, getOrCreateEnrollment, isLessonUnlocked } from "@/lib/learning";
+import {
+  checkCourseCompletion,
+  getOrCreateEnrollment,
+  isLessonUnlocked,
+  sendCourseCompletionEmails,
+} from "@/lib/learning";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 
@@ -53,14 +58,15 @@ export async function markLessonComplete(lessonId: string) {
     throw new Error("This lesson requires an approved assignment submission to complete.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const award = await prisma.$transaction(async (tx) => {
     await tx.lessonProgress.upsert({
       where: { userId_lessonId: { userId: user.id, lessonId } },
       update: { completedAt: new Date() },
       create: { userId: user.id, lessonId, completedAt: new Date() },
     });
-    await checkCourseCompletion(tx, user.id, lesson.courseId);
+    return checkCourseCompletion(tx, user.id, lesson.courseId);
   });
+  await sendCourseCompletionEmails(user.id, lesson.courseId, award);
 
   revalidateLesson(lesson.courseId, lessonId);
 }
@@ -105,7 +111,7 @@ export async function submitQuizAttempt(
   const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
   const passed = score >= quiz.passScore;
 
-  await prisma.$transaction(async (tx) => {
+  const award = await prisma.$transaction(async (tx) => {
     const attemptCount = await tx.quizAttempt.count({
       where: { userId: user.id, quizId: quiz.id },
     });
@@ -127,9 +133,11 @@ export async function submitQuizAttempt(
         update: { completedAt: new Date() },
         create: { userId: user.id, lessonId, completedAt: new Date() },
       });
-      await checkCourseCompletion(tx, user.id, lesson.courseId);
+      return checkCourseCompletion(tx, user.id, lesson.courseId);
     }
+    return null;
   });
+  await sendCourseCompletionEmails(user.id, lesson.courseId, award);
 
   revalidateLesson(lesson.courseId, lessonId);
 

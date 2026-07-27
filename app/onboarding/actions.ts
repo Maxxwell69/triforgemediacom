@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
 import type { ProfileFormState } from "@/components/ProfileForm";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function completeOnboarding(
   _prevState: ProfileFormState,
@@ -37,6 +38,8 @@ export async function completeOnboarding(
   if (twitchUrl) socialLinks.twitch = twitchUrl;
   if (youtubeUrl) socialLinks.youtube = youtubeUrl;
 
+  const existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
+
   await prisma.profile.upsert({
     where: { userId: user.id },
     update: {
@@ -55,6 +58,10 @@ export async function completeOnboarding(
       pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
     },
   });
+
+  if (!existingProfile && user.email) {
+    await sendWelcomeEmail(user.email, user.name || "there");
+  }
 
   redirect("/home");
 }

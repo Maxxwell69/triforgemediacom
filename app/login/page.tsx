@@ -13,6 +13,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const welcome = searchParams.get("welcome") === "1";
+  const reset = searchParams.get("reset") === "1";
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,6 +53,11 @@ function LoginForm() {
               Account created — sign in to continue.
             </p>
           )}
+          {reset && !error && (
+            <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm font-body text-cyan">
+              Password updated — sign in with your new password.
+            </p>
+          )}
           {error && (
             <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 text-sm font-body text-orange">
               {error}
@@ -89,6 +95,13 @@ function LoginForm() {
           >
             {submitting ? "Signing in..." : "Sign in"}
           </button>
+
+          <Link
+            href="/forgot-password"
+            className="-mt-2 text-center font-body text-sm text-off-white/50 hover:text-cyan"
+          >
+            Forgot your password?
+          </Link>
         </form>
 
         <p className="mt-6 text-center font-body text-sm text-off-white/50">

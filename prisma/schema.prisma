@@ -95,6 +95,8 @@ model User {
   certificates               Certificate[]
   tiktokConnection           TikTokConnection?
   tags                       UserTag[]
+  passwordResetTokens        PasswordResetToken[]
+  broadcastsSent             Broadcast[]
 }
 
 // ---------- Application / invite flow ----------
@@ -258,6 +260,48 @@ model TikTokConnection {
   updatedAt             DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Password reset ----------
+// Single-use, expiring tokens for the /forgot-password -> /reset-password
+// flow. Old tokens for a user aren't deleted on new requests — they just
+// expire naturally / get marked used, keeping this dead simple.
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Admin broadcast emails ----------
+// A log of one-off announcement emails admins send to a chosen audience
+// (all members, a tag, a group, or a single user). Kept for history/auditing
+// — sending itself just loops Resend calls, no queue/worker needed at this
+// volume.
+
+enum BroadcastAudienceType {
+  ALL_MEMBERS
+  TAG
+  GROUP
+  SINGLE_USER
+}
+
+model Broadcast {
+  id            String                @id @default(cuid())
+  subject       String
+  bodyHtml      String
+  audienceType  BroadcastAudienceType
+  audienceLabel String // human-readable snapshot, e.g. "Tag: Gamer" — survives the tag/group being renamed or deleted later
+  recipientCount Int
+  sentById      String
+  sentAt        DateTime              @default(now())
+
+  sentBy User @relation(fields: [sentById], references: [id])
 }
 
 // ---------- Tags (searchable creator attributes) ----------

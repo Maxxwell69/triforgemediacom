@@ -14,6 +14,7 @@ const links = [
   { href: "/admin/rewards", label: "Rewards" },
   { href: "/admin/courses", label: "Courses" },
   { href: "/admin/social", label: "Company Social" },
+  { href: "/admin/broadcast", label: "Broadcast" },
   { href: "/admin/moderation", label: "Moderation Log" },
 ];
 

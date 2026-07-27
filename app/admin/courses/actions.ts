@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { checkCourseCompletion } from "@/lib/learning";
+import { checkCourseCompletion, sendCourseCompletionEmails } from "@/lib/learning";
 import {
   assignmentSchema,
   badgeSchema,
@@ -463,7 +463,7 @@ export async function reviewSubmission(
 
   const { lesson } = submission.assignment;
 
-  await prisma.$transaction(async (tx) => {
+  const award = await prisma.$transaction(async (tx) => {
     await tx.assignmentSubmission.update({
       where: { id: submissionId },
       data: {
@@ -480,9 +480,11 @@ export async function reviewSubmission(
         update: { completedAt: new Date() },
         create: { userId: submission.userId, lessonId: lesson.id, completedAt: new Date() },
       });
-      await checkCourseCompletion(tx, submission.userId, lesson.courseId);
+      return checkCourseCompletion(tx, submission.userId, lesson.courseId);
     }
+    return null;
   });
+  await sendCourseCompletionEmails(submission.userId, lesson.courseId, award);
 
   revalidateCourse(lesson.courseId);
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sendBadgeEarnedEmail, sendCertificateEmail } from "@/lib/email";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -78,28 +79,43 @@ export function getOrderedLessonSequence<L extends OrderableLesson>(
   ];
 }
 
+export type CourseCompletionAward = {
+  courseTitle: string;
+  badges: { name: string; icon: string | null }[];
+  certificateIssued: boolean;
+} | null;
+
 /**
  * Call whenever a LessonProgress.completedAt gets set. If every lesson in
  * the course is now complete for this user, marks the Enrollment complete,
  * awards course XP, awards the course's badge (if any), and auto-adds the
  * user to the course's completion group — all within the same transaction.
+ *
+ * Returns a summary of what was newly awarded so the caller can send emails
+ * *after* the transaction commits (never send email from inside a DB
+ * transaction — a slow/failed network call shouldn't hold the transaction
+ * open or roll back an otherwise-successful award).
  */
-export async function checkCourseCompletion(tx: TxClient, userId: string, courseId: string) {
+export async function checkCourseCompletion(
+  tx: TxClient,
+  userId: string,
+  courseId: string
+): Promise<CourseCompletionAward> {
   const lessons = await tx.lesson.findMany({ where: { courseId }, select: { id: true } });
-  if (lessons.length === 0) return;
+  if (lessons.length === 0) return null;
   const lessonIds = lessons.map((l) => l.id);
 
   const completedCount = await tx.lessonProgress.count({
     where: { userId, lessonId: { in: lessonIds }, completedAt: { not: null } },
   });
-  if (completedCount < lessons.length) return;
+  if (completedCount < lessons.length) return null;
 
   const enrollment = await tx.enrollment.upsert({
     where: { userId_courseId: { userId, courseId } },
     update: {},
     create: { userId, courseId },
   });
-  if (enrollment.completedAt) return;
+  if (enrollment.completedAt) return null;
 
   await tx.enrollment.update({
     where: { id: enrollment.id },
@@ -110,8 +126,9 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
     where: { id: courseId },
     include: { badges: true },
   });
-  if (!course) return;
+  if (!course) return null;
 
+  let certificateIssued = false;
   if (course.certificateEnabled) {
     const existingCert = await tx.certificate.findUnique({
       where: { userId_courseId: { userId, courseId } },
@@ -124,6 +141,7 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
           certNumber: `TFC-${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`,
         },
       });
+      certificateIssued = true;
     }
   }
 
@@ -138,12 +156,14 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
     });
   }
 
+  const newlyAwardedBadges: { name: string; icon: string | null }[] = [];
   for (const badge of course.badges) {
     const existing = await tx.userBadge.findUnique({
       where: { userId_badgeId: { userId, badgeId: badge.id } },
     });
     if (!existing) {
       await tx.userBadge.create({ data: { userId, badgeId: badge.id } });
+      newlyAwardedBadges.push({ name: badge.name, icon: badge.icon });
     }
   }
 
@@ -158,5 +178,33 @@ export async function checkCourseCompletion(tx: TxClient, userId: string, course
         data: { userId, groupId: course.completionGroupId },
       });
     }
+  }
+
+  return { courseTitle: course.title, badges: newlyAwardedBadges, certificateIssued };
+}
+
+/**
+ * Sends the badge/certificate emails for a completion award. Call this
+ * *after* the transaction containing checkCourseCompletion() has committed.
+ */
+export async function sendCourseCompletionEmails(
+  userId: string,
+  courseId: string,
+  award: CourseCompletionAward
+) {
+  if (!award || (award.badges.length === 0 && !award.certificateIssued)) return;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true },
+  });
+  if (!user) return;
+  const name = user.name || "there";
+
+  for (const badge of award.badges) {
+    await sendBadgeEarnedEmail(user.email, name, badge.name, badge.icon);
+  }
+  if (award.certificateIssued) {
+    await sendCertificateEmail(user.email, name, award.courseTitle, courseId);
   }
 }
