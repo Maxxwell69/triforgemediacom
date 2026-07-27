@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent } from "react";
+import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { canModerate, canBeModerationTarget, isMuted, MUTE_DURATION_PRESETS_MINUTES } from "@/lib/moderation";
 
@@ -206,18 +207,22 @@ export default function ChatView({
 
             return (
               <div key={message.id} className="group flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-off-white/10 font-display text-sm">
+                <Link
+                  href={`/members/${message.user.id}`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-off-white/10 font-display text-sm transition hover:ring-2 hover:ring-cyan/60"
+                >
                   {(message.user.name || "?").charAt(0).toUpperCase()}
-                </div>
+                </Link>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span
-                      className={`font-body text-sm font-semibold ${
-                        isAuthor ? "text-cyan" : "text-off-white"
+                    <Link
+                      href={`/members/${message.user.id}`}
+                      className={`font-body text-sm font-semibold hover:underline ${
+                        isAuthor ? "text-cyan" : "text-off-white hover:text-cyan"
                       }`}
                     >
                       {message.user.name || "Unknown"}
-                    </span>
+                    </Link>
                     {message.user.role !== "MEMBER" && (
                       <span className="rounded bg-orange/15 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
                         {ROLE_LABELS[message.user.role]}
