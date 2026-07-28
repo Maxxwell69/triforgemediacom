@@ -1,60 +1,64 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
-  fetchGhlContactsByTag,
-  importGhlContacts,
-  type GhlPreviewContact,
+  parseCsvPreview,
+  importCsvContacts,
+  type CsvPreviewContact,
 } from "@/app/admin/import/actions";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
-export default function GhlImportPanel({ ghlConfigured }: { ghlConfigured: boolean }) {
-  const [tag, setTag] = useState("");
-  const [contacts, setContacts] = useState<GhlPreviewContact[] | null>(null);
+export default function GhlImportPanel() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [csvText, setCsvText] = useState("");
+  const [contacts, setContacts] = useState<CsvPreviewContact[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searching, startSearching] = useTransition();
+  const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const [parsing, startParsing] = useTransition();
 
   const [importing, startImporting] = useTransition();
   const [importResult, setImportResult] = useState<
     { imported: number; skipped: number; errors: string[] } | null
   >(null);
 
-  function handleSearch() {
-    setSearchError(null);
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCsvText(String(reader.result || ""));
+    reader.readAsText(file);
+  }
+
+  function handlePreview() {
     setImportResult(null);
-    startSearching(async () => {
-      const result = await fetchGhlContactsByTag(tag);
-      if (result.error) {
-        setSearchError(result.error);
-        setContacts(null);
-        return;
-      }
+    startParsing(async () => {
+      const result = await parseCsvPreview(csvText);
+      setParseErrors(result.errors);
       setContacts(result.contacts);
       setSelected(
         new Set(
           result.contacts
             .filter((c) => !c.alreadyImported && !c.existingUser)
-            .map((c) => c.ghlContactId)
+            .map((c) => c.importKey)
         )
       );
     });
   }
 
-  function toggleSelected(id: string) {
+  function toggleSelected(key: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
   function handleImport() {
     if (!contacts) return;
-    const toImport = contacts.filter((c) => selected.has(c.ghlContactId));
+    const toImport = contacts.filter((c) => selected.has(c.importKey));
     if (toImport.length === 0) return;
     if (
       !confirm(
@@ -65,23 +69,12 @@ export default function GhlImportPanel({ ghlConfigured }: { ghlConfigured: boole
     }
 
     startImporting(async () => {
-      const result = await importGhlContacts(
-        toImport.map(({ ghlContactId, name, email, phone, tags }) => ({
-          ghlContactId,
-          name,
-          email,
-          phone,
-          tags,
-        }))
+      const result = await importCsvContacts(
+        toImport.map(({ name, email, phone, tags }) => ({ name, email, phone, tags }))
       );
       setImportResult(result);
-      // Re-mark whatever succeeded as already-imported so the list stays accurate.
       setContacts((prev) =>
-        prev
-          ? prev.map((c) =>
-              selected.has(c.ghlContactId) ? { ...c, alreadyImported: true } : c
-            )
-          : prev
+        prev ? prev.map((c) => (selected.has(c.importKey) ? { ...c, alreadyImported: true } : c)) : prev
       );
       setSelected(new Set());
     });
@@ -93,51 +86,75 @@ export default function GhlImportPanel({ ghlConfigured }: { ghlConfigured: boole
     <div className="glass flex flex-col gap-4 rounded-2xl p-6">
       <div>
         <h2 className="font-display text-xl tracking-wide text-off-white/80">
-          Import from GoHighLevel
+          Import from a CSV export
         </h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
-          Pull contacts by tag from GHL, review them, then bring selected people into the Hub as
-          real accounts. Each import sends a migration invite email — they land in a holding
-          pattern (INVITED) until they click through and set a password.
+          Export your Media / Creator Network contacts from GHL as a CSV, then upload or paste it
+          below. Review the parsed list, then bring selected people into the Hub as real accounts
+          &mdash; each gets a migration invite email and lands in a holding pattern (INVITED)
+          until they click through and set a password.
         </p>
-        {!ghlConfigured && (
-          <p className="mt-2 rounded-lg border border-orange/30 bg-orange/10 px-3 py-2 font-body text-xs text-orange">
-            GHL_API_KEY / GHL_LOCATION_ID aren&apos;t set yet — add them to run a search.
-          </p>
-        )}
+        <p className="mt-2 font-body text-xs text-off-white/40">
+          Expected columns (header row required): <code className="text-cyan/80">email</code>{" "}
+          (required), <code className="text-cyan/80">name</code>,{" "}
+          <code className="text-cyan/80">phone</code>,{" "}
+          <code className="text-cyan/80">tags</code> (separate multiple tags with{" "}
+          <code className="text-cyan/80">;</code>). Example:{" "}
+          <code className="text-off-white/60">
+            name,email,phone,tags
+            <br />
+            Jane Creator,jane@example.com,+15555550123,creator-network;no-agency
+          </code>
+        </p>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
-          placeholder="GHL tag name, e.g. &quot;creator-network&quot;"
-          className={`${fieldClass} flex-1`}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handleSearch();
-            }
-          }}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-lg border border-off-white/20 px-4 py-2 font-body text-sm font-semibold text-off-white/70 transition hover:border-off-white/40"
+          >
+            Upload CSV file
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <span className="font-body text-xs text-off-white/40">or paste it below</span>
+        </div>
+        <textarea
+          value={csvText}
+          onChange={(e) => setCsvText(e.target.value)}
+          rows={6}
+          placeholder="name,email,phone,tags&#10;Jane Creator,jane@example.com,+15555550123,creator-network"
+          className={`${fieldClass} font-mono text-xs`}
         />
         <button
           type="button"
-          onClick={handleSearch}
-          disabled={searching || !tag.trim() || !ghlConfigured}
-          className="shrink-0 rounded-lg border border-cyan/50 px-5 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={handlePreview}
+          disabled={parsing || !csvText.trim()}
+          className="self-start rounded-lg border border-cyan/50 px-5 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {searching ? "Searching..." : "Search GHL"}
+          {parsing ? "Parsing..." : "Preview import"}
         </button>
       </div>
 
-      {searchError && (
-        <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
-          {searchError}
-        </p>
+      {parseErrors.length > 0 && (
+        <div className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+          <ul className="list-disc pl-4">
+            {parseErrors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
-      {contacts && contacts.length === 0 && !searchError && (
-        <p className="font-body text-sm text-off-white/50">No contacts found with that tag.</p>
+      {contacts && contacts.length === 0 && parseErrors.length === 0 && (
+        <p className="font-body text-sm text-off-white/50">No valid rows found.</p>
       )}
 
       {contacts && contacts.length > 0 && (
@@ -158,13 +175,13 @@ export default function GhlImportPanel({ ghlConfigured }: { ghlConfigured: boole
                 {contacts.map((c) => {
                   const disabled = c.alreadyImported || c.existingUser;
                   return (
-                    <tr key={c.ghlContactId} className="border-b border-off-white/5 last:border-0">
+                    <tr key={c.importKey} className="border-b border-off-white/5 last:border-0">
                       <td className="px-3 py-2">
                         <input
                           type="checkbox"
-                          checked={selected.has(c.ghlContactId)}
+                          checked={selected.has(c.importKey)}
                           disabled={disabled}
-                          onChange={() => toggleSelected(c.ghlContactId)}
+                          onChange={() => toggleSelected(c.importKey)}
                           className="h-4 w-4 accent-orange disabled:opacity-30"
                         />
                       </td>

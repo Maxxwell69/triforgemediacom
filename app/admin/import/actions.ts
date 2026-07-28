@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { searchGhlContactsByTag, type GhlContactSummary } from "@/lib/ghl";
+import { parseContactsCsv, type CsvContactRow } from "@/lib/csvImport";
 import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
 import { sendHubMigrationInviteEmail } from "@/lib/email";
 
@@ -23,59 +23,52 @@ async function requireAdmin() {
   return session;
 }
 
-export type GhlPreviewContact = GhlContactSummary & {
+export type CsvPreviewContact = CsvContactRow & {
+  importKey: string;
   alreadyImported: boolean;
   existingUser: boolean;
 };
 
-export type GhlFetchResult = { error?: string; contacts: GhlPreviewContact[] };
+export type CsvParseResult = { errors: string[]; contacts: CsvPreviewContact[] };
 
-export async function fetchGhlContactsByTag(tag: string): Promise<GhlFetchResult> {
-  await requireAdmin();
-
-  const trimmed = tag.trim();
-  if (!trimmed) {
-    return { error: "Enter a tag name to search for.", contacts: [] };
-  }
-
-  let contacts: GhlContactSummary[];
-  try {
-    contacts = await searchGhlContactsByTag(trimmed);
-  } catch (err) {
-    return {
-      error: err instanceof Error ? err.message : "Failed to reach GoHighLevel.",
-      contacts: [],
-    };
-  }
-
-  if (contacts.length === 0) {
-    return { contacts: [] };
-  }
-
-  const [existingImports, existingUsers] = await Promise.all([
-    prisma.ghlImport.findMany({
-      where: { ghlContactId: { in: contacts.map((c) => c.ghlContactId) } },
-      select: { ghlContactId: true },
-    }),
-    prisma.user.findMany({
-      where: { email: { in: contacts.map((c) => c.email) } },
-      select: { email: true },
-    }),
-  ]);
-  const importedIds = new Set(existingImports.map((i) => i.ghlContactId));
-  const existingEmails = new Set(existingUsers.map((u) => u.email));
-
-  return {
-    contacts: contacts.map((c) => ({
-      ...c,
-      alreadyImported: importedIds.has(c.ghlContactId),
-      existingUser: existingEmails.has(c.email),
-    })),
-  };
+/**
+ * There's no real external contact ID once the source is a manually
+ * exported CSV, but GhlImport.ghlContactId still needs something stable +
+ * unique to key off of (for de-duping re-imports of the same file). The
+ * email address itself is stable enough for that here.
+ */
+function importKeyFor(email: string): string {
+  return `csv:${email}`;
 }
 
-export async function importGhlContacts(
-  contacts: GhlContactSummary[]
+export async function parseCsvPreview(csvText: string): Promise<CsvParseResult> {
+  await requireAdmin();
+
+  const { rows, errors } = parseContactsCsv(csvText);
+  if (rows.length === 0) {
+    return { errors, contacts: [] };
+  }
+
+  const emails = rows.map((r) => r.email);
+  const [existingImports, existingUsers] = await Promise.all([
+    prisma.ghlImport.findMany({ where: { email: { in: emails } }, select: { email: true } }),
+    prisma.user.findMany({ where: { email: { in: emails } }, select: { email: true } }),
+  ]);
+  const importedEmails = new Set(existingImports.map((i) => i.email));
+  const existingEmails = new Set(existingUsers.map((u) => u.email));
+
+  const contacts: CsvPreviewContact[] = rows.map((row) => ({
+    ...row,
+    importKey: importKeyFor(row.email),
+    alreadyImported: importedEmails.has(row.email),
+    existingUser: existingEmails.has(row.email),
+  }));
+
+  return { errors, contacts };
+}
+
+export async function importCsvContacts(
+  contacts: CsvContactRow[]
 ): Promise<{ imported: number; skipped: number; errors: string[] }> {
   await requireAdmin();
 
@@ -85,8 +78,9 @@ export async function importGhlContacts(
 
   for (const contact of contacts) {
     try {
+      const key = importKeyFor(contact.email);
       const [existingImport, existingUser] = await Promise.all([
-        prisma.ghlImport.findUnique({ where: { ghlContactId: contact.ghlContactId } }),
+        prisma.ghlImport.findUnique({ where: { ghlContactId: key } }),
         prisma.user.findUnique({ where: { email: contact.email } }),
       ]);
       if (existingImport || existingUser) {
@@ -105,7 +99,7 @@ export async function importGhlContacts(
             create: {
               answers: {
                 importedFromGhl: true,
-                ghlContactId: contact.ghlContactId,
+                importSource: "csv",
                 phone: contact.phone,
                 tags: contact.tags,
               },
@@ -117,7 +111,7 @@ export async function importGhlContacts(
           },
           ghlImport: {
             create: {
-              ghlContactId: contact.ghlContactId,
+              ghlContactId: key,
               name: contact.name,
               email: contact.email,
               phone: contact.phone,
@@ -172,7 +166,7 @@ export async function resendGhlInvite(ghlImportId: string) {
     await prisma.application.create({
       data: {
         userId: record.user.id,
-        answers: { importedFromGhl: true, ghlContactId: record.ghlContactId },
+        answers: { importedFromGhl: true, importSource: "csv" },
         status: "APPROVED",
         inviteToken: token,
         inviteTokenExpiresAt: expiresAt,

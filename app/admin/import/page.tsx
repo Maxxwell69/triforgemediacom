@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { isGhlConfigured } from "@/lib/ghl";
 import GhlImportPanel from "@/components/admin/GhlImportPanel";
 import GhlImportRowActions from "@/components/admin/GhlImportRowActions";
 
@@ -32,12 +31,12 @@ export default async function AdminImportPage() {
       </h1>
       <p className="mt-2 font-body text-off-white/60">
         Bring existing GoHighLevel contacts (Media + Creator Network signups) into the Hub as
-        real accounts. Course/lesson content is migrated manually with the course builder instead
-        — GHL&apos;s Courses API is undocumented and not reliable enough to automate.
+        real accounts, from a CSV export. Course/lesson content is migrated manually with the
+        course builder instead.
       </p>
 
       <div className="mt-8">
-        <GhlImportPanel ghlConfigured={isGhlConfigured()} />
+        <GhlImportPanel />
       </div>
 
       <div className="mt-10">
