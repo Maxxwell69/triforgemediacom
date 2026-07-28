@@ -37,6 +37,14 @@ export async function completeSignup(
 
   const passwordHash = await bcrypt.hash(password, 12);
 
+  // If this user came in through the GHL migration importer, completing
+  // signup IS their "answer" to the site-change invite — flip the holding
+  // pattern record to CONFIRMED alongside the normal activation.
+  const ghlImport = await prisma.ghlImport.findUnique({
+    where: { userId: application.userId },
+    select: { id: true },
+  });
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: application.userId },
@@ -46,6 +54,14 @@ export async function completeSignup(
       where: { id: application.id },
       data: { inviteToken: null, inviteTokenExpiresAt: null },
     }),
+    ...(ghlImport
+      ? [
+          prisma.ghlImport.update({
+            where: { id: ghlImport.id },
+            data: { status: "CONFIRMED", respondedAt: new Date() },
+          }),
+        ]
+      : []),
   ]);
 
   redirect("/login?welcome=1");

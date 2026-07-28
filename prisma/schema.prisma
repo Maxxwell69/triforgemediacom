@@ -101,6 +101,7 @@ model User {
   tags                       UserTag[]
   passwordResetTokens        PasswordResetToken[]
   broadcastsSent             Broadcast[]
+  ghlImport                  GhlImport?
 }
 
 // ---------- Application / invite flow ----------
@@ -132,6 +133,34 @@ model Application {
 
   user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("ReviewedBy", fields: [reviewedById], references: [id])
+}
+
+// ---------- GoHighLevel migration import ----------
+// One-time (repeatable) tool for bringing existing GHL contacts into the Hub
+// as real accounts, in a trackable "holding pattern" until they actually
+// respond to the migration invite by setting a password.
+
+enum GhlImportStatus {
+  PENDING // fetched from GHL, not yet invited (shouldn't normally persist in this state)
+  INVITED // invite email sent, waiting on them to respond
+  CONFIRMED // they set a password and logged in — fully migrated
+  DECLINED // admin manually marked them as not moving over
+}
+
+model GhlImport {
+  id           String          @id @default(cuid())
+  ghlContactId String          @unique
+  name         String?
+  email        String
+  phone        String?
+  tagsRaw      String? // comma-joined GHL tags at time of import, kept for reference
+  status       GhlImportStatus @default(PENDING)
+  invitedAt    DateTime?
+  respondedAt  DateTime?
+  createdAt    DateTime        @default(now())
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 // ---------- Profile (drives TikTask personalization) ----------

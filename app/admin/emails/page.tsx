@@ -11,6 +11,7 @@ import {
   buildTikTokRequestExpectedEmail,
   buildTikTokNetworkRequestAlert,
   buildEmailChangedNotice,
+  buildHubMigrationInviteEmail,
   type EmailContent,
 } from "@/lib/email";
 
@@ -120,6 +121,16 @@ function getTemplates(): Template[] {
         email: SAMPLE_EMAIL,
         handle: "@janecreator",
       }),
+    },
+    {
+      key: "hub-migration-invite",
+      label: "Hub migration invite (GHL import)",
+      trigger:
+        "Sent when an admin imports a contact from GoHighLevel on /admin/import, and again on \"Resend invite\".",
+      content: buildHubMigrationInviteEmail(
+        SAMPLE_NAME,
+        "https://hub.triforgemedia.com/signup?token=sample-token-abc123"
+      ),
     },
     {
       key: "email-changed",

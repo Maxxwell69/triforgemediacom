@@ -444,6 +444,36 @@ export async function sendEmailChangedNotice(oldEmail: string, newEmail: string,
   await send(oldEmail, subject, html);
 }
 
+// ---------- Hub migration invite (GHL import) ----------
+
+/**
+ * Sent to people imported from GoHighLevel (existing Media/Creator Network
+ * contacts) to bring them over as real Hub accounts. Uses the same
+ * invite/signup link as every other invite — clicking it and setting a
+ * password is what moves them out of the "holding pattern" and into an
+ * active account (see GhlImportStatus in prisma/schema.prisma).
+ */
+export function buildHubMigrationInviteEmail(name: string, url: string): EmailContent {
+  const safeName = escapeHtml(name);
+  return {
+    subject: "We built you a new home — welcome to the TriForge Hub",
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">You're invited to the TriForge Hub, ${safeName}!</h1>
+      <p style="line-height:1.6;">We've built a new home base for TriForge Media and the Creator Network &mdash;
+        real-time community chat, a Learning Center with courses, daily task tracking with streaks and XP, and a
+        rewards program, all in one place.</p>
+      <p style="line-height:1.6;">Click below to set your password and jump in &mdash; it only takes a minute.</p>
+      ${button(url, "Set up your Hub account")}
+      <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work, copy this link: ${escapeHtml(url)}</p>
+    `),
+  };
+}
+
+export async function sendHubMigrationInviteEmail(to: string, name: string, url: string) {
+  const { subject, html } = buildHubMigrationInviteEmail(name, url);
+  await send(to, subject, html);
+}
+
 // ---------- Broadcast (admin-authored, not a fixed template) ----------
 
 export async function sendBroadcastEmail(to: string, subject: string, bodyHtml: string) {
