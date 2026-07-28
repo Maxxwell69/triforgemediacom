@@ -6,11 +6,14 @@ import "dotenv/config";
  * that's easy to make when a laptop's .env still has the production
  * DATABASE_URL in it from earlier testing.
  *
- * Set PROD_DB_HOST in .env to your production Postgres hostname (just the
- * host — e.g. "containers-us-west-123.railway.app" — not a secret on its
- * own, it's only used here as a comparison string). Once set, any command
- * wired to this guard refuses to run if DATABASE_URL's host matches, unless
- * you explicitly opt in with ALLOW_PROD_DB_OPS=yes for that one run.
+ * Set PROD_DB_HOST in .env to your production Postgres host — include the
+ * port too if your provider shares one proxy hostname across multiple
+ * databases (Railway does: e.g. "sakura.proxy.rlwy.net:28726" — the port is
+ * what actually distinguishes prod from staging/dev in that case). Not a
+ * secret on its own, it's only used here as a comparison string. Once set,
+ * any command wired to this guard refuses to run if DATABASE_URL's host
+ * matches, unless you explicitly opt in with ALLOW_PROD_DB_OPS=yes for that
+ * one run.
  *
  * No-ops if PROD_DB_HOST isn't set, so this only activates once you've
  * configured it.

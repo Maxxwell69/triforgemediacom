@@ -82,9 +82,11 @@ Do this in the Railway dashboard (not something I can do from here without CLI/A
 5. Push the `staging` branch (`git push -u origin staging`) and confirm it deploys
    cleanly, migrations apply, and the site loads on the staging domain.
 6. In your **local** `.env`, point `DATABASE_URL` at the new staging Postgres (get the
-   public connection string from Railway's Postgres service → Connect tab) instead of
-   production, and set `PROD_DB_HOST` to production's Postgres hostname so the guard rail
-   is active.
+   public connection string from the Postgres service's **Connect** button — Public
+   Network tab) instead of production, and set `PROD_DB_HOST` to production's Postgres
+   host so the guard rail is active. Note: Railway shares one proxy hostname per region
+   across databases, so if production and staging show the same host, include the port
+   too (e.g. `sakura.proxy.rlwy.net:28726`) — the port is what actually tells them apart.
 
 ## Rollback
 
