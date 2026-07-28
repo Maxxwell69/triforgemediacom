@@ -20,7 +20,15 @@ export const lessonSchema = z.object({
   videoUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   audioUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   htmlEmbed: z.string().trim().max(10000).optional().or(z.literal("")),
-  content: z.string().trim().max(20000).optional().or(z.literal("")),
+  // GHL "custom code" lesson pages routinely land in the 15–40KB range once
+  // you count the inline styles; 20KB was truncating real lessons mid-paste
+  // and surfacing as an opaque 500 from the server action.
+  content: z
+    .string()
+    .trim()
+    .max(200000, "Lesson content is too long (max ~200KB). Trim the HTML or split into multiple lessons.")
+    .optional()
+    .or(z.literal("")),
   moduleId: z.string().trim().optional().or(z.literal("")),
   dripDaysAfterEnroll: z.preprocess((val) => {
     if (val === "" || val === null || val === undefined) return null;

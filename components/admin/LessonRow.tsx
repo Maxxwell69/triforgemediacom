@@ -211,7 +211,8 @@ export default function LessonRow({
               <span className="font-body text-xs text-off-white/50">
                 Lesson content &mdash; plain text or HTML (headings, bold, lists, links,
                 images, tables, inline <code>style</code>). Tailwind classes won&apos;t apply
-                here; use inline styles instead.
+                here; use inline styles instead. Large GHL custom-code pages are fine
+                (up to ~200KB).
               </span>
               <button
                 type="button"
