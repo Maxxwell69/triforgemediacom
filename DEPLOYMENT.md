@@ -88,6 +88,23 @@ Do this in the Railway dashboard (not something I can do from here without CLI/A
    across databases, so if production and staging show the same host, include the port
    too (e.g. `sakura.proxy.rlwy.net:28726`) — the port is what actually tells them apart.
 
+## Scheduled jobs (streak reminders)
+
+`/api/cron/streak-reminders` sends an evening nudge to anyone about to lose their
+TikTask streak. It's a plain HTTP endpoint guarded by a shared secret — nothing in-app
+calls it, so it needs an external trigger:
+
+1. In Railway, add `CRON_SECRET` to the **production** environment's variables (any
+   random string — see `.env.example`).
+2. In the GitHub repo → **Settings → Secrets and variables → Actions**, add a repo
+   secret named `CRON_SECRET` with that same value.
+3. `.github/workflows/streak-reminders.yml` runs daily at 01:00 UTC and curls
+   `https://hub.triforgemedia.com/api/cron/streak-reminders?secret=$CRON_SECRET`. You
+   can trigger it on-demand from the repo's **Actions** tab (`workflow_dispatch`) to test.
+
+This only targets production — staging has test data and doesn't need real reminder
+emails going out, so `CRON_SECRET` doesn't need to be set there.
+
 ## Versioning
 
 `lib/version.ts` exports `APP_VERSION`, shown as a small `v1.7`-style badge in
