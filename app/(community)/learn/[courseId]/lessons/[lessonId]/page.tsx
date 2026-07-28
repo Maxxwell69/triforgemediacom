@@ -95,6 +95,18 @@ export default async function LessonPage({
         )}
         <h1 className="mt-1 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
 
+        {lesson.thumbnailUrl && (
+          <div className="relative mt-6 h-44 w-full overflow-hidden rounded-2xl bg-off-white/5 sm:h-56">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lesson.thumbnailUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/40 via-transparent to-transparent" />
+          </div>
+        )}
+
         {lesson.videoUrl && (
           <div className="mt-6">
             <VideoEmbed url={lesson.videoUrl} />

@@ -5,6 +5,7 @@ import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses
 import { toDatetimeLocalValue } from "@/lib/validations/course";
 import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
+import ImageUploadField from "@/components/ImageUploadField";
 import QuizSection from "./QuizSection";
 import AssignmentSection from "./AssignmentSection";
 import type { QuestionData } from "./QuestionForm";
@@ -25,6 +26,7 @@ type Lesson = {
   id: string;
   title: string;
   moduleId: string | null;
+  thumbnailUrl: string | null;
   videoUrl: string | null;
   audioUrl: string | null;
   htmlEmbed: string | null;
@@ -97,22 +99,35 @@ export default function LessonRow({
           </div>
           {!editing && (
             <div className="min-w-0">
-              <p className="truncate font-body text-sm font-medium text-off-white">
-                {lesson.title}
-              </p>
-              <p className="mt-0.5 font-body text-xs text-off-white/40">
-                {[
-                  lesson.videoUrl ? "Video" : null,
-                  lesson.audioUrl ? "Audio" : null,
-                  lesson.htmlEmbed ? "Embed" : null,
-                  lesson.content ? "Text" : null,
-                  lesson.quiz ? "Quiz" : null,
-                  lesson.assignment ? "Assignment" : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "No content"}
-                {dripBits.length > 0 ? ` · Drip: ${dripBits.join(", ")}` : ""}
-              </p>
+              <div className="flex items-center gap-3">
+                {lesson.thumbnailUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={lesson.thumbnailUrl}
+                    alt=""
+                    className="h-10 w-16 shrink-0 rounded-md border border-off-white/15 object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-body text-sm font-medium text-off-white">
+                    {lesson.title}
+                  </p>
+                  <p className="mt-0.5 font-body text-xs text-off-white/40">
+                    {[
+                      lesson.thumbnailUrl ? "Thumbnail" : null,
+                      lesson.videoUrl ? "Video" : null,
+                      lesson.audioUrl ? "Audio" : null,
+                      lesson.htmlEmbed ? "Embed" : null,
+                      lesson.content ? "Text" : null,
+                      lesson.quiz ? "Quiz" : null,
+                      lesson.assignment ? "Assignment" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "No content"}
+                    {dripBits.length > 0 ? ` · Drip: ${dripBits.join(", ")}` : ""}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -151,6 +166,12 @@ export default function LessonRow({
           <input type="hidden" name="id" value={lesson.id} />
           <input type="hidden" name="courseId" value={courseId} />
           <input name="title" defaultValue={lesson.title} required className={fieldClass} />
+          <ImageUploadField
+            name="thumbnailUrl"
+            folder="lesson-thumbnails"
+            defaultValue={lesson.thumbnailUrl}
+            label="Thumbnail"
+          />
           <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
             Module
             <select

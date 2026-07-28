@@ -7,6 +7,7 @@ import CourseGroupsForm from "@/components/admin/CourseGroupsForm";
 import LessonRow from "@/components/admin/LessonRow";
 import ModuleRow from "@/components/admin/ModuleRow";
 import BadgeManager from "@/components/admin/BadgeManager";
+import ImageUploadField from "@/components/ImageUploadField";
 import type { QuestionData } from "@/components/admin/QuestionForm";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +101,7 @@ export default async function AdminCourseDetailPage({
           id: lesson.id,
           title: lesson.title,
           moduleId: lesson.moduleId,
+          thumbnailUrl: lesson.thumbnailUrl,
           videoUrl: lesson.videoUrl,
           audioUrl: lesson.audioUrl,
           htmlEmbed: lesson.htmlEmbed,
@@ -286,6 +288,7 @@ export default async function AdminCourseDetailPage({
           <input type="hidden" name="courseId" value={detail.id} />
           <h3 className="font-display text-lg tracking-wide text-off-white/80">Add lesson</h3>
           <input name="title" required placeholder="Lesson title" className={fieldClass} />
+          <ImageUploadField name="thumbnailUrl" folder="lesson-thumbnails" label="Thumbnail" />
           <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
             Module
             <select name="moduleId" defaultValue="" className={fieldClass}>

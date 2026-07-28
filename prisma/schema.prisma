@@ -546,6 +546,7 @@ model Lesson {
   moduleId            String?
   title               String
   order               Int       @default(0)
+  thumbnailUrl        String?
   videoUrl            String?
   audioUrl            String?
   htmlEmbed           String?

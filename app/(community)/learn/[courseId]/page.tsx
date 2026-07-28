@@ -108,11 +108,20 @@ export default async function CourseDetailPage({
           key={lesson.id}
           className="glass flex items-center justify-between gap-4 rounded-xl p-4 opacity-60"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-off-white/20 font-body text-xs text-off-white/40">
-              🔒
-            </span>
-            <div>
+          <div className="flex min-w-0 items-center gap-3">
+            {lesson.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={lesson.thumbnailUrl}
+                alt=""
+                className="h-12 w-20 shrink-0 rounded-lg object-cover opacity-70"
+              />
+            ) : (
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-off-white/20 font-body text-xs text-off-white/40">
+                🔒
+              </span>
+            )}
+            <div className="min-w-0">
               <p className="font-body text-sm font-medium text-off-white/70">{lesson.title}</p>
               <p className="mt-0.5 font-body text-xs text-orange/80">
                 {formatUnlockLabel(unlockAt, now)}
@@ -129,17 +138,33 @@ export default async function CourseDetailPage({
         href={`/learn/${published.id}/lessons/${lesson.id}`}
         className="glass flex items-center justify-between gap-4 rounded-xl p-4 transition hover:border-cyan/40"
       >
-        <div className="flex items-center gap-3">
-          <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-body text-xs ${
-              isDone
-                ? "border-cyan bg-cyan/10 text-cyan"
-                : "border-off-white/20 text-off-white/50"
-            }`}
-          >
-            {isDone ? "✓" : lessonNumber}
-          </span>
-          <div>
+        <div className="flex min-w-0 items-center gap-3">
+          {lesson.thumbnailUrl ? (
+            <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lesson.thumbnailUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              {isDone && (
+                <span className="absolute inset-0 flex items-center justify-center bg-charcoal/55 font-body text-sm text-cyan">
+                  ✓
+                </span>
+              )}
+            </div>
+          ) : (
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-body text-xs ${
+                isDone
+                  ? "border-cyan bg-cyan/10 text-cyan"
+                  : "border-off-white/20 text-off-white/50"
+              }`}
+            >
+              {isDone ? "✓" : lessonNumber}
+            </span>
+          )}
+          <div className="min-w-0">
             <p className="font-body text-sm font-medium text-off-white">{lesson.title}</p>
             {(lesson.quiz || lesson.assignment) && (
               <p className="mt-0.5 font-body text-xs text-off-white/40">

@@ -9,12 +9,16 @@ const fieldClass =
 const MAX_MB = MAX_UPLOAD_BYTES / (1024 * 1024);
 
 const RECOMMENDATIONS: Record<
-  "course-thumbnails" | "reward-images",
+  "course-thumbnails" | "lesson-thumbnails" | "reward-images",
   { dimensions: string; hint: string }
 > = {
   "course-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",
     hint: "Shows as a wide banner and card thumbnail \u2014 landscape images crop best.",
+  },
+  "lesson-thumbnails": {
+    dimensions: "1280\u00D7720px (16:9)",
+    hint: "Shows on the course outline and at the top of the lesson page.",
   },
   "reward-images": {
     dimensions: "800\u00D7450px (16:9)",
@@ -29,7 +33,7 @@ export default function ImageUploadField({
   label,
 }: {
   name: string;
-  folder: "course-thumbnails" | "reward-images";
+  folder: "course-thumbnails" | "lesson-thumbnails" | "reward-images";
   defaultValue?: string | null;
   label?: string;
 }) {

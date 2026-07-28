@@ -16,6 +16,7 @@ export const moduleSchema = z.object({
 
 export const lessonSchema = z.object({
   title: z.string().trim().min(2, "Title must be at least 2 characters").max(150),
+  thumbnailUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   videoUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   audioUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   htmlEmbed: z.string().trim().max(10000).optional().or(z.literal("")),

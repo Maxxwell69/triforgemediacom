@@ -240,6 +240,7 @@ export async function moveModuleOrder(
 function parseLessonForm(formData: FormData) {
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
+    thumbnailUrl: formData.get("thumbnailUrl") ?? "",
     videoUrl: formData.get("videoUrl") ?? "",
     audioUrl: formData.get("audioUrl") ?? "",
     htmlEmbed: formData.get("htmlEmbed") ?? "",
@@ -276,6 +277,7 @@ export async function createLesson(formData: FormData) {
       courseId,
       moduleId,
       title: data.title,
+      thumbnailUrl: data.thumbnailUrl || null,
       videoUrl: data.videoUrl || null,
       audioUrl: data.audioUrl || null,
       htmlEmbed: data.htmlEmbed || null,
@@ -306,6 +308,7 @@ export async function updateLesson(formData: FormData) {
     data: {
       title: data.title,
       moduleId,
+      thumbnailUrl: data.thumbnailUrl || null,
       videoUrl: data.videoUrl || null,
       audioUrl: data.audioUrl || null,
       htmlEmbed: data.htmlEmbed || null,
