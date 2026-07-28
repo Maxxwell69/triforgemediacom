@@ -31,18 +31,22 @@ function CourseCard({ course, compact = false }: { course: CourseCardData; compa
   return (
     <Link
       href={`/learn/${course.id}`}
-      className="glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
+      className="glass flex h-full flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
     >
-      <div className={`relative flex w-full items-center justify-center overflow-hidden rounded-xl bg-off-white/5 ${compact ? "h-24" : "h-32"}`}>
+      <div
+        className={`relative w-full shrink-0 overflow-hidden rounded-xl bg-off-white/5 ${
+          compact ? "h-24" : "aspect-video"
+        }`}
+      >
         {course.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={course.thumbnailUrl}
             alt={course.title}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
         ) : (
-          <span className="text-4xl">🎓</span>
+          <span className="flex h-full items-center justify-center text-4xl">🎓</span>
         )}
         {course.isComplete && (
           <span className="absolute right-2 top-2 rounded-full border border-cyan/40 bg-charcoal/80 px-2 py-0.5 font-body text-[10px] font-semibold text-cyan">
@@ -50,20 +54,20 @@ function CourseCard({ course, compact = false }: { course: CourseCardData; compa
           </span>
         )}
       </div>
-      <div>
-        <p className="font-body font-semibold text-off-white">{course.title}</p>
-        {course.category && (
-          <p className="mt-0.5 font-body text-xs uppercase tracking-wide text-cyan/70">
-            {course.category}
-          </p>
-        )}
-        {!compact && course.description && (
-          <p className="mt-1 truncate font-body text-sm text-off-white/50">
-            {course.description}
+      <div className="min-h-0 flex-1">
+        <p className="line-clamp-2 font-body font-semibold leading-snug text-off-white">
+          {course.title}
+        </p>
+        <p className="mt-0.5 font-body text-xs uppercase tracking-wide text-cyan/70">
+          {course.category || "\u00A0"}
+        </p>
+        {!compact && (
+          <p className="mt-1 line-clamp-2 min-h-[2.5rem] font-body text-sm text-off-white/50">
+            {course.description || "\u00A0"}
           </p>
         )}
       </div>
-      <div className="mt-auto">
+      <div className="mt-auto shrink-0">
         <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-off-white/10">
           <div
             className="h-full rounded-full bg-cyan transition-all"
