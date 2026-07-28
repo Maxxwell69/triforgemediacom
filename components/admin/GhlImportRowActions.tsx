@@ -6,9 +6,11 @@ import { resendGhlInvite, markGhlImportStatus } from "@/app/admin/import/actions
 export default function GhlImportRowActions({
   ghlImportId,
   status,
+  notEmailedYet,
 }: {
   ghlImportId: string;
   status: "PENDING" | "INVITED" | "CONFIRMED" | "DECLINED";
+  notEmailedYet?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -34,10 +36,12 @@ export default function GhlImportRowActions({
       <button
         type="button"
         disabled={isPending}
-        onClick={() => run(() => resendGhlInvite(ghlImportId), "Invite resent")}
+        onClick={() =>
+          run(() => resendGhlInvite(ghlImportId), notEmailedYet ? "Invite sent" : "Invite resent")
+        }
         className="rounded-lg border border-cyan/40 px-2.5 py-1 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10 disabled:opacity-60"
       >
-        Resend invite
+        {notEmailedYet ? "Send invite" : "Resend invite"}
       </button>
       <button
         type="button"

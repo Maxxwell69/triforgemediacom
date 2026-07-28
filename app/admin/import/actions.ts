@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { parseContactsCsv, type CsvContactRow } from "@/lib/csvImport";
+import { parseContactsCsv, deriveHasAgencyFromTags, type CsvContactRow } from "@/lib/csvImport";
 import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
 import { sendHubMigrationInviteEmail } from "@/lib/email";
+import { syncMnMembership } from "@/lib/mnCn";
 
 async function requireAdmin() {
   const session = await auth();
@@ -27,6 +28,7 @@ export type CsvPreviewContact = CsvContactRow & {
   importKey: string;
   alreadyImported: boolean;
   existingUser: boolean;
+  track: "MN" | "CN";
 };
 
 export type CsvParseResult = { errors: string[]; contacts: CsvPreviewContact[] };
@@ -62,18 +64,23 @@ export async function parseCsvPreview(csvText: string): Promise<CsvParseResult> 
     importKey: importKeyFor(row.email),
     alreadyImported: importedEmails.has(row.email),
     existingUser: existingEmails.has(row.email),
+    track: deriveHasAgencyFromTags(row.tags) ? "MN" : "CN",
   }));
 
   return { errors, contacts };
 }
 
 export async function importCsvContacts(
-  contacts: CsvContactRow[]
-): Promise<{ imported: number; skipped: number; errors: string[] }> {
+  contacts: CsvContactRow[],
+  options?: { sendEmail?: boolean }
+): Promise<{ imported: number; skipped: number; errors: string[]; mnCount: number; cnCount: number }> {
   await requireAdmin();
+  const sendEmail = options?.sendEmail ?? true;
 
   let imported = 0;
   let skipped = 0;
+  let mnCount = 0;
+  let cnCount = 0;
   const errors: string[] = [];
 
   for (const contact of contacts) {
@@ -88,9 +95,10 @@ export async function importCsvContacts(
         continue;
       }
 
+      const hasAgency = deriveHasAgencyFromTags(contact.tags);
       const token = generateInviteToken();
 
-      await prisma.user.create({
+      const user = await prisma.user.create({
         data: {
           email: contact.email,
           name: contact.name,
@@ -102,6 +110,7 @@ export async function importCsvContacts(
                 importSource: "csv",
                 phone: contact.phone,
                 tags: contact.tags,
+                hasAgency: hasAgency ? "yes" : "no",
               },
               status: "APPROVED",
               inviteToken: token,
@@ -117,20 +126,32 @@ export async function importCsvContacts(
               phone: contact.phone,
               tagsRaw: contact.tags.join(", "),
               status: "INVITED",
-              invitedAt: new Date(),
+              // Left null when sendEmail is false — that's the signal (used
+              // by the "Send pending invites" bulk action) that this person
+              // hasn't actually been emailed yet, just created.
+              invitedAt: sendEmail ? new Date() : null,
             },
           },
         },
       });
 
-      try {
-        await sendHubMigrationInviteEmail(contact.email, contact.name || "there", inviteUrl(token));
-      } catch (err) {
-        errors.push(
-          `${contact.email}: account created but the invite email failed to send (${
-            err instanceof Error ? err.message : "unknown error"
-          })`
-        );
+      // Routes them into the MN group/tag (or leaves them out for CN) the
+      // same way the normal /apply form does, so downstream admin views and
+      // any MN-gated content behave identically for imported accounts.
+      await syncMnMembership(user.id, hasAgency);
+      if (hasAgency) mnCount++;
+      else cnCount++;
+
+      if (sendEmail) {
+        try {
+          await sendHubMigrationInviteEmail(contact.email, contact.name || "there", inviteUrl(token));
+        } catch (err) {
+          errors.push(
+            `${contact.email}: account created but the invite email failed to send (${
+              err instanceof Error ? err.message : "unknown error"
+            })`
+          );
+        }
       }
 
       imported++;
@@ -141,7 +162,7 @@ export async function importCsvContacts(
 
   revalidatePath("/admin/import");
   revalidatePath("/admin/users");
-  return { imported, skipped, errors };
+  return { imported, skipped, errors, mnCount, cnCount };
 }
 
 export async function resendGhlInvite(ghlImportId: string) {
@@ -179,6 +200,59 @@ export async function resendGhlInvite(ghlImportId: string) {
   await sendHubMigrationInviteEmail(record.user.email, record.user.name || "there", inviteUrl(token));
 
   revalidatePath("/admin/import");
+}
+
+/**
+ * For imports done with sendEmail: false (e.g. staging dry-runs, or holding
+ * off until go-live) — sends the migration invite to everyone still
+ * un-emailed in one pass, generating a fresh token/expiry for each so it
+ * doesn't matter how long ago they were actually imported.
+ */
+export async function sendPendingGhlInvites(): Promise<{ sent: number; errors: string[] }> {
+  await requireAdmin();
+
+  const pending = await prisma.ghlImport.findMany({
+    where: { status: "INVITED", invitedAt: null },
+    include: { user: { include: { application: true } } },
+  });
+
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const record of pending) {
+    if (!record.user || record.user.status !== "INVITED") continue;
+    try {
+      const token = generateInviteToken();
+      const expiresAt = inviteTokenExpiry();
+
+      if (record.user.application) {
+        await prisma.application.update({
+          where: { id: record.user.application.id },
+          data: { inviteToken: token, inviteTokenExpiresAt: expiresAt },
+        });
+      } else {
+        await prisma.application.create({
+          data: {
+            userId: record.user.id,
+            answers: { importedFromGhl: true, importSource: "csv" },
+            status: "APPROVED",
+            inviteToken: token,
+            inviteTokenExpiresAt: expiresAt,
+            reviewedAt: new Date(),
+          },
+        });
+      }
+
+      await prisma.ghlImport.update({ where: { id: record.id }, data: { invitedAt: new Date() } });
+      await sendHubMigrationInviteEmail(record.user.email, record.user.name || "there", inviteUrl(token));
+      sent++;
+    } catch (err) {
+      errors.push(`${record.email}: ${err instanceof Error ? err.message : "unknown error"}`);
+    }
+  }
+
+  revalidatePath("/admin/import");
+  return { sent, errors };
 }
 
 export async function markGhlImportStatus(ghlImportId: string, status: "CONFIRMED" | "DECLINED") {

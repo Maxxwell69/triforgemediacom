@@ -15,12 +15,13 @@ export default function GhlImportPanel() {
   const [csvText, setCsvText] = useState("");
   const [contacts, setContacts] = useState<CsvPreviewContact[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sendEmailNow, setSendEmailNow] = useState(true);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [parsing, startParsing] = useTransition();
 
   const [importing, startImporting] = useTransition();
   const [importResult, setImportResult] = useState<
-    { imported: number; skipped: number; errors: string[] } | null
+    { imported: number; skipped: number; errors: string[]; mnCount: number; cnCount: number } | null
   >(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -60,9 +61,12 @@ export default function GhlImportPanel() {
     if (!contacts) return;
     const toImport = contacts.filter((c) => selected.has(c.importKey));
     if (toImport.length === 0) return;
+    const emailPart = sendEmailNow
+      ? "and send each a Hub migration invite email"
+      : "WITHOUT sending any invite emails yet (use \"Send pending invites\" below when you're ready)";
     if (
       !confirm(
-        `Import ${toImport.length} contact${toImport.length === 1 ? "" : "s"} and send each a Hub migration invite email?`
+        `Import ${toImport.length} contact${toImport.length === 1 ? "" : "s"} ${emailPart}?`
       )
     ) {
       return;
@@ -70,7 +74,8 @@ export default function GhlImportPanel() {
 
     startImporting(async () => {
       const result = await importCsvContacts(
-        toImport.map(({ name, email, phone, tags }) => ({ name, email, phone, tags }))
+        toImport.map(({ name, email, phone, tags }) => ({ name, email, phone, tags })),
+        { sendEmail: sendEmailNow }
       );
       setImportResult(result);
       setContacts((prev) =>
@@ -105,6 +110,10 @@ export default function GhlImportPanel() {
             <br />
             Jane Creator,jane@example.com,+15555550123,creator-network;no-agency
           </code>
+        </p>
+        <p className="mt-2 font-body text-xs text-off-white/40">
+          Track is auto-detected from tags: a &quot;no agency&quot; tag &rarr; CN, &quot;yes
+          agency&quot; &rarr; MN, neither &rarr; defaults to MN.
         </p>
       </div>
 
@@ -168,6 +177,7 @@ export default function GhlImportPanel() {
                   <th className="px-3 py-2">Email</th>
                   <th className="px-3 py-2">Phone</th>
                   <th className="px-3 py-2">Tags</th>
+                  <th className="px-3 py-2">Track</th>
                   <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
@@ -192,6 +202,17 @@ export default function GhlImportPanel() {
                         {c.tags.length > 0 ? c.tags.join(", ") : "—"}
                       </td>
                       <td className="px-3 py-2">
+                        {c.track === "MN" ? (
+                          <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 text-xs font-semibold text-cyan">
+                            MN
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-orange/40 bg-orange/10 px-2 py-0.5 text-xs font-semibold text-orange">
+                            CN
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
                         {c.alreadyImported ? (
                           <span className="rounded-full bg-cyan/15 px-2 py-0.5 text-xs font-semibold text-cyan">
                             Already imported
@@ -213,6 +234,22 @@ export default function GhlImportPanel() {
             </table>
           </div>
 
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              checked={sendEmailNow}
+              onChange={(e) => setSendEmailNow(e.target.checked)}
+              className="h-4 w-4 accent-orange"
+            />
+            Send invite emails immediately
+          </label>
+          {!sendEmailNow && (
+            <p className="rounded-lg border border-orange/30 bg-orange/10 px-3 py-2 font-body text-xs text-orange">
+              Accounts will be created silently, no emails sent. Use &quot;Send pending
+              invites&quot; below whenever you&apos;re ready to actually notify them.
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -222,7 +259,9 @@ export default function GhlImportPanel() {
             >
               {importing
                 ? "Importing..."
-                : `Import ${selected.size} selected & send invite${selected.size === 1 ? "" : "s"}`}
+                : sendEmailNow
+                  ? `Import ${selected.size} selected & send invite${selected.size === 1 ? "" : "s"}`
+                  : `Import ${selected.size} selected (no email yet)`}
             </button>
             <p className="font-body text-xs text-off-white/40">
               {selectableCount} of {contacts.length} are new / importable.
@@ -234,7 +273,9 @@ export default function GhlImportPanel() {
       {importResult && (
         <div className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
           <p>
-            Imported {importResult.imported}, skipped {importResult.skipped} (already existed).
+            Imported {importResult.imported} ({importResult.mnCount} MN, {importResult.cnCount} CN),
+            skipped {importResult.skipped} (already existed).
+            {!sendEmailNow && importResult.imported > 0 && " No emails were sent yet."}
           </p>
           {importResult.errors.length > 0 && (
             <ul className="mt-2 list-disc pl-4 text-orange">

@@ -108,3 +108,17 @@ export function parseContactsCsv(raw: string): CsvParseOutcome {
 
   return { rows, errors };
 }
+
+/**
+ * GHL's own application form tags contacts "no agency" / "yes agency" based
+ * on their answer to the agency question — mirrors the same MN/CN routing
+ * used on our own /apply form (see lib/mnCn.ts). Anyone missing both tags
+ * defaults to MN (has agency) per admin instruction, since that's the more
+ * common case for this batch and doesn't trigger the CN/TikTok flow.
+ */
+export function deriveHasAgencyFromTags(tags: string[]): boolean {
+  const normalized = tags.map((t) => t.toLowerCase().trim());
+  if (normalized.includes("no agency")) return false;
+  if (normalized.includes("yes agency")) return true;
+  return true;
+}

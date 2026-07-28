@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import GhlImportPanel from "@/components/admin/GhlImportPanel";
 import GhlImportRowActions from "@/components/admin/GhlImportRowActions";
+import SendPendingInvitesButton from "@/components/admin/SendPendingInvitesButton";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,8 @@ export default async function AdminImportPage() {
   });
 
   const counts = {
-    invited: imports.filter((i) => i.status === "INVITED").length,
+    notEmailed: imports.filter((i) => i.status === "INVITED" && !i.invitedAt).length,
+    invited: imports.filter((i) => i.status === "INVITED" && i.invitedAt).length,
     confirmed: imports.filter((i) => i.status === "CONFIRMED").length,
     declined: imports.filter((i) => i.status === "DECLINED").length,
   };
@@ -45,14 +47,18 @@ export default async function AdminImportPage() {
             Holding pattern &middot; {imports.length} imported total
           </h2>
           <p className="font-body text-xs text-off-white/40">
-            {counts.invited} awaiting response &middot; {counts.confirmed} confirmed &middot;{" "}
-            {counts.declined} declined
+            {counts.notEmailed} not emailed yet &middot; {counts.invited} awaiting response
+            &middot; {counts.confirmed} confirmed &middot; {counts.declined} declined
           </p>
+        </div>
+
+        <div className="mt-3">
+          <SendPendingInvitesButton pendingCount={counts.notEmailed} />
         </div>
 
         {imports.length === 0 ? (
           <p className="mt-4 font-body text-off-white/50">
-            No contacts imported yet — search GHL by tag above to get started.
+            No contacts imported yet — upload a CSV above to get started.
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto rounded-xl border border-off-white/10">
@@ -84,11 +90,17 @@ export default async function AdminImportPage() {
                     </td>
                     <td className="px-3 py-2 text-off-white/70">{i.email}</td>
                     <td className="px-3 py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[i.status]}`}
-                      >
-                        {i.status}
-                      </span>
+                      {i.status === "INVITED" && !i.invitedAt ? (
+                        <span className="rounded-full bg-off-white/10 px-2 py-0.5 text-xs font-semibold text-off-white/50">
+                          NOT EMAILED
+                        </span>
+                      ) : (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[i.status]}`}
+                        >
+                          {i.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-off-white/40">
                       {i.invitedAt ? i.invitedAt.toLocaleDateString() : "—"}
@@ -97,7 +109,11 @@ export default async function AdminImportPage() {
                       {i.respondedAt ? i.respondedAt.toLocaleDateString() : "—"}
                     </td>
                     <td className="px-3 py-2">
-                      <GhlImportRowActions ghlImportId={i.id} status={i.status} />
+                      <GhlImportRowActions
+                        ghlImportId={i.id}
+                        status={i.status}
+                        notEmailedYet={!i.invitedAt}
+                      />
                     </td>
                   </tr>
                 ))}
