@@ -202,8 +202,8 @@ export default function LessonRow({
             </div>
             {showPreview ? (
               <div
-                className={`min-h-[6rem] rounded-lg border border-off-white/15 bg-off-white/5 p-3 ${LESSON_CONTENT_CLASSES}`}
-                dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) || "<p class=\"text-off-white/30\">Nothing to preview yet.</p>" }}
+                className={`min-h-[6rem] overflow-hidden rounded-lg border border-off-white/15 bg-off-white ${LESSON_CONTENT_CLASSES}`}
+                dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) || "<p class=\"text-charcoal/40\">Nothing to preview yet.</p>" }}
               />
             ) : (
               <textarea

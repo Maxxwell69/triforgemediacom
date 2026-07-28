@@ -117,7 +117,7 @@ export default async function LessonPage({
 
         {lesson.content && (
           <div
-            className={`glass mt-6 whitespace-pre-wrap rounded-2xl p-6 ${LESSON_CONTENT_CLASSES}`}
+            className={`mt-6 overflow-hidden rounded-2xl bg-off-white ${LESSON_CONTENT_CLASSES}`}
             dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(lesson.content) }}
           />
         )}
