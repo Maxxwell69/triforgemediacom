@@ -15,6 +15,7 @@ const links = [
   { href: "/admin/courses", label: "Courses" },
   { href: "/admin/social", label: "Company Social" },
   { href: "/admin/broadcast", label: "Broadcast" },
+  { href: "/admin/emails", label: "Email Templates" },
   { href: "/admin/moderation", label: "Moderation Log" },
 ];
 

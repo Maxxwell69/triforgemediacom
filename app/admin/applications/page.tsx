@@ -113,6 +113,27 @@ export default async function AdminApplicationsPage() {
                   />
                 )}
                 <Detail label="Submitted" value={new Date(app.submittedAt).toLocaleString()} />
+                {app.tiktokNetworkRequested && (
+                  <Detail
+                    label="TikTok Creator Network"
+                    value={
+                      <span className="text-cyan">
+                        Requested{" "}
+                        {app.tiktokNetworkRequestedAt &&
+                          `on ${new Date(app.tiktokNetworkRequestedAt).toLocaleDateString()}`}
+                        {app.tiktokNetworkCode && (
+                          <>
+                            {" "}
+                            &middot; code:{" "}
+                            <span className="font-mono text-off-white/90">
+                              {app.tiktokNetworkCode}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    }
+                  />
+                )}
               </dl>
 
               <div className="mt-4 grid grid-cols-1 gap-3 font-body text-sm sm:grid-cols-2">
@@ -184,7 +205,12 @@ export default async function AdminApplicationsPage() {
                   {app.status}
                 </span>
                 <span className="text-off-white/40">
-                  {app.reviewedBy?.name || "—"}
+                  {app.reviewedBy?.name ||
+                    (app.status !== "APPROVED"
+                      ? "—"
+                      : app.tiktokNetworkRequested
+                        ? "Auto-approved · TikTok CN opt-in"
+                        : "Auto-approved · MN has agency")}
                 </span>
               </div>
             ))}

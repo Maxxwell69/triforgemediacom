@@ -83,6 +83,7 @@ export async function setUserBadgeAdded(badgeId: string, userId: string, added: 
   }
 
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/admin/badges");
   revalidatePath("/account");
 }

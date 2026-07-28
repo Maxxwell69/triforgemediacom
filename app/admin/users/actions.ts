@@ -58,6 +58,7 @@ export async function updateUserRole(userId: string, role: string) {
 
   await prisma.user.update({ where: { id: userId }, data: { role: role as UserRole } });
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function setUserBanned(userId: string, banned: boolean) {
@@ -81,6 +82,7 @@ export async function setUserBanned(userId: string, banned: boolean) {
     data: { status: banned ? "BANNED" : "ACTIVE" },
   });
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function setReceivesAdminAlerts(userId: string, receives: boolean) {
@@ -91,6 +93,7 @@ export async function setReceivesAdminAlerts(userId: string, receives: boolean) 
     data: { receivesAdminAlerts: receives },
   });
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function setHiddenFromDirectory(userId: string, hidden: boolean) {
@@ -101,6 +104,7 @@ export async function setHiddenFromDirectory(userId: string, hidden: boolean) {
     data: { hiddenFromDirectory: hidden },
   });
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/members");
 }
 
@@ -118,6 +122,7 @@ export async function toggleUserGroup(userId: string, groupId: string, isMember:
   }
 
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export type AddMemberState = { error?: string; success?: boolean } | null;
@@ -218,6 +223,7 @@ export async function resendInvite(userId: string) {
 
   await sendInviteEmail(user.email, user.name || "there", inviteUrl(token));
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function adjustUserPoints(formData: FormData) {
@@ -242,4 +248,5 @@ export async function adjustUserPoints(formData: FormData) {
   });
 
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${parsed.data.userId}`);
 }

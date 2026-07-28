@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applySchema } from "@/lib/validations/apply";
-import { sendCreatorNetworkInfoEmail, sendNewApplicationAdminAlert } from "@/lib/email";
+import {
+  sendCreatorNetworkInfoEmail,
+  sendNewApplicationAdminAlert,
+  sendTikTokRequestExpectedEmail,
+} from "@/lib/email";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { syncMnMembership } from "@/lib/mnCn";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { autoApproveApplication } from "@/lib/autoApprove";
 
 // A genuine applicant only ever needs to submit once (or once more after a
 // rejection). This is generous enough for real usage but blocks scripted
@@ -50,14 +55,39 @@ async function alertAdmins(application: {
   }
 }
 
-async function routeByAgencyStatus(userId: string, name: string, email: string, hasAgency: boolean) {
+async function routeByAgencyStatus(
+  userId: string,
+  name: string,
+  email: string,
+  hasAgency: boolean,
+  applicationId: string
+) {
   try {
     await syncMnMembership(userId, hasAgency);
     if (!hasAgency) {
-      await sendCreatorNetworkInfoEmail(email, name);
+      // Two separate emails on purpose: the first confirms the application
+      // and gets them tapping "Apply" now, the second is a dedicated
+      // heads-up (with the visual guide) for what happens later once TikTok
+      // shows them our request — keeping it standalone means it doesn't get
+      // lost in the middle of the first email.
+      await Promise.all([
+        sendCreatorNetworkInfoEmail(email, name, applicationId),
+        sendTikTokRequestExpectedEmail(email, name),
+      ]);
     }
   } catch (err) {
     console.error("Failed to route applicant by agency status:", err);
+  }
+}
+
+// MN applicants already have an agency vouching for them, so there's no
+// TikTok-side signal to wait on like there is for CN — approve them into the
+// Hub the moment they apply instead of sitting in the manual review queue.
+async function autoApproveMn(applicationId: string) {
+  try {
+    await autoApproveApplication(applicationId);
+  } catch (err) {
+    console.error("Failed to auto-approve MN applicant:", err);
   }
 }
 
@@ -103,7 +133,7 @@ export async function POST(req: NextRequest) {
     hasAgency,
   };
 
-  async function notify(userId: string) {
+  async function notify(userId: string, applicationId: string) {
     await Promise.all([
       alertAdmins({
         name,
@@ -117,7 +147,8 @@ export async function POST(req: NextRequest) {
         whyJoin,
         hasAgency: hasAgencyBool,
       }),
-      routeByAgencyStatus(userId, name, normalizedEmail, hasAgencyBool),
+      routeByAgencyStatus(userId, name, normalizedEmail, hasAgencyBool, applicationId),
+      hasAgencyBool ? autoApproveMn(applicationId) : Promise.resolve(),
     ]);
   }
 
@@ -126,6 +157,8 @@ export async function POST(req: NextRequest) {
     include: { application: true },
   });
 
+  const track = hasAgencyBool ? "MN" : "CN";
+
   if (existingUser) {
     if (existingUser.application) {
       const status = existingUser.application.status;
@@ -133,7 +166,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: ALREADY_APPLIED_MESSAGE }, { status: 409 });
       }
       // REJECTED: fall through and allow them to update their answers + reapply.
-      await prisma.application.update({
+      const updated = await prisma.application.update({
         where: { userId: existingUser.id },
         data: {
           answers,
@@ -142,18 +175,21 @@ export async function POST(req: NextRequest) {
           reviewedById: null,
           reviewedAt: null,
           submittedAt: new Date(),
+          tiktokNetworkRequested: false,
+          tiktokNetworkRequestedAt: null,
+          tiktokNetworkCode: null,
         },
       });
-      await notify(existingUser.id);
-      return NextResponse.json({ ok: true }, { status: 200 });
+      await notify(existingUser.id, updated.id);
+      return NextResponse.json({ ok: true, track, applicationId: updated.id }, { status: 200 });
     }
 
     // User row exists (e.g. from a prior partial signup) but no application yet.
-    await prisma.application.create({
+    const created = await prisma.application.create({
       data: { userId: existingUser.id, answers },
     });
-    await notify(existingUser.id);
-    return NextResponse.json({ ok: true }, { status: 200 });
+    await notify(existingUser.id, created.id);
+    return NextResponse.json({ ok: true, track, applicationId: created.id }, { status: 200 });
   }
 
   const newUser = await prisma.user.create({
@@ -163,8 +199,12 @@ export async function POST(req: NextRequest) {
       status: "PENDING_APPLICATION",
       application: { create: { answers } },
     },
+    include: { application: true },
   });
-  await notify(newUser.id);
+  await notify(newUser.id, newUser.application!.id);
 
-  return NextResponse.json({ ok: true }, { status: 200 });
+  return NextResponse.json(
+    { ok: true, track, applicationId: newUser.application!.id },
+    { status: 200 }
+  );
 }

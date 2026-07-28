@@ -96,6 +96,7 @@ export async function setUserTagAdded(tagId: string, userId: string, added: bool
 
   revalidatePath(`/admin/tags/${tagId}`);
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/members");
   revalidatePath(`/members/${userId}`);
 }

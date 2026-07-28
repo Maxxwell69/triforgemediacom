@@ -123,6 +123,13 @@ model Application {
   submittedAt  DateTime          @default(now())
   reviewedAt   DateTime?
 
+  // CN track: applicant clicked through from the thank-you page to request
+  // to join the TriForge Creator Network on TikTok, and optionally pasted
+  // back the invitation code TikTok gave them so we can finish linking them.
+  tiktokNetworkRequested   Boolean   @default(false)
+  tiktokNetworkRequestedAt DateTime?
+  tiktokNetworkCode        String?
+
   user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("ReviewedBy", fields: [reviewedById], references: [id])
 }

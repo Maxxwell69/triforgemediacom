@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPointsTotals } from "@/lib/points";
@@ -65,10 +66,13 @@ export default async function AdminUsersPage() {
             <div key={user.id} className="glass flex flex-col gap-3 rounded-xl p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="truncate font-body font-medium text-off-white">
+                  <Link
+                    href={`/admin/users/${user.id}`}
+                    className="truncate font-body font-medium text-off-white transition hover:text-cyan hover:underline"
+                  >
                     {user.name || "Unnamed"}
                     {isSelf && <span className="ml-2 text-xs text-off-white/40">(you)</span>}
-                  </p>
+                  </Link>
                   <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
                 </div>
 

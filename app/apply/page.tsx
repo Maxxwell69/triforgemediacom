@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { platformOptions } from "@/lib/validations/apply";
 import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
 
 type FieldErrors = Partial<Record<string, string[]>>;
 
 export default function ApplyPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -48,35 +48,17 @@ export default function ApplyPage() {
         return;
       }
 
-      setSubmitted(true);
+      const params = new URLSearchParams({
+        track: result.track === "CN" ? "cn" : "mn",
+        aid: result.applicationId ?? "",
+      });
+      router.push(`/apply/thank-you?${params.toString()}`);
+      return;
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (submitted) {
-    return (
-      <main className="flex flex-1 items-center justify-center px-6">
-        <div className="glass max-w-md rounded-2xl p-10 text-center">
-          <h1 className="font-display text-4xl tracking-wide text-gradient">
-            APPLICATION SENT
-          </h1>
-          <p className="mt-4 font-body text-off-white/70">
-            Thanks for applying to TriForge Community. We review every
-            application by hand — you&apos;ll hear back by email once a
-            decision is made.
-          </p>
-          <Link
-            href="/"
-            className="mt-8 inline-block rounded-lg border border-off-white/15 px-6 py-2 font-body text-off-white/90 transition hover:border-cyan/50 hover:text-cyan"
-          >
-            Back home
-          </Link>
-        </div>
-      </main>
-    );
   }
 
   return (
