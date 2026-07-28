@@ -91,10 +91,14 @@ multi-instance scaling).
 | --- | --- |
 | `npm run dev` | Start the dev server |
 | `npm run build` | `prisma generate` + production build |
-| `npm run db:push` | Push `prisma/schema.prisma` to the database (no migration history) |
-| `npm run db:migrate` | Create/apply a dev migration |
+| `npm start` | Applies pending migrations (`prisma migrate deploy`) then starts the production server — this is what Railway runs on every deploy |
+| `npm run db:push` | Push `prisma/schema.prisma` to the database (no migration history) — local/dev only, guarded against running on production |
+| `npm run db:migrate` | Create/apply a dev migration — local/dev only, guarded against running on production |
+| `npm run db:migrate:deploy` | Apply committed migrations non-interactively (what `npm start` runs automatically; rarely needs to be run by hand) |
 | `npm run db:studio` | Open Prisma Studio |
-| `npm run db:seed` | Seed the first admin account, default channels, and starter task templates |
+| `npm run db:seed` | Seed the first admin account, default channels, and starter task templates — local/dev only, guarded against running on production |
+
+See **`DEPLOYMENT.md`** for the full staging → production workflow and how the production-DB guard rail works.
 
 ## Not fully built yet (see `CLAUDE.md` for full MVP1/MVP2/MVP3 scope)
 

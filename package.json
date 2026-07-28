@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "prisma migrate deploy && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
+    "db:push": "npm run guard:db && prisma db push",
+    "db:migrate": "npm run guard:db && prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "npm run guard:db && tsx prisma/seed.ts",
+    "guard:db": "tsx scripts/guardDb.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
