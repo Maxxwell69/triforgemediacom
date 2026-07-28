@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, FormEvent, KeyboardEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/rbac";
-import { canModerate, canBeModerationTarget, isMuted, MUTE_DURATION_PRESETS_MINUTES } from "@/lib/moderation";
+import { isMuted } from "@/lib/moderation";
 import { buildMentionToken, getActiveMentionQuery } from "@/lib/chatMentions";
 import type { ReactionSummary } from "@/lib/dmAccess";
 import MessageContent from "@/components/chat/MessageContent";
@@ -32,27 +32,20 @@ type MentionCandidate = { id: string; name: string; image: string | null };
 
 const POLL_INTERVAL_MS = 3000;
 
-const MUTE_DURATION_LABELS: Record<number, string> = {
-  10: "10 min",
-  60: "1 hour",
-  1440: "24 hours",
-  10080: "7 days",
-};
-
 function toMutedUntilDate(value: string | Date | null): Date | null {
   return value ? new Date(value) : null;
 }
 
-export default function ChatView({
-  channel,
+export default function DmChatView({
+  conversationId,
+  title,
   currentUserId,
-  currentUserRole,
   initialMessages,
   initialMutedUntil,
 }: {
-  channel: { id: string; name: string; description: string | null };
+  conversationId: string;
+  title: string;
   currentUserId: string;
-  currentUserRole: ChatRole;
   initialMessages: ChatMessage[];
   initialMutedUntil: string | Date | null;
 }) {
@@ -61,8 +54,6 @@ export default function ChatView({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mutedUntil, setMutedUntil] = useState<string | Date | null>(initialMutedUntil);
-  const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
-  const [moderationBusy, setModerationBusy] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState<{ start: number; query: string } | null>(null);
   const [mentionResults, setMentionResults] = useState<MentionCandidate[]>([]);
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -72,14 +63,13 @@ export default function ChatView({
   const mentionFetchRef = useRef(0);
 
   const viewerIsMuted = isMuted({ mutedUntil: toMutedUntilDate(mutedUntil) });
-  const isModerator = canModerate(currentUserRole);
 
   useEffect(() => {
     setMessages(initialMessages);
     seenIds.current = new Set(initialMessages.map((m) => m.id));
     setMutedUntil(initialMutedUntil);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel.id]);
+  }, [conversationId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -89,7 +79,7 @@ export default function ChatView({
     const interval = setInterval(async () => {
       const latest = messages[messages.length - 1];
       const after = latest ? new Date(latest.createdAt).toISOString() : undefined;
-      const url = `/api/channels/${channel.id}/messages${after ? `?after=${encodeURIComponent(after)}` : ""}`;
+      const url = `/api/dms/${conversationId}/messages${after ? `?after=${encodeURIComponent(after)}` : ""}`;
       try {
         const res = await fetch(url);
         if (!res.ok) return;
@@ -103,13 +93,12 @@ export default function ChatView({
           setMessages((prev) => [...prev, ...fresh]);
         }
       } catch {
-        // Polling is best-effort; ignore transient network errors.
+        // ignore
       }
     }, POLL_INTERVAL_MS);
-
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel.id, messages]);
+  }, [conversationId, messages]);
 
   useEffect(() => {
     if (!mentionQuery) {
@@ -119,9 +108,7 @@ export default function ChatView({
     const id = ++mentionFetchRef.current;
     const handle = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/members/search?q=${encodeURIComponent(mentionQuery.query)}`
-        );
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(mentionQuery.query)}`);
         if (!res.ok || id !== mentionFetchRef.current) return;
         const data = await res.json();
         setMentionResults(data.members || []);
@@ -135,8 +122,7 @@ export default function ChatView({
 
   function updateDraft(next: string, caret?: number) {
     setDraft(next);
-    const pos = caret ?? next.length;
-    setMentionQuery(getActiveMentionQuery(next, pos));
+    setMentionQuery(getActiveMentionQuery(next, caret ?? next.length));
   }
 
   function insertAtCaret(text: string) {
@@ -197,11 +183,10 @@ export default function ChatView({
     }
     const content = draft.trim();
     if (!content) return;
-
     setSending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/channels/${channel.id}/messages`, {
+      const res = await fetch(`/api/dms/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -225,60 +210,8 @@ export default function ChatView({
     }
   }
 
-  async function handleDelete(message: ChatMessage) {
-    if (!confirm("Delete this message? This can't be undone.")) return;
-    setModerationBusy(message.id);
-    try {
-      const res = await fetch(`/api/channels/${channel.id}/messages/${message.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setMessages((prev) => prev.filter((m) => m.id !== message.id));
-      }
-    } finally {
-      setModerationBusy(null);
-    }
-  }
-
-  async function handleMute(userId: string, durationMinutes: number) {
-    setModerationBusy(userId);
-    setOpenMenuFor(null);
-    try {
-      const res = await fetch(`/api/users/${userId}/mute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ durationMinutes }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.user.id === userId ? { ...m, user: { ...m.user, mutedUntil: data.mutedUntil } } : m
-          )
-        );
-      }
-    } finally {
-      setModerationBusy(null);
-    }
-  }
-
-  async function handleUnmute(userId: string) {
-    setModerationBusy(userId);
-    setOpenMenuFor(null);
-    try {
-      const res = await fetch(`/api/users/${userId}/unmute`, { method: "POST" });
-      if (res.ok) {
-        setMessages((prev) =>
-          prev.map((m) => (m.user.id === userId ? { ...m, user: { ...m.user, mutedUntil: null } } : m))
-        );
-      }
-    } finally {
-      setModerationBusy(null);
-    }
-  }
-
   async function toggleReaction(messageId: string, emoji: string) {
-    const res = await fetch(`/api/channels/${channel.id}/messages/${messageId}/reactions`, {
+    const res = await fetch(`/api/dms/${conversationId}/messages/${messageId}/reactions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ emoji }),
@@ -293,26 +226,22 @@ export default function ChatView({
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-off-white/10 px-6 py-4">
-        <h1 className="font-display text-2xl tracking-wide"># {channel.name}</h1>
-        {channel.description && (
-          <p className="font-body text-sm text-off-white/50">{channel.description}</p>
-        )}
+        <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
+          &larr; Direct messages
+        </Link>
+        <h1 className="mt-1 font-display text-2xl tracking-wide">{title}</h1>
+        <p className="font-body text-xs text-off-white/40">Private conversation</p>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
         {messages.length === 0 && (
           <p className="mt-8 text-center font-body text-sm text-off-white/40">
-            No messages yet. Say hi 👋
+            No messages yet. Start the conversation.
           </p>
         )}
         <div className="flex flex-col gap-4">
           {messages.map((message) => {
             const isAuthor = message.user.id === currentUserId;
-            const canDelete = isAuthor || isModerator;
-            const canModerateAuthor =
-              isModerator && !isAuthor && canBeModerationTarget(message.user.role);
-            const authorMuted = isMuted({ mutedUntil: toMutedUntilDate(message.user.mutedUntil) });
-
             return (
               <div key={message.id} className="group flex gap-3">
                 <Link
@@ -336,69 +265,12 @@ export default function ChatView({
                         {ROLE_LABELS[message.user.role]}
                       </span>
                     )}
-                    {authorMuted && (
-                      <span className="rounded bg-off-white/10 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-off-white/50">
-                        Muted
-                      </span>
-                    )}
                     <span className="font-body text-xs text-off-white/30">
                       {new Date(message.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
-
-                    <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
-                      {canModerateAuthor && (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenMenuFor(openMenuFor === message.id ? null : message.id)
-                            }
-                            disabled={moderationBusy === message.user.id}
-                            className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan disabled:opacity-40"
-                          >
-                            Moderate
-                          </button>
-                          {openMenuFor === message.id && (
-                            <div className="glass absolute right-0 z-10 mt-1 flex w-36 flex-col gap-1 rounded-lg p-2">
-                              {authorMuted ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUnmute(message.user.id)}
-                                  className="rounded px-2 py-1 text-left font-body text-xs text-cyan transition hover:bg-cyan/10"
-                                >
-                                  Unmute
-                                </button>
-                              ) : (
-                                MUTE_DURATION_PRESETS_MINUTES.map((minutes) => (
-                                  <button
-                                    key={minutes}
-                                    type="button"
-                                    onClick={() => handleMute(message.user.id, minutes)}
-                                    className="rounded px-2 py-1 text-left font-body text-xs text-off-white/70 transition hover:bg-orange/10 hover:text-orange"
-                                  >
-                                    Mute {MUTE_DURATION_LABELS[minutes]}
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(message)}
-                          disabled={moderationBusy === message.id}
-                          title="Delete message"
-                          className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-orange/40 hover:text-orange disabled:opacity-40"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
                   </div>
                   <MessageContent content={message.content} />
                   <MessageReactions
@@ -415,14 +287,7 @@ export default function ChatView({
       <form onSubmit={handleSubmit} className="relative border-t border-off-white/10 px-6 py-4">
         {error && <p className="mb-2 font-body text-xs text-orange">{error}</p>}
         {viewerIsMuted && (
-          <p className="mb-2 font-body text-xs text-orange">
-            You&apos;re muted until{" "}
-            {toMutedUntilDate(mutedUntil)!.toLocaleString([], {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-            .
-          </p>
+          <p className="mb-2 font-body text-xs text-orange">You&apos;re muted and can&apos;t send.</p>
         )}
         {mentionQuery && mentionResults.length > 0 && (
           <div className="glass absolute bottom-full left-6 right-6 z-20 mb-2 max-h-48 overflow-y-auto rounded-xl p-1">
@@ -435,9 +300,6 @@ export default function ChatView({
                   i === mentionIndex ? "bg-cyan/15 text-cyan" : "text-off-white/80 hover:bg-off-white/5"
                 }`}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-off-white/10 text-xs">
-                  {member.name.charAt(0).toUpperCase()}
-                </span>
                 @{member.name}
               </button>
             ))}
@@ -450,14 +312,7 @@ export default function ChatView({
             value={draft}
             onChange={onDraftChange}
             onKeyDown={onDraftKeyDown}
-            onClick={(e) =>
-              updateDraft(draft, (e.target as HTMLInputElement).selectionStart ?? draft.length)
-            }
-            placeholder={
-              viewerIsMuted
-                ? "You're muted"
-                : `Message #${channel.name} — type @ to mention`
-            }
+            placeholder={viewerIsMuted ? "You're muted" : `Message ${title}`}
             maxLength={2000}
             disabled={viewerIsMuted}
             className="flex-1 rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60 disabled:cursor-not-allowed disabled:opacity-50"

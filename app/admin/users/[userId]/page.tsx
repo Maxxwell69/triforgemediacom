@@ -12,9 +12,11 @@ import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
+import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { PLATFORM_LABELS } from "@/lib/platforms";
+import { canInitiateDm } from "@/lib/dmAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,7 @@ export default async function AdminUserDetailPage({
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
+  const canDm = await canInitiateDm(currentUserId, session!.user.role);
 
   const [user, allGroups, allTags, allBadges] = await Promise.all([
     prisma.user.findUnique({
@@ -173,6 +176,9 @@ export default async function AdminUserDetailPage({
             <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
           )}
           <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
+          {canDm && !isSelf && user.status === "ACTIVE" && (
+            <StartDmButton userId={user.id} userName={displayName} />
+          )}
         </div>
       </div>
 

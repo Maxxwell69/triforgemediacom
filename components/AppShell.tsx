@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds, hasTikTaskAccess } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
+import { canInitiateDm, isTrueAdmin } from "@/lib/dmAccess";
 import Logo from "@/components/Logo";
 import ChannelSidebar from "@/components/ChannelSidebar";
 import SignOutButton from "@/components/SignOutButton";
@@ -11,7 +12,7 @@ import MobileShell from "@/components/MobileShell";
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess] = await Promise.all([
+  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
       include: { groups: { select: { id: true } } },
@@ -19,10 +20,17 @@ export default async function AppShell({ children }: { children: React.ReactNode
     prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
     getUserGroupIds(user.id),
     hasTikTaskAccess(user.id),
+    canInitiateDm(user.id, user.role),
+    isTrueAdmin(user.role)
+      ? prisma.directConversation.count()
+      : prisma.directConversation.count({
+          where: { participants: { some: { userId: user.id } } },
+        }),
   ]);
   const channels = allChannels.filter((c) => canAccessChannel(user.role, c, userGroupIds));
   const totalXp = xpAgg._sum.amount ?? 0;
   const isAdmin = isAdminRole(user.role);
+  const showDms = canDm || dmCount > 0 || isTrueAdmin(user.role);
 
   const sidebar = (
     <>
@@ -73,6 +81,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Account
         </Link>
       </div>
+
+      {showDms && (
+        <Link
+          href="/dms"
+          className="mb-3 rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Direct messages
+        </Link>
+      )}
 
       <ChannelSidebar channels={channels} />
 

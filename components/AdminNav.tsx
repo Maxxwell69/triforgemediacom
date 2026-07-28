@@ -12,6 +12,7 @@ const links = [
   { href: "/admin/groups", label: "Groups" },
   { href: "/admin/tags", label: "Tags" },
   { href: "/admin/channels", label: "Channels" },
+  { href: "/admin/chat", label: "Chat / DMs" },
   { href: "/admin/rewards", label: "Rewards" },
   { href: "/admin/courses", label: "Courses" },
   { href: "/admin/social", label: "Company Social" },

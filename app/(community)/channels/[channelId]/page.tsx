@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
+import { summarizeReactions } from "@/lib/dmAccess";
 import ChatView from "@/components/chat/ChatView";
 
 export default async function ChannelPage({
@@ -27,11 +28,15 @@ export default async function ChannelPage({
     where: { channelId: channel.id },
     include: {
       user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      reactions: { select: { emoji: true, userId: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  const initialMessages = [...messages].reverse();
+  const initialMessages = [...messages].reverse().map(({ reactions, ...message }) => ({
+    ...message,
+    reactions: summarizeReactions(reactions, user.id),
+  }));
 
   return (
     <ChatView

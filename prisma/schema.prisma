@@ -83,6 +83,7 @@ model User {
   application                Application?
   profile                    Profile?
   messages                   Message[]
+  messageReactions           MessageReaction[]
   dailyTasks                 DailyTask[]
   xpEvents                   XPEvent[]
   reviewedApplications       Application[]          @relation("ReviewedBy")
@@ -102,6 +103,11 @@ model User {
   passwordResetTokens        PasswordResetToken[]
   broadcastsSent             Broadcast[]
   ghlImport                  GhlImport?
+  dmParticipations           DirectConversationParticipant[]
+  directMessages             DirectMessage[]
+  directMessageReactions     DirectMessageReaction[]
+  dmConversationsCreated     DirectConversation[]   @relation("DmCreatedBy")
+  dmAllowlistEntry           DmAllowedUser?
 }
 
 // ---------- Application / invite flow ----------
@@ -242,10 +248,96 @@ model Message {
   content   String
   createdAt DateTime @default(now())
 
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions MessageReaction[]
 
   @@index([channelId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+// ---------- Direct messages (admin-led 1:1; all ADMINs can read all threads) ----------
+
+model ChatSettings {
+  id          String   @id @default("global")
+  // Who may start a DM besides ADMIN (ADMIN always can).
+  // ADMIN = admins only; ADMIN_AND_MOD = admins + mods; ALLOWLIST = admins + listed users.
+  dmAccessMode String  @default("ADMIN")
+  updatedAt   DateTime @updatedAt
+}
+
+model DmAllowedUser {
+  userId    String   @id
+  addedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DirectConversation {
+  id          String   @id @default(cuid())
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy    User                            @relation("DmCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  participants DirectConversationParticipant[]
+  messages     DirectMessage[]
+
+  @@index([updatedAt])
+}
+
+model DirectConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+
+  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model DirectMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation DirectConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions    DirectMessageReaction[]
+
+  @@index([conversationId, createdAt])
+}
+
+model DirectMessageReaction {
+  id              String   @id @default(cuid())
+  directMessageId String
+  userId          String
+  emoji           String
+  createdAt       DateTime @default(now())
+
+  directMessage DirectMessage @relation(fields: [directMessageId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([directMessageId, userId, emoji])
+  @@index([directMessageId])
 }
 
 // Singleton row (fixed id "global") holding the current company-wide banner

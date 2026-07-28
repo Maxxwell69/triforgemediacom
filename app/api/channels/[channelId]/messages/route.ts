@@ -5,6 +5,7 @@ import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 import { isMuted } from "@/lib/moderation";
 import { postMessageSchema } from "@/lib/validations/message";
+import { summarizeReactions } from "@/lib/dmAccess";
 
 async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
   const [channel, userGroupIds] = await Promise.all([
@@ -44,6 +45,7 @@ export async function GET(
       },
       include: {
         user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+        reactions: { select: { emoji: true, userId: true } },
       },
       // Polling for new messages (`after` set) reads oldest-first; the initial
       // load reads newest-first (then gets reversed) so we grab the most
@@ -55,8 +57,12 @@ export async function GET(
   ]);
 
   const ordered = after ? messages : [...messages].reverse();
+  const payload = ordered.map(({ reactions, ...message }) => ({
+    ...message,
+    reactions: summarizeReactions(reactions, result.user.id),
+  }));
 
-  return NextResponse.json({ messages: ordered, mutedUntil: viewer?.mutedUntil ?? null });
+  return NextResponse.json({ messages: payload, mutedUntil: viewer?.mutedUntil ?? null });
 }
 
 export async function POST(
@@ -111,8 +117,18 @@ export async function POST(
     },
     include: {
       user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      reactions: { select: { emoji: true, userId: true } },
     },
   });
 
-  return NextResponse.json({ message }, { status: 201 });
+  const { reactions, ...rest } = message;
+  return NextResponse.json(
+    {
+      message: {
+        ...rest,
+        reactions: summarizeReactions(reactions, result.user.id),
+      },
+    },
+    { status: 201 }
+  );
 }
