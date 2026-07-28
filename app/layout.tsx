@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Outfit } from "next/font/google";
+import VersionBadge from "@/components/VersionBadge";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${bebasNeue.variable} ${outfit.variable} font-body antialiased bg-charcoal text-off-white`}
       >
         {children}
+        <VersionBadge />
       </body>
     </html>
   );

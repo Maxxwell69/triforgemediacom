@@ -88,6 +88,18 @@ Do this in the Railway dashboard (not something I can do from here without CLI/A
    across databases, so if production and staging show the same host, include the port
    too (e.g. `sakura.proxy.rlwy.net:28726`) — the port is what actually tells them apart.
 
+## Versioning
+
+`lib/version.ts` exports `APP_VERSION`, shown as a small `v1.7`-style badge in
+the bottom-right corner on every page (`components/VersionBadge.tsx`) — a
+quick way to confirm what's actually live versus what's expected.
+
+**Bump it as part of every release merged into `master`** (not on every
+commit to a feature branch or `staging` — just when something ships to
+production). Bump the minor number for a normal batch of features/fixes
+(`1.7` → `1.8`), and consider a major bump (`1.x` → `2.0`) for a big
+milestone (e.g. finishing an MVP phase).
+
 ## Rollback
 
 - **App code**: revert the bad commit on `master` (or `git revert` + push) — Railway
