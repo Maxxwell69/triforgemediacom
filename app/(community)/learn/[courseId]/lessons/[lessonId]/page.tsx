@@ -5,6 +5,7 @@ import { requireProfile } from "@/lib/session";
 import { getOrCreateEnrollment, getOrderedLessonSequence, isLessonUnlocked } from "@/lib/learning";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
+import { canViewCourse } from "@/lib/courseAccess";
 import VideoEmbed from "@/components/VideoEmbed";
 import HtmlEmbed from "@/components/HtmlEmbed";
 import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
@@ -12,6 +13,7 @@ import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
 import QuizPlayer from "@/components/QuizPlayer";
 import AssignmentSubmissionForm from "@/components/AssignmentSubmissionForm";
+import DraftPreviewBanner from "@/components/learn/DraftPreviewBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export default async function LessonPage({
     },
   });
 
-  if (!lesson || lesson.courseId !== params.courseId || !lesson.course.isPublished) {
+  if (!lesson || lesson.courseId !== params.courseId || !canViewCourse(lesson.course, user.role)) {
     notFound();
   }
 
@@ -52,6 +54,8 @@ export default async function LessonPage({
   if (!bypassDrip && !isLessonUnlocked(lesson, enrollment)) {
     redirect(`/learn/${lesson.courseId}`);
   }
+
+  const isDraftPreview = !lesson.course.isPublished;
 
   const [progress, modules, siblingLessons, mySubmission] = await Promise.all([
     prisma.lessonProgress.findUnique({
@@ -80,7 +84,11 @@ export default async function LessonPage({
     currentIndex >= 0 && currentIndex < sequence.length - 1 ? sequence[currentIndex + 1] : null;
 
   return (
-    <main className="flex-1 px-6 py-10">
+    <>
+      {isDraftPreview && (
+        <DraftPreviewBanner courseId={lesson.course.id} courseTitle={lesson.course.title} />
+      )}
+      <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-3xl">
         <Link
           href={`/learn/${lesson.course.id}`}
@@ -191,5 +199,6 @@ export default async function LessonPage({
         </div>
       </div>
     </main>
+    </>
   );
 }

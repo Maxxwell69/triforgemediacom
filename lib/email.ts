@@ -1,41 +1,28 @@
 import { Resend } from "resend";
+import { resolveEditableEmail } from "@/lib/emailTemplates";
+import {
+  button,
+  escapeHtml,
+  layout,
+  safeHref,
+  SAMPLE_APP_URL,
+  type EmailContent,
+} from "@/lib/emailLayout";
+
+export type { EmailContent };
+export { button, escapeHtml, layout, safeHref, SAMPLE_APP_URL };
 
 const apiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM_EMAIL || "TriForge <noreply@triforgemedia.com>";
 const resend = apiKey ? new Resend(apiKey) : null;
 
-export type EmailContent = { subject: string; html: string };
-
 /**
  * Every value below that ultimately comes from user input (names, notes,
- * social links, etc.) MUST be passed through this before being interpolated
+ * social links, etc.) MUST be passed through escapeHtml before being interpolated
  * into an HTML email template — otherwise a member could set their display
  * name to a `<script>`/`<img onerror>` payload and have it execute in an
  * admin's or another member's mail client.
  */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/**
- * Escapes a URL for safe use inside an href="..." attribute AND rejects
- * anything that isn't a plain http(s) link (blocks `javascript:`, `data:`,
- * and attribute-breakout payloads like `" onclick="...`).
- */
-function safeHref(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    return escapeHtml(parsed.toString());
-  } catch {
-    return null;
-  }
-}
 
 async function send(to: string, subject: string, html: string) {
   if (!resend) {
@@ -46,32 +33,6 @@ async function send(to: string, subject: string, html: string) {
 
   await resend.emails.send({ from: fromEmail, to, subject, html });
 }
-
-/**
- * Shared branded wrapper used by every email in the app so a new template is
- * just "write the middle section" — colors/spacing/footer stay consistent.
- */
-function layout(bodyHtml: string): string {
-  return `<div style="font-family:'Segoe UI',Arial,sans-serif;background:#0A0A0A;padding:32px 16px;">
-    <div style="max-width:520px;margin:0 auto;">
-      <p style="font-family:Arial,sans-serif;letter-spacing:2px;color:#FD4802;font-weight:700;font-size:13px;margin:0 0 24px;">
-        TRIFORGE COMMUNITY
-      </p>
-      <div style="background:#12121A;border:1px solid rgba(245,245,245,0.08);border-radius:16px;padding:32px;color:#F5F5F5;">
-        ${bodyHtml}
-      </div>
-      <p style="color:rgba(245,245,245,0.35);font-size:12px;margin:20px 4px 0;">
-        TriForge Media &middot; hub.triforgemedia.com
-      </p>
-    </div>
-  </div>`;
-}
-
-function button(url: string, label: string): string {
-  return `<p style="margin:24px 0;"><a href="${safeHref(url) || "#"}" style="background:#FD4802;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;">${escapeHtml(label)}</a></p>`;
-}
-
-const SAMPLE_APP_URL = "https://hub.triforgemedia.com";
 
 // ---------- Invite ----------
 
@@ -89,7 +50,14 @@ export function buildInviteEmail(name: string, url: string): EmailContent {
 }
 
 export async function sendInviteEmail(to: string, name: string, url: string) {
-  const { subject, html } = buildInviteEmail(name, url);
+  const { subject, html } = await resolveEditableEmail(
+    "invite",
+    {
+      text: { name, url },
+      html: { cta: button(url, "Set up your account") },
+    },
+    () => buildInviteEmail(name, url)
+  );
   await send(to, subject, html);
 }
 
@@ -109,7 +77,14 @@ export function buildRejectionEmail(name: string, notes?: string | null): EmailC
 }
 
 export async function sendRejectionEmail(to: string, name: string, notes?: string | null) {
-  const { subject, html } = buildRejectionEmail(name, notes);
+  const notesHtml = notes
+    ? ` Note from our team: &quot;${escapeHtml(notes)}&quot;`
+    : "";
+  const { subject, html } = await resolveEditableEmail(
+    "rejection",
+    { text: { name }, html: { notes: notesHtml } },
+    () => buildRejectionEmail(name, notes)
+  );
   await send(to, subject, html);
 }
 
@@ -129,7 +104,14 @@ export function buildWelcomeEmail(name: string): EmailContent {
 }
 
 export async function sendWelcomeEmail(to: string, name: string) {
-  const { subject, html } = buildWelcomeEmail(name);
+  const { subject, html } = await resolveEditableEmail(
+    "welcome",
+    {
+      text: { name },
+      html: { cta: button(`${SAMPLE_APP_URL}/home`, "Go to your dashboard") },
+    },
+    () => buildWelcomeEmail(name)
+  );
   await send(to, subject, html);
 }
 
@@ -152,7 +134,14 @@ export function buildPasswordResetEmail(name: string, url: string): EmailContent
 }
 
 export async function sendPasswordResetEmail(to: string, name: string, url: string) {
-  const { subject, html } = buildPasswordResetEmail(name, url);
+  const { subject, html } = await resolveEditableEmail(
+    "password-reset",
+    {
+      text: { name, url },
+      html: { cta: button(url, "Reset password") },
+    },
+    () => buildPasswordResetEmail(name, url)
+  );
   await send(to, subject, html);
 }
 
@@ -172,7 +161,14 @@ export function buildStreakReminderEmail(name: string, streakCount: number): Ema
 }
 
 export async function sendStreakReminderEmail(to: string, name: string, streakCount: number) {
-  const { subject, html } = buildStreakReminderEmail(name, streakCount);
+  const { subject, html } = await resolveEditableEmail(
+    "streak-reminder",
+    {
+      text: { name, streakCount: String(streakCount) },
+      html: { cta: button(`${SAMPLE_APP_URL}/apps/tiktask`, "Complete today's tasks") },
+    },
+    () => buildStreakReminderEmail(name, streakCount)
+  );
   await send(to, subject, html);
 }
 
@@ -203,7 +199,14 @@ export async function sendBadgeEarnedEmail(
   badgeName: string,
   badgeIcon?: string | null
 ) {
-  const { subject, html } = buildBadgeEarnedEmail(name, badgeName, badgeIcon);
+  const { subject, html } = await resolveEditableEmail(
+    "badge-earned",
+    {
+      text: { name, badgeName, badgeIcon: badgeIcon || "🏆" },
+      html: { cta: button(`${SAMPLE_APP_URL}/account`, "View your badges") },
+    },
+    () => buildBadgeEarnedEmail(name, badgeName, badgeIcon)
+  );
   await send(to, subject, html);
 }
 
@@ -232,7 +235,14 @@ export async function sendCertificateEmail(
   courseTitle: string,
   courseId: string
 ) {
-  const { subject, html } = buildCertificateEmail(name, courseTitle, courseId);
+  const { subject, html } = await resolveEditableEmail(
+    "certificate",
+    {
+      text: { name, courseTitle },
+      html: { cta: button(`${SAMPLE_APP_URL}/learn/${courseId}`, "View your certificate") },
+    },
+    () => buildCertificateEmail(name, courseTitle, courseId)
+  );
   await send(to, subject, html);
 }
 
@@ -336,7 +346,15 @@ export function buildCreatorNetworkInfoEmail(name: string, applicationId: string
 }
 
 export async function sendCreatorNetworkInfoEmail(to: string, name: string, applicationId: string) {
-  const { subject, html } = buildCreatorNetworkInfoEmail(name, applicationId);
+  const thankYouUrl = `${SAMPLE_APP_URL}/apply/thank-you?track=cn&aid=${applicationId}`;
+  const { subject, html } = await resolveEditableEmail(
+    "creator-network-info",
+    {
+      text: { name },
+      html: { cta: button(thankYouUrl, "Apply to the TriForge Creator Network") },
+    },
+    () => buildCreatorNetworkInfoEmail(name, applicationId)
+  );
   await send(to, subject, html);
 }
 
@@ -373,7 +391,17 @@ export function buildTikTokRequestExpectedEmail(name: string): EmailContent {
 }
 
 export async function sendTikTokRequestExpectedEmail(to: string, name: string) {
-  const { subject, html } = buildTikTokRequestExpectedEmail(name);
+  const guideImageUrl = `${SAMPLE_APP_URL}/guides/tiktok-creator-network-steps.png`;
+  const { subject, html } = await resolveEditableEmail(
+    "tiktok-request-expected",
+    {
+      text: { name },
+      html: {
+        guideImage: `<img src="${guideImageUrl}" alt="Step-by-step screenshots showing how to find and accept the Forge Creator Network request in TikTok" style="width:100%;max-width:456px;border-radius:12px;border:1px solid rgba(245,245,245,0.12);" />`,
+      },
+    },
+    () => buildTikTokRequestExpectedEmail(name)
+  );
   await send(to, subject, html);
 }
 
@@ -440,7 +468,11 @@ export function buildEmailChangedNotice(
 }
 
 export async function sendEmailChangedNotice(oldEmail: string, newEmail: string, name: string) {
-  const { subject, html } = buildEmailChangedNotice(oldEmail, newEmail, name);
+  const { subject, html } = await resolveEditableEmail(
+    "email-changed",
+    { text: { name, oldEmail, newEmail } },
+    () => buildEmailChangedNotice(oldEmail, newEmail, name)
+  );
   await send(oldEmail, subject, html);
 }
 
@@ -470,7 +502,14 @@ export function buildHubMigrationInviteEmail(name: string, url: string): EmailCo
 }
 
 export async function sendHubMigrationInviteEmail(to: string, name: string, url: string) {
-  const { subject, html } = buildHubMigrationInviteEmail(name, url);
+  const { subject, html } = await resolveEditableEmail(
+    "hub-migration-invite",
+    {
+      text: { name, url },
+      html: { cta: button(url, "Set up your Hub account") },
+    },
+    () => buildHubMigrationInviteEmail(name, url)
+  );
   await send(to, subject, html);
 }
 

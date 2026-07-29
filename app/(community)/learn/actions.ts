@@ -35,7 +35,9 @@ async function assertLessonAccessible(userId: string, userRole: UserRole, lesson
       },
     },
   });
-  if (!lesson || !lesson.course.isPublished) throw new Error("Lesson not found");
+  if (!lesson || (!lesson.course.isPublished && !isAdminRole(userRole))) {
+    throw new Error("Lesson not found");
+  }
 
   const userGroupIds = await getUserGroupIds(userId);
   if (!canAccessCourse(userRole, lesson.course, userGroupIds)) {

@@ -437,6 +437,19 @@ model Broadcast {
   sentBy User @relation(fields: [sentById], references: [id])
 }
 
+// ---------- Editable system email templates ----------
+// Code in lib/email.ts remains the fallback default. When a row exists here,
+// senders use subject + bodyHtml with {{placeholder}} interpolation instead.
+
+model EmailTemplate {
+  key           String   @id // e.g. "invite", "welcome"
+  subject       String
+  bodyHtml      String // inner body; wrapped in branded layout unless wrapsInLayout=false
+  wrapsInLayout Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
+  updatedByName String?
+}
+
 // ---------- Tags (searchable creator attributes) ----------
 // Admin-managed labels members can be found by (e.g. "Live Host", "Gamer").
 // selfAssignable controls whether members can add/remove it themselves from

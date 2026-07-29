@@ -157,6 +157,14 @@ export default async function AdminCourseDetailPage({
         {detail.lessons.length === 1 ? "" : "s"} {" \u00b7 "} {detail.modules.length} module
         {detail.modules.length === 1 ? "" : "s"} {" \u00b7 "} {detail.enrollments.length} enrolled
       </p>
+      <div className="mt-4">
+        <Link
+          href={`/learn/${detail.id}`}
+          className="inline-flex rounded-lg border border-cyan/40 px-4 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10"
+        >
+          {detail.isPublished ? "View as member →" : "Preview draft as member →"}
+        </Link>
+      </div>
 
       <section className="mt-8">
         <CourseEditForm

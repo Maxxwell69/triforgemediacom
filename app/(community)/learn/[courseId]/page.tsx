@@ -10,6 +10,8 @@ import {
 } from "@/lib/learning";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
+import { canViewCourse } from "@/lib/courseAccess";
+import DraftPreviewBanner from "@/components/learn/DraftPreviewBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +48,13 @@ export default async function CourseDetailPage({
     },
   });
 
-  if (!course || !course.isPublished) notFound();
+  if (!course || !canViewCourse(course, user.role)) notFound();
   if (!canAccessCourse(user.role, course, userGroupIds)) {
     redirect("/learn");
   }
 
   const published = course;
+  const isDraftPreview = !course.isPublished;
   const enrollment = await getOrCreateEnrollment(user.id, published.id);
   const bypassDrip = isAdminRole(user.role);
   const now = new Date();
@@ -178,7 +181,11 @@ export default async function CourseDetailPage({
   }
 
   return (
-    <main className="flex-1 px-6 py-10">
+    <>
+      {isDraftPreview && (
+        <DraftPreviewBanner courseId={published.id} courseTitle={published.title} />
+      )}
+      <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-3xl">
         <Link
           href="/learn"
@@ -300,5 +307,6 @@ export default async function CourseDetailPage({
         </div>
       </div>
     </main>
+    </>
   );
 }
