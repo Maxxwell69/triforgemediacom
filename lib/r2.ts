@@ -1,8 +1,14 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
-import { ALLOWED_IMAGE_EXTENSIONS, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
+import {
+  ALLOWED_IMAGE_EXTENSIONS,
+  ALLOWED_VIDEO_EXTENSIONS,
+  MAX_UPLOAD_BYTES,
+  MAX_VIDEO_UPLOAD_BYTES,
+} from "@/lib/uploadConstraints";
 
-export { MAX_UPLOAD_BYTES };
+export { MAX_UPLOAD_BYTES, MAX_VIDEO_UPLOAD_BYTES };
 
 function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -11,7 +17,7 @@ function getR2Client() {
 
   if (!accountId || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      "Image uploads aren't configured yet. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY."
+      "Uploads aren't configured yet. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY."
     );
   }
 
@@ -20,6 +26,15 @@ function getR2Client() {
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
   });
+}
+
+function getBucketConfig() {
+  const bucketName = process.env.R2_BUCKET_NAME;
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (!bucketName || !publicUrl) {
+    throw new Error("Uploads aren't configured yet. Set R2_BUCKET_NAME and R2_PUBLIC_URL.");
+  }
+  return { bucketName, publicUrl: publicUrl.replace(/\/$/, "") };
 }
 
 /**
@@ -38,14 +53,7 @@ export async function uploadImage(
     throw new Error("File is too large. Max size is 5MB.");
   }
 
-  const bucketName = process.env.R2_BUCKET_NAME;
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!bucketName || !publicUrl) {
-    throw new Error(
-      "Image uploads aren't configured yet. Set R2_BUCKET_NAME and R2_PUBLIC_URL."
-    );
-  }
-
+  const { bucketName, publicUrl } = getBucketConfig();
   const client = getR2Client();
   const key = `${folder}/${randomUUID()}.${extension}`;
 
@@ -58,5 +66,41 @@ export async function uploadImage(
     })
   );
 
-  return `${publicUrl.replace(/\/$/, "")}/${key}`;
+  return `${publicUrl}/${key}`;
+}
+
+/**
+ * Presigned PUT for large webinar recordings (browser uploads directly to R2).
+ * Bucket CORS must allow PUT from the hub origin.
+ */
+export async function createPresignedVideoUpload(opts: {
+  webinarId: string;
+  contentType: string;
+  fileSize: number;
+}) {
+  const extension = ALLOWED_VIDEO_EXTENSIONS[opts.contentType];
+  if (!extension) {
+    throw new Error("Unsupported video type. Use MP4, WebM, or MOV.");
+  }
+  if (opts.fileSize <= 0 || opts.fileSize > MAX_VIDEO_UPLOAD_BYTES) {
+    throw new Error("File is too large. Max size is 2GB.");
+  }
+
+  const { bucketName, publicUrl } = getBucketConfig();
+  const client = getR2Client();
+  const key = `webinar-recordings/${opts.webinarId}/${randomUUID()}.${extension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: opts.contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 60 * 60 });
+
+  return {
+    uploadUrl,
+    publicUrl: `${publicUrl}/${key}`,
+    key,
+  };
 }

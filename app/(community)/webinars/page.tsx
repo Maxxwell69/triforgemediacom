@@ -20,7 +20,7 @@ export default async function WebinarsPage() {
     orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
     include: {
       host: { select: { name: true, email: true } },
-      _count: { select: { attendances: true } },
+      _count: { select: { attendances: true, recordings: true } },
     },
   });
 
@@ -108,10 +108,11 @@ function WebinarCard({
     scheduledAt: Date;
     status: string;
     host: { name: string | null; email: string };
-    _count: { attendances: number };
+    _count: { attendances: number; recordings: number };
   };
 }) {
   const canEnter = webinar.status === "LIVE" || webinar.status === "SCHEDULED";
+  const hasRecording = webinar._count.recordings > 0;
 
   return (
     <div className="glass rounded-2xl p-5">
@@ -130,6 +131,11 @@ function WebinarCard({
             >
               {STATUS_LABEL[webinar.status] || webinar.status}
             </span>
+            {hasRecording && (
+              <span className="rounded bg-cyan/15 px-2 py-0.5 font-body text-xs text-cyan">
+                Recording
+              </span>
+            )}
           </div>
           <p className="mt-1 font-body text-xs text-off-white/50">
             {webinar.scheduledAt.toLocaleString()} · {webinar.host.name || webinar.host.email}
@@ -153,7 +159,7 @@ function WebinarCard({
             href={`/webinars/${webinar.id}`}
             className="rounded-lg border border-off-white/15 px-4 py-2 font-body text-sm text-off-white/60 transition hover:bg-off-white/5"
           >
-            Details
+            {hasRecording ? "Watch recording" : "Details"}
           </Link>
         )}
       </div>

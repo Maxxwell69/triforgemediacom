@@ -5,7 +5,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { webinarRoomName } from "@/lib/webinars";
-import { createWebinarSchema, updateWebinarSchema } from "@/lib/validations/webinar";
+import {
+  createWebinarSchema,
+  updateWebinarSchema,
+  webinarRecordingSchema,
+} from "@/lib/validations/webinar";
 
 async function requireAdmin() {
   const session = await auth();
@@ -163,5 +167,56 @@ export async function endWebinarAction(webinarId: string) {
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);
+  return { error: null };
+}
+
+export async function addWebinarRecordingAction(
+  webinarId: string,
+  input: { title?: string; url: string }
+) {
+  await requireAdmin();
+
+  const webinar = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  if (!webinar) return { error: "Webinar not found" };
+
+  const parsed = webinarRecordingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid recording" };
+  }
+
+  const last = await prisma.webinarRecording.findFirst({
+    where: { webinarId },
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+
+  await prisma.webinarRecording.create({
+    data: {
+      webinarId,
+      title: parsed.data.title || null,
+      url: parsed.data.url,
+      sortOrder: (last?.sortOrder ?? -1) + 1,
+    },
+  });
+
+  revalidatePath("/admin/webinars");
+  revalidatePath("/webinars");
+  revalidatePath(`/webinars/${webinarId}`);
+  return { error: null };
+}
+
+export async function deleteWebinarRecordingAction(recordingId: string) {
+  await requireAdmin();
+
+  const recording = await prisma.webinarRecording.findUnique({
+    where: { id: recordingId },
+  });
+  if (!recording) return { error: "Recording not found" };
+
+  await prisma.webinarRecording.delete({ where: { id: recordingId } });
+
+  revalidatePath("/admin/webinars");
+  revalidatePath("/webinars");
+  revalidatePath(`/webinars/${recording.webinarId}`);
   return { error: null };
 }

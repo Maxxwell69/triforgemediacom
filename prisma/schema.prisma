@@ -871,8 +871,22 @@ model Webinar {
   attendances   WebinarAttendance[]
   chatMessages  WebinarChatMessage[]
   stageRequests WebinarStageRequest[]
+  recordings    WebinarRecording[]
 
   @@index([status, scheduledAt])
+}
+
+model WebinarRecording {
+  id        String   @id @default(cuid())
+  webinarId String
+  title     String?
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  @@index([webinarId, sortOrder])
 }
 
 model WebinarAttendance {

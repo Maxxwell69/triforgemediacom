@@ -22,3 +22,12 @@ export const stageInviteSchema = z.object({
   userId: z.string().min(1),
   approve: z.boolean().default(true),
 });
+
+export const webinarRecordingSchema = z.object({
+  title: z.string().trim().max(120).optional().or(z.literal("")),
+  url: z
+    .string()
+    .trim()
+    .url("Enter a valid video URL")
+    .max(2000),
+});

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canJoinWebinar, canViewWebinar } from "@/lib/webinars";
+import WebinarRecordingPlayer from "@/components/webinars/WebinarRecordingPlayer";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function WebinarDetailPage({
     where: { id: params.webinarId },
     include: {
       host: { select: { name: true, email: true } },
+      recordings: { orderBy: { sortOrder: "asc" } },
       _count: { select: { attendances: true, chatMessages: true } },
     },
   });
@@ -63,12 +65,27 @@ export default async function WebinarDetailPage({
           >
             {webinar.status === "LIVE" ? "Join live room" : "Enter lobby"}
           </Link>
-        ) : (
+        ) : webinar.status === "ENDED" && webinar.recordings.length === 0 ? (
           <p className="mt-8 font-body text-sm text-off-white/50">
-            {webinar.status === "ENDED"
-              ? "This webinar has ended."
-              : "This webinar is not open yet."}
+            This webinar has ended. A recording will appear here once an admin uploads it.
           </p>
+        ) : webinar.status !== "ENDED" ? (
+          <p className="mt-8 font-body text-sm text-off-white/50">
+            This webinar is not open yet.
+          </p>
+        ) : null}
+
+        {webinar.recordings.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-display text-2xl tracking-wide text-off-white/80">
+              Recording{webinar.recordings.length === 1 ? "" : "s"}
+            </h2>
+            <div className="mt-4 flex flex-col gap-4">
+              {webinar.recordings.map((r) => (
+                <WebinarRecordingPlayer key={r.id} url={r.url} title={r.title} />
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </main>
