@@ -1,3 +1,5 @@
+import "server-only";
+
 import DOMPurify from "isomorphic-dompurify";
 import { fixIllegibleLessonTextColors } from "@/lib/fixLessonColors";
 

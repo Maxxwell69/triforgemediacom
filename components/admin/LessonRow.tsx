@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
 import { toDatetimeLocalValue } from "@/lib/validations/course";
-import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import ImageUploadField from "@/components/ImageUploadField";
 import AssignmentSection from "./AssignmentSection";
@@ -221,7 +220,12 @@ export default function LessonRow({
             {showPreview ? (
               <div
                 className={`min-h-[6rem] overflow-hidden rounded-lg border border-off-white/15 bg-off-white ${LESSON_CONTENT_CLASSES}`}
-                dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) || "<p class=\"text-charcoal/40\">Nothing to preview yet.</p>" }}
+                dangerouslySetInnerHTML={{
+                  // Admin-only preview — full sanitize/color-fix runs on the
+                  // server lesson page (lib/sanitizeHtml.ts). Do not import that
+                  // here: isomorphic-dompurify/jsdom breaks the client webpack build.
+                  __html: content.trim() || "<p class=\"text-charcoal/40\">Nothing to preview yet.</p>",
+                }}
               />
             ) : (
               <textarea

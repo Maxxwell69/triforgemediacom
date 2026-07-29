@@ -1,3 +1,5 @@
+import "server-only";
+
 // jsdom ships with isomorphic-dompurify; avoid a hard @types dependency.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { JSDOM } = require("jsdom") as { JSDOM: new (html: string) => { window: { document: Document } } };
