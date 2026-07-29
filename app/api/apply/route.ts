@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { applySchema } from "@/lib/validations/apply";
 import {
   sendCreatorNetworkInfoEmail,
+  sendMediaNetworkInfoEmail,
   sendNewApplicationAdminAlert,
   sendTikTokRequestExpectedEmail,
 } from "@/lib/email";
@@ -10,6 +11,7 @@ import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { syncMnMembership } from "@/lib/mnCn";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { autoApproveApplication } from "@/lib/autoApprove";
+import { resolveApplyTrack, countryLabel } from "@/lib/applyTrack";
 
 // A genuine applicant only ever needs to submit once (or once more after a
 // rejection). This is generous enough for real usage but blocks scripted
@@ -31,9 +33,12 @@ async function alertAdmins(application: {
   phone: string;
   smsConsent: boolean;
   socialLink: string | null;
+  country: string;
   goals: string;
   whyJoin: string;
   hasAgency: boolean;
+  track: "MN" | "CN";
+  mnReason: "agency" | "country" | null;
 }) {
   try {
     const admins = await getAlertableAdminEmails();
@@ -45,9 +50,12 @@ async function alertAdmins(application: {
       phone: application.phone,
       smsConsent: application.smsConsent,
       socialLink: application.socialLink,
+      country: countryLabel(application.country),
       goals: application.goals,
       whyJoin: application.whyJoin,
-      track: application.hasAgency ? "MN" : "CN",
+      track: application.track,
+      mnReason: application.mnReason,
+      hasAgency: application.hasAgency,
     });
   } catch (err) {
     // Never fail the application submission because the notification email failed.
@@ -55,34 +63,38 @@ async function alertAdmins(application: {
   }
 }
 
-async function routeByAgencyStatus(
-  userId: string,
-  name: string,
-  email: string,
-  hasAgency: boolean,
-  applicationId: string
-) {
+async function routeApplicant(opts: {
+  userId: string;
+  name: string;
+  email: string;
+  applicationId: string;
+  track: "MN" | "CN";
+  mnReason: "agency" | "country" | null;
+}) {
   try {
-    await syncMnMembership(userId, hasAgency);
-    if (!hasAgency) {
+    await syncMnMembership(opts.userId, opts.track === "MN");
+    if (opts.track === "CN") {
       // Two separate emails on purpose: the first confirms the application
       // and gets them tapping "Apply" now, the second is a dedicated
       // heads-up (with the visual guide) for what happens later once TikTok
       // shows them our request — keeping it standalone means it doesn't get
       // lost in the middle of the first email.
       await Promise.all([
-        sendCreatorNetworkInfoEmail(email, name, applicationId),
-        sendTikTokRequestExpectedEmail(email, name),
+        sendCreatorNetworkInfoEmail(opts.email, opts.name, opts.applicationId),
+        sendTikTokRequestExpectedEmail(opts.email, opts.name),
       ]);
+    } else if (opts.mnReason === "country") {
+      // Outside US/Canada — explain Media Network pathway (agency MN still
+      // just gets the invite via auto-approve).
+      await sendMediaNetworkInfoEmail(opts.email, opts.name);
     }
   } catch (err) {
-    console.error("Failed to route applicant by agency status:", err);
+    console.error("Failed to route applicant:", err);
   }
 }
 
-// MN applicants already have an agency vouching for them, so there's no
-// TikTok-side signal to wait on like there is for CN — approve them into the
-// Hub the moment they apply instead of sitting in the manual review queue.
+// MN applicants don't wait on a TikTok CN signal — approve them into the Hub
+// the moment they apply instead of sitting in the manual review queue.
 async function autoApproveMn(applicationId: string) {
   try {
     await autoApproveApplication(applicationId);
@@ -116,10 +128,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, platform, handle, phone, smsConsent, socialLink, goals, whyJoin, hasAgency } =
-    parsed.data;
+  const {
+    name,
+    email,
+    platform,
+    handle,
+    phone,
+    smsConsent,
+    socialLink,
+    country,
+    goals,
+    whyJoin,
+    hasAgency,
+  } = parsed.data;
   const normalizedEmail = email.toLowerCase();
   const hasAgencyBool = hasAgency === "yes";
+  const { track, mnReason } = resolveApplyTrack({
+    country,
+    hasAgency: hasAgencyBool,
+  });
 
   const answers = {
     name,
@@ -128,9 +155,12 @@ export async function POST(req: NextRequest) {
     phone,
     smsConsent,
     socialLink: socialLink || null,
+    country,
     goals,
     whyJoin,
     hasAgency,
+    track,
+    mnReason,
   };
 
   async function notify(userId: string, applicationId: string) {
@@ -143,12 +173,22 @@ export async function POST(req: NextRequest) {
         phone,
         smsConsent,
         socialLink: socialLink || null,
+        country,
         goals,
         whyJoin,
         hasAgency: hasAgencyBool,
+        track,
+        mnReason,
       }),
-      routeByAgencyStatus(userId, name, normalizedEmail, hasAgencyBool, applicationId),
-      hasAgencyBool ? autoApproveMn(applicationId) : Promise.resolve(),
+      routeApplicant({
+        userId,
+        name,
+        email: normalizedEmail,
+        applicationId,
+        track,
+        mnReason,
+      }),
+      track === "MN" ? autoApproveMn(applicationId) : Promise.resolve(),
     ]);
   }
 
@@ -156,8 +196,6 @@ export async function POST(req: NextRequest) {
     where: { email: normalizedEmail },
     include: { application: true },
   });
-
-  const track = hasAgencyBool ? "MN" : "CN";
 
   if (existingUser) {
     if (existingUser.application) {
@@ -181,7 +219,10 @@ export async function POST(req: NextRequest) {
         },
       });
       await notify(existingUser.id, updated.id);
-      return NextResponse.json({ ok: true, track, applicationId: updated.id }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, track, mnReason, applicationId: updated.id },
+        { status: 200 }
+      );
     }
 
     // User row exists (e.g. from a prior partial signup) but no application yet.
@@ -189,7 +230,10 @@ export async function POST(req: NextRequest) {
       data: { userId: existingUser.id, answers },
     });
     await notify(existingUser.id, created.id);
-    return NextResponse.json({ ok: true, track, applicationId: created.id }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, track, mnReason, applicationId: created.id },
+      { status: 200 }
+    );
   }
 
   const newUser = await prisma.user.create({
@@ -204,7 +248,7 @@ export async function POST(req: NextRequest) {
   await notify(newUser.id, newUser.application!.id);
 
   return NextResponse.json(
-    { ok: true, track, applicationId: newUser.application!.id },
+    { ok: true, track, mnReason, applicationId: newUser.application!.id },
     { status: 200 }
   );
 }

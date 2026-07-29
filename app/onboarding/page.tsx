@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getApplicationContact } from "@/lib/profileContact";
 import OnboardingForm from "./OnboardingForm";
 
 export default async function OnboardingPage() {
@@ -10,6 +11,8 @@ export default async function OnboardingPage() {
   if (existingProfile) {
     redirect("/home");
   }
+
+  const contact = await getApplicationContact(user.id);
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
@@ -22,7 +25,12 @@ export default async function OnboardingPage() {
             This drives your TikTask daily list — takes less than a minute.
           </p>
         </div>
-        <OnboardingForm />
+        <OnboardingForm
+          defaultValues={{
+            phone: contact.phone ?? "",
+            country: contact.country ?? "",
+          }}
+        />
       </div>
     </main>
   );

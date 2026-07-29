@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { approveApplication, rejectApplication } from "./actions";
 import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
+import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,46 @@ type ApplicationAnswers = {
   phone?: string;
   smsConsent?: boolean;
   socialLink?: string | null;
+  country?: string;
   goals?: string;
   whyJoin?: string;
   hasAgency?: string;
+  track?: "MN" | "CN";
+  mnReason?: "agency" | "country" | null;
 };
+
+function trackBadge(answers: ApplicationAnswers) {
+  const hasAgency = answers.hasAgency === "yes";
+  const resolved =
+    answers.track && (answers.track === "CN" || answers.track === "MN")
+      ? {
+          track: answers.track,
+          mnReason: answers.mnReason ?? null,
+        }
+      : answers.country
+        ? resolveApplyTrack({ country: answers.country, hasAgency })
+        : { track: hasAgency ? ("MN" as const) : ("CN" as const), mnReason: hasAgency ? ("agency" as const) : null };
+
+  if (resolved.track === "CN") {
+    return (
+      <span className="rounded-full border border-orange/40 bg-orange/10 px-2.5 py-0.5 font-body text-xs font-semibold text-orange">
+        CN track · US/CA · no agency
+      </span>
+    );
+  }
+  if (resolved.mnReason === "country") {
+    return (
+      <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2.5 py-0.5 font-body text-xs font-semibold text-cyan">
+        MN · outside US/CA
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2.5 py-0.5 font-body text-xs font-semibold text-cyan">
+      MN · has agency
+    </span>
+  );
+}
 
 export default async function AdminApplicationsPage() {
   const applications = await prisma.application.findMany({
@@ -54,15 +91,7 @@ export default async function AdminApplicationsPage() {
                   <h2 className="font-display text-2xl tracking-wide">
                     {app.user.name || "Unnamed"}
                   </h2>
-                  {answers.hasAgency === "yes" ? (
-                    <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2.5 py-0.5 font-body text-xs font-semibold text-cyan">
-                      MN &middot; has agency
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-orange/40 bg-orange/10 px-2.5 py-0.5 font-body text-xs font-semibold text-orange">
-                      CN track &middot; no agency
-                    </span>
-                  )}
+                  {trackBadge(answers)}
                 </div>
                 <span className="font-body text-sm text-off-white/50">{app.user.email}</span>
               </div>
@@ -75,6 +104,7 @@ export default async function AdminApplicationsPage() {
                   }
                 />
                 <Detail label="Handle" value={answers.handle || "—"} />
+                <Detail label="Country" value={countryLabel(answers.country)} />
                 <Detail
                   label="Phone"
                   value={
@@ -210,7 +240,12 @@ export default async function AdminApplicationsPage() {
                       ? "—"
                       : app.tiktokNetworkRequested
                         ? "Auto-approved · TikTok CN opt-in"
-                        : "Auto-approved · MN has agency")}
+                        : (() => {
+                            const a = app.answers as ApplicationAnswers;
+                            return a.mnReason === "country"
+                              ? "Auto-approved · MN outside US/CA"
+                              : "Auto-approved · MN";
+                          })())}
                 </span>
               </div>
             ))}

@@ -6,10 +6,11 @@ import { TIKTOK_CREATOR_NETWORK_INVITE_LINK } from "@/lib/tiktokNetwork";
 export default async function ApplyThankYouPage({
   searchParams,
 }: {
-  searchParams: { track?: string; aid?: string };
+  searchParams: { track?: string; aid?: string; reason?: string };
 }) {
   const track = searchParams.track === "cn" ? "cn" : "mn";
   const applicationId = searchParams.aid || null;
+  const mnReason = searchParams.reason === "country" ? "country" : "agency";
 
   let firstName: string | null = null;
   if (applicationId) {
@@ -28,9 +29,22 @@ export default async function ApplyThankYouPage({
         <div className="glass max-w-md rounded-2xl p-10 text-center">
           <h1 className="font-display text-4xl tracking-wide text-gradient">YOU&apos;RE IN!</h1>
           <p className="mt-4 font-body text-off-white/70">
-            {greeting} Since you&apos;re already represented by an agency, we&apos;ve gone ahead
-            and approved you into the TriForge Hub &mdash; check your email for a link to set up
-            your login and get started.
+            {mnReason === "country" ? (
+              <>
+                {greeting} The Forge Creator Network is available for creators in the{" "}
+                <strong className="text-off-white/90">United States and Canada</strong>.
+                We&apos;ve placed you in the{" "}
+                <strong className="text-off-white/90">TriForge Media Network</strong> and approved
+                you into the Hub &mdash; check your email for a link to set up your login and get
+                started.
+              </>
+            ) : (
+              <>
+                {greeting} Since you&apos;re already represented by an agency, we&apos;ve gone
+                ahead and approved you into the TriForge Hub &mdash; check your email for a link
+                to set up your login and get started.
+              </>
+            )}
           </p>
           <Link
             href="/"

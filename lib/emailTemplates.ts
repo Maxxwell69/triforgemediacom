@@ -11,6 +11,7 @@ export type EmailTemplateKey =
   | "certificate"
   | "creator-network-info"
   | "tiktok-request-expected"
+  | "media-network-info"
   | "hub-migration-invite"
   | "email-changed";
 
@@ -151,7 +152,7 @@ export const EMAIL_TEMPLATE_DEFS: EmailTemplateDef[] = [
   {
     key: "creator-network-info",
     label: "Creator Network info (CN track)",
-    trigger: "Sent when a no-agency applicant submits /apply.",
+    trigger: "Sent when a US/Canada applicant with no agency submits /apply.",
     variables: [
       { key: "name", label: "Applicant name", kind: "text" },
       { key: "cta", label: "Apply CTA button", kind: "html" },
@@ -185,6 +186,22 @@ export const EMAIL_TEMPLATE_DEFS: EmailTemplateDef[] = [
 <p style="line-height:1.6;margin:0 0 4px;">3. Tap <strong>LIVE Center</strong>, then <strong>Creator Network Center</strong>.</p>
 <p style="line-height:1.6;margin:0 0 16px;">4. Open and accept the request under <strong>“Forge Creator Network”</strong>.</p>
 {{guideImage}}`,
+  },
+  {
+    key: "media-network-info",
+    label: "Media Network (outside US/Canada)",
+    trigger: "Sent when an applicant is outside the US/Canada and placed in the Media Network.",
+    variables: [
+      { key: "name", label: "Applicant name", kind: "text" },
+      { key: "cta", label: "Hub CTA button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "You're in the TriForge Media Network",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Welcome to the Media Network, {{name}}</h1>
+<p style="line-height:1.6;">Thanks for applying to TriForge Community.</p>
+<p style="line-height:1.6;">The <strong style="color:#00D4FF;">Forge Creator Network</strong> on TikTok is currently available for creators based in the <strong>United States and Canada</strong>. Because you're applying from outside those countries, we've placed you in the <strong style="color:#00D4FF;">TriForge Media Network</strong> instead.</p>
+<p style="line-height:1.6;">You're still fully part of the community — we've approved you into the Hub. Check your email for a separate invite to set up your login and get started.</p>
+{{cta}}`,
   },
   {
     key: "hub-migration-invite",
@@ -327,6 +344,11 @@ export function sampleVarsFor(key: EmailTemplateKey): TemplateVars {
         html: {
           guideImage: `<img src="${SAMPLE_APP_URL}/guides/tiktok-creator-network-steps.png" alt="Guide" style="width:100%;max-width:456px;border-radius:12px;border:1px solid rgba(245,245,245,0.12);" />`,
         },
+      };
+    case "media-network-info":
+      return {
+        text: { name },
+        html: { cta: button(`${SAMPLE_APP_URL}/login`, "Go to the Hub") },
       };
     case "hub-migration-invite":
       return {

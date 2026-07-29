@@ -17,6 +17,7 @@ import MemberAvatar from "@/components/MemberAvatar";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
+import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
 
 export const dynamic = "force-dynamic";
 
@@ -134,8 +135,28 @@ export default async function AdminUserDetailPage({
   const initial = getMemberInitial(user);
 
   const answers = (user.application?.answers as Record<string, unknown> | null) ?? null;
-  const hasAgencyAnswer = answers?.hasAgency;
-  const track = hasAgencyAnswer === "yes" ? "MN · has agency" : user.application ? "CN · no agency" : null;
+  const hasAgency = answers?.hasAgency === "yes";
+  const countryCode =
+    user.profile?.country ||
+    (typeof answers?.country === "string" ? answers.country : null);
+  const phone =
+    user.profile?.phone || (typeof answers?.phone === "string" ? answers.phone : null);
+  const trackInfo =
+    answers?.country && typeof answers.country === "string"
+      ? resolveApplyTrack({ country: answers.country, hasAgency })
+      : answers
+        ? {
+            track: hasAgency ? ("MN" as const) : ("CN" as const),
+            mnReason: hasAgency ? ("agency" as const) : null,
+          }
+        : null;
+  const trackLabel = trackInfo
+    ? trackInfo.track === "CN"
+      ? "CN · US/CA · no agency"
+      : trackInfo.mnReason === "country"
+        ? "MN · outside US/CA"
+        : "MN · has agency"
+    : null;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
@@ -193,6 +214,34 @@ export default async function AdminUserDetailPage({
         />
       </div>
 
+      {/* Private contact — admin only; never shown on /members */}
+      <section className="glass mt-6 rounded-2xl p-6">
+        <h2 className="font-display text-lg tracking-wide text-off-white/80">
+          PRIVATE CONTACT
+        </h2>
+        <p className="mt-1 font-body text-xs text-off-white/40">
+          Visible to admins and the member only — not shown on the public member directory.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-3 font-body text-sm sm:grid-cols-2">
+          <div>
+            <p className="text-xs text-off-white/40">Phone</p>
+            <p className="mt-0.5 text-off-white/80">
+              {phone ? (
+                <a href={`tel:${phone}`} className="text-cyan hover:underline">
+                  {phone}
+                </a>
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-off-white/40">Country</p>
+            <p className="mt-0.5 text-off-white/80">{countryLabel(countryCode)}</p>
+          </div>
+        </div>
+      </section>
+
       {/* Groups / Tags / Badges */}
       <section className="glass mt-6 rounded-2xl p-6">
         <h2 className="font-display text-lg tracking-wide text-off-white/80">
@@ -236,7 +285,7 @@ export default async function AdminUserDetailPage({
           <div className="mt-3 grid grid-cols-2 gap-3 font-body text-sm sm:grid-cols-4">
             <div>
               <p className="text-xs text-off-white/40">Track</p>
-              <p className="mt-0.5 text-off-white/80">{track || "—"}</p>
+              <p className="mt-0.5 text-off-white/80">{trackLabel || "—"}</p>
             </div>
             <div>
               <p className="text-xs text-off-white/40">Submitted</p>

@@ -256,9 +256,12 @@ export type NewApplicationAlertData = {
   phone: string;
   smsConsent: boolean;
   socialLink: string | null;
+  country: string;
   goals: string;
   whyJoin: string;
   track: "MN" | "CN";
+  mnReason: "agency" | "country" | null;
+  hasAgency: boolean;
 };
 
 function row(label: string, value: string): string {
@@ -267,9 +270,11 @@ function row(label: string, value: string): string {
 
 export function buildNewApplicationAdminAlert(application: NewApplicationAlertData): EmailContent {
   const trackBadge =
-    application.track === "MN"
-      ? `<span style="background:rgba(0,212,255,0.15);color:#00D4FF;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">MN &middot; has agency &middot; auto-approved into Hub</span>`
-      : `<span style="background:rgba(253,72,2,0.15);color:#FD4802;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">CN track &middot; no agency</span>`;
+    application.track === "CN"
+      ? `<span style="background:rgba(253,72,2,0.15);color:#FD4802;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">CN track &middot; US/CA &middot; no agency</span>`
+      : application.mnReason === "country"
+        ? `<span style="background:rgba(0,212,255,0.15);color:#00D4FF;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">MN &middot; outside US/CA &middot; auto-approved into Hub</span>`
+        : `<span style="background:rgba(0,212,255,0.15);color:#00D4FF;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">MN &middot; has agency &middot; auto-approved into Hub</span>`;
 
   return {
     subject: `New application (${application.track}): ${application.name}`,
@@ -279,6 +284,8 @@ export function buildNewApplicationAdminAlert(application: NewApplicationAlertDa
       ${row("Name", escapeHtml(application.name))}
       ${row("Email", escapeHtml(application.email))}
       ${row("Phone", escapeHtml(application.phone))}
+      ${row("Country", escapeHtml(application.country))}
+      ${row("Has agency", application.hasAgency ? "Yes" : "No")}
       ${row(
         "SMS consent",
         application.smsConsent
@@ -354,6 +361,38 @@ export async function sendCreatorNetworkInfoEmail(to: string, name: string, appl
       html: { cta: button(thankYouUrl, "Apply to the TriForge Creator Network") },
     },
     () => buildCreatorNetworkInfoEmail(name, applicationId)
+  );
+  await send(to, subject, html);
+}
+
+// ---------- Media Network (outside US/Canada) ----------
+
+export function buildMediaNetworkInfoEmail(name: string): EmailContent {
+  const safeName = escapeHtml(name);
+  return {
+    subject: "You're in the TriForge Media Network",
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Welcome to the Media Network, ${safeName}</h1>
+      <p style="line-height:1.6;">Thanks for applying to TriForge Community.</p>
+      <p style="line-height:1.6;">The <strong style="color:#00D4FF;">Forge Creator Network</strong> on TikTok is
+        currently available for creators based in the <strong>United States and Canada</strong>. Because you're
+        applying from outside those countries, we've placed you in the
+        <strong style="color:#00D4FF;">TriForge Media Network</strong> instead.</p>
+      <p style="line-height:1.6;">You're still fully part of the community &mdash; we've approved you into the
+        Hub. Check your email for a separate invite to set up your login and get started.</p>
+      ${button(`${SAMPLE_APP_URL}/login`, "Go to the Hub")}
+    `),
+  };
+}
+
+export async function sendMediaNetworkInfoEmail(to: string, name: string) {
+  const { subject, html } = await resolveEditableEmail(
+    "media-network-info",
+    {
+      text: { name },
+      html: { cta: button(`${SAMPLE_APP_URL}/login`, "Go to the Hub") },
+    },
+    () => buildMediaNetworkInfoEmail(name)
   );
   await send(to, subject, html);
 }

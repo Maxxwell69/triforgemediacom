@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { platformOptions } from "@/lib/validations/apply";
 import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
+import { COUNTRY_OPTIONS } from "@/lib/applyTrack";
 
 type FieldErrors = Partial<Record<string, string[]>>;
 
@@ -29,6 +30,7 @@ export default function ApplyPage() {
       phone: data.get("phone"),
       smsConsent: data.get("smsConsent") === "on",
       socialLink: data.get("socialLink"),
+      country: data.get("country"),
       goals: data.get("goals"),
       whyJoin: data.get("whyJoin"),
       hasAgency: data.get("hasAgency"),
@@ -52,6 +54,7 @@ export default function ApplyPage() {
         track: result.track === "CN" ? "cn" : "mn",
         aid: result.applicationId ?? "",
       });
+      if (result.mnReason) params.set("reason", result.mnReason);
       router.push(`/apply/thank-you?${params.toString()}`);
       return;
     } catch {
@@ -164,6 +167,23 @@ export default function ApplyPage() {
               className={inputClass}
               placeholder="https://..."
             />
+          </Field>
+
+          <Field label="Country" name="country" errors={fieldErrors.country}>
+            <select id="country" name="country" required defaultValue="" className={inputClass}>
+              <option value="" disabled>
+                Select your country
+              </option>
+              {COUNTRY_OPTIONS.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1.5 font-body text-xs text-off-white/45">
+              Creators in the United States or Canada (with no agency) may join the Forge Creator
+              Network. Everyone else is placed in the TriForge Media Network.
+            </span>
           </Field>
 
           <Field label="What are your goals right now?" name="goals" errors={fieldErrors.goals}>

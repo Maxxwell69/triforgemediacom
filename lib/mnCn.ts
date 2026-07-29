@@ -39,13 +39,12 @@ async function ensureMnGroupAndTag() {
 }
 
 /**
- * Adds or removes a user's MN Group membership + Tag based on their answer
- * to "do you have an agency representing you?" on the application form.
- * Called at application submission time (before any admin review) so the
- * queue and any automation downstream can already see the routing.
+ * Adds or removes a user's MN Group membership + Tag when they land on the
+ * Media Network pathway (has an agency, or outside US/Canada). Called at
+ * application submission so routing is visible immediately.
  */
-export async function syncMnMembership(userId: string, hasAgency: boolean) {
-  if (hasAgency) {
+export async function syncMnMembership(userId: string, inMediaNetwork: boolean) {
+  if (inMediaNetwork) {
     const { groupId, tagId } = await ensureMnGroupAndTag();
     await Promise.all([
       prisma.groupMember.upsert({

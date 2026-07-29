@@ -188,6 +188,9 @@ model Profile {
   bio                  String?
   socialLinks          Json? // { tiktok: "...", twitch: "..." }
   pinnedTiktokVideoUrl String? // a specific video to feature/embed on their profile
+  // Private contact — visible to the member and admins only, never on /members
+  phone                String?
+  country              String? // ISO-ish code from apply form (e.g. "US", "CA")
   streakCount          Int       @default(0)
   lastActiveAt         DateTime?
   createdAt            DateTime  @default(now())

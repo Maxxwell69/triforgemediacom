@@ -20,6 +20,8 @@ export async function updateProfile(
     platform: formData.get("platform"),
     goals: formData.getAll("goals"),
     bio: formData.get("bio"),
+    phone: formData.get("phone"),
+    country: formData.get("country"),
     tiktokUrl: formData.get("tiktokUrl"),
     twitchUrl: formData.get("twitchUrl"),
     youtubeUrl: formData.get("youtubeUrl"),
@@ -30,8 +32,17 @@ export async function updateProfile(
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  const { platform, goals, bio, tiktokUrl, twitchUrl, youtubeUrl, pinnedTiktokVideoUrl } =
-    parsed.data;
+  const {
+    platform,
+    goals,
+    bio,
+    phone,
+    country,
+    tiktokUrl,
+    twitchUrl,
+    youtubeUrl,
+    pinnedTiktokVideoUrl,
+  } = parsed.data;
 
   const goalsJson: Record<string, boolean> = {};
   for (const key of goals) goalsJson[key] = true;
@@ -47,6 +58,8 @@ export async function updateProfile(
       platform,
       goals: goalsJson,
       bio: bio || null,
+      phone: phone || null,
+      country: country || null,
       socialLinks,
       pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
     },
@@ -55,6 +68,8 @@ export async function updateProfile(
       platform,
       goals: goalsJson,
       bio: bio || null,
+      phone: phone || null,
+      country: country || null,
       socialLinks,
       pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
     },

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { COUNTRY_CODES } from "@/lib/applyTrack";
 
 export const platformOptions = [
   "TIKTOK",
@@ -30,6 +31,9 @@ export const applySchema = z.object({
     .max(300)
     .optional()
     .or(z.literal("")),
+  country: z.enum(COUNTRY_CODES, {
+    error: "Select your country",
+  }),
   goals: z
     .string()
     .trim()

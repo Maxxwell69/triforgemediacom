@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { platformOptions } from "@/lib/validations/apply";
 import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
 import { GOAL_OPTIONS } from "@/lib/goals";
+import { COUNTRY_OPTIONS } from "@/lib/applyTrack";
 
 export type ProfileFormState = { error?: string; success?: boolean } | null;
 
@@ -11,6 +12,8 @@ export type ProfileFormDefaults = {
   platform?: string;
   goals?: string[];
   bio?: string;
+  phone?: string;
+  country?: string;
   tiktokUrl?: string;
   twitchUrl?: string;
   youtubeUrl?: string;
@@ -111,6 +114,42 @@ export default function ProfileForm({
           placeholder="A short intro for your community profile"
         />
       </label>
+
+      <div className="rounded-xl border border-off-white/10 bg-off-white/[0.03] p-4">
+        <p className="mb-3 font-body text-xs text-off-white/45">
+          Phone and country are private &mdash; only you and TriForge admins can see them. They are
+          not shown on your public member profile.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label htmlFor="phone" className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium text-off-white/80">Phone</span>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              defaultValue={defaultValues?.phone ?? ""}
+              className={inputClass}
+              placeholder="(555) 555-5555"
+            />
+          </label>
+          <label htmlFor="country" className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium text-off-white/80">Country</span>
+            <select
+              id="country"
+              name="country"
+              defaultValue={defaultValues?.country ?? ""}
+              className={inputClass}
+            >
+              <option value="">Select your country</option>
+              {COUNTRY_OPTIONS.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label htmlFor="tiktokUrl" className="flex flex-col gap-1.5">

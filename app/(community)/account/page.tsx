@@ -4,6 +4,7 @@ import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
 import { formatCount } from "@/lib/formatCount";
+import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
@@ -16,6 +17,7 @@ export default async function AccountPage({
   searchParams?: { tiktok?: string; tiktok_message?: string };
 }) {
   const { user, profile } = await requireProfile();
+  const contact = await hydrateProfileContactFromApplication(user.id);
   const [points, userBadges, certificates, tiktokConnection, selfAssignableTags, myTags] =
     await Promise.all([
       getUserPointsTotal(user.id),
@@ -125,6 +127,8 @@ export default async function AccountPage({
               platform: profile.platform,
               goals: activeGoalKeys(profile.goals),
               bio: profile.bio ?? "",
+              phone: contact.phone ?? "",
+              country: contact.country ?? "",
               tiktokUrl: socialLinks.tiktok ?? "",
               twitchUrl: socialLinks.twitch ?? "",
               youtubeUrl: socialLinks.youtube ?? "",
