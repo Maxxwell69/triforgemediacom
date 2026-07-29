@@ -1,0 +1,10 @@
+# Production deploy config for hub.triforgemedia.com
+# Migrations run before the new container starts accepting traffic, so the
+# healthcheck isn't racing `prisma migrate deploy` on boot.
+
+[deploy]
+preDeployCommand = ["npx prisma migrate deploy"]
+startCommand = "npx next start"
+healthcheckPath = "/login"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"

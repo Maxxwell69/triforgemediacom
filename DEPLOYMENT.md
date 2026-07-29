@@ -21,8 +21,11 @@ Never push straight to `master` for anything beyond a trivial, already-verified 
 
 ## Migrations — how production stays safe
 
-- `npm start` (what Railway actually runs) is `prisma migrate deploy && next start`.
-  Every deploy — staging or production — automatically applies whatever migrations are
+- Railway runs migrations via `preDeployCommand` (`npx prisma migrate deploy`) from
+  `railway.toml`, then starts the app with `npx next start`. That way the healthcheck
+  isn't waiting on migrations before the HTTP port is open (which was causing failed
+  deploys / yellow alert badges while the old release stayed live).
+- Every deploy — staging or production — automatically applies whatever migrations are
   committed and pending, in order, non-interactively. It never resets or drops data, and
   it's a no-op if there's nothing new to apply.
 - `npm run db:migrate` (`prisma migrate dev`) is for **local development only** — it's
