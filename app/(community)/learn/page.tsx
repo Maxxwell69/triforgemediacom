@@ -162,7 +162,7 @@ export default async function LearnPage({
           LEARNING <span className="text-gradient">CENTER</span>
         </h1>
         <p className="mt-2 font-body text-off-white/60">
-          Courses to help you grow as a creator. Complete lessons and quizzes to earn XP and
+          Courses to help you grow as a creator. Complete lessons and the course quiz to earn XP and
           badges.
         </p>
 

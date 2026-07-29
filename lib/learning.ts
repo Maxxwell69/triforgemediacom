@@ -86,15 +86,9 @@ export type CourseCompletionAward = {
 } | null;
 
 /**
- * Call whenever a LessonProgress.completedAt gets set. If every lesson in
- * the course is now complete for this user, marks the Enrollment complete,
- * awards course XP, awards the course's badge (if any), and auto-adds the
- * user to the course's completion group — all within the same transaction.
- *
- * Returns a summary of what was newly awarded so the caller can send emails
- * *after* the transaction commits (never send email from inside a DB
- * transaction — a slow/failed network call shouldn't hold the transaction
- * open or roll back an otherwise-successful award).
+ * Call whenever a LessonProgress.completedAt gets set, or a course quiz is
+ * passed. If every lesson is complete AND the course quiz is passed (when one
+ * exists), marks the Enrollment complete and awards XP/badge/certificate.
  */
 export async function checkCourseCompletion(
   tx: TxClient,
@@ -109,6 +103,15 @@ export async function checkCourseCompletion(
     where: { userId, lessonId: { in: lessonIds }, completedAt: { not: null } },
   });
   if (completedCount < lessons.length) return null;
+
+  const quiz = await tx.quiz.findUnique({ where: { courseId }, select: { id: true } });
+  if (quiz) {
+    const passedAttempt = await tx.quizAttempt.findFirst({
+      where: { userId, quizId: quiz.id, passed: true },
+      select: { id: true },
+    });
+    if (!passedAttempt) return null;
+  }
 
   const enrollment = await tx.enrollment.upsert({
     where: { userId_courseId: { userId, courseId } },

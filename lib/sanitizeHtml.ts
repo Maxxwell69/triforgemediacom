@@ -1,4 +1,5 @@
 import DOMPurify from "isomorphic-dompurify";
+import { fixIllegibleLessonTextColors } from "@/lib/fixLessonColors";
 
 // Allowlist for admin-authored lesson body content. Deliberately excludes
 // <script>, <iframe>, <object>, <form>, and event-handler / javascript:
@@ -26,8 +27,12 @@ const ALLOWED_ATTR = [
  * Sanitizes admin-authored lesson HTML before it's rendered to members via
  * dangerouslySetInnerHTML. Plain text without any tags passes through
  * unchanged (still safe — DOMPurify only strips disallowed markup).
+ *
+ * Also remaps near-white inline text on light backgrounds so GHL pastes
+ * don't render as white-on-white on our off-white lesson canvas.
  */
 export function sanitizeLessonHtml(raw: string | null | undefined): string {
   if (!raw) return "";
-  return DOMPurify.sanitize(raw, { ALLOWED_TAGS, ALLOWED_ATTR });
+  const clean = DOMPurify.sanitize(raw, { ALLOWED_TAGS, ALLOWED_ATTR });
+  return fixIllegibleLessonTextColors(clean);
 }

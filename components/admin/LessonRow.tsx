@@ -6,9 +6,7 @@ import { toDatetimeLocalValue } from "@/lib/validations/course";
 import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import ImageUploadField from "@/components/ImageUploadField";
-import QuizSection from "./QuizSection";
 import AssignmentSection from "./AssignmentSection";
-import type { QuestionData } from "./QuestionForm";
 
 type ModuleOption = { id: string; title: string };
 
@@ -33,7 +31,6 @@ type Lesson = {
   content: string | null;
   dripDaysAfterEnroll: number | null;
   dripUnlockAt: Date | string | null;
-  quiz: { id: string; title: string; passScore: number; questions: QuestionData[] } | null;
   assignment: { id: string; title: string; instructions: string | null; submissions: SubmissionData[] } | null;
 };
 
@@ -119,7 +116,6 @@ export default function LessonRow({
                       lesson.audioUrl ? "Audio" : null,
                       lesson.htmlEmbed ? "Embed" : null,
                       lesson.content ? "Text" : null,
-                      lesson.quiz ? "Quiz" : null,
                       lesson.assignment ? "Assignment" : null,
                     ]
                       .filter(Boolean)
@@ -280,7 +276,6 @@ export default function LessonRow({
         </form>
       )}
 
-      <QuizSection courseId={courseId} lessonId={lesson.id} quiz={lesson.quiz} />
       <AssignmentSection courseId={courseId} lessonId={lesson.id} assignment={lesson.assignment} />
     </div>
   );

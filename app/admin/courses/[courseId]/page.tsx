@@ -8,6 +8,7 @@ import LessonRow from "@/components/admin/LessonRow";
 import ModuleRow from "@/components/admin/ModuleRow";
 import BadgeManager from "@/components/admin/BadgeManager";
 import ImageUploadField from "@/components/ImageUploadField";
+import QuizSection from "@/components/admin/QuizSection";
 import type { QuestionData } from "@/components/admin/QuestionForm";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,6 @@ export default async function AdminCourseDetailPage({
         lessons: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           include: {
-            quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
             assignment: {
               include: {
                 submissions: {
@@ -42,6 +42,7 @@ export default async function AdminCourseDetailPage({
             },
           },
         },
+        quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
         badges: true,
         groups: { select: { id: true } },
         enrollments: {
@@ -108,20 +109,6 @@ export default async function AdminCourseDetailPage({
           content: lesson.content,
           dripDaysAfterEnroll: lesson.dripDaysAfterEnroll,
           dripUnlockAt: lesson.dripUnlockAt,
-          quiz: lesson.quiz
-            ? {
-                id: lesson.quiz.id,
-                title: lesson.quiz.title,
-                passScore: lesson.quiz.passScore,
-                questions: lesson.quiz.questions.map((q) => ({
-                  id: q.id,
-                  type: q.type,
-                  text: q.text,
-                  options: q.options as string[],
-                  correctAnswer: q.correctAnswer as string | string[],
-                })) satisfies QuestionData[],
-              }
-            : null,
           assignment: lesson.assignment
             ? {
                 id: lesson.assignment.id,
@@ -142,6 +129,21 @@ export default async function AdminCourseDetailPage({
       />
     );
   }
+
+  const courseQuiz = detail.quiz
+    ? {
+        id: detail.quiz.id,
+        title: detail.quiz.title,
+        passScore: detail.quiz.passScore,
+        questions: detail.quiz.questions.map((q) => ({
+          id: q.id,
+          type: q.type,
+          text: q.text,
+          options: q.options as string[],
+          correctAnswer: q.correctAnswer as string | string[],
+        })) satisfies QuestionData[],
+      }
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -246,10 +248,21 @@ export default async function AdminCourseDetailPage({
       </section>
 
       <section className="mt-10">
+        <h2 className="font-display text-2xl tracking-wide text-off-white/80">Course quiz</h2>
+        <p className="mt-1 font-body text-sm text-off-white/50">
+          One optional quiz for the whole course. Members take it after finishing the lessons to
+          complete the course.
+        </p>
+        <div className="glass mt-4 rounded-2xl p-6">
+          <QuizSection courseId={detail.id} quiz={courseQuiz} />
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Lessons</h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
           Ordered content the member works through. Each lesson can have video, audio, an HTML
-          embed, text, drip scheduling, and an optional quiz.
+          embed, text, drip scheduling, and an optional assignment.
         </p>
 
         <div className="mt-4 flex flex-col gap-6">

@@ -17,11 +17,9 @@ const fieldClass =
 
 export default function QuizSection({
   courseId,
-  lessonId,
   quiz,
 }: {
   courseId: string;
-  lessonId: string;
   quiz: QuizData | null;
 }) {
   const [editingQuiz, setEditingQuiz] = useState(false);
@@ -32,11 +30,10 @@ export default function QuizSection({
     return (
       <form
         action={createQuiz}
-        className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-off-white/15 p-3"
+        className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-off-white/15 p-4"
       >
-        <input type="hidden" name="lessonId" value={lessonId} />
         <input type="hidden" name="courseId" value={courseId} />
-        <input name="title" required placeholder="Quiz title" className={`${fieldClass} flex-1`} />
+        <input name="title" required placeholder="Course quiz title" className={`${fieldClass} flex-1`} />
         <input
           type="number"
           name="passScore"
@@ -44,19 +41,20 @@ export default function QuizSection({
           min={0}
           max={100}
           className={`${fieldClass} w-24`}
+          title="Pass score %"
         />
         <button
           type="submit"
           className="rounded-lg border border-cyan/40 px-3 py-2 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
         >
-          Add quiz
+          Add course quiz
         </button>
       </form>
     );
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-off-white/10 p-3">
+    <div className="rounded-lg border border-off-white/10 p-4">
       {editingQuiz ? (
         <form
           action={async (formData) => {
@@ -101,7 +99,7 @@ export default function QuizSection({
             <p className="font-body text-sm font-medium text-off-white">📝 {quiz.title}</p>
             <p className="mt-0.5 font-body text-xs text-off-white/40">
               Pass score: {quiz.passScore}% {" \u00b7 "} {quiz.questions.length} question
-              {quiz.questions.length === 1 ? "" : "s"}
+              {quiz.questions.length === 1 ? "" : "s"} {" \u00b7 "} one quiz for the whole course
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">

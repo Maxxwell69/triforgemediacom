@@ -11,7 +11,6 @@ import HtmlEmbed from "@/components/HtmlEmbed";
 import { sanitizeLessonHtml } from "@/lib/sanitizeHtml";
 import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
-import QuizPlayer from "@/components/QuizPlayer";
 import AssignmentSubmissionForm from "@/components/AssignmentSubmissionForm";
 import DraftPreviewBanner from "@/components/learn/DraftPreviewBanner";
 
@@ -36,7 +35,6 @@ export default async function LessonPage({
           groups: { select: { id: true } },
         },
       },
-      quiz: { include: { questions: { orderBy: [{ order: "asc" }] } } },
       assignment: true,
     },
   });
@@ -104,14 +102,13 @@ export default async function LessonPage({
         <h1 className="mt-1 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
 
         {lesson.thumbnailUrl && (
-          <div className="relative mt-6 h-44 w-full overflow-hidden rounded-2xl bg-off-white/5 sm:h-56">
+          <div className="relative mt-6 w-full overflow-hidden rounded-2xl bg-charcoal/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={lesson.thumbnailUrl}
               alt=""
-              className="h-full w-full object-cover"
+              className="block h-auto w-full object-contain"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/40 via-transparent to-transparent" />
           </div>
         )}
 
@@ -143,23 +140,7 @@ export default async function LessonPage({
         )}
 
         <div className="mt-8">
-          {lesson.quiz ? (
-            <QuizPlayer
-              lessonId={lesson.id}
-              completed={isComplete}
-              quiz={{
-                id: lesson.quiz.id,
-                title: lesson.quiz.title,
-                passScore: lesson.quiz.passScore,
-                questions: lesson.quiz.questions.map((q) => ({
-                  id: q.id,
-                  type: q.type,
-                  text: q.text,
-                  options: q.options as string[],
-                })),
-              }}
-            />
-          ) : lesson.assignment ? (
+          {lesson.assignment ? (
             <AssignmentSubmissionForm
               lessonId={lesson.id}
               title={lesson.assignment.title}

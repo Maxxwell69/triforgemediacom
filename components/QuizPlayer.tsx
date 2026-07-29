@@ -19,11 +19,11 @@ type Quiz = {
 };
 
 export default function QuizPlayer({
-  lessonId,
+  courseId,
   quiz,
   completed,
 }: {
-  lessonId: string;
+  courseId: string;
   quiz: Quiz;
   completed: boolean;
 }) {
@@ -57,7 +57,7 @@ export default function QuizPlayer({
     setError(null);
     startTransition(async () => {
       try {
-        const res = await submitQuizAttempt(lessonId, answers);
+        const res = await submitQuizAttempt(courseId, answers);
         setResult(res);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to submit quiz");
@@ -69,7 +69,7 @@ export default function QuizPlayer({
     return (
       <div className="glass flex flex-col gap-3 rounded-2xl p-6">
         <p className="font-body text-sm font-semibold text-cyan">
-          ✓ Quiz passed &mdash; lesson complete
+          ✓ Quiz passed &mdash; course complete
         </p>
         <button
           type="button"
@@ -90,7 +90,7 @@ export default function QuizPlayer({
         </p>
         <p className="font-body text-sm text-off-white/70">
           {result.passed
-            ? "You passed! This lesson is now complete."
+            ? "You passed! The course is now complete."
             : `You need ${result.passScore}% to pass. Give it another shot.`}
         </p>
         <button

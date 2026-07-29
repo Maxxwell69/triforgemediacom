@@ -377,12 +377,14 @@ function parseQuizForm(formData: FormData) {
 
 export async function createQuiz(formData: FormData) {
   await requireAdmin();
-  const lessonId = String(formData.get("lessonId"));
   const courseId = String(formData.get("courseId"));
   const data = parseQuizForm(formData);
 
+  const existing = await prisma.quiz.findUnique({ where: { courseId } });
+  if (existing) throw new Error("This course already has a quiz.");
+
   await prisma.quiz.create({
-    data: { lessonId, title: data.title, passScore: data.passScore },
+    data: { courseId, title: data.title, passScore: data.passScore },
   });
 
   revalidateCourse(courseId);

@@ -38,12 +38,13 @@ export default async function CourseDetailPage({
     include: {
       groups: { select: { id: true } },
       badges: { select: { id: true, name: true, icon: true } },
+      quiz: { select: { id: true, title: true, passScore: true } },
       modules: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       },
       lessons: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        include: { quiz: { select: { id: true } }, assignment: { select: { id: true } } },
+        include: { assignment: { select: { id: true } } },
       },
     },
   });
@@ -74,6 +75,8 @@ export default async function CourseDetailPage({
   const progressPct =
     totalLessons === 0 ? 0 : Math.round((completedCount / totalLessons) * 100);
   const isCourseComplete = !!enrollment.completedAt;
+  const allLessonsDone = totalLessons === 0 || completedCount >= totalLessons;
+  const hasCourseQuiz = Boolean(published.quiz);
 
   const orderedSequence = getOrderedLessonSequence(published.modules, published.lessons);
   const nextUpLesson = orderedSequence.find((l) => {
@@ -169,10 +172,8 @@ export default async function CourseDetailPage({
           )}
           <div className="min-w-0">
             <p className="font-body text-sm font-medium text-off-white">{lesson.title}</p>
-            {(lesson.quiz || lesson.assignment) && (
-              <p className="mt-0.5 font-body text-xs text-off-white/40">
-                {lesson.quiz ? "Includes quiz" : "Includes assignment"}
-              </p>
+            {lesson.assignment && (
+              <p className="mt-0.5 font-body text-xs text-off-white/40">Includes assignment</p>
             )}
           </div>
         </div>
@@ -194,18 +195,19 @@ export default async function CourseDetailPage({
           &larr; Learning Center
         </Link>
 
-        <div className="relative mt-4 flex h-40 w-full items-center justify-center overflow-hidden rounded-2xl bg-off-white/5">
+        <div className="relative mt-4 w-full overflow-hidden rounded-2xl bg-charcoal/40">
           {published.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={published.thumbnailUrl}
               alt={published.title}
-              className="h-full w-full object-cover"
+              className="block h-auto w-full object-contain"
             />
           ) : (
-            <span className="text-6xl">🎓</span>
+            <div className="flex h-40 w-full items-center justify-center bg-off-white/5">
+              <span className="text-6xl">🎓</span>
+            </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/10 to-transparent" />
           {isCourseComplete && (
             <span className="absolute right-3 top-3 rounded-full border border-cyan/40 bg-charcoal/80 px-3 py-1 font-body text-xs font-semibold text-cyan">
               ✓ Completed
@@ -240,6 +242,18 @@ export default async function CourseDetailPage({
               className="inline-flex rounded-lg bg-orange px-6 py-2.5 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
             >
               {ctaLabel}
+            </Link>
+          )}
+          {hasCourseQuiz && (
+            <Link
+              href={`/learn/${published.id}/quiz`}
+              className={`inline-flex rounded-lg border px-6 py-2.5 font-body font-semibold transition ${
+                allLessonsDone || isCourseComplete
+                  ? "border-cyan/40 text-cyan hover:bg-cyan/10"
+                  : "border-off-white/15 text-off-white/40"
+              }`}
+            >
+              {isCourseComplete ? "Retake course quiz" : "Course quiz"}
             </Link>
           )}
           {isCourseComplete && published.certificateEnabled && (
@@ -304,6 +318,31 @@ export default async function CourseDetailPage({
               </div>
             );
           })}
+
+          {hasCourseQuiz && (
+            <div className="glass flex flex-col gap-3 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-display text-xl tracking-wide text-off-white/80">
+                  {published.quiz!.title}
+                </p>
+                <p className="mt-1 font-body text-sm text-off-white/50">
+                  {allLessonsDone || isCourseComplete
+                    ? `Pass with ${published.quiz!.passScore}% to finish the course.`
+                    : "Unlocks after you complete every lesson."}
+                </p>
+              </div>
+              <Link
+                href={`/learn/${published.id}/quiz`}
+                className={`inline-flex shrink-0 rounded-lg px-5 py-2.5 font-body text-sm font-semibold transition ${
+                  allLessonsDone || isCourseComplete
+                    ? "bg-orange text-off-white shadow-glow hover:brightness-110"
+                    : "border border-off-white/15 text-off-white/40"
+                }`}
+              >
+                {isCourseComplete ? "Retake quiz" : "Take course quiz"}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </main>
