@@ -12,7 +12,8 @@ export default function CreateWebinarForm() {
       className="mt-4 flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
+        const form = e.currentTarget;
+        const formData = new FormData(form);
         setError(null);
         startTransition(async () => {
           const result = await createWebinarAction(formData);
@@ -20,7 +21,7 @@ export default function CreateWebinarForm() {
             setError(result.error);
             return;
           }
-          e.currentTarget.reset();
+          form.reset();
         });
       }}
     >
