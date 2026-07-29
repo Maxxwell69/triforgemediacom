@@ -79,6 +79,26 @@ export async function updateProfile(
   return { success: true };
 }
 
+export type ShowRealNameState = { error?: string; success?: boolean } | null;
+
+export async function updateShowRealName(
+  _prevState: ShowRealNameState,
+  formData: FormData
+): Promise<ShowRealNameState> {
+  const user = await requireUser();
+  const showRealName = formData.get("showRealName") === "on";
+
+  await prisma.profile.update({
+    where: { userId: user.id },
+    data: { showRealName },
+  });
+
+  revalidatePath("/account");
+  revalidatePath("/members");
+  revalidatePath(`/members/${user.id}`);
+  return { success: true };
+}
+
 export type ChangePasswordState = { error?: string; success?: boolean } | null;
 
 export async function changePassword(

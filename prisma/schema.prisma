@@ -191,6 +191,8 @@ model Profile {
   // Private contact — visible to the member and admins only, never on /members
   phone                String?
   country              String? // ISO-ish code from apply form (e.g. "US", "CA")
+  // Public display: false (default) = TikTok username; true = User.name
+  showRealName         Boolean  @default(false)
   streakCount          Int       @default(0)
   lastActiveAt         DateTime?
   createdAt            DateTime  @default(now())

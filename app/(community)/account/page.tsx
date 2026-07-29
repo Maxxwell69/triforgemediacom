@@ -5,10 +5,12 @@ import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
 import { formatCount } from "@/lib/formatCount";
 import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
+import { getTikTokUsername } from "@/lib/memberDisplay";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
 import TagPicker from "@/components/TagPicker";
+import DisplayNamePreference from "@/components/DisplayNamePreference";
 import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
 
 export default async function AccountPage({
@@ -118,6 +120,23 @@ export default async function AccountPage({
               ))}
             </div>
           )}
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          Display name
+        </h2>
+        <div className="mt-4">
+          <DisplayNamePreference
+            showRealName={profile.showRealName}
+            realName={user.name ?? null}
+            tiktokUsername={
+              getTikTokUsername({
+                name: user.name ?? null,
+                profile: { socialLinks: profile.socialLinks },
+                tiktokConnection,
+              }) ?? null
+            }
+          />
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">Profile</h2>

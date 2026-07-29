@@ -29,7 +29,7 @@ export default async function DmConversationPage({
                 id: true,
                 name: true,
                 email: true,
-                profile: { select: { platform: true } },
+                profile: { select: { platform: true, showRealName: true, socialLinks: true } },
                 tiktokConnection: { select: { displayName: true, avatarUrl: true } },
               },
             },
