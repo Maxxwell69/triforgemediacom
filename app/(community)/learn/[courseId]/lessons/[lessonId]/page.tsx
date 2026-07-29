@@ -99,17 +99,22 @@ export default async function LessonPage({
             Lesson {currentIndex + 1} of {sequence.length}
           </p>
         )}
-        <h1 className="mt-1 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
 
-        {lesson.thumbnailUrl && (
-          <div className="relative mt-6 w-full overflow-hidden rounded-2xl bg-charcoal/40">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lesson.thumbnailUrl}
-              alt=""
-              className="block h-auto w-full object-contain"
-            />
-          </div>
+        {lesson.thumbnailUrl ? (
+          <>
+            {/* Thumbnail is the lesson head — avoid a second giant title over the art */}
+            <div className="relative mt-4 w-full overflow-hidden rounded-2xl bg-charcoal">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lesson.thumbnailUrl}
+                alt={lesson.title}
+                className="block h-auto max-h-[min(70vh,520px)] w-full object-contain object-center"
+              />
+            </div>
+            <h1 className="sr-only">{lesson.title}</h1>
+          </>
+        ) : (
+          <h1 className="mt-1 font-display text-4xl tracking-wide text-off-white">{lesson.title}</h1>
         )}
 
         {lesson.videoUrl && (

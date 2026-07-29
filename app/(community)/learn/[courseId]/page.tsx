@@ -195,13 +195,13 @@ export default async function CourseDetailPage({
           &larr; Learning Center
         </Link>
 
-        <div className="relative mt-4 w-full overflow-hidden rounded-2xl bg-charcoal/40">
+        <div className="relative mt-4 w-full overflow-hidden rounded-2xl bg-charcoal">
           {published.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={published.thumbnailUrl}
               alt={published.title}
-              className="block h-auto w-full object-contain"
+              className="block h-auto max-h-[min(70vh,520px)] w-full object-contain object-center"
             />
           ) : (
             <div className="flex h-40 w-full items-center justify-center bg-off-white/5">
@@ -215,7 +215,13 @@ export default async function CourseDetailPage({
           )}
         </div>
 
-        <h1 className="mt-4 font-display text-5xl tracking-wide text-gradient">{published.title}</h1>
+        <h1
+          className={`mt-4 font-display tracking-wide text-gradient ${
+            published.thumbnailUrl ? "text-3xl" : "text-5xl"
+          }`}
+        >
+          {published.title}
+        </h1>
         {published.description && (
           <p className="mt-2 font-body text-off-white/60">{published.description}</p>
         )}
