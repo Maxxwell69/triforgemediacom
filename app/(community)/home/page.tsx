@@ -101,6 +101,14 @@ export default async function HomePage() {
           />
 
           <DashboardCard
+            href="/webinars"
+            icon="🎥"
+            title="Webinars"
+            description="Join live sessions with the TriForge team."
+            accent="orange"
+          />
+
+          <DashboardCard
             href="/rewards"
             icon="🎁"
             title="Rewards"

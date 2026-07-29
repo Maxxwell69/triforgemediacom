@@ -108,6 +108,10 @@ model User {
   directMessageReactions     DirectMessageReaction[]
   dmConversationsCreated     DirectConversation[]   @relation("DmCreatedBy")
   dmAllowlistEntry           DmAllowedUser?
+  webinarsHosted             Webinar[]              @relation("WebinarHost")
+  webinarAttendances         WebinarAttendance[]
+  webinarChatMessages        WebinarChatMessage[]
+  webinarStageRequests       WebinarStageRequest[]
 }
 
 // ---------- Application / invite flow ----------
@@ -827,4 +831,89 @@ model Certificate {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+}
+
+// ---------- Member webinars (LiveKit Cloud) ----------
+
+enum WebinarStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum WebinarParticipantRole {
+  HOST
+  SPEAKER
+  AUDIENCE
+}
+
+enum StageRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+model Webinar {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  scheduledAt     DateTime
+  status          WebinarStatus @default(DRAFT)
+  hostUserId      String
+  livekitRoomName String        @unique
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  host          User                  @relation("WebinarHost", fields: [hostUserId], references: [id])
+  attendances   WebinarAttendance[]
+  chatMessages  WebinarChatMessage[]
+  stageRequests WebinarStageRequest[]
+
+  @@index([status, scheduledAt])
+}
+
+model WebinarAttendance {
+  id        String                 @id @default(cuid())
+  webinarId String
+  userId    String
+  role      WebinarParticipantRole @default(AUDIENCE)
+  joinedAt  DateTime               @default(now())
+  leftAt    DateTime?
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([webinarId, userId])
+  @@index([webinarId])
+}
+
+model WebinarChatMessage {
+  id        String   @id @default(cuid())
+  webinarId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([webinarId, createdAt])
+}
+
+model WebinarStageRequest {
+  id         String             @id @default(cuid())
+  webinarId  String
+  userId     String
+  status     StageRequestStatus @default(PENDING)
+  createdAt  DateTime           @default(now())
+  resolvedAt DateTime?
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([webinarId, userId])
+  @@index([webinarId, status])
 }
