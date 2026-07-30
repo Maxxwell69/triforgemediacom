@@ -225,7 +225,7 @@ export default function WebinarStage({ layoutMode }: { layoutMode: StageLayoutMo
 
   if (cameras.length === 0 && screenShares.length === 0) {
     return (
-      <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-off-white/10 bg-charcoal/60">
+      <div className="flex h-full min-h-[240px] items-center justify-center rounded-xl border border-off-white/10 bg-charcoal/60">
         <p className="font-body text-sm text-off-white/50">Waiting for the host to go on camera…</p>
       </div>
     );
@@ -233,9 +233,9 @@ export default function WebinarStage({ layoutMode }: { layoutMode: StageLayoutMo
 
   return (
     <LayoutContextProvider value={layoutContext}>
-      <div className="h-full min-h-[50vh] overflow-hidden rounded-xl border border-off-white/10 bg-black [&_.lk-participant-tile]:rounded-lg [&_.lk-participant-tile]:border [&_.lk-participant-tile]:border-off-white/10">
+      <div className="h-full min-h-[240px] overflow-hidden rounded-xl border border-off-white/10 bg-black [&_.lk-participant-tile]:rounded-lg [&_.lk-participant-tile]:border [&_.lk-participant-tile]:border-off-white/10">
         {showFocus && focusTrack ? (
-          <div className="lk-focus-layout-wrapper h-full min-h-[50vh]">
+          <div className="lk-focus-layout-wrapper h-full min-h-[240px]">
             <FocusLayoutContainer className="h-full">
               <CarouselLayout tracks={carouselTracks}>
                 <ParticipantTile />
@@ -244,7 +244,7 @@ export default function WebinarStage({ layoutMode }: { layoutMode: StageLayoutMo
             </FocusLayoutContainer>
           </div>
         ) : (
-          <div className="lk-grid-layout-wrapper h-full min-h-[50vh]">
+          <div className="lk-grid-layout-wrapper h-full min-h-[240px]">
             <GridLayout tracks={gridTracks.length > 0 ? gridTracks : stageTracks}>
               <ParticipantTile />
             </GridLayout>

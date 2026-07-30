@@ -204,8 +204,8 @@ function RoomChrome({
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <Link
@@ -273,7 +273,7 @@ function RoomChrome({
           </div>
         </div>
 
-        <div className="min-h-[50vh] flex-1">
+        <div className="min-h-[240px] flex-1">
           <WebinarStage layoutMode={layoutMode} />
         </div>
 
@@ -289,7 +289,7 @@ function RoomChrome({
         />
       </div>
 
-      <div className="h-72 shrink-0 lg:h-auto lg:w-80 xl:w-96">
+      <div className="h-72 shrink-0 overflow-hidden lg:h-full lg:w-80 xl:w-96">
         <WebinarSidePanel webinarId={webinarId} canSendChat />
       </div>
     </div>
@@ -418,7 +418,7 @@ export default function WebinarRoom({
       // with adaptiveStream when the focus tile had no laid-out size yet).
       options={{ adaptiveStream: false, dynacast: true }}
       data-lk-theme="default"
-      className="flex min-h-0 flex-1 flex-col bg-charcoal"
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-charcoal"
       style={{ height: "100%" }}
     >
       <RoomAudioRenderer />

@@ -83,7 +83,7 @@ export default async function WebinarRoomPage({
   const joinedAsHost = role === "HOST";
 
   return (
-    <main className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col md:min-h-screen">
+    <main className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-1 flex-col overflow-hidden md:h-dvh">
       <WebinarRoom
         webinarId={webinar.id}
         title={webinar.title}

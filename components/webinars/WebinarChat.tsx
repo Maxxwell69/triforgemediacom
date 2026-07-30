@@ -121,7 +121,7 @@ export default function WebinarChat({
         <div ref={bottomRef} />
       </div>
       {canSend && (
-        <form onSubmit={send} className="border-t border-off-white/10 p-3">
+        <form onSubmit={send} className="shrink-0 border-t border-off-white/10 p-3">
           {error && <p className="mb-2 font-body text-xs text-orange">{error}</p>}
           <div className="flex gap-2">
             <input
