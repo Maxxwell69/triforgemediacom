@@ -80,7 +80,6 @@ export default async function WebinarRoomPage({
     user.role,
     joinMode
   );
-  const joinedAsHost = role === "HOST";
 
   return (
     <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -89,7 +88,6 @@ export default async function WebinarRoomPage({
         title={webinar.title}
         status={webinar.status}
         initialRole={role}
-        isHost={joinedAsHost}
         joinMode={joinMode}
         userId={user.id}
         userName={displayNameForUser(user)}

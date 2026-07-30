@@ -203,7 +203,6 @@ function RoomChrome({
   webinarId,
   title,
   status,
-  isHost,
   role,
   onRoleChange,
   onStart,
@@ -214,7 +213,6 @@ function RoomChrome({
   webinarId: string;
   title: string;
   status: string;
-  isHost: boolean;
   role: WebinarParticipantRole;
   onRoleChange: (role: WebinarParticipantRole) => void;
   onStart: () => void;
@@ -338,7 +336,6 @@ export default function WebinarRoom({
   title,
   status: initialStatus,
   initialRole,
-  isHost,
   joinMode,
   userId,
   userName,
@@ -348,7 +345,6 @@ export default function WebinarRoom({
   title: string;
   status: string;
   initialRole: WebinarParticipantRole;
-  isHost: boolean;
   joinMode?: "host" | "watch" | null;
   userId: string;
   userName: string;
@@ -469,7 +465,6 @@ export default function WebinarRoom({
         webinarId={webinarId}
         title={title}
         status={status}
-        isHost={isHost}
         role={role}
         onRoleChange={handleRoleChange}
         onStart={() => void handleStart()}
