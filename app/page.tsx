@@ -40,6 +40,13 @@ export default function Home() {
             Sign in
           </Link>
         </div>
+
+        <Link
+          href="/updates"
+          className="mt-10 font-body text-sm text-off-white/40 transition hover:text-cyan"
+        >
+          Updates &amp; version history →
+        </Link>
       </div>
     </main>
   );

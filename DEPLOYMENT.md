@@ -120,6 +120,10 @@ production). Bump the minor number for a normal batch of features/fixes
 (`1.7` → `1.8`), and consider a major bump (`1.x` → `2.0`) for a big
 milestone (e.g. finishing an MVP phase).
 
+Also add a matching entry at the top of `lib/changelog.ts` (and update
+`PLATFORM_PROGRAMS` if you shipped a new program). That powers the public
+`/updates` page linked from the admin nav and the corner version badge.
+
 ## Rollback
 
 - **App code**: revert the bad commit on `master` (or `git revert` + push) — Railway

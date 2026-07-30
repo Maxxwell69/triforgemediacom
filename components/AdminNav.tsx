@@ -20,6 +20,7 @@ const links = [
   { href: "/admin/webinars", label: "Webinars" },
   { href: "/admin/emails", label: "Email Templates" },
   { href: "/admin/moderation", label: "Moderation Log" },
+  { href: "/updates", label: "Updates" },
 ];
 
 export default function AdminNav() {
