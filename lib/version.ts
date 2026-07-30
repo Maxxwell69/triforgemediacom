@@ -3,4 +3,4 @@
  * (components/VersionBadge.tsx). Bump this with every release merged into
  * master — see the "Versioning" section in DEPLOYMENT.md for the convention.
  */
-export const APP_VERSION = "2.14";
+export const APP_VERSION = "2.15";
