@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessConversation, summarizeReactions } from "@/lib/dmAccess";
-import { getMemberDisplayName } from "@/lib/memberDisplay";
+import { chatAuthorSelect, getMemberDisplayName } from "@/lib/memberDisplay";
+import { toChatAuthor } from "@/lib/chatAuthors";
 import DmChatView from "@/components/chat/DmChatView";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function DmConversationPage({
     prisma.directMessage.findMany({
       where: { conversationId: params.conversationId },
       include: {
-        user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+        user: { select: chatAuthorSelect },
         reactions: { select: { emoji: true, userId: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -59,8 +60,9 @@ export default async function DmConversationPage({
       ? others.map((u) => getMemberDisplayName(u)).join(", ")
       : "Direct message";
 
-  const initialMessages = [...messages].reverse().map(({ reactions, ...message }) => ({
+  const initialMessages = [...messages].reverse().map(({ reactions, user: author, ...message }) => ({
     ...message,
+    user: toChatAuthor(author),
     reactions: summarizeReactions(reactions, user.id),
   }));
 

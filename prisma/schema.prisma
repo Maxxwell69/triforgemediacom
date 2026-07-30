@@ -112,6 +112,7 @@ model User {
   webinarAttendances         WebinarAttendance[]
   webinarChatMessages        WebinarChatMessage[]
   webinarStageRequests       WebinarStageRequest[]
+  channelReads               ChannelRead[]
 }
 
 // ---------- Application / invite flow ----------
@@ -197,12 +198,16 @@ model Profile {
   country              String? // ISO-ish code from apply form (e.g. "US", "CA")
   // Public display: false (default) = TikTok username; true = User.name
   showRealName         Boolean  @default(false)
+  // Optional community username (account settings). Chat always uses TikTok nickname.
+  username             String?
   streakCount          Int       @default(0)
   lastActiveAt         DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([username])
 }
 
 // ---------- Chat core ----------
@@ -215,7 +220,23 @@ model Channel {
   createdAt   DateTime @default(now())
 
   messages Message[]
+  reads    ChannelRead[]
   groups   Group[]   @relation("ChannelGroups")
+}
+
+/// Per-user read cursor for Discord-style channel unread badges.
+model ChannelRead {
+  id         String   @id @default(cuid())
+  userId     String
+  channelId  String
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@index([userId])
 }
 
 // ---------- Groups (rooms/tools access control) ----------

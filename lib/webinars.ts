@@ -1,6 +1,7 @@
 import type { UserRole, Webinar, WebinarParticipantRole, WebinarStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
+import { getChatDisplayName } from "@/lib/memberDisplay";
 
 export function webinarRoomName(webinarId: string) {
   return `webinar_${webinarId}`;
@@ -129,6 +130,19 @@ export function isWebinarChatMuted(attendance: {
   return !!attendance?.chatMutedUntil && attendance.chatMutedUntil.getTime() > Date.now();
 }
 
-export function displayNameForUser(user: { name?: string | null; email?: string | null }) {
-  return user.name?.trim() || user.email?.split("@")[0] || "Member";
+/** Chat / LiveKit display name — TikTok nickname only. */
+export function displayNameForUser(user: {
+  name?: string | null;
+  email?: string | null;
+  profile?: { socialLinks?: unknown; username?: string | null } | null;
+  tiktokConnection?: { displayName: string | null; avatarUrl?: string | null } | null;
+}) {
+  return getChatDisplayName({
+    name: user.name ?? null,
+    email: user.email,
+    profile: user.profile,
+    tiktokConnection: user.tiktokConnection
+      ? { displayName: user.tiktokConnection.displayName, avatarUrl: user.tiktokConnection.avatarUrl ?? null }
+      : null,
+  });
 }

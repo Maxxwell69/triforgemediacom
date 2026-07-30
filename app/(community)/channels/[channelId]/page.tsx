@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 import { summarizeReactions } from "@/lib/dmAccess";
+import { chatAuthorSelect } from "@/lib/memberDisplay";
+import { toChatAuthor } from "@/lib/chatAuthors";
+import { markChannelRead } from "@/lib/channelReads";
 import ChatView from "@/components/chat/ChatView";
 
 export default async function ChannelPage({
@@ -27,14 +30,18 @@ export default async function ChannelPage({
   const messages = await prisma.message.findMany({
     where: { channelId: channel.id },
     include: {
-      user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      user: { select: chatAuthorSelect },
       reactions: { select: { emoji: true, userId: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  const initialMessages = [...messages].reverse().map(({ reactions, ...message }) => ({
+
+  await markChannelRead(user.id, channel.id);
+
+  const initialMessages = [...messages].reverse().map(({ reactions, user: author, ...message }) => ({
     ...message,
+    user: toChatAuthor(author),
     reactions: summarizeReactions(reactions, user.id),
   }));
 

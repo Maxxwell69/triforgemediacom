@@ -8,29 +8,47 @@ import Logo from "@/components/Logo";
 import ChannelSidebar from "@/components/ChannelSidebar";
 import SignOutButton from "@/components/SignOutButton";
 import MobileShell from "@/components/MobileShell";
+import { getChannelUnreadCounts } from "@/lib/channelReads";
+import { getChatDisplayName } from "@/lib/memberDisplay";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount] = await Promise.all([
-    prisma.channel.findMany({
-      orderBy: { createdAt: "asc" },
-      include: { groups: { select: { id: true } } },
-    }),
-    prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
-    getUserGroupIds(user.id),
-    hasTikTaskAccess(user.id),
-    canInitiateDm(user.id, user.role),
-    isTrueAdmin(user.role)
-      ? prisma.directConversation.count()
-      : prisma.directConversation.count({
-          where: { participants: { some: { userId: user.id } } },
-        }),
-  ]);
+  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection] =
+    await Promise.all([
+      prisma.channel.findMany({
+        orderBy: { createdAt: "asc" },
+        include: { groups: { select: { id: true } } },
+      }),
+      prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
+      getUserGroupIds(user.id),
+      hasTikTaskAccess(user.id),
+      canInitiateDm(user.id, user.role),
+      isTrueAdmin(user.role)
+        ? prisma.directConversation.count()
+        : prisma.directConversation.count({
+            where: { participants: { some: { userId: user.id } } },
+          }),
+      prisma.tikTokConnection.findUnique({
+        where: { userId: user.id },
+        select: { displayName: true, avatarUrl: true },
+      }),
+    ]);
   const channels = allChannels.filter((c) => canAccessChannel(user.role, c, userGroupIds));
+  const unreadCounts = await getChannelUnreadCounts(
+    user.id,
+    channels.map((c) => c.id)
+  );
   const totalXp = xpAgg._sum.amount ?? 0;
   const isAdmin = isAdminRole(user.role);
   const showDms = canDm || dmCount > 0 || isTrueAdmin(user.role);
+  const sidebarLabel = getChatDisplayName({
+    name: user.name ?? null,
+    profile: { socialLinks: profile.socialLinks, username: profile.username },
+    tiktokConnection: tiktokConnection
+      ? { displayName: tiktokConnection.displayName, avatarUrl: tiktokConnection.avatarUrl }
+      : null,
+  });
 
   const sidebar = (
     <>
@@ -97,7 +115,13 @@ export default async function AppShell({ children }: { children: React.ReactNode
         </Link>
       )}
 
-      <ChannelSidebar channels={channels} />
+      <ChannelSidebar
+        channels={channels.map((c) => ({
+          id: c.id,
+          name: c.name,
+          unreadCount: unreadCounts[c.id] ?? 0,
+        }))}
+      />
 
       <div className="mt-auto flex flex-col gap-3 border-t border-off-white/10 pt-4">
         {isAdmin && (
@@ -115,7 +139,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         </div>
         <div className="flex items-center justify-between px-2">
           <span className="truncate font-body text-sm text-off-white/80">
-            {user.name || user.email}
+            {sidebarLabel === "Member" ? user.email : sidebarLabel}
           </span>
           <SignOutButton />
         </div>

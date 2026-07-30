@@ -4,6 +4,28 @@ import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { canAccessConversation, summarizeReactions } from "@/lib/dmAccess";
 import { isMuted } from "@/lib/moderation";
 import { postMessageSchema } from "@/lib/validations/message";
+import { chatAuthorSelect } from "@/lib/memberDisplay";
+import { toChatAuthor } from "@/lib/chatAuthors";
+
+function mapMessage(
+  message: {
+    id: string;
+    conversationId: string;
+    userId: string;
+    content: string;
+    createdAt: Date;
+    user: Parameters<typeof toChatAuthor>[0];
+    reactions: { emoji: string; userId: string }[];
+  },
+  viewerId: string
+) {
+  const { reactions, user, ...rest } = message;
+  return {
+    ...rest,
+    user: toChatAuthor(user),
+    reactions: summarizeReactions(reactions, viewerId),
+  };
+}
 
 export async function GET(
   req: NextRequest,
@@ -26,7 +48,7 @@ export async function GET(
       ...(after ? { createdAt: { gt: new Date(after) } } : {}),
     },
     include: {
-      user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      user: { select: chatAuthorSelect },
       reactions: { select: { emoji: true, userId: true } },
     },
     orderBy: { createdAt: after ? "asc" : "desc" },
@@ -34,10 +56,7 @@ export async function GET(
   });
 
   const ordered = after ? messages : [...messages].reverse();
-  const payload = ordered.map(({ reactions, ...message }) => ({
-    ...message,
-    reactions: summarizeReactions(reactions, result.user.id),
-  }));
+  const payload = ordered.map((message) => mapMessage(message, result.user.id));
 
   const viewer = await prisma.user.findUnique({
     where: { id: result.user.id },
@@ -97,7 +116,7 @@ export async function POST(
         content: parsed.data.content,
       },
       include: {
-        user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+        user: { select: chatAuthorSelect },
         reactions: { select: { emoji: true, userId: true } },
       },
     });
@@ -108,14 +127,5 @@ export async function POST(
     return created;
   });
 
-  const { reactions, ...rest } = message;
-  return NextResponse.json(
-    {
-      message: {
-        ...rest,
-        reactions: summarizeReactions(reactions, result.user.id),
-      },
-    },
-    { status: 201 }
-  );
+  return NextResponse.json({ message: mapMessage(message, result.user.id) }, { status: 201 });
 }

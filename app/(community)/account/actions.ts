@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
-import { changeEmailSchema, changePasswordSchema } from "@/lib/validations/account";
+import {
+  changeEmailSchema,
+  changePasswordSchema,
+  nameIdentitySchema,
+} from "@/lib/validations/account";
 import { refreshTikTokStats } from "@/lib/tiktokOAuth";
 import { sendEmailChangedNotice } from "@/lib/email";
 import type { ProfileFormState } from "@/components/ProfileForm";
@@ -76,6 +80,47 @@ export async function updateProfile(
   });
 
   revalidatePath("/account");
+  return { success: true };
+}
+
+export type NameIdentityState = { error?: string; success?: boolean } | null;
+
+export async function updateNameIdentity(
+  _prevState: NameIdentityState,
+  formData: FormData
+): Promise<NameIdentityState> {
+  const user = await requireUser();
+  const parsed = nameIdentitySchema.safeParse({
+    name: formData.get("name"),
+    username: formData.get("username") ?? "",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const username = parsed.data.username || null;
+  if (username) {
+    const taken = await prisma.profile.findFirst({
+      where: { username, NOT: { userId: user.id } },
+      select: { id: true },
+    });
+    if (taken) return { error: "That username is already taken" };
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { name: parsed.data.name },
+    }),
+    prisma.profile.update({
+      where: { userId: user.id },
+      data: { username },
+    }),
+  ]);
+
+  revalidatePath("/account");
+  revalidatePath("/members");
+  revalidatePath(`/members/${user.id}`);
   return { success: true };
 }
 

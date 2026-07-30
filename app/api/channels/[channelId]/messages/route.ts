@@ -6,6 +6,9 @@ import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 import { isMuted } from "@/lib/moderation";
 import { postMessageSchema } from "@/lib/validations/message";
 import { summarizeReactions } from "@/lib/dmAccess";
+import { chatAuthorSelect } from "@/lib/memberDisplay";
+import { toChatAuthor } from "@/lib/chatAuthors";
+import { markChannelRead } from "@/lib/channelReads";
 
 async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
   const [channel, userGroupIds] = await Promise.all([
@@ -18,6 +21,26 @@ async function getAccessibleChannel(channelId: string, userId: string, userRole:
   if (!channel) return null;
   if (!canAccessChannel(userRole, channel, userGroupIds)) return null;
   return channel;
+}
+
+function mapMessage(
+  message: {
+    id: string;
+    channelId: string;
+    userId: string;
+    content: string;
+    createdAt: Date;
+    user: Parameters<typeof toChatAuthor>[0];
+    reactions: { emoji: string; userId: string }[];
+  },
+  viewerId: string
+) {
+  const { reactions, user, ...rest } = message;
+  return {
+    ...rest,
+    user: toChatAuthor(user),
+    reactions: summarizeReactions(reactions, viewerId),
+  };
 }
 
 export async function GET(
@@ -44,23 +67,20 @@ export async function GET(
         ...(after ? { createdAt: { gt: new Date(after) } } : {}),
       },
       include: {
-        user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+        user: { select: chatAuthorSelect },
         reactions: { select: { emoji: true, userId: true } },
       },
-      // Polling for new messages (`after` set) reads oldest-first; the initial
-      // load reads newest-first (then gets reversed) so we grab the most
-      // recent N messages rather than the oldest N.
       orderBy: { createdAt: after ? "asc" : "desc" },
       take: after ? 100 : 50,
     }),
     prisma.user.findUnique({ where: { id: result.user.id }, select: { mutedUntil: true } }),
   ]);
 
+  // Viewing / polling the channel marks it read.
+  await markChannelRead(result.user.id, channel.id);
+
   const ordered = after ? messages : [...messages].reverse();
-  const payload = ordered.map(({ reactions, ...message }) => ({
-    ...message,
-    reactions: summarizeReactions(reactions, result.user.id),
-  }));
+  const payload = ordered.map((message) => mapMessage(message, result.user.id));
 
   return NextResponse.json({ messages: payload, mutedUntil: viewer?.mutedUntil ?? null });
 }
@@ -116,19 +136,12 @@ export async function POST(
       content: parsed.data.content,
     },
     include: {
-      user: { select: { id: true, name: true, image: true, role: true, mutedUntil: true } },
+      user: { select: chatAuthorSelect },
       reactions: { select: { emoji: true, userId: true } },
     },
   });
 
-  const { reactions, ...rest } = message;
-  return NextResponse.json(
-    {
-      message: {
-        ...rest,
-        reactions: summarizeReactions(reactions, result.user.id),
-      },
-    },
-    { status: 201 }
-  );
+  await markChannelRead(result.user.id, channel.id);
+
+  return NextResponse.json({ message: mapMessage(message, result.user.id) }, { status: 201 });
 }

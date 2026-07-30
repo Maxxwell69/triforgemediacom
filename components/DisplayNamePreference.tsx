@@ -37,8 +37,9 @@ export default function DisplayNamePreference({
       <div>
         <p className="font-body text-sm font-medium text-off-white/80">Public display name</p>
         <p className="mt-1 font-body text-xs text-off-white/45">
-          Other members see this on your profile and in the directory. TikTok username is the
-          default so your real name stays private unless you opt in.
+          Other members see this on your profile and in the directory. Chat rooms always use your
+          TikTok nickname. TikTok username is the default in the directory so your real name stays
+          private unless you opt in.
         </p>
       </div>
 

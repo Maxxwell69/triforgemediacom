@@ -93,7 +93,16 @@ export async function POST(
   );
   await upsertAttendance(webinar.id, auth.user.id, role);
 
-  const name = displayNameForUser(auth.user);
+  const identity = await prisma.user.findUnique({
+    where: { id: auth.user.id },
+    select: {
+      name: true,
+      email: true,
+      profile: { select: { socialLinks: true, username: true } },
+      tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+    },
+  });
+  const name = displayNameForUser(identity ?? auth.user);
   const token = await mintWebinarToken({
     identity: auth.user.id,
     name,

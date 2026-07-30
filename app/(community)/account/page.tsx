@@ -11,6 +11,7 @@ import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
 import TagPicker from "@/components/TagPicker";
 import DisplayNamePreference from "@/components/DisplayNamePreference";
+import NameIdentityForm from "./NameIdentityForm";
 import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
 
 export default async function AccountPage({
@@ -123,6 +124,13 @@ export default async function AccountPage({
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          Name & username
+        </h2>
+        <div className="mt-4">
+          <NameIdentityForm name={user.name ?? ""} username={profile.username ?? ""} />
+        </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
           Display name
         </h2>
         <div className="mt-4">
@@ -132,7 +140,7 @@ export default async function AccountPage({
             tiktokUsername={
               getTikTokUsername({
                 name: user.name ?? null,
-                profile: { socialLinks: profile.socialLinks },
+                profile: { socialLinks: profile.socialLinks, username: profile.username },
                 tiktokConnection,
               }) ?? null
             }

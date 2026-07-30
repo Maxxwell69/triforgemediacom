@@ -2,11 +2,12 @@ import type { Platform } from "@prisma/client";
 
 type MemberLike = {
   name: string | null;
-  email?: string;
+  email?: string | null;
   profile?: {
     platform?: Platform;
     showRealName?: boolean | null;
     socialLinks?: unknown;
+    username?: string | null;
   } | null;
   tiktokConnection?: { displayName: string | null; avatarUrl: string | null } | null;
 };
@@ -35,8 +36,27 @@ export function getMemberDisplayName(member: MemberLike): string {
   if (member.profile?.showRealName) {
     return member.name?.trim() || getTikTokUsername(member) || "Unnamed";
   }
-  return getTikTokUsername(member) || member.name?.trim() || "Unnamed";
+  return getTikTokUsername(member) || member.profile?.username?.trim() || member.name?.trim() || "Unnamed";
 }
+
+/**
+ * Name shown in channel / DM / webinar chat — TikTok nickname only.
+ * Falls back to "Member" when TikTok isn't connected (never real name).
+ */
+export function getChatDisplayName(member: MemberLike): string {
+  return getTikTokUsername(member) || "Member";
+}
+
+/** Prisma include fragment for resolving chat display names. */
+export const chatAuthorSelect = {
+  id: true,
+  name: true,
+  image: true,
+  role: true,
+  mutedUntil: true,
+  profile: { select: { socialLinks: true, username: true, showRealName: true } },
+  tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+} as const;
 
 export function getMemberAvatarUrl(member: MemberLike): string | null {
   if (member.tiktokConnection?.avatarUrl) {

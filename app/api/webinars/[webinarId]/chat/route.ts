@@ -9,8 +9,18 @@ import {
   isWebinarChatMuted,
 } from "@/lib/webinars";
 import { chatMessageSchema } from "@/lib/validations/webinar";
+import { getMemberAvatarUrl } from "@/lib/memberDisplay";
 
 export const dynamic = "force-dynamic";
+
+const webinarChatAuthorSelect = {
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+  profile: { select: { socialLinks: true, username: true } },
+  tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+} as const;
 
 export async function GET(
   req: Request,
@@ -44,7 +54,7 @@ export async function GET(
     orderBy: { createdAt: "asc" },
     take: 100,
     include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
+      user: { select: webinarChatAuthorSelect },
     },
   });
 
@@ -74,7 +84,7 @@ export async function GET(
       user: {
         id: m.user.id,
         name: displayNameForUser(m.user),
-        image: m.user.image,
+        image: getMemberAvatarUrl(m.user) || m.user.image,
       },
     })),
     removedIds,
@@ -153,7 +163,7 @@ export async function POST(
       body: parsed.data.body,
     },
     include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
+      user: { select: webinarChatAuthorSelect },
     },
   });
 
@@ -165,7 +175,7 @@ export async function POST(
       user: {
         id: message.user.id,
         name: displayNameForUser(message.user),
-        image: message.user.image,
+        image: getMemberAvatarUrl(message.user) || message.user.image,
       },
     },
   });

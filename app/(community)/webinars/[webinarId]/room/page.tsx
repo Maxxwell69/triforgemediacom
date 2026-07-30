@@ -24,6 +24,15 @@ export default async function WebinarRoomPage({
   searchParams: { as?: string };
 }) {
   const { user } = await requireProfile();
+  const identity = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      name: true,
+      email: true,
+      profile: { select: { socialLinks: true, username: true } },
+      tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+    },
+  });
 
   const webinar = await prisma.webinar.findUnique({
     where: { id: params.webinarId },
@@ -90,7 +99,7 @@ export default async function WebinarRoomPage({
         initialRole={role}
         joinMode={joinMode}
         userId={user.id}
-        userName={displayNameForUser(user)}
+        userName={displayNameForUser(identity ?? user)}
         designatedHostUserId={webinar.hostUserId}
       />
     </main>

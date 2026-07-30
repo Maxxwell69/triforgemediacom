@@ -81,6 +81,11 @@ export default function ChatView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel.id]);
 
+  // Keep Discord-style unread badge clear while this channel is open.
+  useEffect(() => {
+    void fetch(`/api/channels/${channel.id}/read`, { method: "POST" });
+  }, [channel.id]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
