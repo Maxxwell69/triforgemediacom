@@ -273,7 +273,7 @@ function RoomChrome({
           </div>
         </div>
 
-        <div className="min-h-[280px] flex-1">
+        <div className="min-h-[50vh] flex-1">
           <WebinarStage layoutMode={layoutMode} />
         </div>
 
@@ -414,6 +414,9 @@ export default function WebinarRoom({
       connect
       audio={role === "HOST" || role === "SPEAKER"}
       video={role === "HOST" || role === "SPEAKER"}
+      // Keep stage tracks subscribed for all viewers (screen share was easy to miss
+      // with adaptiveStream when the focus tile had no laid-out size yet).
+      options={{ adaptiveStream: false, dynacast: true }}
       data-lk-theme="default"
       className="flex min-h-0 flex-1 flex-col bg-charcoal"
       style={{ height: "100%" }}
