@@ -95,7 +95,7 @@ export default function WebinarChat({
         } else {
           if (data.removedIds && data.removedIds.length > 0) {
             const drop = new Set(data.removedIds);
-            for (const id of drop) knownIdsRef.current.delete(id);
+            data.removedIds.forEach((id) => knownIdsRef.current.delete(id));
             setMessages((prev) => prev.filter((m) => !drop.has(m.id)));
           }
           if (data.messages.length > 0) {
