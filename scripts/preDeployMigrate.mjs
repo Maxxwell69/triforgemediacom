@@ -1,13 +1,9 @@
 /**
- * Railway pre-deploy: unblock a known failed migration (if present), then deploy.
+ * Railway pre-deploy: apply pending Prisma migrations.
  *
  * Prod/staging briefly recorded `20260729214500_add_webinar_recordings` as failed
  * (bad timestamp order before the Webinar table). Prisma blocks all later
  * `migrate deploy` runs (P3009) until that row is marked rolled back.
- *
- * Important: only resolve when migrate status actually reports a failure.
- * Blindly resolving every deploy is noisy and can fail once the legacy folder
- * is gone from the repo — which aborts the release and leaves the old version live.
  */
 import { spawnSync } from "node:child_process";
 
@@ -25,34 +21,44 @@ function combined(result) {
   return `${result.stdout || ""}\n${result.stderr || ""}`;
 }
 
-const status = run(["prisma", "migrate", "status"], { stdio: ["ignore", "pipe", "pipe"] });
-const statusOut = combined(status);
-process.stdout.write(statusOut);
-
-const blockedByLegacy =
-  statusOut.includes(LEGACY_FAILED) &&
-  (/failed/i.test(statusOut) || /P3009/i.test(statusOut));
-
-if (blockedByLegacy) {
-  console.log(`\nAttempting to clear failed legacy migration: ${LEGACY_FAILED}`);
-  const resolve = run(
-    ["prisma", "migrate", "resolve", "--rolled-back", LEGACY_FAILED],
-    { stdio: "inherit" }
-  );
-  if (resolve.status !== 0) {
-    console.error(
-      "Could not clear legacy failed migration. In Railway → service shell run:\n" +
-        `  npx prisma migrate resolve --rolled-back ${LEGACY_FAILED}\n` +
-        "  npx prisma migrate deploy"
-    );
-    process.exit(resolve.status ?? 1);
-  }
-  console.log(`Cleared failed legacy migration: ${LEGACY_FAILED}`);
-} else {
-  console.log("No legacy failed migration blocking deploy (ok).");
+function migrateDeploy() {
+  return run(["prisma", "migrate", "deploy"], { stdio: ["ignore", "pipe", "pipe"] });
 }
 
-const deploy = run(["prisma", "migrate", "deploy"], { stdio: "inherit" });
+function clearLegacyFailed() {
+  console.log(`Clearing failed legacy migration: ${LEGACY_FAILED}`);
+  const resolve = run(
+    ["prisma", "migrate", "resolve", "--rolled-back", LEGACY_FAILED],
+    { stdio: ["ignore", "pipe", "pipe"] }
+  );
+  process.stdout.write(combined(resolve));
+  return resolve.status === 0;
+}
+
+let deploy = migrateDeploy();
+process.stdout.write(combined(deploy));
+
+if (deploy.status !== 0) {
+  const out = combined(deploy);
+  const blocked =
+    /P3009/i.test(out) ||
+    (out.includes(LEGACY_FAILED) && /failed/i.test(out));
+
+  if (blocked) {
+    if (!clearLegacyFailed()) {
+      console.error(
+        "Could not clear legacy failed migration. In Railway → service shell run:\n" +
+          `  npx prisma migrate resolve --rolled-back ${LEGACY_FAILED}\n` +
+          "  npx prisma migrate deploy"
+      );
+      process.exit(1);
+    }
+    console.log("Retrying prisma migrate deploy…");
+    deploy = migrateDeploy();
+    process.stdout.write(combined(deploy));
+  }
+}
+
 if (deploy.status !== 0) {
   console.error("prisma migrate deploy failed — refusing to start the new release.");
   process.exit(deploy.status ?? 1);
