@@ -1,17 +1,18 @@
 /**
  * Railway pre-deploy: apply pending Prisma migrations.
  *
- * Handles leftover state from renaming webinar recordings migration and
- * partial applies that leave P3009 / "already exists" blockers on every deploy.
+ * Aligns leftover webinar migration history when possible, then runs
+ * `prisma migrate deploy`. Alignment failures are logged and ignored so a
+ * flaky probe can never block an otherwise healthy release.
  */
 import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const LEGACY_RECORDINGS = "20260729214500_add_webinar_recordings";
 const RECORDINGS = "20260729221000_add_webinar_recordings";
 const MODERATION = "20260730021500_add_webinar_moderation";
-
-const require = createRequire(import.meta.url);
 
 function run(args, opts = {}) {
   return spawnSync("npx", args, {
@@ -38,6 +39,23 @@ function migrateResolve(flag, name) {
   return resolve.status === 0;
 }
 
+function dbExecute(sql, label) {
+  console.log(label);
+  const dir = mkdtempSync(join(tmpdir(), "prisma-predeploy-"));
+  const file = join(dir, "fix.sql");
+  writeFileSync(file, sql);
+  try {
+    const exec = run(
+      ["prisma", "db", "execute", "--file", file, "--schema", "prisma/schema.prisma"],
+      { stdio: ["ignore", "pipe", "pipe"] }
+    );
+    process.stdout.write(combined(exec));
+    return exec.status === 0;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function extractMigrationName(out) {
   const patterns = [
     /Migration name:\s*`?(\d{14}_[A-Za-z0-9_]+)`?/i,
@@ -51,112 +69,50 @@ function extractMigrationName(out) {
   return null;
 }
 
-async function getPrisma() {
-  const { PrismaClient } = require("@prisma/client");
-  return new PrismaClient();
-}
-
-async function tableExists(prisma, table) {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT to_regclass('public."${table}"') AS reg`
+function softAlignHistory() {
+  // Rename successful old recordings migration → new name (staging case).
+  dbExecute(
+    `UPDATE "_prisma_migrations"
+SET migration_name = '${RECORDINGS}'
+WHERE migration_name = '${LEGACY_RECORDINGS}'
+  AND finished_at IS NOT NULL
+  AND rolled_back_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '${RECORDINGS}'
+  );`,
+    `Align applied legacy recordings name ${LEGACY_RECORDINGS} → ${RECORDINGS}`
   );
-  return Boolean(rows?.[0]?.reg);
-}
 
-async function columnExists(prisma, table, column) {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT 1 AS ok
-     FROM information_schema.columns
-     WHERE table_schema = 'public'
-       AND table_name = $1
-       AND column_name = $2
-     LIMIT 1`,
-    table,
-    column
+  // Drop failed legacy row (production case before Webinar table existed).
+  dbExecute(
+    `DELETE FROM "_prisma_migrations"
+WHERE migration_name = '${LEGACY_RECORDINGS}'
+  AND finished_at IS NULL;`,
+    `Clear failed legacy recordings row if present`
   );
-  return rows.length > 0;
-}
 
-async function migrationRow(prisma, name) {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT migration_name, finished_at, rolled_back_at
-     FROM "_prisma_migrations"
-     WHERE migration_name = $1
-     LIMIT 1`,
-    name
+  // If WebinarRecording exists but recordings migration is failed/incomplete, clear it.
+  dbExecute(
+    `DELETE FROM "_prisma_migrations"
+WHERE migration_name = '${RECORDINGS}'
+  AND finished_at IS NULL
+  AND to_regclass('public."WebinarRecording"') IS NOT NULL;`,
+    `Clear failed ${RECORDINGS} row when table already exists`
   );
-  return rows[0] ?? null;
-}
 
-async function deleteMigrationRow(prisma, name) {
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM "_prisma_migrations" WHERE migration_name = $1`,
-    name
+  // Same for moderation columns already present.
+  dbExecute(
+    `DELETE FROM "_prisma_migrations"
+WHERE migration_name = '${MODERATION}'
+  AND finished_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'WebinarAttendance'
+      AND column_name = 'forcedAudience'
+  );`,
+    `Clear failed ${MODERATION} row when columns already exist`
   );
-}
-
-async function renameLegacyRecordings(prisma) {
-  const legacy = await migrationRow(prisma, LEGACY_RECORDINGS);
-  const current = await migrationRow(prisma, RECORDINGS);
-  if (!legacy || current) return;
-
-  // Successful apply under the old folder name (staging).
-  if (legacy.finished_at && !legacy.rolled_back_at) {
-    console.log(`Renaming applied migration ${LEGACY_RECORDINGS} → ${RECORDINGS}`);
-    await prisma.$executeRawUnsafe(
-      `UPDATE "_prisma_migrations"
-       SET migration_name = $1
-       WHERE migration_name = $2`,
-      RECORDINGS,
-      LEGACY_RECORDINGS
-    );
-    return;
-  }
-
-  // Failed apply under the old name (production) — drop the blocker row.
-  console.log(`Removing failed legacy migration row ${LEGACY_RECORDINGS}`);
-  await deleteMigrationRow(prisma, LEGACY_RECORDINGS);
-}
-
-async function ensureRecordingsApplied(prisma) {
-  if (!(await tableExists(prisma, "WebinarRecording"))) return;
-
-  const row = await migrationRow(prisma, RECORDINGS);
-  if (row?.finished_at && !row.rolled_back_at) {
-    console.log(`${RECORDINGS} already applied.`);
-    return;
-  }
-
-  if (row) {
-    console.log(`Clearing incomplete ${RECORDINGS} row (table already exists)`);
-    await deleteMigrationRow(prisma, RECORDINGS);
-  }
-
-  console.log(`Marking ${RECORDINGS} applied — WebinarRecording table already present`);
-  if (!migrateResolve("--applied", RECORDINGS)) {
-    throw new Error(`Could not mark ${RECORDINGS} as applied`);
-  }
-}
-
-async function ensureModerationApplied(prisma) {
-  const hasCol = await columnExists(prisma, "WebinarAttendance", "forcedAudience");
-  if (!hasCol) return;
-
-  const row = await migrationRow(prisma, MODERATION);
-  if (row?.finished_at && !row.rolled_back_at) {
-    console.log(`${MODERATION} already applied.`);
-    return;
-  }
-
-  if (row) {
-    console.log(`Clearing incomplete ${MODERATION} row (columns already exist)`);
-    await deleteMigrationRow(prisma, MODERATION);
-  }
-
-  console.log(`Marking ${MODERATION} applied — moderation columns already present`);
-  if (!migrateResolve("--applied", MODERATION)) {
-    throw new Error(`Could not mark ${MODERATION} as applied`);
-  }
 }
 
 function recoverFromDeployFailure(out) {
@@ -188,47 +144,36 @@ function recoverFromDeployFailure(out) {
     return migrateResolve("--applied", name);
   }
 
-  // Unknown failed migration: clear the gate so deploy can continue / surface next error.
   return migrateResolve("--rolled-back", name);
 }
 
-async function main() {
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is missing — cannot run migrations.");
-    process.exit(1);
-  }
-
-  const prisma = await getPrisma();
-  try {
-    console.log("Aligning webinar migration history with database…");
-    await renameLegacyRecordings(prisma);
-    await ensureRecordingsApplied(prisma);
-    await ensureModerationApplied(prisma);
-  } finally {
-    await prisma.$disconnect();
-  }
-
-  let deploy = migrateDeploy();
-  process.stdout.write(combined(deploy));
-
-  for (let attempt = 1; attempt <= 2 && deploy.status !== 0; attempt += 1) {
-    const out = combined(deploy);
-    if (!recoverFromDeployFailure(out)) break;
-    console.log(`Retrying prisma migrate deploy (pass ${attempt})…`);
-    deploy = migrateDeploy();
-    process.stdout.write(combined(deploy));
-  }
-
-  if (deploy.status !== 0) {
-    console.error("prisma migrate deploy failed — refusing to start the new release.");
-    console.error(combined(deploy));
-    process.exit(deploy.status ?? 1);
-  }
-
-  console.log("Migrations up to date.");
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is missing — cannot run migrations.");
+  process.exit(1);
 }
 
-main().catch((err) => {
-  console.error("preDeployMigrate failed:", err);
-  process.exit(1);
-});
+try {
+  softAlignHistory();
+} catch (err) {
+  console.error("softAlignHistory warning (continuing):", err);
+}
+
+let deploy = migrateDeploy();
+process.stdout.write(combined(deploy));
+
+for (let attempt = 1; attempt <= 3 && deploy.status !== 0; attempt += 1) {
+  const out = combined(deploy);
+  if (!recoverFromDeployFailure(out)) break;
+  console.log(`Retrying prisma migrate deploy (pass ${attempt})…`);
+  deploy = migrateDeploy();
+  process.stdout.write(combined(deploy));
+}
+
+if (deploy.status !== 0) {
+  console.error("prisma migrate deploy failed — refusing to start the new release.");
+  console.error(combined(deploy));
+  process.exit(deploy.status ?? 1);
+}
+
+console.log("Migrations up to date.");
+process.exit(0);
