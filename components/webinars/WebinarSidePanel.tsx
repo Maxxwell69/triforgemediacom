@@ -10,9 +10,15 @@ type Tab = "chat" | "people";
 export default function WebinarSidePanel({
   webinarId,
   canSendChat,
+  canModerate,
+  currentUserId,
+  designatedHostUserId,
 }: {
   webinarId: string;
   canSendChat: boolean;
+  canModerate: boolean;
+  currentUserId: string;
+  designatedHostUserId?: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("chat");
   const participants = useParticipants();
@@ -46,9 +52,19 @@ export default function WebinarSidePanel({
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "chat" ? (
-          <WebinarChat webinarId={webinarId} canSend={canSendChat} embedded />
+          <WebinarChat
+            webinarId={webinarId}
+            canSend={canSendChat}
+            canModerate={canModerate}
+            currentUserId={currentUserId}
+            embedded
+          />
         ) : (
-          <WebinarParticipants />
+          <WebinarParticipants
+            webinarId={webinarId}
+            canModerate={canModerate}
+            designatedHostUserId={designatedHostUserId}
+          />
         )}
       </div>
     </div>

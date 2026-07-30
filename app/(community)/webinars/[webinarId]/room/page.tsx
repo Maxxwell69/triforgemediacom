@@ -93,6 +93,7 @@ export default async function WebinarRoomPage({
         joinMode={joinMode}
         userId={user.id}
         userName={displayNameForUser(user)}
+        designatedHostUserId={webinar.hostUserId}
       />
     </main>
   );

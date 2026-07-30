@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
-import { canJoinWebinar, canViewWebinar, displayNameForUser } from "@/lib/webinars";
+import { isMuted } from "@/lib/moderation";
+import {
+  canJoinWebinar,
+  canViewWebinar,
+  displayNameForUser,
+  isWebinarChatMuted,
+} from "@/lib/webinars";
 import { chatMessageSchema } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
@@ -27,19 +33,37 @@ export async function GET(
 
   const { searchParams } = new URL(req.url);
   const after = searchParams.get("after");
+  const afterDate = after ? new Date(after) : null;
 
   const messages = await prisma.webinarChatMessage.findMany({
     where: {
       webinarId: webinar.id,
-      ...(after
-        ? { createdAt: { gt: new Date(after) } }
-        : {}),
+      deletedAt: null,
+      ...(afterDate ? { createdAt: { gt: afterDate } } : {}),
     },
     orderBy: { createdAt: "asc" },
-    take: after ? 100 : 100,
+    take: 100,
     include: {
       user: { select: { id: true, name: true, email: true, image: true } },
     },
+  });
+
+  let removedIds: string[] = [];
+  if (afterDate) {
+    const removed = await prisma.webinarChatMessage.findMany({
+      where: {
+        webinarId: webinar.id,
+        deletedAt: { gt: afterDate },
+      },
+      select: { id: true },
+      take: 200,
+    });
+    removedIds = removed.map((m) => m.id);
+  }
+
+  const attendance = await prisma.webinarAttendance.findUnique({
+    where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
+    select: { chatMutedUntil: true },
   });
 
   return NextResponse.json({
@@ -53,6 +77,8 @@ export async function GET(
         image: m.user.image,
       },
     })),
+    removedIds,
+    chatMutedUntil: attendance?.chatMutedUntil?.toISOString() ?? null,
   });
 }
 
@@ -77,6 +103,32 @@ export async function POST(
 
   if (!canJoinWebinar(webinar.status) && webinar.status !== "ENDED") {
     return NextResponse.json({ error: "Chat is closed." }, { status: 403 });
+  }
+
+  const [freshUser, attendance] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: auth.user.id },
+      select: { mutedUntil: true },
+    }),
+    prisma.webinarAttendance.findUnique({
+      where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
+      select: { chatMutedUntil: true, kickedAt: true },
+    }),
+  ]);
+
+  if (attendance?.kickedAt) {
+    return NextResponse.json({ error: "You've been removed from this webinar." }, { status: 403 });
+  }
+
+  if (freshUser && isMuted(freshUser)) {
+    return NextResponse.json({ error: "You are muted and can't chat right now." }, { status: 403 });
+  }
+
+  if (isWebinarChatMuted(attendance)) {
+    return NextResponse.json(
+      { error: "You've been muted in this webinar chat." },
+      { status: 403 }
+    );
   }
 
   let json: unknown;

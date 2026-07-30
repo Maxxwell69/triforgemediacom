@@ -46,8 +46,19 @@ export async function POST(
   if (approve) {
     await prisma.webinarAttendance.upsert({
       where: { webinarId_userId: { webinarId: webinar.id, userId } },
-      create: { webinarId: webinar.id, userId, role: "SPEAKER" },
-      update: { role: "SPEAKER", leftAt: null },
+      create: {
+        webinarId: webinar.id,
+        userId,
+        role: "SPEAKER",
+        forcedAudience: false,
+        kickedAt: null,
+      },
+      update: {
+        role: "SPEAKER",
+        leftAt: null,
+        forcedAudience: false,
+        kickedAt: null,
+      },
     });
 
     await prisma.webinarStageRequest.upsert({

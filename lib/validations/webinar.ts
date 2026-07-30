@@ -23,6 +23,23 @@ export const stageInviteSchema = z.object({
   approve: z.boolean().default(true),
 });
 
+export const webinarModerateSchema = z.object({
+  action: z.enum([
+    "invite_stage",
+    "remove_stage",
+    "demote_host",
+    "kick",
+    "mute_chat",
+    "unmute_chat",
+    "delete_message",
+    "clear_chat",
+  ]),
+  userId: z.string().min(1).optional(),
+  messageId: z.string().min(1).optional(),
+  /** Chat mute duration; omit or 0 = rest of session (~24h, cleared on webinar end). */
+  durationMinutes: z.number().int().min(0).max(10080).optional(),
+});
+
 export const webinarRecordingSchema = z.object({
   title: z.string().trim().max(120).optional().or(z.literal("")),
   url: z

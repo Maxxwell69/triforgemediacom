@@ -53,8 +53,18 @@ export async function resolveParticipantRole(
 ): Promise<WebinarParticipantRole> {
   const attendance = await prisma.webinarAttendance.findUnique({
     where: { webinarId_userId: { webinarId: webinar.id, userId } },
-    select: { role: true },
+    select: { role: true, forcedAudience: true, kickedAt: true },
   });
+
+  // Kicked users stay out until cleared (webinar end clears flags).
+  if (attendance?.kickedAt) {
+    return "AUDIENCE";
+  }
+
+  // Host demote / remove-from-stage lock — stay audience until invited again.
+  if (attendance?.forcedAudience) {
+    return "AUDIENCE";
+  }
 
   // Staff watching: never auto-host; allow SPEAKER if already invited on stage.
   if (joinMode === "watch" && canChooseWebinarJoinMode(userRole)) {
@@ -87,8 +97,36 @@ export async function upsertAttendance(
   return prisma.webinarAttendance.upsert({
     where: { webinarId_userId: { webinarId, userId } },
     create: { webinarId, userId, role },
-    update: { role, leftAt: null, joinedAt: new Date() },
+    update: {
+      role,
+      leftAt: null,
+      joinedAt: new Date(),
+      // Joining as host/speaker clears a prior kick/demote lock.
+      ...(role === "HOST" || role === "SPEAKER"
+        ? { forcedAudience: false, kickedAt: null }
+        : {}),
+    },
   });
+}
+
+/** Session host (on-stage HOST attendance) or platform webinar manager. */
+export async function canModerateWebinar(
+  webinar: Pick<Webinar, "id" | "hostUserId">,
+  userId: string,
+  userRole: UserRole
+) {
+  if (isWebinarHost(webinar, userId, userRole)) return true;
+  const attendance = await prisma.webinarAttendance.findUnique({
+    where: { webinarId_userId: { webinarId: webinar.id, userId } },
+    select: { role: true },
+  });
+  return attendance?.role === "HOST";
+}
+
+export function isWebinarChatMuted(attendance: {
+  chatMutedUntil: Date | null;
+} | null) {
+  return !!attendance?.chatMutedUntil && attendance.chatMutedUntil.getTime() > Date.now();
 }
 
 export function displayNameForUser(user: { name?: string | null; email?: string | null }) {

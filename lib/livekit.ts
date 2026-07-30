@@ -77,3 +77,9 @@ export async function setParticipantPublish(opts: {
     ...(opts.metadata ? { metadata: opts.metadata } : {}),
   });
 }
+
+/** Force-disconnect a participant from the LiveKit room. */
+export async function removeParticipant(opts: { roomName: string; identity: string }) {
+  const roomService = getRoomService();
+  await roomService.removeParticipant(opts.roomName, opts.identity);
+}

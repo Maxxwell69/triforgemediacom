@@ -33,8 +33,13 @@ export async function POST(
   });
 
   await prisma.webinarAttendance.updateMany({
-    where: { webinarId: webinar.id, leftAt: null },
-    data: { leftAt: new Date() },
+    where: { webinarId: webinar.id },
+    data: {
+      leftAt: new Date(),
+      forcedAudience: false,
+      chatMutedUntil: null,
+      kickedAt: null,
+    },
   });
 
   return NextResponse.json({ webinar: updated });

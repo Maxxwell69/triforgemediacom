@@ -10,7 +10,7 @@ import {
   useRoomContext,
   useParticipants,
 } from "@livekit/components-react";
-import { RoomEvent } from "livekit-client";
+import { RoomEvent, DisconnectReason } from "livekit-client";
 import "@livekit/components-styles";
 import type { WebinarParticipantRole } from "@prisma/client";
 import WebinarSidePanel from "@/components/webinars/WebinarSidePanel";
@@ -112,6 +112,22 @@ function HostStagePanel({
   );
 }
 
+function KickWatcher({ onKicked }: { onKicked: () => void }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    const onDisconnected = (reason?: DisconnectReason) => {
+      if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
+        onKicked();
+      }
+    };
+    room.on(RoomEvent.Disconnected, onDisconnected);
+    return () => {
+      room.off(RoomEvent.Disconnected, onDisconnected);
+    };
+  }, [room, onKicked]);
+  return null;
+}
+
 function AudienceControls({
   webinarId,
   role,
@@ -129,8 +145,11 @@ function AudienceControls({
 
   useEffect(() => {
     const onPerms = () => {
-      if (localParticipant.permissions?.canPublish && role === "AUDIENCE") {
+      const canPub = !!localParticipant.permissions?.canPublish;
+      if (canPub && role === "AUDIENCE") {
         onRoleChange("SPEAKER");
+      } else if (!canPub && (role === "SPEAKER" || role === "HOST")) {
+        onRoleChange("AUDIENCE");
       }
     };
     room.on(RoomEvent.ParticipantPermissionsChanged, onPerms);
@@ -189,6 +208,8 @@ function RoomChrome({
   onRoleChange,
   onStart,
   onEnd,
+  currentUserId,
+  designatedHostUserId,
 }: {
   webinarId: string;
   title: string;
@@ -198,9 +219,13 @@ function RoomChrome({
   onRoleChange: (role: WebinarParticipantRole) => void;
   onStart: () => void;
   onEnd: () => void;
+  currentUserId: string;
+  designatedHostUserId: string;
 }) {
   const participants = useParticipants();
   const canPublish = role === "HOST" || role === "SPEAKER";
+  const hostPowers = role === "HOST";
+  const canModerate = role === "HOST";
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
 
   return (
@@ -225,7 +250,7 @@ function RoomChrome({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isHost && (
+            {hostPowers && (
               <div
                 className="flex rounded-lg border border-off-white/15 p-0.5"
                 role="group"
@@ -247,7 +272,7 @@ function RoomChrome({
                 ))}
               </div>
             )}
-            {isHost && status !== "LIVE" && (
+            {hostPowers && status !== "LIVE" && (
               <button
                 type="button"
                 onClick={onStart}
@@ -256,7 +281,7 @@ function RoomChrome({
                 Start webinar
               </button>
             )}
-            {isHost && status === "LIVE" && (
+            {hostPowers && status === "LIVE" && (
               <button
                 type="button"
                 onClick={onEnd}
@@ -277,9 +302,9 @@ function RoomChrome({
           <WebinarStage layoutMode={layoutMode} />
         </div>
 
-        {isHost && (
+        {canModerate && (
           <div className="shrink-0">
-            <HostStagePanel webinarId={webinarId} isHost={isHost} />
+            <HostStagePanel webinarId={webinarId} isHost={canModerate} />
           </div>
         )}
 
@@ -288,7 +313,7 @@ function RoomChrome({
             controls={{
               camera: canPublish,
               microphone: canPublish,
-              screenShare: canPublish && isHost,
+              screenShare: canPublish && hostPowers,
               leave: false,
             }}
           />
@@ -296,7 +321,13 @@ function RoomChrome({
       </div>
 
       <div className="flex h-64 max-h-64 min-h-0 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
-        <WebinarSidePanel webinarId={webinarId} canSendChat />
+        <WebinarSidePanel
+          webinarId={webinarId}
+          canSendChat
+          canModerate={canModerate}
+          currentUserId={currentUserId}
+          designatedHostUserId={designatedHostUserId}
+        />
       </div>
     </div>
   );
@@ -311,6 +342,7 @@ export default function WebinarRoom({
   joinMode,
   userId,
   userName,
+  designatedHostUserId,
 }: {
   webinarId: string;
   title: string;
@@ -320,6 +352,7 @@ export default function WebinarRoom({
   joinMode?: "host" | "watch" | null;
   userId: string;
   userName: string;
+  designatedHostUserId: string;
 }) {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -327,6 +360,7 @@ export default function WebinarRoom({
   const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [kicked, setKicked] = useState(false);
 
   const fetchToken = useCallback(async () => {
     setLoading(true);
@@ -357,14 +391,6 @@ export default function WebinarRoom({
     void fetchToken();
   }, [fetchToken]);
 
-  // When promoted to speaker, remint token so publish grants are present even if
-  // LiveKit permission update raced before they connected.
-  useEffect(() => {
-    if (role === "SPEAKER" || role === "HOST") {
-      // no-op: permission updates via RoomService are enough when already connected
-    }
-  }, [role]);
-
   async function handleStart() {
     const res = await fetch(`/api/webinars/${webinarId}/start`, { method: "POST" });
     if (res.ok) setStatus("LIVE");
@@ -381,7 +407,7 @@ export default function WebinarRoom({
 
   function handleRoleChange(next: WebinarParticipantRole) {
     setRole(next);
-    if (next === "SPEAKER") {
+    if (next === "SPEAKER" || next === "AUDIENCE") {
       void fetchToken();
     }
   }
@@ -390,6 +416,17 @@ export default function WebinarRoom({
     return (
       <div className="flex flex-1 items-center justify-center p-10">
         <p className="font-body text-off-white/60">Connecting to room…</p>
+      </div>
+    );
+  }
+
+  if (kicked) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-10">
+        <p className="font-body text-orange">You were removed from this webinar.</p>
+        <Link href="/webinars" className="font-body text-sm text-cyan hover:underline">
+          Back to webinars
+        </Link>
       </div>
     );
   }
@@ -427,6 +464,7 @@ export default function WebinarRoom({
       className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden bg-charcoal"
     >
       <RoomAudioRenderer />
+      <KickWatcher onKicked={() => setKicked(true)} />
       <RoomChrome
         webinarId={webinarId}
         title={title}
@@ -436,6 +474,8 @@ export default function WebinarRoom({
         onRoleChange={handleRoleChange}
         onStart={() => void handleStart()}
         onEnd={() => void handleEnd()}
+        currentUserId={userId}
+        designatedHostUserId={designatedHostUserId}
       />
       <span className="sr-only">
         {userName} ({userId})

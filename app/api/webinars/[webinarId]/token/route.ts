@@ -74,6 +74,17 @@ export async function POST(
     return NextResponse.json({ error: "Not authorized to join as host." }, { status: 403 });
   }
 
+  const existingAttendance = await prisma.webinarAttendance.findUnique({
+    where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
+    select: { kickedAt: true },
+  });
+  if (existingAttendance?.kickedAt) {
+    return NextResponse.json(
+      { error: "You've been removed from this webinar." },
+      { status: 403 }
+    );
+  }
+
   const role = await resolveParticipantRole(
     webinar,
     auth.user.id,

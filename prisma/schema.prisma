@@ -890,12 +890,18 @@ model WebinarRecording {
 }
 
 model WebinarAttendance {
-  id        String                 @id @default(cuid())
-  webinarId String
-  userId    String
-  role      WebinarParticipantRole @default(AUDIENCE)
-  joinedAt  DateTime               @default(now())
-  leftAt    DateTime?
+  id              String                 @id @default(cuid())
+  webinarId       String
+  userId          String
+  role            WebinarParticipantRole @default(AUDIENCE)
+  joinedAt        DateTime               @default(now())
+  leftAt          DateTime?
+  /// When true, resolveParticipantRole keeps them AUDIENCE (blocks re-host / re-stage until cleared).
+  forcedAudience  Boolean                @default(false)
+  /// Webinar-scoped chat mute; null = not muted.
+  chatMutedUntil  DateTime?
+  /// Set when kicked from the live room; blocks rejoin until cleared or webinar ends.
+  kickedAt        DateTime?
 
   webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -905,11 +911,12 @@ model WebinarAttendance {
 }
 
 model WebinarChatMessage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   webinarId String
   userId    String
   body      String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
   webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
