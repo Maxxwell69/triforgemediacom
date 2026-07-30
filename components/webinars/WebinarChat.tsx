@@ -108,17 +108,19 @@ export default function WebinarChat({
           <h2 className="font-display text-lg tracking-wide text-off-white/80">Chat</h2>
         </div>
       )}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-        {messages.length === 0 && (
-          <p className="font-body text-xs text-off-white/40">No messages yet. Say hello.</p>
-        )}
-        {messages.map((m) => (
-          <div key={m.id}>
-            <p className="font-body text-xs text-cyan/80">{m.user.name}</p>
-            <p className="font-body text-sm text-off-white/90">{m.body}</p>
-          </div>
-        ))}
-        <div ref={bottomRef} />
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+        <div className="space-y-3">
+          {messages.length === 0 && (
+            <p className="font-body text-xs text-off-white/40">No messages yet. Say hello.</p>
+          )}
+          {messages.map((m) => (
+            <div key={m.id}>
+              <p className="font-body text-xs text-cyan/80">{m.user.name}</p>
+              <p className="font-body text-sm text-off-white/90">{m.body}</p>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
       </div>
       {canSend && (
         <form onSubmit={send} className="shrink-0 border-t border-off-white/10 p-3">

@@ -204,9 +204,9 @@ function RoomChrome({
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+    <div className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div>
             <Link
               href="/webinars"
@@ -273,23 +273,29 @@ function RoomChrome({
           </div>
         </div>
 
-        <div className="min-h-[240px] flex-1">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <WebinarStage layoutMode={layoutMode} />
         </div>
 
-        {isHost && <HostStagePanel webinarId={webinarId} isHost={isHost} />}
+        {isHost && (
+          <div className="shrink-0">
+            <HostStagePanel webinarId={webinarId} isHost={isHost} />
+          </div>
+        )}
 
-        <ControlBar
-          controls={{
-            camera: canPublish,
-            microphone: canPublish,
-            screenShare: canPublish && isHost,
-            leave: false,
-          }}
-        />
+        <div className="shrink-0">
+          <ControlBar
+            controls={{
+              camera: canPublish,
+              microphone: canPublish,
+              screenShare: canPublish && isHost,
+              leave: false,
+            }}
+          />
+        </div>
       </div>
 
-      <div className="h-72 shrink-0 overflow-hidden lg:h-full lg:w-80 xl:w-96">
+      <div className="flex h-64 max-h-64 min-h-0 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
         <WebinarSidePanel webinarId={webinarId} canSendChat />
       </div>
     </div>
@@ -418,8 +424,7 @@ export default function WebinarRoom({
       // with adaptiveStream when the focus tile had no laid-out size yet).
       options={{ adaptiveStream: false, dynacast: true }}
       data-lk-theme="default"
-      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-charcoal"
-      style={{ height: "100%" }}
+      className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden bg-charcoal"
     >
       <RoomAudioRenderer />
       <RoomChrome

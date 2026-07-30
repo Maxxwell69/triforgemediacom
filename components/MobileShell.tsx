@@ -13,6 +13,7 @@ export default function MobileShell({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const isWebinarRoom = /\/webinars\/[^/]+\/room/.test(pathname);
 
   // Close the drawer whenever the route changes (e.g. tapping a nav link).
   useEffect(() => {
@@ -20,7 +21,11 @@ export default function MobileShell({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div
+      className={`flex flex-col md:flex-row ${
+        isWebinarRoom ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen"
+      }`}
+    >
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
         <Logo height={20} href="/home" />
         <button
@@ -71,7 +76,13 @@ export default function MobileShell({
         {sidebar}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${
+          isWebinarRoom ? "min-h-0 overflow-hidden" : ""
+        }`}
+      >
+        {children}
+      </div>
     </div>
   );
 }

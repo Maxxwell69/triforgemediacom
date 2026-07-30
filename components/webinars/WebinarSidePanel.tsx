@@ -18,8 +18,8 @@ export default function WebinarSidePanel({
   const participants = useParticipants();
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-off-white/10 bg-charcoal/80">
-      <div className="flex border-b border-off-white/10">
+    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden bg-charcoal/80">
+      <div className="flex shrink-0 border-b border-off-white/10">
         <button
           type="button"
           onClick={() => setTab("chat")}
@@ -44,7 +44,7 @@ export default function WebinarSidePanel({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "chat" ? (
           <WebinarChat webinarId={webinarId} canSend={canSendChat} embedded />
         ) : (
