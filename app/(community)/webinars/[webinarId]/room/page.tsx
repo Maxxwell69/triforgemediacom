@@ -4,20 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { isLiveKitConfigured } from "@/lib/livekit";
 import {
+  canChooseWebinarJoinMode,
   canJoinWebinar,
   canViewWebinar,
   displayNameForUser,
-  isWebinarHost,
   resolveParticipantRole,
+  type WebinarJoinMode,
 } from "@/lib/webinars";
 import WebinarRoom from "@/components/webinars/WebinarRoom";
+import WebinarJoinChooser from "@/components/webinars/WebinarJoinChooser";
 
 export const dynamic = "force-dynamic";
 
 export default async function WebinarRoomPage({
   params,
+  searchParams,
 }: {
   params: { webinarId: string };
+  searchParams: { as?: string };
 }) {
   const { user } = await requireProfile();
 
@@ -56,8 +60,27 @@ export default async function WebinarRoomPage({
     );
   }
 
-  const role = await resolveParticipantRole(webinar, user.id, user.role);
-  const hostControls = isWebinarHost(webinar, user.id, user.role);
+  const rawAs = searchParams.as;
+  const joinMode: WebinarJoinMode | null =
+    rawAs === "host" || rawAs === "watch" ? rawAs : null;
+
+  if (canChooseWebinarJoinMode(user.role) && !joinMode) {
+    return (
+      <WebinarJoinChooser
+        webinarId={webinar.id}
+        title={webinar.title}
+        status={webinar.status}
+      />
+    );
+  }
+
+  const role = await resolveParticipantRole(
+    webinar,
+    user.id,
+    user.role,
+    joinMode
+  );
+  const joinedAsHost = role === "HOST";
 
   return (
     <main className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col md:min-h-screen">
@@ -66,7 +89,8 @@ export default async function WebinarRoomPage({
         title={webinar.title}
         status={webinar.status}
         initialRole={role}
-        isHost={hostControls}
+        isHost={joinedAsHost}
+        joinMode={joinMode}
         userId={user.id}
         userName={displayNameForUser(user)}
       />

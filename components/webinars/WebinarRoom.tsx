@@ -324,6 +324,7 @@ export default function WebinarRoom({
   status: initialStatus,
   initialRole,
   isHost,
+  joinMode,
   userId,
   userName,
 }: {
@@ -332,6 +333,7 @@ export default function WebinarRoom({
   status: string;
   initialRole: WebinarParticipantRole;
   isHost: boolean;
+  joinMode?: "host" | "watch" | null;
   userId: string;
   userName: string;
 }) {
@@ -346,7 +348,11 @@ export default function WebinarRoom({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/webinars/${webinarId}/token`, { method: "POST" });
+      const res = await fetch(`/api/webinars/${webinarId}/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(joinMode ? { mode: joinMode } : {}),
+      });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Could not join room");
@@ -361,7 +367,7 @@ export default function WebinarRoom({
     } finally {
       setLoading(false);
     }
-  }, [webinarId]);
+  }, [webinarId, joinMode]);
 
   useEffect(() => {
     void fetchToken();

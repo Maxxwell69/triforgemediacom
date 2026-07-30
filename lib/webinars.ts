@@ -21,6 +21,14 @@ export function canJoinWebinar(status: WebinarStatus) {
   return status === "SCHEDULED" || status === "LIVE";
 }
 
+export type WebinarJoinMode = "host" | "watch";
+
+/** Staff can choose host vs watch-only before entering a live room. */
+export function canChooseWebinarJoinMode(userRole: UserRole) {
+  return isAdminRole(userRole);
+}
+
+/** Can start/end webinars and use admin host APIs (not the same as joining as host on stage). */
 export function isWebinarHost(
   webinar: Pick<Webinar, "hostUserId">,
   userId: string,
@@ -40,16 +48,33 @@ export function roleToTokenRole(
 export async function resolveParticipantRole(
   webinar: Pick<Webinar, "id" | "hostUserId">,
   userId: string,
-  userRole: UserRole
+  userRole: UserRole,
+  joinMode?: WebinarJoinMode | null
 ): Promise<WebinarParticipantRole> {
-  if (webinar.hostUserId === userId || isAdminRole(userRole)) {
-    return "HOST";
-  }
-
   const attendance = await prisma.webinarAttendance.findUnique({
     where: { webinarId_userId: { webinarId: webinar.id, userId } },
     select: { role: true },
   });
+
+  // Staff watching: never auto-host; allow SPEAKER if already invited on stage.
+  if (joinMode === "watch" && canChooseWebinarJoinMode(userRole)) {
+    return attendance?.role === "SPEAKER" ? "SPEAKER" : "AUDIENCE";
+  }
+
+  // Explicit host join for staff / designated host.
+  if (joinMode === "host" && isWebinarHost(webinar, userId, userRole)) {
+    return "HOST";
+  }
+
+  // Designated host always hosts when no mode is sent.
+  if (!joinMode && webinar.hostUserId === userId) {
+    return "HOST";
+  }
+
+  // Staff without a mode default to watch (chooser should set mode).
+  if (!joinMode && canChooseWebinarJoinMode(userRole)) {
+    return attendance?.role === "SPEAKER" ? "SPEAKER" : "AUDIENCE";
+  }
 
   return attendance?.role ?? "AUDIENCE";
 }

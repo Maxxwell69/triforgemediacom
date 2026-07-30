@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { canJoinWebinar, canViewWebinar } from "@/lib/webinars";
+import {
+  canChooseWebinarJoinMode,
+  canJoinWebinar,
+  canViewWebinar,
+} from "@/lib/webinars";
 import WebinarRecordingPlayer from "@/components/webinars/WebinarRecordingPlayer";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +32,7 @@ export default async function WebinarDetailPage({
   }
 
   const joinable = canJoinWebinar(webinar.status);
+  const staffChoice = canChooseWebinarJoinMode(user.role);
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -58,7 +63,22 @@ export default async function WebinarDetailPage({
             : ""}
         </p>
 
-        {joinable ? (
+        {joinable && staffChoice ? (
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href={`/webinars/${webinar.id}/room?as=host`}
+              className="inline-flex rounded-lg bg-orange px-5 py-2.5 font-body text-sm font-semibold text-charcoal shadow-glow transition hover:brightness-110"
+            >
+              Join as host
+            </Link>
+            <Link
+              href={`/webinars/${webinar.id}/room?as=watch`}
+              className="inline-flex rounded-lg border border-cyan/40 bg-cyan/10 px-5 py-2.5 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/15"
+            >
+              Watch &amp; chat
+            </Link>
+          </div>
+        ) : joinable ? (
           <Link
             href={`/webinars/${webinar.id}/room`}
             className="mt-8 inline-flex rounded-lg bg-orange px-5 py-2.5 font-body text-sm font-semibold text-charcoal shadow-glow transition hover:brightness-110"
