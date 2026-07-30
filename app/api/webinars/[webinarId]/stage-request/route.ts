@@ -54,13 +54,14 @@ export async function POST(
     return NextResponse.json({ error: "Webinar is not open." }, { status: 403 });
   }
 
-  if (isWebinarHost(webinar, auth.user.id, auth.user.role)) {
-    return NextResponse.json({ error: "Host is already on stage." }, { status: 400 });
-  }
-
+  // Use attendance role (how they joined this session), not staff capability —
+  // admins in watch mode are audience and must be able to raise their hand.
   const existing = await prisma.webinarAttendance.findUnique({
     where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
   });
+  if (existing?.role === "HOST") {
+    return NextResponse.json({ error: "Host is already on stage." }, { status: 400 });
+  }
   if (existing?.role === "SPEAKER") {
     return NextResponse.json({ error: "You are already on stage." }, { status: 400 });
   }

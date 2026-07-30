@@ -12,9 +12,12 @@ type ChatMessage = {
 export default function WebinarChat({
   webinarId,
   canSend,
+  embedded = false,
 }: {
   webinarId: string;
   canSend: boolean;
+  /** Hide outer border/title when nested in the Chat/People side panel. */
+  embedded?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [body, setBody] = useState("");
@@ -95,10 +98,16 @@ export default function WebinarChat({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-off-white/10 bg-charcoal/80">
-      <div className="border-b border-off-white/10 px-4 py-3">
-        <h2 className="font-display text-lg tracking-wide text-off-white/80">Chat</h2>
-      </div>
+    <div
+      className={`flex h-full min-h-0 flex-col ${
+        embedded ? "" : "border-l border-off-white/10 bg-charcoal/80"
+      }`}
+    >
+      {!embedded && (
+        <div className="border-b border-off-white/10 px-4 py-3">
+          <h2 className="font-display text-lg tracking-wide text-off-white/80">Chat</h2>
+        </div>
+      )}
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {messages.length === 0 && (
           <p className="font-body text-xs text-off-white/40">No messages yet. Say hello.</p>

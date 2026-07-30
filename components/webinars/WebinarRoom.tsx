@@ -13,7 +13,7 @@ import {
 import { RoomEvent } from "livekit-client";
 import "@livekit/components-styles";
 import type { WebinarParticipantRole } from "@prisma/client";
-import WebinarChat from "@/components/webinars/WebinarChat";
+import WebinarSidePanel from "@/components/webinars/WebinarSidePanel";
 import WebinarStage, { type StageLayoutMode } from "@/components/webinars/WebinarStage";
 
 type StageRequest = {
@@ -290,7 +290,7 @@ function RoomChrome({
       </div>
 
       <div className="h-72 shrink-0 lg:h-auto lg:w-80 xl:w-96">
-        <WebinarChat webinarId={webinarId} canSend />
+        <WebinarSidePanel webinarId={webinarId} canSendChat />
       </div>
     </div>
   );
