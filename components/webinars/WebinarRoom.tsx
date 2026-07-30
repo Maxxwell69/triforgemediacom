@@ -105,8 +105,11 @@ function HostStagePanel({
           ))}
         </ul>
       )}
-      <p className="mt-2 font-body text-[11px] text-off-white/30">
-        Room: {room.name} · {room.numParticipants} in call
+      <p className="mt-2 truncate font-body text-[11px] text-off-white/30" title={room.name ?? undefined}>
+        {room.numParticipants} in call
+        {room.name ? (
+          <span className="ml-1 text-off-white/20">· {room.name}</span>
+        ) : null}
       </p>
     </div>
   );
@@ -228,16 +231,18 @@ function RoomChrome({
 
   return (
     <div className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden lg:flex-row">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto p-3 sm:gap-3 sm:p-4">
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <div>
+          <div className="min-w-0 flex-1">
             <Link
               href="/webinars"
               className="font-body text-xs text-off-white/40 hover:text-off-white/70"
             >
               ← Leave
             </Link>
-            <h1 className="font-display text-2xl tracking-wide text-off-white">{title}</h1>
+            <h1 className="truncate font-display text-xl tracking-wide text-off-white sm:text-2xl">
+              {title}
+            </h1>
             <p className="font-body text-xs text-off-white/50">
               {status === "LIVE" ? (
                 <span className="text-orange">● LIVE</span>
@@ -247,7 +252,7 @@ function RoomChrome({
               · {participants.length} here
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center gap-2">
             {hostPowers && (
               <div
                 className="flex rounded-lg border border-off-white/15 p-0.5"
@@ -296,15 +301,13 @@ function RoomChrome({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <WebinarStage layoutMode={layoutMode} />
-        </div>
-
-        {canModerate && (
-          <div className="shrink-0">
-            <HostStagePanel webinarId={webinarId} isHost={canModerate} />
+        {/* Mobile: fixed stage height so LiveKit tiles don't collapse into a thin strip.
+            Desktop: fill remaining column height. */}
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden lg:aspect-auto lg:min-h-0 lg:flex-1">
+          <div className="absolute inset-0 lg:relative lg:h-full">
+            <WebinarStage layoutMode={layoutMode} />
           </div>
-        )}
+        </div>
 
         <div className="shrink-0">
           <ControlBar
@@ -316,9 +319,15 @@ function RoomChrome({
             }}
           />
         </div>
+
+        {canModerate && (
+          <div className="shrink-0">
+            <HostStagePanel webinarId={webinarId} isHost={canModerate} />
+          </div>
+        )}
       </div>
 
-      <div className="flex h-64 max-h-64 min-h-0 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
+      <div className="flex h-[32vh] max-h-64 min-h-44 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:min-h-0 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
         <WebinarSidePanel
           webinarId={webinarId}
           canSendChat

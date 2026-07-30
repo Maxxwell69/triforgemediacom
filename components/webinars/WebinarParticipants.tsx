@@ -121,7 +121,7 @@ export default function WebinarParticipants({
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-3">
         {canModerate && (
           <p className="mb-2 font-body text-[11px] text-off-white/35">
-            Right-click someone to invite, demote, mute, or kick.
+            Tap ··· (or long-press) to invite, demote, mute, or kick.
           </p>
         )}
         {sorted.length === 0 ? (
@@ -190,10 +190,10 @@ export default function WebinarParticipants({
       {menu && (
         <div
           ref={menuRef}
-          className="fixed z-50 w-52 rounded-lg border border-off-white/15 bg-charcoal p-1.5 shadow-xl"
+          className="fixed z-50 max-h-[70vh] w-[min(13rem,calc(100vw-1.5rem))] overflow-y-auto rounded-lg border border-off-white/15 bg-charcoal p-1.5 shadow-xl"
           style={{
-            left: Math.min(menu.x, window.innerWidth - 220),
-            top: Math.min(menu.y, window.innerHeight - 280),
+            left: Math.min(menu.x, Math.max(8, window.innerWidth - 220)),
+            top: Math.min(menu.y, Math.max(8, window.innerHeight - 280)),
           }}
         >
           <p className="truncate px-2 py-1 font-body text-[11px] text-off-white/40">

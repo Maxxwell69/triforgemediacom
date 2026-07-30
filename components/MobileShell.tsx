@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 
 export default function MobileShell({
   sidebar,
   children,
+  showAdminFab = false,
 }: {
   sidebar: React.ReactNode;
   children: React.ReactNode;
+  showAdminFab?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const isWebinarRoom = /\/webinars\/[^/]+\/room/.test(pathname);
+  // FAB sits over the webinar people/chat panel on phones — keep it in the drawer only.
+  const adminFabVisible = showAdminFab && !isWebinarRoom;
 
   // Close the drawer whenever the route changes (e.g. tapping a nav link).
   useEffect(() => {
@@ -83,6 +88,17 @@ export default function MobileShell({
       >
         {children}
       </div>
+
+      {adminFabVisible && (
+        <Link
+          href="/admin"
+          aria-label="Go to admin panel"
+          className="fixed bottom-20 left-4 z-40 flex items-center gap-2 rounded-full border border-cyan/40 bg-charcoal/95 px-4 py-2.5 font-body text-sm font-semibold text-cyan shadow-glow-cyan backdrop-blur transition hover:bg-cyan/10 md:hidden print:hidden"
+        >
+          <span aria-hidden="true">🛠️</span>
+          Admin
+        </Link>
+      )}
     </div>
   );
 }

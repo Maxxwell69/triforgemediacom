@@ -124,18 +124,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   return (
-    <>
-      <MobileShell sidebar={sidebar}>{children}</MobileShell>
-      {isAdmin && (
-        <Link
-          href="/admin"
-          aria-label="Go to admin panel"
-          className="fixed bottom-20 left-4 z-40 flex items-center gap-2 rounded-full border border-cyan/40 bg-charcoal/95 px-4 py-2.5 font-body text-sm font-semibold text-cyan shadow-glow-cyan backdrop-blur transition hover:bg-cyan/10 md:hidden print:hidden"
-        >
-          <span aria-hidden="true">🛠️</span>
-          Admin
-        </Link>
-      )}
-    </>
+    <MobileShell sidebar={sidebar} showAdminFab={isAdmin}>
+      {children}
+    </MobileShell>
   );
 }
