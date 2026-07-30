@@ -21,6 +21,8 @@ export default function WebinarChat({
   canModerate = false,
   currentUserId,
   embedded = false,
+  active = true,
+  onUnreadChange,
 }: {
   webinarId: string;
   canSend: boolean;
@@ -28,6 +30,9 @@ export default function WebinarChat({
   currentUserId?: string;
   /** Hide outer border/title when nested in the Chat/People side panel. */
   embedded?: boolean;
+  /** When false (e.g. People tab), new messages from others bump the unread badge. */
+  active?: boolean;
+  onUnreadChange?: (count: number) => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [body, setBody] = useState("");
@@ -39,6 +44,32 @@ export default function WebinarChat({
   const bottomRef = useRef<HTMLDivElement>(null);
   const afterRef = useRef<string | null>(null);
   const removedCursorRef = useRef<string | null>(null);
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const activeRef = useRef(active);
+  const unreadRef = useRef(0);
+  const onUnreadChangeRef = useRef(onUnreadChange);
+
+  activeRef.current = active;
+  onUnreadChangeRef.current = onUnreadChange;
+
+  function setUnread(count: number) {
+    unreadRef.current = count;
+    onUnreadChangeRef.current?.(count);
+  }
+
+  function noteIncoming(messages: ChatMessage[], countTowardUnread: boolean) {
+    let fromOthers = 0;
+    for (const m of messages) {
+      if (knownIdsRef.current.has(m.id)) continue;
+      knownIdsRef.current.add(m.id);
+      if (countTowardUnread && m.user.id !== currentUserId) fromOthers += 1;
+    }
+    if (fromOthers > 0) setUnread(unreadRef.current + fromOthers);
+  }
+
+  useEffect(() => {
+    if (active) setUnread(0);
+  }, [active]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,20 +90,23 @@ export default function WebinarChat({
           setChatMutedUntil(data.chatMutedUntil);
         }
         if (initial) {
+          knownIdsRef.current = new Set(data.messages.map((m) => m.id));
           setMessages(data.messages);
         } else {
           if (data.removedIds && data.removedIds.length > 0) {
             const drop = new Set(data.removedIds);
+            for (const id of drop) knownIdsRef.current.delete(id);
             setMessages((prev) => prev.filter((m) => !drop.has(m.id)));
           }
           if (data.messages.length > 0) {
+            noteIncoming(data.messages, !activeRef.current);
             setMessages((prev) => {
               const seen = new Set(prev.map((m) => m.id));
               const next = [...prev];
               for (const m of data.messages) {
                 if (!seen.has(m.id)) next.push(m);
               }
-              return next;
+              return next.length === prev.length ? prev : next;
             });
           }
         }
@@ -93,11 +127,12 @@ export default function WebinarChat({
       cancelled = true;
       clearInterval(id);
     };
-  }, [webinarId]);
+  }, [webinarId, currentUserId]);
 
   useEffect(() => {
+    if (!active) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, active]);
 
   useEffect(() => {
     if (!openMenuFor) return;
@@ -128,6 +163,7 @@ export default function WebinarChat({
         return;
       }
       setBody("");
+      knownIdsRef.current.add(data.message.id);
       setMessages((prev) => {
         if (prev.some((m) => m.id === data.message.id)) return prev;
         return [...prev, data.message];
@@ -161,6 +197,7 @@ export default function WebinarChat({
       });
       if (ok) {
         setMessages((prev) => prev.filter((m) => m.id !== message.id));
+        knownIdsRef.current.delete(message.id);
       } else {
         setError(data.error || "Could not delete");
       }
@@ -212,8 +249,11 @@ export default function WebinarChat({
     setBusy("clear");
     try {
       const { ok, data } = await moderate({ action: "clear_chat" });
-      if (ok) setMessages([]);
-      else setError(data.error || "Could not clear chat");
+      if (ok) {
+        setMessages([]);
+        knownIdsRef.current.clear();
+        setUnread(0);
+      } else setError(data.error || "Could not clear chat");
     } finally {
       setBusy(null);
     }
