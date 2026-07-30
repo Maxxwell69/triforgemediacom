@@ -5,72 +5,27 @@ import Link from "next/link";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  useTracks,
-  ParticipantTile,
   ControlBar,
   useLocalParticipant,
   useRoomContext,
   useParticipants,
 } from "@livekit/components-react";
-import { Track, RoomEvent } from "livekit-client";
+import { RoomEvent } from "livekit-client";
 import "@livekit/components-styles";
 import type { WebinarParticipantRole } from "@prisma/client";
 import WebinarChat from "@/components/webinars/WebinarChat";
+import WebinarStage, { type StageLayoutMode } from "@/components/webinars/WebinarStage";
 
 type StageRequest = {
   id: string;
   user: { id: string; name: string | null; email: string; image: string | null };
 };
 
-function StageGrid() {
-  const tracks = useTracks(
-    [
-      { source: Track.Source.Camera, withPlaceholder: true },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-    ],
-    { onlySubscribed: false }
-  );
-
-  const publishers = tracks.filter((t) => {
-    if (t.source === Track.Source.ScreenShare) return Boolean(t.publication);
-    let role = "audience";
-    try {
-      role = (JSON.parse(t.participant.metadata || "{}") as { role?: string }).role || "audience";
-    } catch {
-      // ignore bad metadata
-    }
-    return (
-      role === "host" ||
-      role === "speaker" ||
-      Boolean(t.participant.permissions?.canPublish)
-    );
-  });
-
-  if (publishers.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-off-white/10 bg-charcoal/60">
-        <p className="font-body text-sm text-off-white/50">Waiting for the host to go on camera…</p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`grid h-full gap-2 ${
-        publishers.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-      }`}
-    >
-      {publishers.map((trackRef) => (
-        <div
-          key={`${trackRef.participant.identity}-${trackRef.source}`}
-          className="overflow-hidden rounded-xl border border-off-white/10 bg-black"
-        >
-          <ParticipantTile trackRef={trackRef} />
-        </div>
-      ))}
-    </div>
-  );
-}
+const LAYOUT_OPTIONS: { id: StageLayoutMode; label: string }[] = [
+  { id: "auto", label: "Auto" },
+  { id: "grid", label: "Grid" },
+  { id: "focus", label: "Focus" },
+];
 
 function HostStagePanel({
   webinarId,
@@ -246,6 +201,7 @@ function RoomChrome({
 }) {
   const participants = useParticipants();
   const canPublish = role === "HOST" || role === "SPEAKER";
+  const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -269,6 +225,28 @@ function RoomChrome({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {isHost && (
+              <div
+                className="flex rounded-lg border border-off-white/15 p-0.5"
+                role="group"
+                aria-label="Stage layout"
+              >
+                {LAYOUT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setLayoutMode(opt.id)}
+                    className={`rounded-md px-2.5 py-1 font-body text-xs font-semibold transition ${
+                      layoutMode === opt.id
+                        ? "bg-orange text-charcoal"
+                        : "text-off-white/50 hover:text-off-white/80"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {isHost && status !== "LIVE" && (
               <button
                 type="button"
@@ -296,7 +274,7 @@ function RoomChrome({
         </div>
 
         <div className="min-h-[280px] flex-1">
-          <StageGrid />
+          <WebinarStage layoutMode={layoutMode} />
         </div>
 
         {isHost && <HostStagePanel webinarId={webinarId} isHost={isHost} />}
