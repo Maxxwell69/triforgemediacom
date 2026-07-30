@@ -1,24 +1,21 @@
 /**
  * Railway pre-deploy: apply pending Prisma migrations.
  *
- * Aligns leftover webinar migration history when possible, then runs
- * `prisma migrate deploy`. Alignment failures are logged and ignored so a
- * flaky probe can never block an otherwise healthy release.
+ * Keeps a small recovery path for the renamed webinar-recordings migration
+ * leftover (P3009 / "already exists"), then exits non-zero only if migrate
+ * deploy still cannot succeed.
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 const LEGACY_RECORDINGS = "20260729214500_add_webinar_recordings";
 const RECORDINGS = "20260729221000_add_webinar_recordings";
 const MODERATION = "20260730021500_add_webinar_moderation";
 
-function run(args, opts = {}) {
+function run(args) {
   return spawnSync("npx", args, {
     encoding: "utf8",
     shell: true,
-    ...opts,
+    stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
@@ -27,33 +24,14 @@ function combined(result) {
 }
 
 function migrateDeploy() {
-  return run(["prisma", "migrate", "deploy"], { stdio: ["ignore", "pipe", "pipe"] });
+  return run(["prisma", "migrate", "deploy"]);
 }
 
 function migrateResolve(flag, name) {
   console.log(`prisma migrate resolve ${flag} ${name}`);
-  const resolve = run(["prisma", "migrate", "resolve", flag, name], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const resolve = run(["prisma", "migrate", "resolve", flag, name]);
   process.stdout.write(combined(resolve));
   return resolve.status === 0;
-}
-
-function dbExecute(sql, label) {
-  console.log(label);
-  const dir = mkdtempSync(join(tmpdir(), "prisma-predeploy-"));
-  const file = join(dir, "fix.sql");
-  writeFileSync(file, sql);
-  try {
-    const exec = run(
-      ["prisma", "db", "execute", "--file", file, "--schema", "prisma/schema.prisma"],
-      { stdio: ["ignore", "pipe", "pipe"] }
-    );
-    process.stdout.write(combined(exec));
-    return exec.status === 0;
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 }
 
 function extractMigrationName(out) {
@@ -69,53 +47,7 @@ function extractMigrationName(out) {
   return null;
 }
 
-function softAlignHistory() {
-  // Rename successful old recordings migration → new name (staging case).
-  dbExecute(
-    `UPDATE "_prisma_migrations"
-SET migration_name = '${RECORDINGS}'
-WHERE migration_name = '${LEGACY_RECORDINGS}'
-  AND finished_at IS NOT NULL
-  AND rolled_back_at IS NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '${RECORDINGS}'
-  );`,
-    `Align applied legacy recordings name ${LEGACY_RECORDINGS} → ${RECORDINGS}`
-  );
-
-  // Drop failed legacy row (production case before Webinar table existed).
-  dbExecute(
-    `DELETE FROM "_prisma_migrations"
-WHERE migration_name = '${LEGACY_RECORDINGS}'
-  AND finished_at IS NULL;`,
-    `Clear failed legacy recordings row if present`
-  );
-
-  // If WebinarRecording exists but recordings migration is failed/incomplete, clear it.
-  dbExecute(
-    `DELETE FROM "_prisma_migrations"
-WHERE migration_name = '${RECORDINGS}'
-  AND finished_at IS NULL
-  AND to_regclass('public."WebinarRecording"') IS NOT NULL;`,
-    `Clear failed ${RECORDINGS} row when table already exists`
-  );
-
-  // Same for moderation columns already present.
-  dbExecute(
-    `DELETE FROM "_prisma_migrations"
-WHERE migration_name = '${MODERATION}'
-  AND finished_at IS NULL
-  AND EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'WebinarAttendance'
-      AND column_name = 'forcedAudience'
-  );`,
-    `Clear failed ${MODERATION} row when columns already exist`
-  );
-}
-
-function recoverFromDeployFailure(out) {
+function recover(out) {
   if (
     /relation ["']?WebinarRecording["']? already exists/i.test(out) ||
     (/WebinarRecording/i.test(out) && /already exists/i.test(out))
@@ -152,26 +84,20 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-try {
-  softAlignHistory();
-} catch (err) {
-  console.error("softAlignHistory warning (continuing):", err);
-}
-
 let deploy = migrateDeploy();
 process.stdout.write(combined(deploy));
 
-for (let attempt = 1; attempt <= 3 && deploy.status !== 0; attempt += 1) {
+if (deploy.status !== 0) {
   const out = combined(deploy);
-  if (!recoverFromDeployFailure(out)) break;
-  console.log(`Retrying prisma migrate deploy (pass ${attempt})…`);
-  deploy = migrateDeploy();
-  process.stdout.write(combined(deploy));
+  if (recover(out)) {
+    console.log("Retrying prisma migrate deploy…");
+    deploy = migrateDeploy();
+    process.stdout.write(combined(deploy));
+  }
 }
 
 if (deploy.status !== 0) {
   console.error("prisma migrate deploy failed — refusing to start the new release.");
-  console.error(combined(deploy));
   process.exit(deploy.status ?? 1);
 }
 
