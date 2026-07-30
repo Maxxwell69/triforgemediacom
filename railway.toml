@@ -3,7 +3,8 @@
 # healthcheck isn't racing `prisma migrate deploy` on boot.
 
 [deploy]
-preDeployCommand = ["npx prisma migrate deploy"]
+# Clears a one-time failed webinar migration (if present), then applies pending.
+preDeployCommand = ["node scripts/preDeployMigrate.mjs"]
 startCommand = "npx next start"
 healthcheckPath = "/login"
 healthcheckTimeout = 300
