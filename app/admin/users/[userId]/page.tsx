@@ -140,6 +140,19 @@ export default async function AdminUserDetailPage({
 
   const answers = (user.application?.answers as Record<string, unknown> | null) ?? null;
   const hasAgency = answers?.hasAgency === "yes";
+  const signupHandleRaw =
+    typeof answers?.handle === "string" ? answers.handle.trim() : "";
+  const signupHandle = signupHandleRaw
+    ? signupHandleRaw.startsWith("@")
+      ? signupHandleRaw
+      : `@${signupHandleRaw.replace(/^@/, "")}`
+    : null;
+  const signupSocialLink =
+    typeof answers?.socialLink === "string" && answers.socialLink.trim()
+      ? answers.socialLink.trim()
+      : null;
+  const signupPlatform =
+    typeof answers?.platform === "string" ? answers.platform : null;
   const countryCode =
     user.profile?.country ||
     (typeof answers?.country === "string" ? answers.country : null);
@@ -185,6 +198,14 @@ export default async function AdminUserDetailPage({
                 {isSelf && <span className="ml-2 text-xs font-body text-off-white/40">(you)</span>}
               </p>
               <p className="font-body text-sm text-off-white/50">{user.email}</p>
+              {signupHandle && (
+                <p className="mt-1 font-body text-sm text-cyan">
+                  Signup handle · <span className="font-semibold">{signupHandle}</span>
+                  {signupPlatform ? (
+                    <span className="text-off-white/40"> · {signupPlatform}</span>
+                  ) : null}
+                </p>
+              )}
             </div>
           </div>
           <span
@@ -306,7 +327,32 @@ export default async function AdminUserDetailPage({
       {user.application && (
         <section className="glass mt-6 rounded-2xl p-6">
           <h2 className="font-display text-lg tracking-wide text-off-white/80">APPLICATION</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 font-body text-sm sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3 font-body text-sm sm:grid-cols-3 lg:grid-cols-4">
+            <div>
+              <p className="text-xs text-off-white/40">Signup handle</p>
+              <p className="mt-0.5 font-semibold text-cyan">{signupHandle || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-off-white/40">Platform (apply)</p>
+              <p className="mt-0.5 text-off-white/80">{signupPlatform || "—"}</p>
+            </div>
+            <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+              <p className="text-xs text-off-white/40">Social link (apply)</p>
+              <p className="mt-0.5 truncate text-off-white/80">
+                {signupSocialLink ? (
+                  <a
+                    href={signupSocialLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan hover:underline"
+                  >
+                    {signupSocialLink}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </p>
+            </div>
             <div>
               <p className="text-xs text-off-white/40">Track</p>
               <p className="mt-0.5 text-off-white/80">{trackLabel || "—"}</p>

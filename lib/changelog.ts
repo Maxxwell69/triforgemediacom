@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.30",
+    date: "July 31, 2026",
+    title: "Admin user search & signup handles",
+    summary:
+      "Find members faster in User Management, and see the @handle they used when applying.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin User Management — search by name, email, or @handle",
+      },
+      {
+        kind: "improve",
+        text: "Admin user profile shows signup handle, apply platform, and social link",
+      },
+    ],
+  },
+  {
     version: "2.29",
     date: "July 31, 2026",
     title: "Admin TikTok link editor",

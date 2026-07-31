@@ -26,7 +26,7 @@ const statusStyles: Record<string, string> = {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: { track?: string };
+  searchParams?: { track?: string; q?: string };
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
@@ -34,6 +34,8 @@ export default async function AdminUsersPage({
     searchParams?.track === "CN" || searchParams?.track === "MN"
       ? searchParams.track
       : null;
+  const q = (searchParams?.q || "").trim();
+  const qBare = q.replace(/^@/, "");
 
   await backfillNetworkMemberships();
 
@@ -50,12 +52,47 @@ export default async function AdminUsersPage({
               ],
             }
           : {}),
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { email: { contains: q, mode: "insensitive" } },
+                { profile: { username: { contains: qBare, mode: "insensitive" } } },
+                {
+                  tiktokStatsSnapshot: {
+                    OR: [
+                      { uniqueId: { contains: qBare, mode: "insensitive" } },
+                      { nickname: { contains: q, mode: "insensitive" } },
+                    ],
+                  },
+                },
+                {
+                  tiktokConnection: {
+                    displayName: { contains: q, mode: "insensitive" },
+                  },
+                },
+                {
+                  application: {
+                    answers: { path: ["handle"], string_contains: qBare },
+                  },
+                },
+                {
+                  application: {
+                    answers: { path: ["handle"], string_contains: q },
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
       include: {
         groupMemberships: { include: { group: true } },
         tags: { select: { tagId: true } },
         userBadges: { select: { badgeId: true } },
+        application: { select: { answers: true } },
+        tiktokStatsSnapshot: { select: { uniqueId: true } },
+        profile: { select: { socialLinks: true, username: true } },
       },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
@@ -65,24 +102,64 @@ export default async function AdminUsersPage({
 
   const pointsTotals = await getUserPointsTotals(users.map((u) => u.id));
 
+  function trackHref(track: "CN" | "MN" | null, includeQ = true) {
+    const params = new URLSearchParams();
+    if (track) params.set("track", track);
+    if (includeQ && q) params.set("q", q);
+    const qs = params.toString();
+    return qs ? `/admin/users?${qs}` : "/admin/users";
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       <h1 className="font-display text-5xl tracking-wide">
         USER <span className="text-gradient">MANAGEMENT</span>
       </h1>
-      <p className="mt-2 font-body text-off-white/60">{users.length} members</p>
+      <p className="mt-2 font-body text-off-white/60">
+        {users.length} member{users.length === 1 ? "" : "s"}
+        {q ? ` matching “${q}”` : ""}
+      </p>
+
+      <form
+        action="/admin/users"
+        method="get"
+        className="mt-5 flex flex-wrap items-center gap-2"
+      >
+        {trackFilter && <input type="hidden" name="track" value={trackFilter} />}
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Search name, email, @handle…"
+          className="min-w-[220px] flex-1 rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/35 outline-none transition focus:border-cyan/60"
+        />
+        <button
+          type="submit"
+          className="rounded-lg border border-cyan/40 px-4 py-2 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+        >
+          Search
+        </button>
+        {q && (
+          <Link
+            href={trackHref(trackFilter, false)}
+            className="rounded-lg border border-off-white/15 px-3 py-2 font-body text-xs text-off-white/50 transition hover:border-off-white/30 hover:text-off-white/80"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
 
       <div className="mt-5 flex flex-wrap gap-2">
         {(
           [
-            { href: "/admin/users", label: "All", active: !trackFilter },
+            { href: trackHref(null), label: "All", active: !trackFilter },
             {
-              href: "/admin/users?track=CN",
+              href: trackHref("CN"),
               label: "Creator Network (CN)",
               active: trackFilter === "CN",
             },
             {
-              href: "/admin/users?track=MN",
+              href: trackHref("MN"),
               label: "Media Network (MN)",
               active: trackFilter === "MN",
             },
@@ -113,6 +190,18 @@ export default async function AdminUsersPage({
           const groups = user.groupMemberships.map((m) => m.group);
           const tagIds = user.tags.map((t) => t.tagId);
           const badgeIds = user.userBadges.map((b) => b.badgeId);
+          const applyHandle =
+            typeof (user.application?.answers as { handle?: unknown } | null)?.handle ===
+            "string"
+              ? String((user.application!.answers as { handle: string }).handle).trim()
+              : "";
+          const signupHandle = applyHandle
+            ? applyHandle.startsWith("@")
+              ? applyHandle
+              : `@${applyHandle.replace(/^@/, "")}`
+            : user.tiktokStatsSnapshot?.uniqueId
+              ? `@${user.tiktokStatsSnapshot.uniqueId}`
+              : null;
 
           return (
             <div key={user.id} className="glass flex flex-col gap-3 rounded-xl p-4">
@@ -126,6 +215,11 @@ export default async function AdminUsersPage({
                     {isSelf && <span className="ml-2 text-xs text-off-white/40">(you)</span>}
                   </Link>
                   <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
+                  {signupHandle && (
+                    <p className="truncate font-body text-xs text-cyan/80">
+                      Signup handle · {signupHandle}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4">
