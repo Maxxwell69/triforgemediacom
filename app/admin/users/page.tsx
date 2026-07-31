@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Prisma, UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPointsTotals } from "@/lib/points";
@@ -23,10 +24,28 @@ const statusStyles: Record<string, string> = {
   PENDING_APPLICATION: "text-off-white/50",
 };
 
+const ROLE_FILTERS = [
+  { value: null, label: "All roles" },
+  { value: "STAFF", label: "Staff (Admin + Mod)" },
+  { value: "ADMIN", label: "Admins" },
+  { value: "MOD", label: "Mods" },
+  { value: "CREATOR", label: "Creators" },
+  { value: "MEMBER", label: "Members" },
+] as const;
+
+type RoleFilter = (typeof ROLE_FILTERS)[number]["value"];
+
+const ROLE_SORT: Record<UserRole, number> = {
+  ADMIN: 0,
+  MOD: 1,
+  CREATOR: 2,
+  MEMBER: 3,
+};
+
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: { track?: string; q?: string };
+  searchParams?: { track?: string; q?: string; role?: string };
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
@@ -34,57 +53,84 @@ export default async function AdminUsersPage({
     searchParams?.track === "CN" || searchParams?.track === "MN"
       ? searchParams.track
       : null;
+  const roleParam = (searchParams?.role || "").toUpperCase();
+  const roleFilter: RoleFilter =
+    roleParam === "STAFF" ||
+    roleParam === "ADMIN" ||
+    roleParam === "MOD" ||
+    roleParam === "CREATOR" ||
+    roleParam === "MEMBER"
+      ? roleParam
+      : null;
   const q = (searchParams?.q || "").trim();
   const qBare = q.replace(/^@/, "");
 
   await backfillNetworkMemberships();
 
-  const [users, allGroups, allTags, allBadges] = await Promise.all([
-    prisma.user.findMany({
-      where: {
-        status: { in: ["ACTIVE", "INVITED", "BANNED"] },
-        ...(trackFilter
-          ? {
-              OR: [
-                { tags: { some: { tag: { name: trackFilter } } } },
-                { groupMemberships: { some: { group: { name: trackFilter } } } },
-                { application: { is: { answers: { path: ["track"], equals: trackFilter } } } },
-              ],
-            }
-          : {}),
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                { email: { contains: q, mode: "insensitive" } },
-                { profile: { username: { contains: qBare, mode: "insensitive" } } },
-                {
-                  tiktokStatsSnapshot: {
-                    OR: [
-                      { uniqueId: { contains: qBare, mode: "insensitive" } },
-                      { nickname: { contains: q, mode: "insensitive" } },
-                    ],
-                  },
-                },
-                {
-                  tiktokConnection: {
-                    displayName: { contains: q, mode: "insensitive" },
-                  },
-                },
-                {
-                  application: {
-                    answers: { path: ["handle"], string_contains: qBare },
-                  },
-                },
-                {
-                  application: {
-                    answers: { path: ["handle"], string_contains: q },
-                  },
-                },
-              ],
-            }
-          : {}),
+  const where: Prisma.UserWhereInput = {
+    status: { in: ["ACTIVE", "INVITED", "BANNED"] },
+  };
+
+  if (roleFilter === "STAFF") {
+    where.role = { in: ["ADMIN", "MOD"] };
+  } else if (roleFilter) {
+    where.role = roleFilter;
+  }
+
+  if (trackFilter) {
+    // Keep staff visible on CN/MN tabs — they usually aren't tagged CN/MN
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      {
+        OR: [
+          { tags: { some: { tag: { name: trackFilter } } } },
+          { groupMemberships: { some: { group: { name: trackFilter } } } },
+          { application: { is: { answers: { path: ["track"], equals: trackFilter } } } },
+          { role: { in: ["ADMIN", "MOD"] } },
+        ],
       },
+    ];
+  }
+
+  if (q) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { email: { contains: q, mode: "insensitive" } },
+          { profile: { username: { contains: qBare, mode: "insensitive" } } },
+          {
+            tiktokStatsSnapshot: {
+              OR: [
+                { uniqueId: { contains: qBare, mode: "insensitive" } },
+                { nickname: { contains: q, mode: "insensitive" } },
+              ],
+            },
+          },
+          {
+            tiktokConnection: {
+              displayName: { contains: q, mode: "insensitive" },
+            },
+          },
+          {
+            application: {
+              answers: { path: ["handle"], string_contains: qBare },
+            },
+          },
+          {
+            application: {
+              answers: { path: ["handle"], string_contains: q },
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  const [usersRaw, allGroups, allTags, allBadges] = await Promise.all([
+    prisma.user.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         groupMemberships: { include: { group: true } },
@@ -100,12 +146,26 @@ export default async function AdminUsersPage({
     prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, icon: true } }),
   ]);
 
+  // Staff (admins/mods) first so their profiles aren't buried under the roster
+  const users = [...usersRaw].sort((a, b) => {
+    const roleDiff = ROLE_SORT[a.role] - ROLE_SORT[b.role];
+    if (roleDiff !== 0) return roleDiff;
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+
   const pointsTotals = await getUserPointsTotals(users.map((u) => u.id));
 
-  function trackHref(track: "CN" | "MN" | null, includeQ = true) {
+  function listHref(opts: {
+    track?: "CN" | "MN" | null;
+    role?: RoleFilter;
+    includeQ?: boolean;
+  }) {
     const params = new URLSearchParams();
+    const track = opts.track === undefined ? trackFilter : opts.track;
+    const role = opts.role === undefined ? roleFilter : opts.role;
     if (track) params.set("track", track);
-    if (includeQ && q) params.set("q", q);
+    if (role) params.set("role", role);
+    if (opts.includeQ !== false && q) params.set("q", q);
     const qs = params.toString();
     return qs ? `/admin/users?${qs}` : "/admin/users";
   }
@@ -116,7 +176,13 @@ export default async function AdminUsersPage({
         USER <span className="text-gradient">MANAGEMENT</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        {users.length} member{users.length === 1 ? "" : "s"}
+        {users.length} account{users.length === 1 ? "" : "s"}
+        {roleFilter === "STAFF"
+          ? " · staff"
+          : roleFilter
+            ? ` · ${roleFilter.toLowerCase()}s`
+            : ""}
+        {trackFilter ? ` · ${trackFilter}` : ""}
         {q ? ` matching “${q}”` : ""}
       </p>
 
@@ -126,6 +192,7 @@ export default async function AdminUsersPage({
         className="mt-5 flex flex-wrap items-center gap-2"
       >
         {trackFilter && <input type="hidden" name="track" value={trackFilter} />}
+        {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
         <input
           type="search"
           name="q"
@@ -141,7 +208,7 @@ export default async function AdminUsersPage({
         </button>
         {q && (
           <Link
-            href={trackHref(trackFilter, false)}
+            href={listHref({ includeQ: false })}
             className="rounded-lg border border-off-white/15 px-3 py-2 font-body text-xs text-off-white/50 transition hover:border-off-white/30 hover:text-off-white/80"
           >
             Clear
@@ -150,33 +217,47 @@ export default async function AdminUsersPage({
       </form>
 
       <div className="mt-5 flex flex-wrap gap-2">
+        {ROLE_FILTERS.map((opt) => {
+          const active = roleFilter === opt.value;
+          return (
+            <Link
+              key={opt.label}
+              href={listHref({ role: opt.value })}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+                active
+                  ? "border-cyan bg-cyan/20 text-cyan"
+                  : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+              }`}
+            >
+              {opt.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
         {(
           [
-            { href: trackHref(null), label: "All", active: !trackFilter },
-            {
-              href: trackHref("CN"),
-              label: "Creator Network (CN)",
-              active: trackFilter === "CN",
-            },
-            {
-              href: trackHref("MN"),
-              label: "Media Network (MN)",
-              active: trackFilter === "MN",
-            },
+            { track: null, label: "All tracks" },
+            { track: "CN" as const, label: "Creator Network (CN)" },
+            { track: "MN" as const, label: "Media Network (MN)" },
           ] as const
-        ).map((opt) => (
-          <Link
-            key={opt.href}
-            href={opt.href}
-            className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
-              opt.active
-                ? "border-orange bg-orange/20 text-orange"
-                : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
-            }`}
-          >
-            {opt.label}
-          </Link>
-        ))}
+        ).map((opt) => {
+          const active = trackFilter === opt.track;
+          return (
+            <Link
+              key={opt.label}
+              href={listHref({ track: opt.track })}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+                active
+                  ? "border-orange bg-orange/20 text-orange"
+                  : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+              }`}
+            >
+              {opt.label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="mt-8">
@@ -184,6 +265,15 @@ export default async function AdminUsersPage({
       </div>
 
       <div className="mt-10 flex flex-col gap-2">
+        {users.length === 0 && (
+          <p className="glass rounded-xl p-8 text-center font-body text-sm text-off-white/50">
+            No accounts match these filters. Try{" "}
+            <Link href="/admin/users?role=STAFF" className="text-cyan hover:underline">
+              Staff (Admin + Mod)
+            </Link>{" "}
+            or clear search.
+          </p>
+        )}
         {users.map((user) => {
           const isSelf = user.id === currentUserId;
           const isBanned = user.status === "BANNED";
@@ -204,7 +294,14 @@ export default async function AdminUsersPage({
               : null;
 
           return (
-            <div key={user.id} className="glass flex flex-col gap-3 rounded-xl p-4">
+            <div
+              key={user.id}
+              className={`glass flex flex-col gap-3 rounded-xl p-4 ${
+                user.role === "ADMIN" || user.role === "MOD"
+                  ? "border border-cyan/25"
+                  : ""
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
                   <Link
@@ -213,6 +310,11 @@ export default async function AdminUsersPage({
                   >
                     {user.name || "Unnamed"}
                     {isSelf && <span className="ml-2 text-xs text-off-white/40">(you)</span>}
+                    {(user.role === "ADMIN" || user.role === "MOD") && (
+                      <span className="ml-2 rounded border border-cyan/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan">
+                        {user.role}
+                      </span>
+                    )}
                   </Link>
                   <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
                   {signupHandle && (

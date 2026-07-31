@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.32",
+    date: "July 31, 2026",
+    title: "Admin staff filter in Users",
+    summary:
+      "Admins and mods stay visible in User Management — filter by Staff/Admin and staff rows sort to the top.",
+    items: [
+      {
+        kind: "improve",
+        text: "User Management role filters (Staff, Admins, Mods, Creators, Members)",
+      },
+      {
+        kind: "fix",
+        text: "Staff accounts remain visible on CN/MN track tabs and sort above the roster",
+      },
+    ],
+  },
+  {
     version: "2.31",
     date: "July 31, 2026",
     title: "Admin nav sections & dashboard shortcuts",
