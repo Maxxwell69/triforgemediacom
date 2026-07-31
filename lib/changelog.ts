@@ -57,10 +57,10 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "1.6",
   },
   {
-    name: "TikTok Connect",
-    tagline: "Live profile stats",
+    name: "TikTok Stats",
+    tagline: "Profile counts & live check",
     description:
-      "Members connect TikTok to show real follower, like, and video stats on their community profile.",
+      "Members add their TikTok handle to pull followers, likes, video count, and Live/Offline status (via tik.tools) onto their community profile.",
     since: "1.6",
   },
   {
@@ -94,6 +94,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.25",
+    date: "July 31, 2026",
+    title: "TikTok stats without OAuth",
+    summary:
+      "Pull followers, likes, videos, and Live/Offline from a member’s TikTok handle — no Connect TikTok login required.",
+    items: [
+      {
+        kind: "feature",
+        text: "Account TikTok stats via tik.tools — profile counts + live check from social link handle",
+      },
+      {
+        kind: "improve",
+        text: "Member and admin profiles show cached TikTok stats with a Live/Offline badge",
+      },
+    ],
+  },
   {
     version: "2.24",
     date: "July 31, 2026",

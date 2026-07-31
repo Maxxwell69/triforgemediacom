@@ -3,16 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { activeGoalKeys } from "@/lib/goals";
-import { formatCount } from "@/lib/formatCount";
 import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
 import { getTikTokUsername } from "@/lib/memberDisplay";
+import { parseTikTokUniqueId } from "@/lib/tiktools";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
 import TagPicker from "@/components/TagPicker";
 import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
-import { disconnectTikTok, refreshTikTokStatsAction } from "./actions";
+import TikTokStatsCard from "@/components/TikTokStatsCard";
+import { refreshTikTokStatsAction } from "./actions";
 
 export default async function AccountPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function AccountPage({
 }) {
   const { user, profile } = await requireProfile();
   const contact = await hydrateProfileContactFromApplication(user.id);
-  const [points, userBadges, certificates, tiktokConnection, selfAssignableTags, myTags] =
+  const [points, userBadges, certificates, tiktokStats, selfAssignableTags, myTags] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -34,7 +35,7 @@ export default async function AccountPage({
         include: { course: { select: { title: true } } },
         orderBy: { issuedAt: "desc" },
       }),
-      prisma.tikTokConnection.findUnique({ where: { userId: user.id } }),
+      prisma.tikTokStatsSnapshot.findUnique({ where: { userId: user.id } }),
       prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
       prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
     ]);
@@ -42,6 +43,7 @@ export default async function AccountPage({
   const myTagIds = myTags.map((ut) => ut.tagId);
   const adminOnlyTags = myTags.map((ut) => ut.tag).filter((tag) => !tag.selfAssignable);
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
+  const tiktokUniqueId = parseTikTokUniqueId(socialLinks.tiktok);
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -141,7 +143,7 @@ export default async function AccountPage({
               getTikTokUsername({
                 name: user.name ?? null,
                 profile: { socialLinks: profile.socialLinks, username: profile.username },
-                tiktokConnection,
+                tiktokStatsSnapshot: tiktokStats,
               }) ?? null
             }
           />
@@ -199,66 +201,21 @@ export default async function AccountPage({
           TikTok stats
         </h2>
         <div className="mt-4">
-          {searchParams?.tiktok === "connected" && (
+          {searchParams?.tiktok === "refreshed" && (
             <p className="mb-3 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
-              TikTok connected!
+              TikTok stats updated.
             </p>
           )}
           {searchParams?.tiktok === "error" && (
             <p className="mb-3 rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
-              {searchParams.tiktok_message || "Couldn't connect your TikTok account."}
+              {searchParams.tiktok_message || "Couldn't refresh TikTok stats."}
             </p>
           )}
 
-          {tiktokConnection ? (
-            <div className="glass flex flex-col gap-4 rounded-2xl p-6">
-              <div className="flex items-center gap-3">
-                {tiktokConnection.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- external TikTok CDN avatar
-                  <img
-                    src={tiktokConnection.avatarUrl}
-                    alt=""
-                    className="h-12 w-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-charcoal">
-                    🎵
-                  </div>
-                )}
-                <div>
-                  <p className="font-body text-sm font-semibold text-off-white">
-                    {tiktokConnection.displayName || "TikTok account connected"}
-                  </p>
-                  <p className="font-body text-xs text-off-white/40">
-                    {tiktokConnection.statsUpdatedAt
-                      ? `Stats updated ${tiktokConnection.statsUpdatedAt.toLocaleDateString([], { dateStyle: "medium" })}`
-                      : "Connected via TikTok Login"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-xl border border-off-white/10 py-3">
-                  <p className="font-display text-xl text-off-white">
-                    {formatCount(tiktokConnection.followerCount ?? 0)}
-                  </p>
-                  <p className="font-body text-xs text-off-white/40">Followers</p>
-                </div>
-                <div className="rounded-xl border border-off-white/10 py-3">
-                  <p className="font-display text-xl text-off-white">
-                    {formatCount(tiktokConnection.likesCount ?? 0)}
-                  </p>
-                  <p className="font-body text-xs text-off-white/40">Likes</p>
-                </div>
-                <div className="rounded-xl border border-off-white/10 py-3">
-                  <p className="font-display text-xl text-off-white">
-                    {formatCount(tiktokConnection.videoCount ?? 0)}
-                  </p>
-                  <p className="font-body text-xs text-off-white/40">Videos</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
+          {tiktokStats ? (
+            <TikTokStatsCard
+              stats={tiktokStats}
+              actions={
                 <form action={refreshTikTokStatsAction}>
                   <button
                     type="submit"
@@ -267,28 +224,29 @@ export default async function AccountPage({
                     Refresh stats
                   </button>
                 </form>
-                <form action={disconnectTikTok}>
-                  <button
-                    type="submit"
-                    className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/60 transition hover:border-orange/40 hover:text-orange"
-                  >
-                    Disconnect
-                  </button>
-                </form>
-              </div>
-            </div>
-          ) : (
+              }
+            />
+          ) : tiktokUniqueId ? (
             <div className="glass flex flex-col items-center gap-3 rounded-2xl p-6 text-center">
               <p className="font-body text-sm text-off-white/60">
-                Connect your TikTok account to show your real follower, like, and video counts
-                right on your community profile.
+                Pull followers, likes, video count, and whether you&apos;re live from{" "}
+                <span className="text-off-white">@{tiktokUniqueId}</span>.
               </p>
-              <Link
-                href="/api/tiktok/connect"
-                className="rounded-lg bg-gradient-to-r from-orange to-cyan px-6 py-2.5 font-body text-sm font-semibold text-charcoal transition hover:opacity-90"
-              >
-                🎵 Connect TikTok
-              </Link>
+              <form action={refreshTikTokStatsAction}>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-gradient-to-r from-orange to-cyan px-6 py-2.5 font-body text-sm font-semibold text-charcoal transition hover:opacity-90"
+                >
+                  Fetch TikTok stats
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="glass rounded-2xl p-6 text-center">
+              <p className="font-body text-sm text-off-white/60">
+                Add your TikTok profile URL in Social links above, save, then fetch your stats
+                and live status here.
+              </p>
             </div>
           )}
         </div>

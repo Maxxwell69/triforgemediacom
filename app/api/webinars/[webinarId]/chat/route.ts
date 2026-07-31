@@ -20,6 +20,7 @@ const webinarChatAuthorSelect = {
   image: true,
   profile: { select: { socialLinks: true, username: true } },
   tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+  tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
 } as const;
 
 export async function GET(

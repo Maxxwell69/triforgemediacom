@@ -101,6 +101,7 @@ model User {
   assignmentReviews          AssignmentSubmission[] @relation("ReviewedBy")
   certificates               Certificate[]
   tiktokConnection           TikTokConnection?
+  tiktokStatsSnapshot        TikTokStatsSnapshot?
   tags                       UserTag[]
   passwordResetTokens        PasswordResetToken[]
   broadcastsSent             Broadcast[]
@@ -428,6 +429,34 @@ model TikTokConnection {
   refreshTokenExpiresAt DateTime
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- TikTok stats via tik.tools (no OAuth) ----------
+// Cached profile counts + live status looked up by the member's TikTok
+// username from Profile.socialLinks.tiktok. Independent of Login Kit.
+
+model TikTokStatsSnapshot {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  uniqueId         String
+  nickname         String?
+  avatarUrl        String?
+  verified         Boolean   @default(false)
+  bio              String?
+  followerCount    Int       @default(0)
+  followingCount   Int       @default(0)
+  heartCount       Int       @default(0)
+  videoCount       Int       @default(0)
+  isLive           Boolean   @default(false)
+  liveTitle        String?
+  liveViewerCount  Int?
+  roomId           String?
+  statsFetchedAt   DateTime?
+  liveCheckedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

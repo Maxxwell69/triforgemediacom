@@ -31,6 +31,7 @@ export default async function WebinarRoomPage({
       email: true,
       profile: { select: { socialLinks: true, username: true } },
       tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+      tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
     },
   });
 

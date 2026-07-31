@@ -14,6 +14,7 @@ type AuthorRow = {
     showRealName?: boolean | null;
   } | null;
   tiktokConnection?: { displayName: string | null; avatarUrl: string | null } | null;
+  tiktokStatsSnapshot?: { nickname: string | null; avatarUrl: string | null; uniqueId?: string } | null;
 };
 
 /** Flatten a Prisma user include into the shape ChatView / DM expect. */

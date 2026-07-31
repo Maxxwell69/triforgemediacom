@@ -136,6 +136,7 @@ export function displayNameForUser(user: {
   email?: string | null;
   profile?: { socialLinks?: unknown; username?: string | null } | null;
   tiktokConnection?: { displayName: string | null; avatarUrl?: string | null } | null;
+  tiktokStatsSnapshot?: { nickname: string | null; avatarUrl: string | null; uniqueId?: string } | null;
 }) {
   return getChatDisplayName({
     name: user.name ?? null,
@@ -144,5 +145,6 @@ export function displayNameForUser(user: {
     tiktokConnection: user.tiktokConnection
       ? { displayName: user.tiktokConnection.displayName, avatarUrl: user.tiktokConnection.avatarUrl ?? null }
       : null,
+    tiktokStatsSnapshot: user.tiktokStatsSnapshot ?? null,
   });
 }

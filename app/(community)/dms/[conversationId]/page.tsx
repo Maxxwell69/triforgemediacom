@@ -32,6 +32,7 @@ export default async function DmConversationPage({
                 email: true,
                 profile: { select: { platform: true, showRealName: true, socialLinks: true } },
                 tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+                tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
               },
             },
           },

@@ -78,6 +78,7 @@ export async function getLeaderboard(
       lastSeenAt: true,
       profile: { select: { socialLinks: true, username: true, showRealName: true } },
       tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+      tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
     },
   });
   const byId = new Map(users.map((u) => [u.id, u]));

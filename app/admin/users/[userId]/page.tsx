@@ -14,6 +14,7 @@ import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
+import TikTokStatsCard from "@/components/TikTokStatsCard";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
@@ -85,6 +86,7 @@ export default async function AdminUserDetailPage({
         tags: { include: { tag: true } },
         userBadges: { include: { badge: true }, orderBy: { awardedAt: "desc" } },
         tiktokConnection: true,
+        tiktokStatsSnapshot: true,
         enrollments: {
           include: { course: { include: { lessons: { select: { id: true } } } } },
           orderBy: { enrolledAt: "desc" },
@@ -493,26 +495,11 @@ export default async function AdminUserDetailPage({
         </section>
       )}
 
-      {/* TikTok connection */}
-      {user.tiktokConnection && (
-        <section className="glass mt-6 rounded-2xl p-6">
-          <h2 className="font-display text-lg tracking-wide text-off-white/80">TIKTOK CONNECTION</h2>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg border border-off-white/10 py-2">
-              <p className="font-display text-sm text-off-white">
-                {user.tiktokConnection.followerCount ?? 0}
-              </p>
-              <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">Followers</p>
-            </div>
-            <div className="rounded-lg border border-off-white/10 py-2">
-              <p className="font-display text-sm text-off-white">{user.tiktokConnection.likesCount ?? 0}</p>
-              <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">Likes</p>
-            </div>
-            <div className="rounded-lg border border-off-white/10 py-2">
-              <p className="font-display text-sm text-off-white">{user.tiktokConnection.videoCount ?? 0}</p>
-              <p className="font-body text-[10px] uppercase tracking-wide text-off-white/40">Videos</p>
-            </div>
-          </div>
+      {/* TikTok stats (tik.tools) */}
+      {user.tiktokStatsSnapshot && (
+        <section className="mt-6">
+          <h2 className="mb-3 font-display text-lg tracking-wide text-off-white/80">TIKTOK STATS</h2>
+          <TikTokStatsCard stats={user.tiktokStatsSnapshot} />
         </section>
       )}
     </main>

@@ -58,6 +58,7 @@ export default async function MembersPage({
       profile: true,
       groupMemberships: { include: { group: true } },
       tiktokConnection: true,
+      tiktokStatsSnapshot: true,
       tags: { include: { tag: true } },
     },
     orderBy: { createdAt: "asc" },

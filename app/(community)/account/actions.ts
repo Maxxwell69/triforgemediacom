@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
@@ -10,7 +11,7 @@ import {
   changePasswordSchema,
   nameIdentitySchema,
 } from "@/lib/validations/account";
-import { refreshTikTokStats } from "@/lib/tiktokOAuth";
+import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
 import { sendEmailChangedNotice } from "@/lib/email";
 import type { ProfileFormState } from "@/components/ProfileForm";
 
@@ -228,20 +229,17 @@ export async function changeEmail(
   return { success: true };
 }
 
-export async function disconnectTikTok() {
-  const user = await requireUser();
-  await prisma.tikTokConnection.deleteMany({ where: { userId: user.id } });
-  revalidatePath("/account");
-}
-
 export async function refreshTikTokStatsAction() {
   const user = await requireUser();
-  try {
-    await refreshTikTokStats(user.id);
-  } catch (err) {
-    console.error("Failed to refresh TikTok stats:", err);
-  }
+  const result = await refreshTikTokStatsSnapshot(user.id, { force: true });
   revalidatePath("/account");
+  revalidatePath(`/members/${user.id}`);
+  if (!result.ok) {
+    redirect(
+      `/account?tiktok=error&tiktok_message=${encodeURIComponent(result.error)}`
+    );
+  }
+  redirect("/account?tiktok=refreshed");
 }
 
 export async function toggleMyTag(tagId: string, added: boolean) {

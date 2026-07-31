@@ -19,7 +19,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   // Mark online on every community page load (beacon keeps it fresh).
   await touchPresence(user.id).catch(() => {});
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection] =
+  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats] =
     await Promise.all([
       prisma.channel.findMany({
         orderBy: { createdAt: "asc" },
@@ -38,6 +38,10 @@ export default async function AppShell({ children }: { children: React.ReactNode
         where: { userId: user.id },
         select: { displayName: true, avatarUrl: true },
       }),
+      prisma.tikTokStatsSnapshot.findUnique({
+        where: { userId: user.id },
+        select: { nickname: true, avatarUrl: true, uniqueId: true },
+      }),
     ]);
   const channels = allChannels.filter((c) => canAccessChannel(user.role, c, userGroupIds));
   const unreadCounts = await getChannelUnreadCounts(
@@ -53,6 +57,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     tiktokConnection: tiktokConnection
       ? { displayName: tiktokConnection.displayName, avatarUrl: tiktokConnection.avatarUrl }
       : null,
+    tiktokStatsSnapshot: tiktokStats,
   });
 
   const sidebar = (
