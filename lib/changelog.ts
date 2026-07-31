@@ -60,8 +60,8 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "TikTok Stats",
     tagline: "Profile counts & live check",
     description:
-      "Members add their TikTok handle to pull followers, likes, video count, and Live/Offline status (via tik.tools) onto their community profile.",
-    since: "1.6",
+      "Members keep their TikTok handle on profile — the hub pulls followers, likes, video count, and Live/Offline status (via tik.tools) with no TikTok login required.",
+    since: "2.25",
   },
   {
     name: "Rewards & Badges",
@@ -94,6 +94,35 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.27",
+    date: "July 31, 2026",
+    title: "TikTok stats & live check",
+    summary:
+      "Real TikTok followers, likes, videos, and Live/Offline on Account and profiles — from the member’s handle, no TikTok login.",
+    items: [
+      {
+        kind: "feature",
+        text: "TikTok stats on Account — followers, likes, video count via tik.tools (no OAuth)",
+      },
+      {
+        kind: "feature",
+        text: "Live/Offline badge with stream title and viewer count when a creator is live",
+      },
+      {
+        kind: "feature",
+        text: "Same stats card on member profiles and admin user pages",
+      },
+      {
+        kind: "improve",
+        text: "Existing members keep apply/profile handles — stats auto-load; no re-connect required",
+      },
+      {
+        kind: "program",
+        text: "TikTok Stats listed under Programs & solutions on /updates",
+      },
+    ],
+  },
   {
     version: "2.26",
     date: "July 31, 2026",
