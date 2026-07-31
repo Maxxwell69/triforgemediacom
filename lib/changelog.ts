@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.24",
+    date: "July 31, 2026",
+    title: "TikTok Connect re-enabled",
+    summary:
+      "Connect TikTok is live again on Account so we can record the approval walkthrough for TikTok.",
+    items: [
+      {
+        kind: "feature",
+        text: "Re-enabled Connect TikTok button on the account page (OAuth via /api/tiktok/connect)",
+      },
+    ],
+  },
+  {
     version: "2.23",
     date: "July 31, 2026",
     title: "Public Hub website & sign-in",
