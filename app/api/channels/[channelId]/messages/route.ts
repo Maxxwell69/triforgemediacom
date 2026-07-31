@@ -146,7 +146,7 @@ export async function POST(
     );
   }
 
-  let replyToId: string | null = parsed.data.replyToId ?? null;
+  const replyToId: string | null = parsed.data.replyToId ?? null;
   if (replyToId) {
     const parent = await prisma.message.findFirst({
       where: { id: replyToId, channelId: channel.id },
