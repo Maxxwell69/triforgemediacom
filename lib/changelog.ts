@@ -88,6 +88,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.20",
+    date: "July 31, 2026",
+    title: "Members directory CN filter",
+    summary:
+      "The CN chip on the community members page now finds people who show CN on their profile via group, tag, or application track.",
+    items: [
+      {
+        kind: "fix",
+        text: "Members CN/MN filter matches group membership and application track, not only the tag row",
+      },
+    ],
+  },
+  {
     version: "2.19",
     date: "July 31, 2026",
     title: "CN / MN filtering for broadcasts",

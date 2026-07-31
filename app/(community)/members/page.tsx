@@ -1,12 +1,34 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
+import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
+
+function tagFilterWhere(tag: { id: string; name: string }): Prisma.UserWhereInput {
+  const network = tag.name.toUpperCase();
+  // CN/MN show on profiles as group pills and/or tags. Match either, plus the
+  // application track, so the filter agrees with what members see on cards.
+  if (network === "CN" || network === "MN") {
+    return {
+      OR: [
+        { tags: { some: { tagId: tag.id } } },
+        {
+          groupMemberships: {
+            some: { group: { name: { equals: network, mode: "insensitive" } } },
+          },
+        },
+        { application: { is: { answers: { path: ["track"], equals: network } } } },
+      ],
+    };
+  }
+  return { tags: { some: { tagId: tag.id } } };
+}
 
 export default async function MembersPage({
   searchParams,
@@ -15,26 +37,30 @@ export default async function MembersPage({
 }) {
   await requireProfile();
 
-  const activeTagId = searchParams?.tag;
+  // Keep CN/MN tag+group in sync so chips and profile badges stay aligned.
+  await backfillNetworkMemberships();
 
-  const [allTags, members] = await Promise.all([
-    prisma.tag.findMany({ orderBy: { name: "asc" } }),
-    prisma.user.findMany({
-      where: {
-        status: "ACTIVE",
-        profile: { isNot: null },
-        hiddenFromDirectory: false,
-        ...(activeTagId ? { tags: { some: { tagId: activeTagId } } } : {}),
-      },
-      include: {
-        profile: true,
-        groupMemberships: { include: { group: true } },
-        tiktokConnection: true,
-        tags: { include: { tag: true } },
-      },
-      orderBy: { createdAt: "asc" },
-    }),
-  ]);
+  const activeTagId = searchParams?.tag;
+  const allTags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
+  const activeTag = activeTagId
+    ? allTags.find((t) => t.id === activeTagId) ?? null
+    : null;
+
+  const members = await prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      profile: { isNot: null },
+      hiddenFromDirectory: false,
+      ...(activeTag ? tagFilterWhere(activeTag) : {}),
+    },
+    include: {
+      profile: true,
+      groupMemberships: { include: { group: true } },
+      tiktokConnection: true,
+      tags: { include: { tag: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
 
   const pointsTotals = await getUserPointsTotals(members.map((m) => m.id));
 
