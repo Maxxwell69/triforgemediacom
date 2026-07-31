@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
 import { backfillNetworkMemberships } from "@/lib/mnCn";
+import { ensureLiveTag } from "@/lib/tiktokLive";
+import { parseTikTokUniqueId } from "@/lib/tiktools";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { isOnline } from "@/lib/presence";
@@ -40,11 +42,16 @@ export default async function MembersPage({
 
   // Keep CN/MN tag+group in sync so chips and profile badges stay aligned.
   await backfillNetworkMemberships();
+  await ensureLiveTag();
 
-  const activeTagId = searchParams?.tag;
+  const activeTagParam = searchParams?.tag;
   const allTags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
-  const activeTag = activeTagId
-    ? allTags.find((t) => t.id === activeTagId) ?? null
+  const activeTag = activeTagParam
+    ? allTags.find(
+        (t) =>
+          t.id === activeTagParam ||
+          t.name.toLowerCase() === activeTagParam.toLowerCase()
+      ) ?? null
     : null;
 
   const members = await prisma.user.findMany({
@@ -81,7 +88,7 @@ export default async function MembersPage({
             <Link
               href="/members"
               className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
-                !activeTagId
+                !activeTag
                   ? "border-off-white/40 bg-off-white/10 text-off-white"
                   : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
               }`}
@@ -89,7 +96,7 @@ export default async function MembersPage({
               All
             </Link>
             {allTags.map((tag) => {
-              const active = activeTagId === tag.id;
+              const active = activeTag?.id === tag.id;
               return (
                 <Link
                   key={tag.id}
@@ -123,12 +130,20 @@ export default async function MembersPage({
             const tags = member.tags.map((ut) => ut.tag);
             const platform = member.profile?.platform;
             const online = isOnline(member.lastSeenAt);
+            const isLive = !!member.tiktokStatsSnapshot?.isLive;
+            const tiktokHandle =
+              member.tiktokStatsSnapshot?.uniqueId ||
+              parseTikTokUniqueId(
+                ((member.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok
+              );
 
             return (
               <Link
                 key={member.id}
                 href={`/members/${member.id}`}
-                className="glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
+                className={`glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40 ${
+                  isLive ? "border border-orange/35" : ""
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={44} online={online} />
@@ -142,12 +157,22 @@ export default async function MembersPage({
                         />
                       )}
                       {displayName}
+                      {isLive && (
+                        <span className="shrink-0 rounded bg-orange/20 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
+                          Live
+                        </span>
+                      )}
                     </p>
-                    {platform && (
-                      <span className="inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
-                        {PLATFORM_LABELS[platform]}
-                      </span>
-                    )}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      {tiktokHandle && (
+                        <span className="font-body text-xs text-off-white/45">@{tiktokHandle}</span>
+                      )}
+                      {platform && (
+                        <span className="inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
+                          {PLATFORM_LABELS[platform]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

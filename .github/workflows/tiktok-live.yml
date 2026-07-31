@@ -1,0 +1,23 @@
+name: TikTok live sync
+
+on:
+  schedule:
+    # Every 5 minutes — keep LIVE tags and /live page fresh
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call tiktok-live cron endpoint
+        run: |
+          http_code=$(curl -s -o response.txt -w "%{http_code}" \
+            "https://hub.triforgemedia.com/api/cron/tiktok-live?secret=${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $http_code"
+          echo "Response body:"
+          cat response.txt
+          if [ "$http_code" -ne 200 ]; then
+            echo "Cron endpoint returned a non-200 status"
+            exit 1
+          fi

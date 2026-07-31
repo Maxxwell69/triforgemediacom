@@ -85,6 +85,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
       <div className="mb-4 flex flex-col gap-0.5">
         <Link
+          href="/live"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
+        >
+          Live
+        </Link>
+        <Link
           href="/members"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >

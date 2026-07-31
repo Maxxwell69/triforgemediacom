@@ -156,3 +156,64 @@ export async function checkLive(uniqueId: string): Promise<TikToolsLiveStatus> {
     viewerCount: typeof entry.userCount === "number" ? entry.userCount : null,
   };
 }
+
+export type TikToolsBulkLiveRow = TikToolsLiveStatus & {
+  uniqueId: string;
+  /** When true, upstream was inconclusive — do not flip offline. */
+  unknown: boolean;
+};
+
+/**
+ * Batch live check (Pro: up to 50 / call). Prefer this over looping checkLive.
+ */
+export async function bulkCheckLive(uniqueIds: string[]): Promise<TikToolsBulkLiveRow[]> {
+  if (uniqueIds.length === 0) return [];
+
+  const key = apiKey();
+  const res = await fetch(`https://api.tik.tools/webcast/bulk_live_check?apiKey=${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+    },
+    body: JSON.stringify({ unique_ids: uniqueIds }),
+    cache: "no-store",
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    status_code?: number;
+    message?: string;
+    data?: Array<{
+      unique_id?: string;
+      room_id?: string;
+      alive?: boolean | null;
+      is_live?: boolean | null;
+      alive_status?: string;
+      title?: string;
+      userCount?: number;
+      check_failed?: boolean;
+    }>;
+  };
+
+  if (!res.ok) {
+    throw new Error(data.message || `tik.tools bulk_live_check failed (${res.status})`);
+  }
+
+  const rows = Array.isArray(data.data) ? data.data : [];
+  return rows.map((row) => {
+    const status = (row.alive_status || "").toLowerCase();
+    const unknown =
+      row.check_failed === true ||
+      status === "unknown" ||
+      (row.alive == null && row.is_live == null);
+    const isLive = unknown ? false : !!(row.alive ?? row.is_live);
+    return {
+      uniqueId: (row.unique_id || "").toLowerCase(),
+      isLive,
+      unknown,
+      roomId: row.room_id ?? null,
+      title: row.title ?? null,
+      viewerCount: typeof row.userCount === "number" ? row.userCount : null,
+    };
+  });
+}

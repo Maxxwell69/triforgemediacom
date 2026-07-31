@@ -68,6 +68,7 @@ async function main() {
 
   const defaultTags: { name: string; color: string; selfAssignable: boolean }[] = [
     { name: "CN", color: "#FD4802", selfAssignable: false },
+    { name: "LIVE", color: "#FD4802", selfAssignable: false },
     { name: "Live Host", color: "#00D4FF", selfAssignable: true },
     { name: "Music Maker", color: "#A855F7", selfAssignable: true },
     { name: "Shop Owner", color: "#22C55E", selfAssignable: true },

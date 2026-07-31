@@ -91,22 +91,27 @@ Do this in the Railway dashboard (not something I can do from here without CLI/A
    across databases, so if production and staging show the same host, include the port
    too (e.g. `sakura.proxy.rlwy.net:28726`) — the port is what actually tells them apart.
 
-## Scheduled jobs (streak reminders)
+## Scheduled jobs
 
-`/api/cron/streak-reminders` sends an evening nudge to anyone about to lose their
-TikTask streak. It's a plain HTTP endpoint guarded by a shared secret — nothing in-app
-calls it, so it needs an external trigger:
+Both cron endpoints are plain HTTP routes guarded by `CRON_SECRET`
+(`?secret=` or `Authorization: Bearer`). Nothing in-app calls them.
 
-1. In Railway, add `CRON_SECRET` to the **production** environment's variables (any
-   random string — see `.env.example`).
-2. In the GitHub repo → **Settings → Secrets and variables → Actions**, add a repo
-   secret named `CRON_SECRET` with that same value.
-3. `.github/workflows/streak-reminders.yml` runs daily at 01:00 UTC and curls
-   `https://hub.triforgemedia.com/api/cron/streak-reminders?secret=$CRON_SECRET`. You
-   can trigger it on-demand from the repo's **Actions** tab (`workflow_dispatch`) to test.
+1. Set `CRON_SECRET` on **production** (Vercel/Railway) and as a GitHub Actions
+   repo secret with the same value.
+2. Workflows under `.github/workflows/` curl the production hub URL.
 
-This only targets production — staging has test data and doesn't need real reminder
-emails going out, so `CRON_SECRET` doesn't need to be set there.
+| Job | Workflow | Schedule | Endpoint |
+|---|---|---|---|
+| TikTask streak reminders | `streak-reminders.yml` | Daily 01:00 UTC | `/api/cron/streak-reminders` |
+| TikTok live sync | `tiktok-live.yml` | Every 5 minutes | `/api/cron/tiktok-live` |
+
+**TikTok live sync** backfills missing TikTok social links from apply handles,
+polls tik.tools for who’s live, updates `TikTokStatsSnapshot`, and assigns/clears
+the admin-only **LIVE** tag (powers `/live` and member filters). Requires
+`TIKTOOLS_API_KEY` on production. Trigger on-demand from the Actions tab
+(`workflow_dispatch`) after deploy to populate handles immediately.
+
+Staging doesn’t need these crons unless you’re testing them there.
 
 ## Versioning
 

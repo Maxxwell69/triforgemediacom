@@ -34,7 +34,7 @@ function asString(value: unknown): string | null {
 export async function ensureTikTokSocialLink(userId: string): Promise<string | null> {
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { socialLinks: true },
+    select: { socialLinks: true, platform: true },
   });
   if (!profile) return null;
 
@@ -51,9 +51,18 @@ export async function ensureTikTokSocialLink(userId: string): Promise<string | n
   const answers = (application?.answers ?? {}) as ApplyAnswers;
   const socialLink = asString(answers.socialLink);
   const handle = asString(answers.handle);
+  const appPlatform = asString(answers.platform)?.toUpperCase() ?? null;
 
-  // Prefer TikTok URL from apply; otherwise use the submitted handle (@name or bare)
-  const uniqueId = parseTikTokUniqueId(socialLink) || parseTikTokUniqueId(handle);
+  // Prefer an explicit TikTok URL from apply
+  let uniqueId = parseTikTokUniqueId(socialLink);
+
+  // Only use bare handle when we know they're a TikTok creator (avoids Twitch handles)
+  const isTikTokCreator =
+    profile.platform === "TIKTOK" || appPlatform === "TIKTOK";
+  if (!uniqueId && isTikTokCreator) {
+    uniqueId = parseTikTokUniqueId(handle);
+  }
+
   if (!uniqueId) return null;
 
   const tiktokUrl =
@@ -68,6 +77,25 @@ export async function ensureTikTokSocialLink(userId: string): Promise<string | n
   });
 
   return uniqueId;
+}
+
+/** Push TikTok URLs into Profile.socialLinks for every active member we can resolve. */
+export async function backfillAllTikTokSocialLinks(): Promise<{
+  checked: number;
+  filled: number;
+}> {
+  const users = await prisma.user.findMany({
+    where: { status: "ACTIVE", profile: { isNot: null } },
+    select: { id: true },
+  });
+
+  let filled = 0;
+  for (const user of users) {
+    const uniqueId = await ensureTikTokSocialLink(user.id);
+    if (uniqueId) filled++;
+  }
+
+  return { checked: users.length, filled };
 }
 
 /**
@@ -135,6 +163,8 @@ export async function refreshTikTokStatsSnapshot(
           liveCheckedAt: new Date(),
         },
       });
+      const { syncLiveTagForUser } = await import("@/lib/tiktokLive");
+      await syncLiveTagForUser(userId, live.isLive);
       return { ok: true };
     } catch (err) {
       console.error("tik.tools live check failed:", err);
@@ -235,6 +265,11 @@ export async function refreshTikTokStatsSnapshot(
         data: { socialLinks: links },
       });
     }
+  }
+
+  if (live) {
+    const { syncLiveTagForUser } = await import("@/lib/tiktokLive");
+    await syncLiveTagForUser(userId, live.isLive);
   }
 
   if (profileError && !live) {

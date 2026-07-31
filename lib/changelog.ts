@@ -57,10 +57,10 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "1.6",
   },
   {
-    name: "TikTok Stats",
-    tagline: "Profile counts & live check",
+    name: "TikTok Stats & Live",
+    tagline: "Profile counts · who's live",
     description:
-      "Members keep their TikTok handle on profile — the hub pulls followers, likes, video count, and Live/Offline status (via tik.tools) with no TikTok login required.",
+      "Members keep their TikTok handle on profile — the hub pulls followers, likes, video count, Live/Offline, auto LIVE tags, and a Live page for the community (via tik.tools, no TikTok login).",
     since: "2.25",
   },
   {
@@ -94,6 +94,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.28",
+    date: "July 31, 2026",
+    title: "Who's Live + TikTok handles on Members",
+    summary:
+      "See who’s live on TikTok from a Live page, auto LIVE tags, and TikTok @handles filled into member profiles from apply data.",
+    items: [
+      {
+        kind: "feature",
+        text: "New Live page (/live) listing community creators currently live on TikTok",
+      },
+      {
+        kind: "feature",
+        text: "Automatic LIVE tag on members who are live — cleared when they go offline",
+      },
+      {
+        kind: "improve",
+        text: "Backfill TikTok URLs into social links so member network cards show @handles",
+      },
+      {
+        kind: "improve",
+        text: "Cron every 5 minutes syncs live status via tik.tools bulk check",
+      },
+    ],
+  },
   {
     version: "2.27",
     date: "July 31, 2026",
