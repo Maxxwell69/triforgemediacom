@@ -12,6 +12,82 @@ export type RefreshTikTokStatsResult =
   | { ok: true }
   | { ok: false; error: string };
 
+type ApplyAnswers = {
+  platform?: unknown;
+  handle?: unknown;
+  socialLink?: unknown;
+};
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Ensure Profile.socialLinks.tiktok is set from existing data so members do not
+ * have to re-enter a handle. Sources (in order):
+ * 1. Existing socialLinks.tiktok
+ * 2. Application socialLink (if it's a TikTok URL)
+ * 3. Application handle (esp. when platform is TIKTOK)
+ *
+ * Returns the resolved uniqueId, or null if nothing usable was found.
+ */
+export async function ensureTikTokSocialLink(userId: string): Promise<string | null> {
+  const profile = await prisma.profile.findUnique({
+    where: { userId },
+    select: { socialLinks: true },
+  });
+  if (!profile) return null;
+
+  const socialLinks = {
+    ...((profile.socialLinks as Record<string, string> | null) ?? {}),
+  };
+  const existing = parseTikTokUniqueId(socialLinks.tiktok);
+  if (existing) return existing;
+
+  const application = await prisma.application.findUnique({
+    where: { userId },
+    select: { answers: true },
+  });
+  const answers = (application?.answers ?? {}) as ApplyAnswers;
+  const socialLink = asString(answers.socialLink);
+  const handle = asString(answers.handle);
+
+  // Prefer TikTok URL from apply; otherwise use the submitted handle (@name or bare)
+  const uniqueId = parseTikTokUniqueId(socialLink) || parseTikTokUniqueId(handle);
+  if (!uniqueId) return null;
+
+  const tiktokUrl =
+    socialLink && parseTikTokUniqueId(socialLink) === uniqueId
+      ? socialLink
+      : `https://www.tiktok.com/@${uniqueId}`;
+
+  socialLinks.tiktok = tiktokUrl;
+  await prisma.profile.update({
+    where: { userId },
+    data: { socialLinks },
+  });
+
+  return uniqueId;
+}
+
+/**
+ * One-time auto-pull for members who already have a TikTok handle but no
+ * cached snapshot yet (so they don't need to click Fetch).
+ */
+export async function ensureTikTokStatsIfMissing(userId: string): Promise<void> {
+  if (!isTikToolsConfigured()) return;
+
+  await ensureTikTokSocialLink(userId);
+
+  const existing = await prisma.tikTokStatsSnapshot.findUnique({
+    where: { userId },
+    select: { id: true, statsFetchedAt: true, liveCheckedAt: true },
+  });
+  if (existing?.statsFetchedAt || existing?.liveCheckedAt) return;
+
+  await refreshTikTokStatsSnapshot(userId, { force: true });
+}
+
 /**
  * Refresh cached TikTok profile stats + live status for a user from their
  * Profile.socialLinks.tiktok handle (tik.tools — no OAuth).
@@ -24,12 +100,15 @@ export async function refreshTikTokStatsSnapshot(
     return { ok: false, error: "TikTok stats are not configured (missing API key)." };
   }
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId },
-    select: { socialLinks: true },
-  });
-  const socialLinks = (profile?.socialLinks as Record<string, string> | null) ?? {};
-  const uniqueId = parseTikTokUniqueId(socialLinks.tiktok);
+  let uniqueId = await ensureTikTokSocialLink(userId);
+  if (!uniqueId) {
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { socialLinks: true },
+    });
+    const socialLinks = (profile?.socialLinks as Record<string, string> | null) ?? {};
+    uniqueId = parseTikTokUniqueId(socialLinks.tiktok);
+  }
   if (!uniqueId) {
     return {
       ok: false,
@@ -90,11 +169,13 @@ export async function refreshTikTokStatsSnapshot(
     }
   }
 
+  const resolvedUniqueId = userProfile?.uniqueId ?? uniqueId;
+
   await prisma.tikTokStatsSnapshot.upsert({
     where: { userId },
     create: {
       userId,
-      uniqueId: userProfile?.uniqueId ?? uniqueId,
+      uniqueId: resolvedUniqueId,
       nickname: userProfile?.nickname ?? null,
       avatarUrl: userProfile?.avatarUrl ?? null,
       verified: userProfile?.verified ?? false,
@@ -124,7 +205,7 @@ export async function refreshTikTokStatsSnapshot(
             videoCount: userProfile.videoCount,
             statsFetchedAt: now,
           }
-        : { uniqueId }),
+        : { uniqueId: resolvedUniqueId }),
       ...(live
         ? {
             isLive: live.isLive,
@@ -136,6 +217,25 @@ export async function refreshTikTokStatsSnapshot(
         : {}),
     },
   });
+
+  // Keep social link in sync with the resolved @handle (no re-entry needed later)
+  if (userProfile?.uniqueId) {
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { socialLinks: true },
+    });
+    const links = {
+      ...((profile?.socialLinks as Record<string, string> | null) ?? {}),
+    };
+    const canonical = `https://www.tiktok.com/@${userProfile.uniqueId}`;
+    if (links.tiktok !== canonical) {
+      links.tiktok = canonical;
+      await prisma.profile.update({
+        where: { userId },
+        data: { socialLinks: links },
+      });
+    }
+  }
 
   if (profileError && !live) {
     return { ok: false, error: profileError };

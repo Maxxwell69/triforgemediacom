@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.26",
+    date: "July 31, 2026",
+    title: "TikTok stats auto-fill for existing members",
+    summary:
+      "Existing members keep their TikTok handle from apply/profile — stats load automatically without re-entering an account.",
+    items: [
+      {
+        kind: "improve",
+        text: "Backfill TikTok social link from application handle/URL when missing",
+      },
+      {
+        kind: "improve",
+        text: "Auto-fetch TikTok stats on Account the first time a handle is present",
+      },
+    ],
+  },
+  {
     version: "2.25",
     date: "July 31, 2026",
     title: "TikTok stats without OAuth",

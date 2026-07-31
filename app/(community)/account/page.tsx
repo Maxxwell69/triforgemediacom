@@ -6,6 +6,7 @@ import { activeGoalKeys } from "@/lib/goals";
 import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
 import { getTikTokUsername } from "@/lib/memberDisplay";
 import { parseTikTokUniqueId } from "@/lib/tiktools";
+import { ensureTikTokSocialLink, ensureTikTokStatsIfMissing } from "@/lib/tiktokStats";
 import ProfileEditForm from "./ProfileEditForm";
 import ChangeEmailForm from "./ChangeEmailForm";
 import ChangePasswordForm from "./ChangePasswordForm";
@@ -22,6 +23,18 @@ export default async function AccountPage({
 }) {
   const { user, profile } = await requireProfile();
   const contact = await hydrateProfileContactFromApplication(user.id);
+
+  // Reuse apply-form handle / existing social link; auto-fetch stats once if missing
+  await ensureTikTokSocialLink(user.id);
+  await ensureTikTokStatsIfMissing(user.id).catch((err) => {
+    console.error("Auto TikTok stats fetch failed:", err);
+  });
+
+  const refreshedProfile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    select: { socialLinks: true, username: true },
+  });
+
   const [points, userBadges, certificates, tiktokStats, selfAssignableTags, myTags] =
     await Promise.all([
       getUserPointsTotal(user.id),
@@ -42,7 +55,9 @@ export default async function AccountPage({
 
   const myTagIds = myTags.map((ut) => ut.tagId);
   const adminOnlyTags = myTags.map((ut) => ut.tag).filter((tag) => !tag.selfAssignable);
-  const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
+  const socialLinks =
+    (refreshedProfile?.socialLinks as Record<string, string> | null) ??
+    ((profile.socialLinks as Record<string, string> | null) ?? {});
   const tiktokUniqueId = parseTikTokUniqueId(socialLinks.tiktok);
 
   return (
@@ -142,7 +157,10 @@ export default async function AccountPage({
             tiktokUsername={
               getTikTokUsername({
                 name: user.name ?? null,
-                profile: { socialLinks: profile.socialLinks, username: profile.username },
+                profile: {
+                  socialLinks,
+                  username: refreshedProfile?.username ?? profile.username,
+                },
                 tiktokStatsSnapshot: tiktokStats,
               }) ?? null
             }
@@ -244,8 +262,8 @@ export default async function AccountPage({
           ) : (
             <div className="glass rounded-2xl p-6 text-center">
               <p className="font-body text-sm text-off-white/60">
-                Add your TikTok profile URL in Social links above, save, then fetch your stats
-                and live status here.
+                We couldn&apos;t find a TikTok handle on your profile or application. Add your
+                TikTok URL in Social links above, save, then fetch stats here.
               </p>
             </div>
           )}
