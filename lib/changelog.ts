@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.31",
+    date: "July 31, 2026",
+    title: "Admin nav sections & dashboard shortcuts",
+    summary:
+      "Admin is grouped into People, Tasks, Structure, Email, Chat & safety, Webinars, Learning, and Site — with dashboard buttons into every area.",
+    items: [
+      {
+        kind: "improve",
+        text: "Admin top nav uses section dropdowns instead of one long link strip",
+      },
+      {
+        kind: "feature",
+        text: "Admin dashboard — shortcut buttons for every admin area by section",
+      },
+    ],
+  },
+  {
     version: "2.30",
     date: "July 31, 2026",
     title: "Admin user search & signup handles",
