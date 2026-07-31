@@ -12,6 +12,10 @@ export const broadcastAudienceSchema = z.discriminatedUnion("audienceType", [
     audienceType: z.literal("SINGLE_USER"),
     email: z.string().trim().email("Enter a valid email"),
   }),
+  z.object({
+    audienceType: z.literal("NETWORK_TRACK"),
+    track: z.enum(["CN", "MN"]),
+  }),
 ]);
 
 export const broadcastContentSchema = z.object({

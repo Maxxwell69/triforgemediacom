@@ -111,7 +111,27 @@ export async function setHiddenFromDirectory(userId: string, hidden: boolean) {
 export async function toggleUserGroup(userId: string, groupId: string, isMember: boolean) {
   await requireAdmin();
 
-  if (isMember) {
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } });
+  const networkName = group?.name.toUpperCase();
+
+  if (networkName === "CN" || networkName === "MN") {
+    const { syncNetworkMembership, CN_GROUP_NAME, CN_TAG_NAME, MN_GROUP_NAME, MN_TAG_NAME } =
+      await import("@/lib/mnCn");
+    if (isMember) {
+      await syncNetworkMembership(userId, networkName);
+    } else {
+      const name = networkName === "CN" ? CN_TAG_NAME : MN_TAG_NAME;
+      const gName = networkName === "CN" ? CN_GROUP_NAME : MN_GROUP_NAME;
+      const [t, g] = await Promise.all([
+        prisma.tag.findUnique({ where: { name } }),
+        prisma.group.findUnique({ where: { name: gName } }),
+      ]);
+      await Promise.all([
+        t ? prisma.userTag.deleteMany({ where: { userId, tagId: t.id } }) : null,
+        g ? prisma.groupMember.deleteMany({ where: { userId, groupId: g.id } }) : null,
+      ]);
+    }
+  } else if (isMember) {
     await prisma.groupMember.upsert({
       where: { userId_groupId: { userId, groupId } },
       update: {},
@@ -123,6 +143,7 @@ export async function toggleUserGroup(userId: string, groupId: string, isMember:
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/members");
 }
 
 export type AddMemberState = { error?: string; success?: boolean } | null;

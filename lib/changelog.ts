@@ -88,6 +88,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.19",
+    date: "July 31, 2026",
+    title: "CN / MN filtering for broadcasts",
+    summary:
+      "Creator Network memberships now sync to the CN tag and group, so admins can filter and email CN or MN tracks reliably.",
+    items: [
+      {
+        kind: "fix",
+        text: "CN-track members get CN group + tag (same as MN already did) so filters recognize them",
+      },
+      {
+        kind: "feature",
+        text: "Broadcast audience option for Creator Network (CN) or Media Network (MN) track",
+      },
+      {
+        kind: "feature",
+        text: "Admin Users page filter chips for CN / MN",
+      },
+      {
+        kind: "improve",
+        text: "Backfill repairs existing members missing CN/MN memberships when admins open Users or Broadcast",
+      },
+    ],
+  },
+  {
     version: "2.18",
     date: "July 30, 2026",
     title: "Public updates & version history",

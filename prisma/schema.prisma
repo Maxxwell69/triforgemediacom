@@ -452,6 +452,7 @@ enum BroadcastAudienceType {
   TAG
   GROUP
   SINGLE_USER
+  NETWORK_TRACK
 }
 
 model Broadcast {

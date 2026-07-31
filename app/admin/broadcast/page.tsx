@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { isAiEmailConfigured } from "@/lib/aiEmail";
+import { backfillNetworkMemberships } from "@/lib/mnCn";
 import BroadcastComposer from "@/components/admin/BroadcastComposer";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBroadcastPage() {
+  // Repair CN/MN group+tag for anyone routed by apply/import before those
+  // memberships were written — so By tag / By group / CN track all agree.
+  await backfillNetworkMemberships();
+
   const [tags, groups, recentBroadcasts] = await Promise.all([
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -21,8 +26,8 @@ export default async function AdminBroadcastPage() {
         BROAD<span className="text-gradient">CAST</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Send a one-off announcement email to the whole community, a tag, a group, or a single
-        member. Type a rough topic and let AI draft it, or write it yourself.
+        Send a one-off announcement email to the whole community, CN or MN track, a tag, a
+        group, or a single member. Type a rough topic and let AI draft it, or write it yourself.
       </p>
 
       <div className="mt-8">

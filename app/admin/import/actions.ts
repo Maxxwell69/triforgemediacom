@@ -7,7 +7,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { parseContactsCsv, deriveHasAgencyFromTags, type CsvContactRow } from "@/lib/csvImport";
 import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
 import { sendHubMigrationInviteEmail } from "@/lib/email";
-import { syncMnMembership } from "@/lib/mnCn";
+import { syncNetworkMembership } from "@/lib/mnCn";
 
 async function requireAdmin() {
   const session = await auth();
@@ -96,6 +96,7 @@ export async function importCsvContacts(
       }
 
       const hasAgency = deriveHasAgencyFromTags(contact.tags);
+      const track = hasAgency ? ("MN" as const) : ("CN" as const);
       const token = generateInviteToken();
 
       const user = await prisma.user.create({
@@ -111,6 +112,7 @@ export async function importCsvContacts(
                 phone: contact.phone,
                 tags: contact.tags,
                 hasAgency: hasAgency ? "yes" : "no",
+                track,
               },
               status: "APPROVED",
               inviteToken: token,
@@ -135,10 +137,9 @@ export async function importCsvContacts(
         },
       });
 
-      // Routes them into the MN group/tag (or leaves them out for CN) the
-      // same way the normal /apply form does, so downstream admin views and
-      // any MN-gated content behave identically for imported accounts.
-      await syncMnMembership(user.id, hasAgency);
+      // Routes them into the MN or CN group+tag the same way /apply does,
+      // so broadcast/member filters can target either network.
+      await syncNetworkMembership(user.id, track);
       if (hasAgency) mnCount++;
       else cnCount++;
 

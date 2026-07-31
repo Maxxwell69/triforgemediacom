@@ -11,6 +11,7 @@ import {
   broadcastContentSchema,
   broadcastDraftSchema,
 } from "@/lib/validations/broadcast";
+import { resolveNetworkTrackEmails, type NetworkTrack } from "@/lib/mnCn";
 
 async function requireAdmin() {
   const session = await auth();
@@ -58,17 +59,25 @@ type Audience =
   | { audienceType: "ALL_MEMBERS" }
   | { audienceType: "TAG"; tagId: string }
   | { audienceType: "GROUP"; groupId: string }
-  | { audienceType: "SINGLE_USER"; email: string };
+  | { audienceType: "SINGLE_USER"; email: string }
+  | { audienceType: "NETWORK_TRACK"; track: NetworkTrack };
+
+/** ACTIVE + INVITED — invited CN/MN folks still have email and should get broadcasts. */
+const EMAILABLE_STATUSES: Array<"ACTIVE" | "INVITED"> = ["ACTIVE", "INVITED"];
+
+function isEmailable(status: string): boolean {
+  return status === "ACTIVE" || status === "INVITED";
+}
 
 async function resolveAudience(
   audience: Audience
 ): Promise<{ emails: string[]; label: string }> {
   if (audience.audienceType === "ALL_MEMBERS") {
     const users = await prisma.user.findMany({
-      where: { status: "ACTIVE" },
+      where: { status: { in: EMAILABLE_STATUSES } },
       select: { email: true },
     });
-    return { emails: users.map((u) => u.email), label: "All active members" };
+    return { emails: users.map((u) => u.email), label: "All members" };
   }
 
   if (audience.audienceType === "TAG") {
@@ -78,7 +87,7 @@ async function resolveAudience(
     });
     if (!tag) return { emails: [], label: "Unknown tag" };
     const emails = tag.users
-      .filter((ut) => ut.user.status === "ACTIVE")
+      .filter((ut) => isEmailable(ut.user.status))
       .map((ut) => ut.user.email);
     return { emails, label: `Tag: ${tag.name}` };
   }
@@ -90,9 +99,13 @@ async function resolveAudience(
     });
     if (!group) return { emails: [], label: "Unknown group" };
     const emails = group.members
-      .filter((m) => m.user.status === "ACTIVE")
+      .filter((m) => isEmailable(m.user.status))
       .map((m) => m.user.email);
     return { emails, label: `Group: ${group.name}` };
+  }
+
+  if (audience.audienceType === "NETWORK_TRACK") {
+    return resolveNetworkTrackEmails(audience.track);
   }
 
   const user = await prisma.user.findUnique({ where: { email: audience.email.toLowerCase() } });
@@ -142,7 +155,12 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
         ? { audienceType: "GROUP" as const, groupId: String(formData.get("groupId") || "") }
         : audienceType === "SINGLE_USER"
           ? { audienceType: "SINGLE_USER" as const, email: String(formData.get("email") || "") }
-          : { audienceType: "ALL_MEMBERS" as const };
+          : audienceType === "NETWORK_TRACK"
+            ? {
+                audienceType: "NETWORK_TRACK" as const,
+                track: String(formData.get("track") || "") as NetworkTrack,
+              }
+            : { audienceType: "ALL_MEMBERS" as const };
 
   const audienceParsed = broadcastAudienceSchema.safeParse(audienceInput);
   if (!audienceParsed.success) {

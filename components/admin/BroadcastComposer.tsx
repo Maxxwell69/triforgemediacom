@@ -22,10 +22,11 @@ export default function BroadcastComposer({
   const [subject, setSubject] = useState("");
   const [bodyText, setBodyText] = useState("");
   const [audienceType, setAudienceType] = useState<
-    "ALL_MEMBERS" | "TAG" | "GROUP" | "SINGLE_USER"
+    "ALL_MEMBERS" | "TAG" | "GROUP" | "SINGLE_USER" | "NETWORK_TRACK"
   >("ALL_MEMBERS");
   const [tagId, setTagId] = useState(tags[0]?.id ?? "");
   const [groupId, setGroupId] = useState(groups[0]?.id ?? "");
+  const [track, setTrack] = useState<"CN" | "MN">("CN");
   const [email, setEmail] = useState("");
 
   const [generating, startGenerating] = useTransition();
@@ -53,12 +54,16 @@ export default function BroadcastComposer({
 
     const audienceLabel =
       audienceType === "ALL_MEMBERS"
-        ? "all active members"
+        ? "all members (active + invited)"
         : audienceType === "TAG"
           ? `everyone tagged "${tags.find((t) => t.id === tagId)?.name}"`
           : audienceType === "GROUP"
             ? `everyone in "${groups.find((g) => g.id === groupId)?.name}"`
-            : `${email}`;
+            : audienceType === "NETWORK_TRACK"
+              ? track === "CN"
+                ? "everyone on the Creator Network (CN) track"
+                : "everyone on the Media Network (MN) track"
+              : `${email}`;
 
     if (!confirm(`Send this email to ${audienceLabel}? This can't be undone.`)) return;
 
@@ -137,7 +142,8 @@ export default function BroadcastComposer({
           <div className="flex flex-wrap gap-2">
             {(
               [
-                { value: "ALL_MEMBERS", label: "All active members" },
+                { value: "ALL_MEMBERS", label: "All members" },
+                { value: "NETWORK_TRACK", label: "CN / MN track" },
                 { value: "TAG", label: "By tag" },
                 { value: "GROUP", label: "By group" },
                 { value: "SINGLE_USER", label: "Single user" },
@@ -158,6 +164,39 @@ export default function BroadcastComposer({
             ))}
           </div>
           <input type="hidden" name="audienceType" value={audienceType} />
+
+          {audienceType === "NETWORK_TRACK" && (
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: "CN", label: "Creator Network (CN)" },
+                    { value: "MN", label: "Media Network (MN)" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTrack(opt.value)}
+                    className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
+                      track === opt.value
+                        ? opt.value === "CN"
+                          ? "border-orange bg-orange/20 text-orange"
+                          : "border-cyan bg-cyan/20 text-cyan"
+                        : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <input type="hidden" name="track" value={track} />
+              <p className="font-body text-xs text-off-white/40">
+                Matches CN/MN tag, group membership, or application track — including invited
+                members who haven&apos;t signed up yet.
+              </p>
+            </div>
+          )}
 
           {audienceType === "TAG" && (
             <select

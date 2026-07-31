@@ -13,7 +13,7 @@ import { readFileSync } from "fs";
 import { prisma } from "../lib/prisma";
 import { parseContactsCsv, deriveHasAgencyFromTags } from "../lib/csvImport";
 import { generateInviteToken, inviteTokenExpiry } from "../lib/invite";
-import { syncMnMembership } from "../lib/mnCn";
+import { syncNetworkMembership } from "../lib/mnCn";
 
 async function main() {
   const csvPath = process.argv[2];
@@ -65,6 +65,7 @@ async function main() {
               phone: row.phone,
               tags: row.tags,
               hasAgency: hasAgency ? "yes" : "no",
+              track,
             },
             status: "APPROVED",
             inviteToken: token,
@@ -86,7 +87,7 @@ async function main() {
       },
     });
 
-    await syncMnMembership(user.id, hasAgency);
+    await syncNetworkMembership(user.id, track);
     if (hasAgency) mnCount++;
     else cnCount++;
 

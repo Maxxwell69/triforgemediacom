@@ -91,7 +91,27 @@ export async function setGroupChannels(groupId: string, channelIds: string[]) {
 export async function setGroupMemberAdded(groupId: string, userId: string, added: boolean) {
   await requireAdmin();
 
-  if (added) {
+  const group = await prisma.group.findUnique({ where: { id: groupId }, select: { name: true } });
+  const networkName = group?.name.toUpperCase();
+
+  if (networkName === "CN" || networkName === "MN") {
+    const { syncNetworkMembership, CN_GROUP_NAME, CN_TAG_NAME, MN_GROUP_NAME, MN_TAG_NAME } =
+      await import("@/lib/mnCn");
+    if (added) {
+      await syncNetworkMembership(userId, networkName);
+    } else {
+      const name = networkName === "CN" ? CN_TAG_NAME : MN_TAG_NAME;
+      const gName = networkName === "CN" ? CN_GROUP_NAME : MN_GROUP_NAME;
+      const [t, g] = await Promise.all([
+        prisma.tag.findUnique({ where: { name } }),
+        prisma.group.findUnique({ where: { name: gName } }),
+      ]);
+      await Promise.all([
+        t ? prisma.userTag.deleteMany({ where: { userId, tagId: t.id } }) : null,
+        g ? prisma.groupMember.deleteMany({ where: { userId, groupId: g.id } }) : null,
+      ]);
+    }
+  } else if (added) {
     await prisma.groupMember.upsert({
       where: { userId_groupId: { userId, groupId } },
       update: {},
@@ -103,4 +123,5 @@ export async function setGroupMemberAdded(groupId: string, userId: string, added
 
   revalidatePath(`/admin/groups/${groupId}`);
   revalidatePath("/admin/users");
+  revalidatePath("/members");
 }

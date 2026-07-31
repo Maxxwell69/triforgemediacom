@@ -8,7 +8,7 @@ import {
   sendTikTokRequestExpectedEmail,
 } from "@/lib/email";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
-import { syncMnMembership } from "@/lib/mnCn";
+import { syncNetworkMembership } from "@/lib/mnCn";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { autoApproveApplication } from "@/lib/autoApprove";
 import { resolveApplyTrack, countryLabel } from "@/lib/applyTrack";
@@ -72,7 +72,7 @@ async function routeApplicant(opts: {
   mnReason: "agency" | "country" | null;
 }) {
   try {
-    await syncMnMembership(opts.userId, opts.track === "MN");
+    await syncNetworkMembership(opts.userId, opts.track);
     if (opts.track === "CN") {
       // Two separate emails on purpose: the first confirms the application
       // and gets them tapping "Apply" now, the second is a dedicated

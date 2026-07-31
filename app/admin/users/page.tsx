@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPointsTotals } from "@/lib/points";
+import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
@@ -22,13 +23,34 @@ const statusStyles: Record<string, string> = {
   PENDING_APPLICATION: "text-off-white/50",
 };
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: { track?: string };
+}) {
   const session = await auth();
   const currentUserId = session!.user.id;
+  const trackFilter =
+    searchParams?.track === "CN" || searchParams?.track === "MN"
+      ? searchParams.track
+      : null;
+
+  await backfillNetworkMemberships();
 
   const [users, allGroups, allTags, allBadges] = await Promise.all([
     prisma.user.findMany({
-      where: { status: { in: ["ACTIVE", "INVITED", "BANNED"] } },
+      where: {
+        status: { in: ["ACTIVE", "INVITED", "BANNED"] },
+        ...(trackFilter
+          ? {
+              OR: [
+                { tags: { some: { tag: { name: trackFilter } } } },
+                { groupMemberships: { some: { group: { name: trackFilter } } } },
+                { application: { is: { answers: { path: ["track"], equals: trackFilter } } } },
+              ],
+            }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       include: {
         groupMemberships: { include: { group: true } },
@@ -49,6 +71,36 @@ export default async function AdminUsersPage() {
         USER <span className="text-gradient">MANAGEMENT</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">{users.length} members</p>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {(
+          [
+            { href: "/admin/users", label: "All", active: !trackFilter },
+            {
+              href: "/admin/users?track=CN",
+              label: "Creator Network (CN)",
+              active: trackFilter === "CN",
+            },
+            {
+              href: "/admin/users?track=MN",
+              label: "Media Network (MN)",
+              active: trackFilter === "MN",
+            },
+          ] as const
+        ).map((opt) => (
+          <Link
+            key={opt.href}
+            href={opt.href}
+            className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+              opt.active
+                ? "border-orange bg-orange/20 text-orange"
+                : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+            }`}
+          >
+            {opt.label}
+          </Link>
+        ))}
+      </div>
 
       <div className="mt-8">
         <AddMemberForm />

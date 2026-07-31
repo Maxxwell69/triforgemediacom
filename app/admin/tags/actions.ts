@@ -84,7 +84,28 @@ export async function deleteTag(tagId: string) {
 export async function setUserTagAdded(tagId: string, userId: string, added: boolean) {
   await requireAdmin();
 
-  if (added) {
+  const tag = await prisma.tag.findUnique({ where: { id: tagId }, select: { name: true } });
+  const networkName = tag?.name.toUpperCase();
+
+  if (networkName === "CN" || networkName === "MN") {
+    const { syncNetworkMembership, CN_GROUP_NAME, CN_TAG_NAME, MN_GROUP_NAME, MN_TAG_NAME } =
+      await import("@/lib/mnCn");
+    if (added) {
+      // Pair tag+group and clear the opposite network track.
+      await syncNetworkMembership(userId, networkName);
+    } else {
+      const name = networkName === "CN" ? CN_TAG_NAME : MN_TAG_NAME;
+      const groupName = networkName === "CN" ? CN_GROUP_NAME : MN_GROUP_NAME;
+      const [t, g] = await Promise.all([
+        prisma.tag.findUnique({ where: { name } }),
+        prisma.group.findUnique({ where: { name: groupName } }),
+      ]);
+      await Promise.all([
+        t ? prisma.userTag.deleteMany({ where: { userId, tagId: t.id } }) : null,
+        g ? prisma.groupMember.deleteMany({ where: { userId, groupId: g.id } }) : null,
+      ]);
+    }
+  } else if (added) {
     await prisma.userTag.upsert({
       where: { userId_tagId: { userId, tagId } },
       update: {},
