@@ -186,7 +186,7 @@ export async function resolveNetworkTrackEmails(
     select: { email: true },
   });
 
-  const emails = [...new Set(users.map((u) => u.email))];
+  const emails = Array.from(new Set(users.map((u) => u.email)));
   return {
     emails,
     label: track === "CN" ? "Creator Network (CN)" : "Media Network (MN)",
