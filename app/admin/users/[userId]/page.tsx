@@ -15,6 +15,7 @@ import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityTog
 import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import TikTokStatsCard from "@/components/TikTokStatsCard";
+import AdminTikTokLinkForm from "@/components/admin/AdminTikTokLinkForm";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
@@ -495,13 +496,27 @@ export default async function AdminUserDetailPage({
         </section>
       )}
 
-      {/* TikTok stats (tik.tools) */}
-      {user.tiktokStatsSnapshot && (
-        <section className="mt-6">
-          <h2 className="mb-3 font-display text-lg tracking-wide text-off-white/80">TIKTOK STATS</h2>
-          <TikTokStatsCard stats={user.tiktokStatsSnapshot} />
-        </section>
-      )}
+      {/* TikTok link + stats */}
+      <section className="glass mt-6 rounded-2xl p-6">
+        <h2 className="font-display text-lg tracking-wide text-off-white/80">TIKTOK</h2>
+        <p className="mt-1 font-body text-xs text-off-white/40">
+          Set the member&apos;s TikTok URL so it shows on their profile and Members directory.
+          Saving with a valid handle also refreshes stats and live status.
+        </p>
+        <div className="mt-4">
+          <AdminTikTokLinkForm
+            userId={user.id}
+            currentUrl={
+              ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok ?? ""
+            }
+          />
+        </div>
+        {user.tiktokStatsSnapshot && (
+          <div className="mt-5 border-t border-off-white/10 pt-5">
+            <TikTokStatsCard stats={user.tiktokStatsSnapshot} />
+          </div>
+        )}
+      </section>
     </main>
   );
 }

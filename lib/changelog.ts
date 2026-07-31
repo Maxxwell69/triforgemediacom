@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.29",
+    date: "July 31, 2026",
+    title: "Admin TikTok link editor",
+    summary:
+      "Admins can set a member’s TikTok profile URL from the user page so handles show on the network without waiting on the member.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin user page — edit TikTok URL / @handle and refresh stats on save",
+      },
+    ],
+  },
+  {
     version: "2.28",
     date: "July 31, 2026",
     title: "Who's Live + TikTok handles on Members",

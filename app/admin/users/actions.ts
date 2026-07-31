@@ -271,3 +271,70 @@ export async function adjustUserPoints(formData: FormData) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${parsed.data.userId}`);
 }
+
+/**
+ * Set or clear a member's TikTok profile URL (socialLinks.tiktok), then refresh
+ * stats/live status when a valid handle is present.
+ */
+export async function updateUserTikTokLink(
+  userId: string,
+  tiktokUrl: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      profile: { select: { socialLinks: true } },
+    },
+  });
+  if (!user) {
+    return { ok: false, error: "User not found" };
+  }
+  if (!user.profile) {
+    return { ok: false, error: "Member has no profile yet" };
+  }
+
+  const raw = tiktokUrl.trim();
+  const { parseTikTokUniqueId } = await import("@/lib/tiktools");
+  const uniqueId = raw ? parseTikTokUniqueId(raw) : null;
+
+  if (raw && !uniqueId) {
+    return {
+      ok: false,
+      error: "Enter a TikTok profile URL (tiktok.com/@handle) or @handle.",
+    };
+  }
+
+  const socialLinks = {
+    ...((user.profile.socialLinks as Record<string, string> | null) ?? {}),
+  };
+
+  if (uniqueId) {
+    socialLinks.tiktok = raw.startsWith("http")
+      ? raw
+      : `https://www.tiktok.com/@${uniqueId}`;
+  } else {
+    delete socialLinks.tiktok;
+  }
+
+  await prisma.profile.update({
+    where: { userId },
+    data: { socialLinks },
+  });
+
+  if (uniqueId) {
+    const { refreshTikTokStatsSnapshot } = await import("@/lib/tiktokStats");
+    await refreshTikTokStatsSnapshot(userId, { force: true }).catch((err) => {
+      console.error("Admin TikTok stats refresh failed:", err);
+    });
+  }
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath(`/members/${userId}`);
+  revalidatePath("/members");
+  revalidatePath("/live");
+  revalidatePath("/account");
+  return { ok: true };
+}
