@@ -88,6 +88,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.21",
+    date: "July 31, 2026",
+    title: "Channel chat replies",
+    summary:
+      "Reply to any message in community channels — Discord-style quote preview above your message.",
+    items: [
+      {
+        kind: "feature",
+        text: "Reply button on channel messages with quoted preview and jump-to-original",
+      },
+      {
+        kind: "improve",
+        text: "Project rule: every ship bumps APP_VERSION and adds an /updates changelog entry",
+      },
+    ],
+  },
+  {
     version: "2.20",
     date: "July 31, 2026",
     title: "Members directory CN filter",

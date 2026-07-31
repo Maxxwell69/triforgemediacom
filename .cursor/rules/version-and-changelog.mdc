@@ -1,0 +1,34 @@
+---
+description: Every shipped update must bump APP_VERSION and add a /updates changelog entry
+alwaysApply: true
+---
+
+# Versioning & Updates page
+
+When you ship a user-facing change, bug fix, or admin feature to this repo (especially anything merged/pushed to `master` / production):
+
+1. **Bump** `APP_VERSION` in `lib/version.ts` (minor bump for a normal batch: `2.20` → `2.21`; major only for big milestones).
+2. **Add a release entry** at the **top** of `CHANGELOG` in `lib/changelog.ts` with:
+   - matching `version`
+   - `date`, `title`, `summary`
+   - `items` (`feature` / `fix` / `improve` / `program`) describing what shipped
+3. If you added a major product/program, also update `PLATFORM_PROGRAMS` in the same file.
+4. Do this **in the same commit** as the feature/fix — not as a follow-up.
+
+The public page is `/updates` (admin nav → Updates). The corner badge reads `APP_VERSION`.
+
+```typescript
+// lib/version.ts
+export const APP_VERSION = "2.21";
+
+// lib/changelog.ts — newest first
+{
+  version: "2.21",
+  date: "July 31, 2026",
+  title: "Short release title",
+  summary: "One sentence for partners/public.",
+  items: [{ kind: "feature", text: "What shipped" }],
+}
+```
+
+Skip bumps only for pure docs/rules/chore with zero product impact (e.g. this rule file alone).

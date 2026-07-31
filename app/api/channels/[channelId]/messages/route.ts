@@ -9,6 +9,7 @@ import { summarizeReactions } from "@/lib/dmAccess";
 import { chatAuthorSelect } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import { markChannelRead } from "@/lib/channelReads";
+import { replyToInclude } from "@/lib/chatReplies";
 
 async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
   const [channel, userGroupIds] = await Promise.all([
@@ -30,18 +31,37 @@ function mapMessage(
     userId: string;
     content: string;
     createdAt: Date;
+    replyToId: string | null;
     user: Parameters<typeof toChatAuthor>[0];
     reactions: { emoji: string; userId: string }[];
+    replyTo: {
+      id: string;
+      content: string;
+      user: Parameters<typeof toChatAuthor>[0];
+    } | null;
   },
   viewerId: string
 ) {
-  const { reactions, user, ...rest } = message;
+  const { reactions, user, replyTo, ...rest } = message;
   return {
     ...rest,
     user: toChatAuthor(user),
     reactions: summarizeReactions(reactions, viewerId),
+    replyTo: replyTo
+      ? {
+          id: replyTo.id,
+          content: replyTo.content,
+          user: toChatAuthor(replyTo.user),
+        }
+      : null,
   };
 }
+
+const messageInclude = {
+  user: { select: chatAuthorSelect },
+  reactions: { select: { emoji: true, userId: true } },
+  replyTo: replyToInclude,
+} as const;
 
 export async function GET(
   req: NextRequest,
@@ -66,10 +86,7 @@ export async function GET(
         channelId: channel.id,
         ...(after ? { createdAt: { gt: new Date(after) } } : {}),
       },
-      include: {
-        user: { select: chatAuthorSelect },
-        reactions: { select: { emoji: true, userId: true } },
-      },
+      include: messageInclude,
       orderBy: { createdAt: after ? "asc" : "desc" },
       take: after ? 100 : 50,
     }),
@@ -129,16 +146,28 @@ export async function POST(
     );
   }
 
+  let replyToId: string | null = parsed.data.replyToId ?? null;
+  if (replyToId) {
+    const parent = await prisma.message.findFirst({
+      where: { id: replyToId, channelId: channel.id },
+      select: { id: true },
+    });
+    if (!parent) {
+      return NextResponse.json(
+        { error: "Message you're replying to was not found in this channel." },
+        { status: 400 }
+      );
+    }
+  }
+
   const message = await prisma.message.create({
     data: {
       channelId: channel.id,
       userId: result.user.id,
       content: parsed.data.content,
+      replyToId,
     },
-    include: {
-      user: { select: chatAuthorSelect },
-      reactions: { select: { emoji: true, userId: true } },
-    },
+    include: messageInclude,
   });
 
   await markChannelRead(result.user.id, channel.id);

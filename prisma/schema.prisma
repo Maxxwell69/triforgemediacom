@@ -277,12 +277,17 @@ model Message {
   userId    String
   content   String
   createdAt DateTime @default(now())
+  /// Discord-style reply pointer (not a full thread). Null if original was deleted.
+  replyToId String?
 
   channel   Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions MessageReaction[]
+  replyTo   Message?          @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   Message[]         @relation("MessageReplies")
 
   @@index([channelId, createdAt])
+  @@index([replyToId])
 }
 
 model MessageReaction {

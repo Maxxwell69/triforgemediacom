@@ -9,6 +9,7 @@ import type { ReactionSummary } from "@/lib/dmAccess";
 import MessageContent from "@/components/chat/MessageContent";
 import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
+import { truncateReplyPreview } from "@/lib/chatReplies";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -20,12 +21,20 @@ type ChatUser = {
   mutedUntil: string | Date | null;
 };
 
+type ReplyPreview = {
+  id: string;
+  content: string;
+  user: ChatUser;
+};
+
 type ChatMessage = {
   id: string;
   content: string;
   createdAt: string | Date;
   user: ChatUser;
   reactions: ReactionSummary[];
+  replyToId?: string | null;
+  replyTo?: ReplyPreview | null;
 };
 
 type MentionCandidate = { id: string; name: string; image: string | null };
@@ -66,6 +75,7 @@ export default function ChatView({
   const [mentionQuery, setMentionQuery] = useState<{ start: number; query: string } | null>(null);
   const [mentionResults, setMentionResults] = useState<MentionCandidate[]>([]);
   const [mentionIndex, setMentionIndex] = useState(0);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
@@ -78,8 +88,22 @@ export default function ChatView({
     setMessages(initialMessages);
     seenIds.current = new Set(initialMessages.map((m) => m.id));
     setMutedUntil(initialMutedUntil);
+    setReplyingTo(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel.id]);
+
+  function startReply(message: ChatMessage) {
+    setReplyingTo(message);
+    setOpenMenuFor(null);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function scrollToMessage(messageId: string) {
+    const el = document.getElementById(`msg-${messageId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.classList.add("ring-1", "ring-cyan/50");
+    window.setTimeout(() => el?.classList.remove("ring-1", "ring-cyan/50"), 1200);
+  }
 
   // Keep Discord-style unread badge clear while this channel is open.
   useEffect(() => {
@@ -179,6 +203,11 @@ export default function ChatView({
   }
 
   function onDraftKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape" && replyingTo && !mentionQuery) {
+      e.preventDefault();
+      setReplyingTo(null);
+      return;
+    }
     if (!mentionQuery || mentionResults.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -209,7 +238,10 @@ export default function ChatView({
       const res = await fetch(`/api/channels/${channel.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          replyToId: replyingTo?.id ?? null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -223,6 +255,7 @@ export default function ChatView({
       }
       setDraft("");
       setMentionQuery(null);
+      setReplyingTo(null);
     } catch {
       setError("Failed to send message");
     } finally {
@@ -318,8 +351,14 @@ export default function ChatView({
               isModerator && !isAuthor && canBeModerationTarget(message.user.role);
             const authorMuted = isMuted({ mutedUntil: toMutedUntilDate(message.user.mutedUntil) });
 
+            const reply = message.replyTo ?? null;
+
             return (
-              <div key={message.id} className="group flex gap-3">
+              <div
+                key={message.id}
+                id={`msg-${message.id}`}
+                className="group flex scroll-mt-4 gap-3 rounded-lg transition"
+              >
                 <Link
                   href={`/members/${message.user.id}`}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-off-white/10 font-display text-sm transition hover:ring-2 hover:ring-cyan/60"
@@ -327,6 +366,26 @@ export default function ChatView({
                   {(message.user.name || "?").charAt(0).toUpperCase()}
                 </Link>
                 <div className="min-w-0 flex-1">
+                  {reply && (
+                    <button
+                      type="button"
+                      onClick={() => scrollToMessage(reply.id)}
+                      className="mb-1 flex max-w-full items-start gap-2 rounded-md border-l-2 border-cyan/50 bg-off-white/[0.03] px-2 py-1 text-left transition hover:bg-off-white/[0.06]"
+                    >
+                      <span className="truncate font-body text-[11px] text-off-white/45">
+                        <span className="font-semibold text-cyan/80">
+                          {reply.user.name || "Unknown"}
+                        </span>
+                        <span className="mx-1 text-off-white/25">·</span>
+                        {truncateReplyPreview(reply.content)}
+                      </span>
+                    </button>
+                  )}
+                  {!reply && message.replyToId && (
+                    <p className="mb-1 border-l-2 border-off-white/15 px-2 font-body text-[11px] italic text-off-white/35">
+                      Original message deleted
+                    </p>
+                  )}
                   <div className="flex items-baseline gap-2">
                     <Link
                       href={`/members/${message.user.id}`}
@@ -354,6 +413,16 @@ export default function ChatView({
                     </span>
 
                     <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                      {!viewerIsMuted && (
+                        <button
+                          type="button"
+                          onClick={() => startReply(message)}
+                          title="Reply"
+                          className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan"
+                        >
+                          Reply
+                        </button>
+                      )}
                       {canModerateAuthor && (
                         <div className="relative">
                           <button
@@ -429,6 +498,26 @@ export default function ChatView({
             .
           </p>
         )}
+        {replyingTo && !viewerIsMuted && (
+          <div className="mb-2 flex items-start justify-between gap-3 rounded-lg border border-cyan/25 bg-cyan/5 px-3 py-2">
+            <div className="min-w-0">
+              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-cyan">
+                Replying to {replyingTo.user.name || "Unknown"}
+              </p>
+              <p className="truncate font-body text-xs text-off-white/50">
+                {truncateReplyPreview(replyingTo.content)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="shrink-0 rounded px-1.5 py-0.5 font-body text-xs text-off-white/50 transition hover:bg-off-white/10 hover:text-off-white"
+              aria-label="Cancel reply"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {mentionQuery && mentionResults.length > 0 && (
           <div className="glass absolute bottom-full left-6 right-6 z-20 mb-2 max-h-48 overflow-y-auto rounded-xl p-1">
             {mentionResults.map((member, i) => (
@@ -461,7 +550,9 @@ export default function ChatView({
             placeholder={
               viewerIsMuted
                 ? "You're muted"
-                : `Message #${channel.name} — type @ to mention`
+                : replyingTo
+                  ? `Reply to ${replyingTo.user.name || "message"}…`
+                  : `Message #${channel.name} — type @ to mention`
             }
             maxLength={2000}
             disabled={viewerIsMuted}
