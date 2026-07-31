@@ -18,6 +18,7 @@ import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/li
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
 import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
+import { isOnline } from "@/lib/presence";
 
 export const dynamic = "force-dynamic";
 
@@ -168,7 +169,13 @@ export default async function AdminUserDetailPage({
       <div className="glass mt-4 flex flex-col gap-4 rounded-2xl p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={56} textSize="text-xl" />
+            <MemberAvatar
+              avatarUrl={avatarUrl}
+              initial={initial}
+              size={56}
+              textSize="text-xl"
+              online={isOnline(user.lastSeenAt)}
+            />
             <div>
               <p className="font-display text-2xl tracking-wide text-off-white">
                 {displayName}
@@ -204,13 +211,27 @@ export default async function AdminUserDetailPage({
       </div>
 
       {/* Overview stats */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Points" value={String(totalPoints)} />
         <StatCard label="Member since" value={formatDate(user.createdAt)} />
         <StatCard label="Streak" value={user.profile ? `${user.profile.streakCount} days` : "—"} />
         <StatCard
           label="Platform"
           value={user.profile ? PLATFORM_LABELS[user.profile.platform] : "Not set"}
+        />
+        <StatCard
+          label="Last login"
+          value={user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never"}
+        />
+        <StatCard
+          label="Presence"
+          value={
+            isOnline(user.lastSeenAt)
+              ? "Online now"
+              : user.lastSeenAt
+                ? `Last seen ${formatDateTime(user.lastSeenAt)}`
+                : "—"
+          }
         />
       </div>
 

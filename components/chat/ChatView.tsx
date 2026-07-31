@@ -76,6 +76,7 @@ export default function ChatView({
   const [mentionResults, setMentionResults] = useState<MentionCandidate[]>([]);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
@@ -109,6 +110,32 @@ export default function ChatView({
   useEffect(() => {
     void fetch(`/api/channels/${channel.id}/read`, { method: "POST" });
   }, [channel.id]);
+
+  // Refresh who's online among authors currently in the thread.
+  const authorIdsKey = Array.from(new Set(messages.map((m) => m.user.id))).sort().join(",");
+  useEffect(() => {
+    if (!authorIdsKey) return;
+    const ids = authorIdsKey.split(",");
+
+    let cancelled = false;
+    async function refreshPresence() {
+      try {
+        const res = await fetch(`/api/presence?ids=${encodeURIComponent(ids.join(","))}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        setOnlineIds(new Set(data.onlineIds || []));
+      } catch {
+        // best-effort
+      }
+    }
+
+    void refreshPresence();
+    const id = window.setInterval(() => void refreshPresence(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [channel.id, authorIdsKey]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -352,6 +379,7 @@ export default function ChatView({
             const authorMuted = isMuted({ mutedUntil: toMutedUntilDate(message.user.mutedUntil) });
 
             const reply = message.replyTo ?? null;
+            const authorOnline = onlineIds.has(message.user.id);
 
             return (
               <div
@@ -361,9 +389,16 @@ export default function ChatView({
               >
                 <Link
                   href={`/members/${message.user.id}`}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-off-white/10 font-display text-sm transition hover:ring-2 hover:ring-cyan/60"
+                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-off-white/10 font-display text-sm transition hover:ring-2 hover:ring-cyan/60"
                 >
                   {(message.user.name || "?").charAt(0).toUpperCase()}
+                  {authorOnline && (
+                    <span
+                      className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-charcoal bg-emerald-400"
+                      title="Online"
+                      aria-label="Online"
+                    />
+                  )}
                 </Link>
                 <div className="min-w-0 flex-1">
                   {reply && (
@@ -389,10 +424,17 @@ export default function ChatView({
                   <div className="flex items-baseline gap-2">
                     <Link
                       href={`/members/${message.user.id}`}
-                      className={`font-body text-sm font-semibold hover:underline ${
+                      className={`inline-flex items-center gap-1.5 font-body text-sm font-semibold hover:underline ${
                         isAuthor ? "text-cyan" : "text-off-white hover:text-cyan"
                       }`}
                     >
+                      {authorOnline && (
+                        <span
+                          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"
+                          title="Online"
+                          aria-hidden
+                        />
+                      )}
                       {message.user.name || "Unknown"}
                     </Link>
                     {message.user.role !== "MEMBER" && (

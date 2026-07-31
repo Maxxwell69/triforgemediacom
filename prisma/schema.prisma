@@ -75,6 +75,8 @@ model User {
   hiddenFromDirectory Boolean @default(false) // excludes this account from /members (e.g. shared/figurehead admin logins)
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
+  lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)
+  lastSeenAt    DateTime? // heartbeat while the hub is open — drives online green dots
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

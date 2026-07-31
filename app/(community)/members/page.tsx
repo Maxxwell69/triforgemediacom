@@ -6,6 +6,7 @@ import { getUserPointsTotals } from "@/lib/points";
 import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import { isOnline } from "@/lib/presence";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
@@ -120,6 +121,7 @@ export default async function MembersPage({
             const groups = member.groupMemberships.map((m) => m.group);
             const tags = member.tags.map((ut) => ut.tag);
             const platform = member.profile?.platform;
+            const online = isOnline(member.lastSeenAt);
 
             return (
               <Link
@@ -128,9 +130,18 @@ export default async function MembersPage({
                 className="glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40"
               >
                 <div className="flex items-center gap-3">
-                  <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={44} />
+                  <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={44} online={online} />
                   <div className="min-w-0">
-                    <p className="truncate font-body font-medium text-off-white">{displayName}</p>
+                    <p className="flex items-center gap-1.5 truncate font-body font-medium text-off-white">
+                      {online && (
+                        <span
+                          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"
+                          title="Online"
+                          aria-hidden
+                        />
+                      )}
+                      {displayName}
+                    </p>
                     {platform && (
                       <span className="inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
                         {PLATFORM_LABELS[platform]}

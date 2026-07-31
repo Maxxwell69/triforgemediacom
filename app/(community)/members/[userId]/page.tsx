@@ -7,6 +7,7 @@ import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { formatCount } from "@/lib/formatCount";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import { isOnline } from "@/lib/presence";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
 import MemberAvatar from "@/components/MemberAvatar";
@@ -56,6 +57,7 @@ export default async function MemberProfilePage({
   const displayName = getMemberDisplayName(member);
   const avatarUrl = getMemberAvatarUrl(member);
   const initial = getMemberInitial(member);
+  const online = isOnline(member.lastSeenAt);
   const groups = member.groupMemberships.map((m) => m.group);
   const tags = member.tags.map((ut) => ut.tag);
   const socialLinks = (member.profile.socialLinks as Record<string, string> | null) ?? {};
@@ -77,9 +79,22 @@ export default async function MemberProfilePage({
         <div className="glass mt-4 flex flex-col gap-5 rounded-2xl p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={64} textSize="text-2xl" />
+              <MemberAvatar
+                avatarUrl={avatarUrl}
+                initial={initial}
+                size={64}
+                textSize="text-2xl"
+                online={online}
+              />
               <div>
-                <p className="font-display text-2xl tracking-wide text-off-white">{displayName}</p>
+                <p className="flex items-center gap-2 font-display text-2xl tracking-wide text-off-white">
+                  {displayName}
+                  {online && (
+                    <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+                      Online
+                    </span>
+                  )}
+                </p>
                 {member.profile.platform && (
                   <span className="mt-1 inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
                     {PLATFORM_LABELS[member.profile.platform]}

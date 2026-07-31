@@ -4,15 +4,20 @@ import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds, hasTikTaskAccess } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import { canInitiateDm, isTrueAdmin } from "@/lib/dmAccess";
+import { touchPresence } from "@/lib/presence";
 import Logo from "@/components/Logo";
 import ChannelSidebar from "@/components/ChannelSidebar";
 import SignOutButton from "@/components/SignOutButton";
 import MobileShell from "@/components/MobileShell";
+import PresenceBeacon from "@/components/PresenceBeacon";
 import { getChannelUnreadCounts } from "@/lib/channelReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
+
+  // Mark online on every community page load (beacon keeps it fresh).
+  await touchPresence(user.id).catch(() => {});
 
   const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection] =
     await Promise.all([
@@ -79,6 +84,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
           Members
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Leaderboard
         </Link>
         <Link
           href="/rewards"
@@ -149,6 +160,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   return (
     <MobileShell sidebar={sidebar} showAdminFab={isAdmin}>
+      <PresenceBeacon />
       {children}
     </MobileShell>
   );

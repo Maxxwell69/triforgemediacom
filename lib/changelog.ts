@@ -71,6 +71,13 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "1.6",
   },
   {
+    name: "Leaderboard",
+    tagline: "Daily · weekly · monthly XP",
+    description:
+      "Community rankings of XP earned over today, this week, this month, or all time — with online presence.",
+    since: "2.22",
+  },
+  {
     name: "Live Webinars",
     tagline: "Hosted with LiveKit",
     description:
@@ -87,6 +94,44 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.23",
+    date: "July 31, 2026",
+    title: "Public Hub website & sign-in",
+    summary:
+      "A front-facing Hub page that explains what’s inside the community, with a branded Sign in entry at /signin.",
+    items: [
+      {
+        kind: "feature",
+        text: "Public Hub landing — hero, inside the Hub, what it represents, and CN/MN programs",
+      },
+      {
+        kind: "feature",
+        text: "Branded /signin page; legacy /login redirects there",
+      },
+    ],
+  },
+  {
+    version: "2.22",
+    date: "July 31, 2026",
+    title: "Leaderboard, last login & online presence",
+    summary:
+      "Daily/weekly/monthly XP leaderboard, admin last-login on member profiles, and green online dots in chat and the directory.",
+    items: [
+      {
+        kind: "feature",
+        text: "Leaderboard page with Today / This week / This month / All time XP rankings",
+      },
+      {
+        kind: "feature",
+        text: "Admin user profiles show last login and last-seen presence",
+      },
+      {
+        kind: "feature",
+        text: "Green online dots on avatars and names in chat, members directory, and profiles",
+      },
+    ],
+  },
   {
     version: "2.21",
     date: "July 31, 2026",

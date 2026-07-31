@@ -118,6 +118,15 @@ export default async function HomePage() {
           />
 
           <DashboardCard
+            href="/leaderboard"
+            icon="🏆"
+            title="Leaderboard"
+            description="Daily, weekly, and monthly XP rankings."
+            stat={`${points} XP earned`}
+            accent="cyan"
+          />
+
+          <DashboardCard
             href="/members"
             icon="👥"
             title="Members"
