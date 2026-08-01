@@ -141,7 +141,6 @@ export async function syncRosterLiveStatus(): Promise<{
   await ensureLiveTag();
 
   const roster = await loadLiveRoster();
-  let live = 0;
   let updated = 0;
   let unknown = 0;
   const checkedUserIds = new Set<string>();
@@ -221,7 +220,6 @@ export async function syncRosterLiveStatus(): Promise<{
         viewerCount: row.viewerCount,
       });
 
-      if (row.isLive) live++;
       if (!existing || existing.isLive !== row.isLive) updated++;
     }
   }
@@ -266,7 +264,6 @@ export async function syncRosterLiveStatus(): Promise<{
         viewerCount: definitive.viewerCount,
       });
       if (!definitive.isLive) clearedStale++;
-      if (definitive.isLive) live++;
     } catch {
       await applyLiveStatus(snap.userId, snap.uniqueId, {
         isLive: false,
