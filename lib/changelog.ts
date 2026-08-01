@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.35",
+    date: "August 1, 2026",
+    title: "Chat opens on the latest message",
+    summary:
+      "Opening a channel or DM jumps you to the newest message instead of leaving you stuck at the top.",
+    items: [
+      {
+        kind: "fix",
+        text: "Channel and DM views reliably scroll to the latest message on enter",
+      },
+    ],
+  },
+  {
     version: "2.34",
     date: "August 1, 2026",
     title: "Chat names without TikTok no longer say Member",

@@ -9,6 +9,7 @@ import type { ReactionSummary } from "@/lib/dmAccess";
 import MessageContent from "@/components/chat/MessageContent";
 import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
+import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -58,9 +59,17 @@ export default function DmChatView({
   const [mentionResults, setMentionResults] = useState<MentionCandidate[]>([]);
   const [mentionIndex, setMentionIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
   const mentionFetchRef = useRef(0);
+  const latestMessageId = messages[messages.length - 1]?.id ?? null;
+
+  useScrollToLatest(scrollRef, bottomRef, {
+    roomKey: conversationId,
+    messageCount: messages.length,
+    latestMessageId,
+  });
 
   const viewerIsMuted = isMuted({ mutedUntil: toMutedUntilDate(mutedUntil) });
 
@@ -70,10 +79,6 @@ export default function DmChatView({
     setMutedUntil(initialMutedUntil);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -281,6 +286,7 @@ export default function DmChatView({
               </div>
             );
           })}
+          <div ref={bottomRef} aria-hidden className="h-px w-full shrink-0" />
         </div>
       </div>
 

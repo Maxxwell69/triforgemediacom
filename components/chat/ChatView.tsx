@@ -10,6 +10,7 @@ import MessageContent from "@/components/chat/MessageContent";
 import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { truncateReplyPreview } from "@/lib/chatReplies";
+import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -78,9 +79,17 @@ export default function ChatView({
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
   const mentionFetchRef = useRef(0);
+  const latestMessageId = messages[messages.length - 1]?.id ?? null;
+
+  useScrollToLatest(scrollRef, bottomRef, {
+    roomKey: channel.id,
+    messageCount: messages.length,
+    latestMessageId,
+  });
 
   const viewerIsMuted = isMuted({ mutedUntil: toMutedUntilDate(mutedUntil) });
   const isModerator = canModerate(currentUserRole);
@@ -136,10 +145,6 @@ export default function ChatView({
       window.clearInterval(id);
     };
   }, [channel.id, authorIdsKey]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -525,6 +530,7 @@ export default function ChatView({
               </div>
             );
           })}
+          <div ref={bottomRef} aria-hidden className="h-px w-full shrink-0" />
         </div>
       </div>
 
