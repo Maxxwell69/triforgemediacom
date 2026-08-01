@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.33",
+    date: "July 31, 2026",
+    title: "Live board clears when creators go offline",
+    summary:
+      "Creators drop off the Live page and lose the LIVE tag after they end stream — missing/unknown API rows no longer leave them stuck live.",
+    items: [
+      {
+        kind: "fix",
+        text: "Live sync marks missing bulk-check results as offline and clears stale LIVE after 12 minutes",
+      },
+      {
+        kind: "fix",
+        text: "Live page and member Live badges only show recently confirmed streams",
+      },
+    ],
+  },
+  {
     version: "2.32",
     date: "July 31, 2026",
     title: "Admin staff filter in Users",

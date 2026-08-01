@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
 import { backfillNetworkMemberships } from "@/lib/mnCn";
-import { ensureLiveTag } from "@/lib/tiktokLive";
+import { ensureLiveTag, LIVE_STALE_MS } from "@/lib/tiktokLive";
 import { parseTikTokUniqueId } from "@/lib/tiktools";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
@@ -130,7 +130,11 @@ export default async function MembersPage({
             const tags = member.tags.map((ut) => ut.tag);
             const platform = member.profile?.platform;
             const online = isOnline(member.lastSeenAt);
-            const isLive = !!member.tiktokStatsSnapshot?.isLive;
+            const snap = member.tiktokStatsSnapshot;
+            const isLive =
+              !!snap?.isLive &&
+              !!snap.liveCheckedAt &&
+              Date.now() - snap.liveCheckedAt.getTime() <= LIVE_STALE_MS;
             const tiktokHandle =
               member.tiktokStatsSnapshot?.uniqueId ||
               parseTikTokUniqueId(

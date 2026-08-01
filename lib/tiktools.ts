@@ -202,18 +202,40 @@ export async function bulkCheckLive(uniqueIds: string[]): Promise<TikToolsBulkLi
   const rows = Array.isArray(data.data) ? data.data : [];
   return rows.map((row) => {
     const status = (row.alive_status || "").toLowerCase();
+    const uniqueId = (row.unique_id || "").replace(/^@/, "").toLowerCase();
+    // Explicit offline from alive_status wins even if other fields are messy
+    if (status === "offline") {
+      return {
+        uniqueId,
+        isLive: false,
+        unknown: false,
+        roomId: null,
+        title: null,
+        viewerCount: null,
+      };
+    }
+    if (status === "live") {
+      return {
+        uniqueId,
+        isLive: true,
+        unknown: false,
+        roomId: row.room_id ?? null,
+        title: row.title ?? null,
+        viewerCount: typeof row.userCount === "number" ? row.userCount : null,
+      };
+    }
     const unknown =
       row.check_failed === true ||
       status === "unknown" ||
-      (row.alive == null && row.is_live == null);
+      (row.alive == null && row.is_live == null && !status);
     const isLive = unknown ? false : !!(row.alive ?? row.is_live);
     return {
-      uniqueId: (row.unique_id || "").toLowerCase(),
+      uniqueId,
       isLive,
       unknown,
-      roomId: row.room_id ?? null,
-      title: row.title ?? null,
-      viewerCount: typeof row.userCount === "number" ? row.userCount : null,
+      roomId: isLive ? row.room_id ?? null : null,
+      title: isLive ? row.title ?? null : null,
+      viewerCount: isLive && typeof row.userCount === "number" ? row.userCount : null,
     };
   });
 }

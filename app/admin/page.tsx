@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_NAV_SECTIONS } from "@/lib/adminNav";
+import { liveNotStaleWhere } from "@/lib/tiktokLive";
 import { setAnnouncement, clearAnnouncement } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function AdminDashboardPage() {
   const [pendingCount, userCount, liveCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
-    prisma.tikTokStatsSnapshot.count({ where: { isLive: true } }),
+    prisma.tikTokStatsSnapshot.count({ where: liveNotStaleWhere() }),
     prisma.announcement.findUnique({ where: { id: "global" } }),
   ]);
 

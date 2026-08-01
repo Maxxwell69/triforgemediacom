@@ -3,17 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { formatCount } from "@/lib/formatCount";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import { liveNotStaleWhere } from "@/lib/tiktokLive";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
 
 export default async function LivePage() {
   await requireProfile();
 
   const liveCreators = await prisma.tikTokStatsSnapshot.findMany({
     where: {
-      isLive: true,
+      ...liveNotStaleWhere(),
       user: {
         status: "ACTIVE",
         hiddenFromDirectory: false,
