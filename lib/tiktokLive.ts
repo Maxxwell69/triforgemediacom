@@ -230,7 +230,7 @@ export async function syncRosterLiveStatus(): Promise<{
   const stuckLive = await prisma.tikTokStatsSnapshot.findMany({
     where: {
       isLive: true,
-      userId: { notIn: [...checkedUserIds] },
+      userId: { notIn: Array.from(checkedUserIds) },
     },
     select: { userId: true, uniqueId: true },
   });
