@@ -17,8 +17,11 @@ function tiktokHandleFromSocialLinks(socialLinks: unknown): string | null {
   if (!socialLinks || typeof socialLinks !== "object") return null;
   const tiktok = (socialLinks as Record<string, unknown>).tiktok;
   if (typeof tiktok !== "string" || !tiktok) return null;
-  const match = tiktok.match(/@([\w.-]+)/);
-  return match ? `@${match[1]}` : null;
+  const fromUrl = tiktok.match(/tiktok\.com\/@([\w.-]+)/i);
+  if (fromUrl) return `@${fromUrl[1]}`;
+  const bare = tiktok.trim().replace(/^@/, "");
+  if (/^[\w.-]+$/.test(bare) && bare.length >= 2) return `@${bare}`;
+  return null;
 }
 
 /** TikTok identity used as the default public display name. */
@@ -45,11 +48,15 @@ export function getMemberDisplayName(member: MemberLike): string {
 }
 
 /**
- * Name shown in channel / DM / webinar chat — TikTok nickname only.
- * Falls back to "Member" when TikTok isn't connected (never real name).
+ * Name shown in channel / DM / webinar chat.
+ * Prefer TikTok identity; fall back to hub username (never real/legal name).
  */
 export function getChatDisplayName(member: MemberLike): string {
-  return getTikTokUsername(member) || "Member";
+  return (
+    getTikTokUsername(member) ||
+    member.profile?.username?.trim() ||
+    "Member"
+  );
 }
 
 /** Prisma include fragment for resolving chat display names. */

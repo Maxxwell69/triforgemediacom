@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.34",
+    date: "August 1, 2026",
+    title: "Chat names without TikTok no longer say Member",
+    summary:
+      "Chat falls back to a member’s hub username when they don’t have a TikTok handle yet, instead of the generic “Member” label.",
+    items: [
+      {
+        kind: "fix",
+        text: "Chat display name uses hub username when TikTok identity is missing",
+      },
+    ],
+  },
+  {
     version: "2.33",
     date: "July 31, 2026",
     title: "Live board clears when creators go offline",
