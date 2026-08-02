@@ -4,17 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useParticipants } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { Track } from "livekit-client";
+import { parseWebinarParticipantMeta } from "@/lib/webinarParticipantMeta";
+import MemberAvatar from "@/components/MemberAvatar";
 
 function roleLabel(participant: Participant): string {
-  try {
-    const meta = JSON.parse(participant.metadata || "{}") as { role?: string };
-    if (meta.role === "host") return "Host";
-    if (meta.role === "speaker") return "Speaker";
-  } catch {
-    // ignore
-  }
+  const meta = parseWebinarParticipantMeta(participant.metadata);
+  if (meta.role === "host") return "Host";
+  if (meta.role === "speaker") return "Speaker";
   if (participant.permissions?.canPublish) return "On stage";
   return "Watching";
+}
+
+function avatarFrom(participant: Participant): string | null {
+  return parseWebinarParticipantMeta(participant.metadata).avatarUrl || null;
 }
 
 function roleRank(participant: Participant): number {
@@ -132,6 +134,8 @@ export default function WebinarParticipants({
             const cam = p.isCameraEnabled || p.getTrackPublication(Track.Source.Camera)?.isSubscribed;
             const mic = p.isMicrophoneEnabled;
             const sharing = p.isScreenShareEnabled;
+            const display = p.name || p.identity;
+            const initial = display.replace(/^@/, "").charAt(0).toUpperCase() || "?";
 
             return (
               <div
@@ -141,9 +145,16 @@ export default function WebinarParticipants({
                   canModerate && !p.isLocal ? "cursor-context-menu" : ""
                 }`}
               >
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <MemberAvatar
+                    avatarUrl={avatarFrom(p)}
+                    initial={initial}
+                    size={32}
+                    textSize="text-xs"
+                  />
+                  <div className="min-w-0">
                   <p className="truncate font-body text-sm text-off-white/90">
-                    {p.name || p.identity}
+                    {display}
                     {p.isLocal ? (
                       <span className="ml-1 text-xs text-off-white/40">(you)</span>
                     ) : null}
@@ -160,6 +171,7 @@ export default function WebinarParticipants({
                     {label}
                     {sharing ? " · Sharing screen" : ""}
                   </p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <div className="flex gap-1 font-body text-[11px] text-off-white/40">

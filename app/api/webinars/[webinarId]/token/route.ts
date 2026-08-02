@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { isLiveKitConfigured, mintWebinarToken, getLiveKitUrl } from "@/lib/livekit";
+import { getMemberAvatarUrl } from "@/lib/memberDisplay";
 import {
   canJoinWebinar,
   canViewWebinar,
@@ -104,11 +105,30 @@ export async function POST(
     },
   });
   const name = displayNameForUser(identity ?? auth.user);
+
+  const attendance = await prisma.webinarAttendance.findUnique({
+    where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
+    select: { avatarUrl: true },
+  });
+  const avatarUrl =
+    attendance?.avatarUrl ||
+    (identity ? getMemberAvatarUrl(identity) : null) ||
+    null;
+
+  // Seed TikTok/profile avatar into attendance once so it sticks for the session.
+  if (!attendance?.avatarUrl && avatarUrl) {
+    await prisma.webinarAttendance.update({
+      where: { webinarId_userId: { webinarId: webinar.id, userId: auth.user.id } },
+      data: { avatarUrl },
+    });
+  }
+
   const token = await mintWebinarToken({
     identity: auth.user.id,
     name,
     roomName: webinar.livekitRoomName,
     role: roleToTokenRole(role),
+    avatarUrl,
   });
 
   return NextResponse.json({
@@ -116,5 +136,6 @@ export async function POST(
     url: getLiveKitUrl(),
     roomName: webinar.livekitRoomName,
     role,
+    avatarUrl,
   });
 }

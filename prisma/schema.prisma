@@ -954,6 +954,8 @@ model WebinarAttendance {
   webinarId       String
   userId          String
   role            WebinarParticipantRole @default(AUDIENCE)
+  /// Optional photo for this session (people list / stage). Falls back to TikTok avatar.
+  avatarUrl       String?
   joinedAt        DateTime               @default(now())
   leftAt          DateTime?
   /// When true, resolveParticipantRole keeps them AUDIENCE (blocks re-host / re-stage until cleared).

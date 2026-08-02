@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParticipants } from "@livekit/components-react";
 import WebinarChat from "@/components/webinars/WebinarChat";
 import WebinarParticipants from "@/components/webinars/WebinarParticipants";
+import WebinarAvatarSettings from "@/components/webinars/WebinarAvatarSettings";
 
 type Tab = "chat" | "people";
 
@@ -76,12 +77,19 @@ export default function WebinarSidePanel({
           onUnreadChange={setChatUnread}
         />
       </div>
-      <div className={`min-h-0 flex-1 overflow-hidden ${tab === "people" ? "" : "hidden"}`}>
-        <WebinarParticipants
-          webinarId={webinarId}
-          canModerate={canModerate}
-          designatedHostUserId={designatedHostUserId}
-        />
+      <div
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
+          tab === "people" ? "" : "hidden"
+        }`}
+      >
+        <WebinarAvatarSettings webinarId={webinarId} />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <WebinarParticipants
+            webinarId={webinarId}
+            canModerate={canModerate}
+            designatedHostUserId={designatedHostUserId}
+          />
+        </div>
       </div>
     </div>
   );

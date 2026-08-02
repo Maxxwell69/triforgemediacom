@@ -2,37 +2,57 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import {
+  buildWebinarParticipantMeta,
   isLiveKitConfigured,
   removeParticipant,
   setParticipantPublish,
+  type WebinarTokenRole,
 } from "@/lib/livekit";
-import { canModerateWebinar } from "@/lib/webinars";
+import { canModerateWebinar, getAttendanceAvatarUrl } from "@/lib/webinars";
 import { webinarModerateSchema } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
 
-async function revokeStage(roomName: string, userId: string) {
+async function stageMetadata(
+  webinarId: string,
+  userId: string,
+  role: WebinarTokenRole
+) {
+  const avatarUrl = await getAttendanceAvatarUrl(webinarId, userId);
+  return buildWebinarParticipantMeta({ role, avatarUrl });
+}
+
+async function revokeStage(roomName: string, webinarId: string, userId: string) {
   if (!isLiveKitConfigured()) return;
   try {
     await setParticipantPublish({
       roomName,
       identity: userId,
       canPublish: false,
-      metadata: JSON.stringify({ role: "audience" }),
+      metadata: await stageMetadata(webinarId, userId, "audience"),
     });
   } catch {
     // Participant may already be disconnected.
   }
 }
 
-async function grantStage(roomName: string, userId: string, asHost: boolean) {
+async function grantStage(
+  roomName: string,
+  webinarId: string,
+  userId: string,
+  asHost: boolean
+) {
   if (!isLiveKitConfigured()) return;
   try {
     await setParticipantPublish({
       roomName,
       identity: userId,
       canPublish: true,
-      metadata: JSON.stringify({ role: asHost ? "host" : "speaker" }),
+      metadata: await stageMetadata(
+        webinarId,
+        userId,
+        asHost ? "host" : "speaker"
+      ),
     });
   } catch {
     // Token remint / reconnect will pick up role.
@@ -138,7 +158,7 @@ export async function POST(
       },
       update: { status: "APPROVED", resolvedAt: new Date() },
     });
-    await grantStage(webinar.livekitRoomName, userId, false);
+    await grantStage(webinar.livekitRoomName, webinar.id, userId, false);
     return NextResponse.json({ ok: true });
   }
 
@@ -153,7 +173,7 @@ export async function POST(
       },
       update: { role: "AUDIENCE", forcedAudience: true },
     });
-    await revokeStage(webinar.livekitRoomName, userId);
+    await revokeStage(webinar.livekitRoomName, webinar.id, userId);
     return NextResponse.json({ ok: true });
   }
 
@@ -175,7 +195,7 @@ export async function POST(
       where: { webinarId_userId: { webinarId: webinar.id, userId } },
       data: { role: "AUDIENCE", forcedAudience: true },
     });
-    await revokeStage(webinar.livekitRoomName, userId);
+    await revokeStage(webinar.livekitRoomName, webinar.id, userId);
     return NextResponse.json({ ok: true });
   }
 
@@ -200,7 +220,7 @@ export async function POST(
         leftAt: new Date(),
       },
     });
-    await revokeStage(webinar.livekitRoomName, userId);
+    await revokeStage(webinar.livekitRoomName, webinar.id, userId);
     if (isLiveKitConfigured()) {
       try {
         await removeParticipant({ roomName: webinar.livekitRoomName, identity: userId });

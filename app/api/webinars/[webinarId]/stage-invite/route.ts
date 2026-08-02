@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
-import { isLiveKitConfigured, setParticipantPublish } from "@/lib/livekit";
-import { isWebinarHost } from "@/lib/webinars";
+import {
+  buildWebinarParticipantMeta,
+  isLiveKitConfigured,
+  setParticipantPublish,
+} from "@/lib/livekit";
+import { getAttendanceAvatarUrl, isWebinarHost } from "@/lib/webinars";
 import { stageInviteSchema } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
@@ -74,11 +78,12 @@ export async function POST(
 
     if (isLiveKitConfigured()) {
       try {
+        const avatarUrl = await getAttendanceAvatarUrl(webinar.id, userId);
         await setParticipantPublish({
           roomName: webinar.livekitRoomName,
           identity: userId,
           canPublish: true,
-          metadata: JSON.stringify({ role: "speaker" }),
+          metadata: buildWebinarParticipantMeta({ role: "speaker", avatarUrl }),
         });
       } catch {
         // Participant may not be connected yet — token refresh will grant publish.

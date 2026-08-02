@@ -110,6 +110,18 @@ export async function upsertAttendance(
   });
 }
 
+/** Attendance avatar if set, else null (caller may fall back to profile/TikTok). */
+export async function getAttendanceAvatarUrl(
+  webinarId: string,
+  userId: string
+): Promise<string | null> {
+  const row = await prisma.webinarAttendance.findUnique({
+    where: { webinarId_userId: { webinarId, userId } },
+    select: { avatarUrl: true },
+  });
+  return row?.avatarUrl ?? null;
+}
+
 /** Session host (on-stage HOST attendance) or platform webinar manager. */
 export async function canModerateWebinar(
   webinar: Pick<Webinar, "id" | "hostUserId">,

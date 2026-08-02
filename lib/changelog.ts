@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.38",
+    date: "August 2, 2026",
+    title: "Webinar leave warning & participant avatars",
+    summary:
+      "Hosts get a confirmation before leaving a live room, and every guest or host can set their avatar in the People panel.",
+    items: [
+      {
+        kind: "feature",
+        text: "Host leave warning when clicking Leave or closing the webinar tab",
+      },
+      {
+        kind: "feature",
+        text: "Guests, speakers, and hosts can upload or paste an avatar in the webinar People tab",
+      },
+    ],
+  },
+  {
     version: "2.37",
     date: "August 2, 2026",
     title: "Webinar host avatars",

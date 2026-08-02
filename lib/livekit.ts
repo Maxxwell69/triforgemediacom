@@ -1,5 +1,16 @@
 import "server-only";
 import { AccessToken, RoomServiceClient, type VideoGrant } from "livekit-server-sdk";
+import {
+  buildWebinarParticipantMeta,
+  type WebinarTokenRole,
+} from "@/lib/webinarParticipantMeta";
+
+export {
+  buildWebinarParticipantMeta,
+  parseWebinarParticipantMeta,
+  type WebinarParticipantMeta,
+  type WebinarTokenRole,
+} from "@/lib/webinarParticipantMeta";
 
 function requireLiveKitEnv() {
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -25,13 +36,12 @@ export function getLiveKitUrl() {
   return requireLiveKitEnv().url;
 }
 
-export type WebinarTokenRole = "host" | "speaker" | "audience";
-
 export async function mintWebinarToken(opts: {
   identity: string;
   name: string;
   roomName: string;
   role: WebinarTokenRole;
+  avatarUrl?: string | null;
 }) {
   const { apiKey, apiSecret } = requireLiveKitEnv();
   const canPublish = opts.role === "host" || opts.role === "speaker";
@@ -39,7 +49,10 @@ export async function mintWebinarToken(opts: {
   const at = new AccessToken(apiKey, apiSecret, {
     identity: opts.identity,
     name: opts.name,
-    metadata: JSON.stringify({ role: opts.role }),
+    metadata: buildWebinarParticipantMeta({
+      role: opts.role,
+      avatarUrl: opts.avatarUrl,
+    }),
     ttl: "6h",
   });
 
@@ -49,6 +62,7 @@ export async function mintWebinarToken(opts: {
     canPublish,
     canSubscribe: true,
     canPublishData: true,
+    canUpdateOwnMetadata: true,
   };
   at.addGrant(grant);
 
@@ -75,6 +89,18 @@ export async function setParticipantPublish(opts: {
       canPublishData: true,
     },
     ...(opts.metadata ? { metadata: opts.metadata } : {}),
+  });
+}
+
+/** Update LiveKit participant metadata without changing publish rights. */
+export async function setParticipantMetadata(opts: {
+  roomName: string;
+  identity: string;
+  metadata: string;
+}) {
+  const roomService = getRoomService();
+  await roomService.updateParticipant(opts.roomName, opts.identity, {
+    metadata: opts.metadata,
   });
 }
 

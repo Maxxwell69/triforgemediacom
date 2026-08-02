@@ -15,6 +15,10 @@ import "@livekit/components-styles";
 import type { WebinarParticipantRole } from "@prisma/client";
 import WebinarSidePanel from "@/components/webinars/WebinarSidePanel";
 import WebinarStage, { type StageLayoutMode } from "@/components/webinars/WebinarStage";
+import {
+  useWebinarLeaveGuard,
+  WebinarLeaveLink,
+} from "@/components/webinars/WebinarLeaveGuard";
 
 type StageRequest = {
   id: string;
@@ -229,17 +233,21 @@ function RoomChrome({
   const canModerate = role === "HOST";
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
 
+  // Warn hosts before accidental leave / tab close while in the room.
+  useWebinarLeaveGuard(hostPowers);
+
   return (
     <div className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto p-3 sm:gap-3 sm:p-4">
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <Link
+            <WebinarLeaveLink
               href="/webinars"
+              warn={hostPowers}
               className="font-body text-xs text-off-white/40 hover:text-off-white/70"
             >
               ← Leave
-            </Link>
+            </WebinarLeaveLink>
             <h1 className="truncate font-display text-xl tracking-wide text-off-white sm:text-2xl">
               {title}
             </h1>
