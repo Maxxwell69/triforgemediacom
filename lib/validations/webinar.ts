@@ -1,10 +1,22 @@
 import { z } from "zod";
 
+const optionalImageUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .optional()
+  .or(z.literal(""))
+  .refine(
+    (v) => !v || /^https?:\/\//i.test(v),
+    "Host avatar must be a valid image URL"
+  );
+
 export const createWebinarSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   scheduledAt: z.string().min(1, "Schedule a date/time"),
   status: z.enum(["DRAFT", "SCHEDULED"]).default("SCHEDULED"),
+  hostAvatarUrl: optionalImageUrl,
 });
 
 export const updateWebinarSchema = z.object({
@@ -12,6 +24,11 @@ export const updateWebinarSchema = z.object({
   description: z.string().trim().max(2000).optional().nullable(),
   scheduledAt: z.string().min(1).optional(),
   status: z.enum(["DRAFT", "SCHEDULED"]).optional(),
+  hostAvatarUrl: optionalImageUrl,
+});
+
+export const updateWebinarHostAvatarSchema = z.object({
+  hostAvatarUrl: optionalImageUrl,
 });
 
 export const chatMessageSchema = z.object({

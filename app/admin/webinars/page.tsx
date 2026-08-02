@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { isLiveKitConfigured } from "@/lib/livekit";
 import CreateWebinarForm from "@/components/webinars/CreateWebinarForm";
 import AdminWebinarActions from "@/components/webinars/AdminWebinarActions";
+import AdminWebinarHostAvatar from "@/components/webinars/AdminWebinarHostAvatar";
 import AdminWebinarRecordings from "@/components/webinars/AdminWebinarRecordings";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -55,25 +57,35 @@ export default async function AdminWebinarsPage() {
           <p className="mt-3 font-body text-off-white/50">No webinars yet.</p>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
-            {webinars.map((w) => (
+            {webinars.map((w) => {
+              const hostName = w.host.name || w.host.email;
+              return (
               <div key={w.id} className="glass rounded-xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-body font-semibold text-off-white">{w.title}</p>
-                      <span
-                        className={`rounded px-2 py-0.5 font-body text-xs uppercase tracking-wide ${STATUS_STYLES[w.status]}`}
-                      >
-                        {w.status}
-                      </span>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <MemberAvatar
+                      avatarUrl={w.hostAvatarUrl}
+                      initial={(hostName || "?").charAt(0).toUpperCase()}
+                      size={44}
+                      textSize="text-sm"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-body font-semibold text-off-white">{w.title}</p>
+                        <span
+                          className={`rounded px-2 py-0.5 font-body text-xs uppercase tracking-wide ${STATUS_STYLES[w.status]}`}
+                        >
+                          {w.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-body text-xs text-off-white/50">
+                        {w.scheduledAt.toLocaleString()} · Host: {hostName} ·{" "}
+                        {w._count.attendances} joined · {w._count.chatMessages} messages
+                      </p>
+                      {w.description && (
+                        <p className="mt-2 font-body text-sm text-off-white/70">{w.description}</p>
+                      )}
                     </div>
-                    <p className="mt-1 font-body text-xs text-off-white/50">
-                      {w.scheduledAt.toLocaleString()} · Host: {w.host.name || w.host.email} ·{" "}
-                      {w._count.attendances} joined · {w._count.chatMessages} messages
-                    </p>
-                    {w.description && (
-                      <p className="mt-2 font-body text-sm text-off-white/70">{w.description}</p>
-                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {(w.status === "SCHEDULED" || w.status === "LIVE") && (
@@ -90,13 +102,15 @@ export default async function AdminWebinarsPage() {
                     />
                   </div>
                 </div>
+                <AdminWebinarHostAvatar webinarId={w.id} hostAvatarUrl={w.hostAvatarUrl} />
                 <AdminWebinarRecordings
                   webinarId={w.id}
                   recordings={w.recordings}
                   canAttach={w.status === "ENDED" || w.status === "LIVE"}
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

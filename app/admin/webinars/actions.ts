@@ -7,6 +7,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { webinarRoomName } from "@/lib/webinars";
 import {
   createWebinarSchema,
+  updateWebinarHostAvatarSchema,
   updateWebinarSchema,
   webinarRecordingSchema,
 } from "@/lib/validations/webinar";
@@ -42,6 +43,7 @@ export async function createWebinarAction(formData: FormData) {
     description: String(formData.get("description") || ""),
     scheduledAt: String(formData.get("scheduledAt") || ""),
     status: String(formData.get("status") || "SCHEDULED"),
+    hostAvatarUrl: String(formData.get("hostAvatarUrl") || ""),
   };
 
   const parsed = createWebinarSchema.safeParse(raw);
@@ -57,6 +59,7 @@ export async function createWebinarAction(formData: FormData) {
       description: parsed.data.description || null,
       scheduledAt,
       status: parsed.data.status,
+      hostAvatarUrl: parsed.data.hostAvatarUrl || null,
       hostUserId: session.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
     },
@@ -105,6 +108,31 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
         : {}),
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
     },
+  });
+
+  revalidatePath("/admin/webinars");
+  revalidatePath("/webinars");
+  revalidatePath(`/webinars/${webinarId}`);
+  return { error: null };
+}
+
+/** Host photo can be set/changed even while live or after the session. */
+export async function updateWebinarHostAvatarAction(webinarId: string, formData: FormData) {
+  await requireAdmin();
+
+  const existing = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  if (!existing) return { error: "Webinar not found" };
+
+  const parsed = updateWebinarHostAvatarSchema.safeParse({
+    hostAvatarUrl: String(formData.get("hostAvatarUrl") || ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  await prisma.webinar.update({
+    where: { id: webinarId },
+    data: { hostAvatarUrl: parsed.data.hostAvatarUrl || null },
   });
 
   revalidatePath("/admin/webinars");

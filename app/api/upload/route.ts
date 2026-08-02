@@ -5,7 +5,12 @@ import { uploadImage } from "@/lib/r2";
 
 // Folders an admin is allowed to upload into. Keeps uploads namespaced
 // and prevents arbitrary path injection via the "folder" field.
-const ALLOWED_FOLDERS = new Set(["course-thumbnails", "lesson-thumbnails", "reward-images"]);
+const ALLOWED_FOLDERS = new Set([
+  "course-thumbnails",
+  "lesson-thumbnails",
+  "reward-images",
+  "host-avatars",
+]);
 
 export async function POST(request: NextRequest) {
   const user = await getFreshSessionUser();

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canViewWebinar } from "@/lib/webinars";
 import { isAdminRole } from "@/lib/rbac";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -107,17 +108,26 @@ function WebinarCard({
     description: string | null;
     scheduledAt: Date;
     status: string;
+    hostAvatarUrl: string | null;
     host: { name: string | null; email: string };
     _count: { attendances: number; recordings: number };
   };
 }) {
   const canEnter = webinar.status === "LIVE" || webinar.status === "SCHEDULED";
   const hasRecording = webinar._count.recordings > 0;
+  const hostName = webinar.host.name || webinar.host.email;
 
   return (
     <div className="glass rounded-2xl p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="flex min-w-0 items-start gap-3">
+          <MemberAvatar
+            avatarUrl={webinar.hostAvatarUrl}
+            initial={(hostName || "?").charAt(0).toUpperCase()}
+            size={48}
+            textSize="text-base"
+          />
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-body text-lg font-semibold text-off-white">{webinar.title}</h3>
             <span
@@ -138,7 +148,7 @@ function WebinarCard({
             )}
           </div>
           <p className="mt-1 font-body text-xs text-off-white/50">
-            {webinar.scheduledAt.toLocaleString()} · {webinar.host.name || webinar.host.email}
+            {webinar.scheduledAt.toLocaleString()} · {hostName}
             {webinar._count.attendances > 0
               ? ` · ${webinar._count.attendances} joined`
               : ""}
@@ -146,6 +156,7 @@ function WebinarCard({
           {webinar.description && (
             <p className="mt-2 font-body text-sm text-off-white/70">{webinar.description}</p>
           )}
+          </div>
         </div>
         {canEnter ? (
           <Link

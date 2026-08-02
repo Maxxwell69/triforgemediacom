@@ -8,10 +8,13 @@ const fieldClass =
 
 const MAX_MB = MAX_UPLOAD_BYTES / (1024 * 1024);
 
-const RECOMMENDATIONS: Record<
-  "course-thumbnails" | "lesson-thumbnails" | "reward-images",
-  { dimensions: string; hint: string }
-> = {
+type UploadFolder =
+  | "course-thumbnails"
+  | "lesson-thumbnails"
+  | "reward-images"
+  | "host-avatars";
+
+const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",
     hint: "Shows as a wide banner and card thumbnail \u2014 landscape images crop best.",
@@ -24,6 +27,10 @@ const RECOMMENDATIONS: Record<
     dimensions: "800\u00D7450px (16:9)",
     hint: "Shows as a card image \u2014 landscape images crop best.",
   },
+  "host-avatars": {
+    dimensions: "512\u00D7512px (1:1)",
+    hint: "Shows as the host photo on webinar cards and detail pages \u2014 square crops best.",
+  },
 };
 
 export default function ImageUploadField({
@@ -33,7 +40,7 @@ export default function ImageUploadField({
   label,
 }: {
   name: string;
-  folder: "course-thumbnails" | "lesson-thumbnails" | "reward-images";
+  folder: UploadFolder;
   defaultValue?: string | null;
   label?: string;
 }) {
@@ -94,7 +101,11 @@ export default function ImageUploadField({
           <img
             src={url}
             alt="Preview"
-            className="h-16 w-28 rounded-lg border border-off-white/15 object-cover"
+            className={
+              folder === "host-avatars"
+                ? "h-16 w-16 rounded-full border border-off-white/15 object-cover"
+                : "h-16 w-28 rounded-lg border border-off-white/15 object-cover"
+            }
           />
         )}
         <label

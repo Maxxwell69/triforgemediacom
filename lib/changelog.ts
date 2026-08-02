@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.37",
+    date: "August 2, 2026",
+    title: "Webinar host avatars",
+    summary:
+      "Admins can upload a host photo for each webinar — shown on the webinars list and detail pages.",
+    items: [
+      {
+        kind: "feature",
+        text: "Add/replace host avatar when creating or managing a webinar",
+      },
+    ],
+  },
+  {
     version: "2.36",
     date: "August 1, 2026",
     title: "Live board catches go-lives more reliably",

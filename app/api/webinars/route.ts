@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       description: parsed.data.description || null,
       scheduledAt,
       status: parsed.data.status,
+      hostAvatarUrl: parsed.data.hostAvatarUrl || null,
       hostUserId: auth.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
     },

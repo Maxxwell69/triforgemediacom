@@ -8,6 +8,7 @@ import {
   canViewWebinar,
 } from "@/lib/webinars";
 import WebinarRecordingPlayer from "@/components/webinars/WebinarRecordingPlayer";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -44,13 +45,23 @@ export default async function WebinarDetailPage({
           ← All webinars
         </Link>
 
-        <h1 className="mt-4 font-display text-5xl tracking-wide text-off-white">
-          {webinar.title}
-        </h1>
-        <p className="mt-2 font-body text-off-white/60">
-          {webinar.scheduledAt.toLocaleString()} · Hosted by{" "}
-          {webinar.host.name || webinar.host.email}
-        </p>
+        <div className="mt-4 flex items-start gap-4">
+          <MemberAvatar
+            avatarUrl={webinar.hostAvatarUrl}
+            initial={(webinar.host.name || webinar.host.email || "?").charAt(0).toUpperCase()}
+            size={64}
+            textSize="text-2xl"
+          />
+          <div className="min-w-0">
+            <h1 className="font-display text-5xl tracking-wide text-off-white">
+              {webinar.title}
+            </h1>
+            <p className="mt-2 font-body text-off-white/60">
+              {webinar.scheduledAt.toLocaleString()} · Hosted by{" "}
+              {webinar.host.name || webinar.host.email}
+            </p>
+          </div>
+        </div>
 
         {webinar.description && (
           <p className="mt-6 font-body text-off-white/80">{webinar.description}</p>

@@ -2,13 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { createWebinarAction } from "@/app/admin/webinars/actions";
+import ImageUploadField from "@/components/ImageUploadField";
 
 export default function CreateWebinarForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [formKey, setFormKey] = useState(0);
 
   return (
     <form
+      key={formKey}
       className="mt-4 flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
@@ -21,7 +24,7 @@ export default function CreateWebinarForm() {
             setError(result.error);
             return;
           }
-          form.reset();
+          setFormKey((k) => k + 1);
         });
       }}
     >
@@ -46,6 +49,8 @@ export default function CreateWebinarForm() {
           placeholder="What members can expect…"
         />
       </label>
+
+      <ImageUploadField name="hostAvatarUrl" folder="host-avatars" label="Host avatar" />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">

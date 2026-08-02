@@ -919,6 +919,8 @@ model Webinar {
   scheduledAt     DateTime
   status          WebinarStatus @default(DRAFT)
   hostUserId      String
+  /// Optional branded host photo shown on webinar cards / detail (not the User.image).
+  hostAvatarUrl   String?
   livekitRoomName String        @unique
   startedAt       DateTime?
   endedAt         DateTime?
