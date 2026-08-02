@@ -183,12 +183,14 @@ export async function bulkCheckLive(uniqueIds: string[]): Promise<TikToolsBulkLi
   const data = (await res.json().catch(() => ({}))) as {
     status_code?: number;
     message?: string;
+    error?: string;
     data?: Array<{
       unique_id?: string;
       room_id?: string;
       alive?: boolean | null;
       is_live?: boolean | null;
       alive_status?: string;
+      live_status?: string;
       title?: string;
       userCount?: number;
       check_failed?: boolean;
@@ -196,12 +198,19 @@ export async function bulkCheckLive(uniqueIds: string[]): Promise<TikToolsBulkLi
   };
 
   if (!res.ok) {
-    throw new Error(data.message || `tik.tools bulk_live_check failed (${res.status})`);
+    throw new Error(
+      data.message || data.error || `tik.tools bulk_live_check failed (${res.status})`
+    );
+  }
+
+  if (typeof data.status_code === "number" && data.status_code !== 0) {
+    throw new Error(data.message || `tik.tools bulk_live_check status_code ${data.status_code}`);
   }
 
   const rows = Array.isArray(data.data) ? data.data : [];
   return rows.map((row) => {
-    const status = (row.alive_status || "").toLowerCase();
+    // live_status is a documented alias of alive_status
+    const status = (row.alive_status || row.live_status || "").toLowerCase();
     const uniqueId = (row.unique_id || "").replace(/^@/, "").toLowerCase();
     // Explicit offline from alive_status wins even if other fields are messy
     if (status === "offline") {

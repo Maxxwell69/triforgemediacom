@@ -145,15 +145,48 @@ export async function syncRosterLiveStatus(): Promise<{
   let unknown = 0;
   const checkedUserIds = new Set<string>();
 
+  async function resolveDefinitive(uniqueId: string): Promise<TikToolsBulkLiveRow | null> {
+    try {
+      const definitive = await checkLive(uniqueId);
+      return {
+        uniqueId,
+        isLive: definitive.isLive,
+        unknown: false,
+        roomId: definitive.roomId,
+        title: definitive.title,
+        viewerCount: definitive.viewerCount,
+      };
+    } catch (err) {
+      console.error(`checkLive failed for @${uniqueId}:`, err);
+      return null;
+    }
+  }
+
   for (let i = 0; i < roster.length; i += BULK_CHUNK) {
     const chunk = roster.slice(i, i + BULK_CHUNK);
     let results: TikToolsBulkLiveRow[] = [];
+    let bulkOk = false;
     try {
       results = await bulkCheckLive(chunk.map((r) => r.uniqueId));
+      // Empty payload for a non-empty chunk is not a successful poll — fall back.
+      bulkOk = results.length > 0 || chunk.length === 0;
+      if (!bulkOk) {
+        console.error(
+          `bulkCheckLive returned 0 rows for ${chunk.length} handles — falling back to checkLive`
+        );
+      }
     } catch (err) {
       console.error("bulkCheckLive failed, falling back to checkLive:", err);
     }
-    const byId = new Map(results.map((r) => [r.uniqueId, r]));
+
+    const byId = new Map<string, TikToolsBulkLiveRow>();
+    for (let j = 0; j < results.length; j++) {
+      const row = results[j];
+      // Prefer API unique_id; if missing, align by request order.
+      const uniqueId = row.uniqueId || chunk[j]?.uniqueId;
+      if (!uniqueId) continue;
+      byId.set(uniqueId, { ...row, uniqueId });
+    }
 
     for (const member of chunk) {
       checkedUserIds.add(member.userId);
@@ -162,37 +195,47 @@ export async function syncRosterLiveStatus(): Promise<{
         select: { isLive: true, liveCheckedAt: true },
       });
 
-      let row = byId.get(member.uniqueId);
+      let row: TikToolsBulkLiveRow | undefined = byId.get(member.uniqueId);
 
-      // API often omits offline creators — missing row means offline unless we
-      // still need a definitive check for someone currently marked live.
-      if (!row) {
-        row = {
-          uniqueId: member.uniqueId,
-          isLive: false,
-          unknown: false,
-          roomId: null,
-          title: null,
-          viewerCount: null,
-        };
-      }
-
-      if (row.unknown) {
-        // Don't trust "unknown" to keep someone live forever — re-check
-        if (existing?.isLive) {
-          try {
-            const definitive = await checkLive(member.uniqueId);
-            row = {
-              uniqueId: member.uniqueId,
-              isLive: definitive.isLive,
-              unknown: false,
-              roomId: definitive.roomId,
-              title: definitive.title,
-              viewerCount: definitive.viewerCount,
-            };
-          } catch (err) {
-            console.error(`checkLive failed for @${member.uniqueId}:`, err);
-            unknown++;
+      if (!bulkOk) {
+        // Don't mass-flip everyone offline when bulk is broken — ask TikTok per user.
+        const definitive = await resolveDefinitive(member.uniqueId);
+        if (!definitive) {
+          unknown++;
+          continue;
+        }
+        row = definitive;
+      } else if (!row) {
+        // Partial bulk responses (tier caps / omissions) leave people out of the
+        // map — don't assume offline or we miss go-lives. Confirm with checkLive
+        // when the batch looks incomplete, or when they were already live.
+        const bulkLooksPartial = results.length < chunk.length;
+        if (bulkLooksPartial || existing?.isLive) {
+          row = (await resolveDefinitive(member.uniqueId)) ?? {
+            uniqueId: member.uniqueId,
+            isLive: false,
+            unknown: false,
+            roomId: null,
+            title: null,
+            viewerCount: null,
+          };
+        } else {
+          // Full batch returned and this handle simply wasn't listed → offline.
+          row = {
+            uniqueId: member.uniqueId,
+            isLive: false,
+            unknown: false,
+            roomId: null,
+            title: null,
+            viewerCount: null,
+          };
+        }
+      } else if (row.unknown) {
+        // unknown must not block go-live: always resolve with checkLive.
+        const definitive = await resolveDefinitive(member.uniqueId);
+        if (!definitive) {
+          unknown++;
+          if (existing?.isLive) {
             const stale =
               !existing.liveCheckedAt ||
               Date.now() - existing.liveCheckedAt.getTime() > LIVE_STALE_MS;
@@ -205,13 +248,13 @@ export async function syncRosterLiveStatus(): Promise<{
               });
               updated++;
             }
-            continue;
           }
-        } else {
-          unknown++;
           continue;
         }
+        row = definitive;
       }
+
+      if (!row) continue;
 
       await applyLiveStatus(member.userId, member.uniqueId, {
         isLive: row.isLive,

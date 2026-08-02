@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.36",
+    date: "August 1, 2026",
+    title: "Live board catches go-lives more reliably",
+    summary:
+      "Live sync no longer skips creators when tik.tools returns unknown or a partial bulk response — go-lives like roster checks fall back to a definitive check.",
+    items: [
+      {
+        kind: "fix",
+        text: "Unknown/partial bulk live results now re-check with check_alive so creators aren’t missed when they go live",
+      },
+      {
+        kind: "fix",
+        text: "Bulk live API failures fall back to per-creator checks instead of marking everyone offline",
+      },
+    ],
+  },
+  {
     version: "2.35",
     date: "August 1, 2026",
     title: "Chat opens on the latest message",
