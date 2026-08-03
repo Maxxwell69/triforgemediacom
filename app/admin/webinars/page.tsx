@@ -46,14 +46,14 @@ export default async function AdminWebinarsPage() {
         WEBI<span className="text-gradient">NARS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Schedule member webinars powered by LiveKit Cloud. Optionally open a secure outside signup
-        page for people who are not in the network. After a session, attach screen recordings so
-        members can rewatch on the webinar page.
+        Schedule member webinars. Optionally open a secure outside signup page for people who are
+        not in the network. After a session, attach screen recordings so members can rewatch on the
+        webinar page.
       </p>
 
       {!livekitReady && (
         <div className="mt-6 rounded-xl border border-orange/40 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
-          LiveKit env vars are missing. Set <code className="text-off-white">LIVEKIT_URL</code>,{" "}
+          Video room env vars are missing. Set <code className="text-off-white">LIVEKIT_URL</code>,{" "}
           <code className="text-off-white">LIVEKIT_API_KEY</code>, and{" "}
           <code className="text-off-white">LIVEKIT_API_SECRET</code> on Railway before going live.
         </div>

@@ -56,8 +56,7 @@ export default async function WebinarRoomPage({
         <div className="max-w-md text-center">
           <h1 className="font-display text-3xl tracking-wide">Room unavailable</h1>
           <p className="mt-3 font-body text-off-white/60">
-            LiveKit is not configured yet. Ask an admin to set LIVEKIT_URL, LIVEKIT_API_KEY, and
-            LIVEKIT_API_SECRET.
+            The live room isn&apos;t configured yet. Ask an admin to finish video setup.
           </p>
           <Link
             href="/webinars"

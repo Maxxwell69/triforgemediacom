@@ -79,7 +79,7 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
   },
   {
     name: "Live Webinars",
-    tagline: "Hosted with LiveKit",
+    tagline: "Stage, chat & recordings",
     description:
       "Scheduled webinars with multi-host stage, screen share, raise hand, chat, people list, moderation, recordings, and secure outside-network signup pages for non-members.",
     since: "2.0",
@@ -94,6 +94,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.42",
+    date: "August 2, 2026",
+    title: "Remove LiveKit branding copy",
+    summary:
+      "Webinar admin and program copy no longer mentions LiveKit Cloud branding.",
+    items: [
+      {
+        kind: "improve",
+        text: "Removed “powered by LiveKit Cloud” and similar branding from webinar UI copy",
+      },
+    ],
+  },
   {
     version: "2.41",
     date: "August 2, 2026",
