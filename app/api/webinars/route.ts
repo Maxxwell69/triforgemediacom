@@ -23,7 +23,7 @@ export async function GET() {
   });
 
   const visible = webinars.filter((w) =>
-    canViewWebinar(w.status, auth.user.role, w.hostUserId, auth.user.id)
+    canViewWebinar(w, auth.user.role, auth.user.id)
   );
 
   return NextResponse.json({ webinars: visible });

@@ -42,7 +42,7 @@ export default async function WebinarRoomPage({
     },
   });
 
-  if (!webinar || !canViewWebinar(webinar.status, user.role, webinar.hostUserId, user.id)) {
+  if (!webinar || !canViewWebinar(webinar, user.role, user.id)) {
     notFound();
   }
 

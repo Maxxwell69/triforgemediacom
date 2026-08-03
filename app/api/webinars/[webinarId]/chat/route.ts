@@ -38,7 +38,7 @@ export async function GET(
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
-  if (!canViewWebinar(webinar.status, auth.user.role, webinar.hostUserId, auth.user.id)) {
+  if (!canViewWebinar(webinar, auth.user.role, auth.user.id)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
@@ -108,7 +108,7 @@ export async function POST(
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
-  if (!canViewWebinar(webinar.status, auth.user.role, webinar.hostUserId, auth.user.id)) {
+  if (!canViewWebinar(webinar, auth.user.role, auth.user.id)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 

@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.43",
+    date: "August 3, 2026",
+    title: "Hide outside webinars from the hub",
+    summary:
+      "Webinars with outside-network signup enabled no longer show as available to members inside the hub.",
+    items: [
+      {
+        kind: "fix",
+        text: "Outside-network webinars are invite-link only — not listed or joinable on hub Webinars for members",
+      },
+    ],
+  },
+  {
     version: "2.42",
     date: "August 2, 2026",
     title: "Remove LiveKit branding copy",

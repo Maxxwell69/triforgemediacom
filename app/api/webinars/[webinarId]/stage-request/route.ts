@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
-import { canJoinWebinar, isWebinarHost } from "@/lib/webinars";
+import { canJoinWebinar, canViewWebinar, isWebinarHost } from "@/lib/webinars";
 import { webinarGuestIdentity } from "@/lib/webinarExternal";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +85,7 @@ export async function POST(
   }
 
   const webinar = await prisma.webinar.findUnique({ where: { id: params.webinarId } });
-  if (!webinar) {
+  if (!webinar || !canViewWebinar(webinar, auth.user.role, auth.user.id)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 

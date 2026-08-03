@@ -49,7 +49,8 @@ export default function AdminWebinarExternalSignup({
           </p>
           <p className="mt-1 max-w-xl font-body text-xs text-off-white/45">
             Secure page for people outside the network to sign up for this webinar only.
-            Share the invite link — it is unguessable and not listed publicly.
+            When enabled, the webinar is hidden from members inside the hub — share the
+            unguessable invite link instead.
           </p>
         </div>
         <button

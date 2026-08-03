@@ -25,9 +25,7 @@ export default async function WebinarsPage() {
     },
   });
 
-  const visible = webinars.filter((w) =>
-    canViewWebinar(w.status, user.role, w.hostUserId, user.id)
-  );
+  const visible = webinars.filter((w) => canViewWebinar(w, user.role, user.id));
 
   const live = visible.filter((w) => w.status === "LIVE");
   const upcoming = visible.filter((w) => w.status === "SCHEDULED" || w.status === "DRAFT");

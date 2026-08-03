@@ -29,7 +29,7 @@ async function requireJoinedParticipant(
 ) {
   const webinar = await prisma.webinar.findUnique({ where: { id: webinarId } });
   if (!webinar) return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
-  if (!canViewWebinar(webinar.status, userRole, webinar.hostUserId, userId)) {
+  if (!canViewWebinar(webinar, userRole, userId)) {
     return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
   }
   if (!canJoinWebinar(webinar.status)) {

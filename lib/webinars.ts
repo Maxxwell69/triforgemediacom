@@ -7,15 +7,24 @@ export function webinarRoomName(webinarId: string) {
   return `webinar_${webinarId}`;
 }
 
-/** Members see scheduled/live/ended; admins also see drafts. */
+/**
+ * Hub visibility: members see scheduled/live/ended hub webinars.
+ * Drafts and outside-network webinars are staff/host only (outsiders use /w/[token]).
+ */
 export function canViewWebinar(
-  status: WebinarStatus,
+  webinar: Pick<Webinar, "status" | "hostUserId" | "externalSignupEnabled">,
   userRole: UserRole,
-  hostUserId: string,
   userId: string
 ) {
-  if (status !== "DRAFT") return true;
-  return isAdminRole(userRole) || hostUserId === userId;
+  const isStaffOrHost = isAdminRole(userRole) || webinar.hostUserId === userId;
+
+  // Outside-network webinars are invite-link only — not listed or joinable in the hub.
+  if (webinar.externalSignupEnabled && !isStaffOrHost) {
+    return false;
+  }
+
+  if (webinar.status !== "DRAFT") return true;
+  return isStaffOrHost;
 }
 
 export function canJoinWebinar(status: WebinarStatus) {

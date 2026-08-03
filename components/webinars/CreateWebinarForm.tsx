@@ -82,10 +82,10 @@ export default function CreateWebinarForm() {
           className="mt-1 accent-orange"
         />
         <span>
-          <span className="font-semibold text-off-white">Outside-network signup page</span>
+          <span className="font-semibold text-off-white">Outside-network webinar</span>
           <span className="mt-0.5 block text-xs text-off-white/45">
-            Creates a secure public page outsiders can use to register for this webinar only —
-            no hub membership required. You&apos;ll get a shareable invite link after create.
+            Creates a secure public signup page for non-members only. This webinar will not appear
+            in the hub for members — share the invite link after create.
           </span>
         </span>
       </label>
