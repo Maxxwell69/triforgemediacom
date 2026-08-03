@@ -139,10 +139,12 @@ function AudienceControls({
   webinarId,
   role,
   onRoleChange,
+  guestMode,
 }: {
   webinarId: string;
   role: WebinarParticipantRole;
   onRoleChange: (role: WebinarParticipantRole) => void;
+  guestMode?: boolean;
 }) {
   const { localParticipant } = useLocalParticipant();
   const room = useRoomContext();
@@ -191,6 +193,14 @@ function AudienceControls({
     );
   }
 
+  if (guestMode) {
+    return (
+      <p className="font-body text-xs text-off-white/40">
+        Guest viewer — watching only for this session.
+      </p>
+    );
+  }
+
   return (
     <div>
       <button
@@ -216,6 +226,8 @@ function RoomChrome({
   onEnd,
   currentUserId,
   designatedHostUserId,
+  guestMode,
+  leaveHref,
 }: {
   webinarId: string;
   title: string;
@@ -226,12 +238,15 @@ function RoomChrome({
   onEnd: () => void;
   currentUserId: string;
   designatedHostUserId: string;
+  guestMode?: boolean;
+  leaveHref?: string;
 }) {
   const participants = useParticipants();
   const canPublish = role === "HOST" || role === "SPEAKER";
-  const hostPowers = role === "HOST";
-  const canModerate = role === "HOST";
+  const hostPowers = !guestMode && role === "HOST";
+  const canModerate = !guestMode && role === "HOST";
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
+  const backHref = leaveHref || "/webinars";
 
   // Warn hosts before accidental leave / tab close while in the room.
   useWebinarLeaveGuard(hostPowers);
@@ -242,7 +257,7 @@ function RoomChrome({
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <WebinarLeaveLink
-              href="/webinars"
+              href={backHref}
               warn={hostPowers}
               className="font-body text-xs text-off-white/40 hover:text-off-white/70"
             >
@@ -305,6 +320,7 @@ function RoomChrome({
               webinarId={webinarId}
               role={role}
               onRoleChange={onRoleChange}
+              guestMode={guestMode}
             />
           </div>
         </div>
@@ -338,10 +354,11 @@ function RoomChrome({
       <div className="flex h-[32vh] max-h-64 min-h-44 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:min-h-0 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
         <WebinarSidePanel
           webinarId={webinarId}
-          canSendChat
+          canSendChat={!guestMode}
           canModerate={canModerate}
           currentUserId={currentUserId}
           designatedHostUserId={designatedHostUserId}
+          guestMode={guestMode}
         />
       </div>
     </div>
@@ -357,6 +374,9 @@ export default function WebinarRoom({
   userId,
   userName,
   designatedHostUserId,
+  guestMode = false,
+  guestJoinToken,
+  leaveHref,
 }: {
   webinarId: string;
   title: string;
@@ -366,6 +386,10 @@ export default function WebinarRoom({
   userId: string;
   userName: string;
   designatedHostUserId: string;
+  /** Outside-network guest — audience-only, no hub session. */
+  guestMode?: boolean;
+  guestJoinToken?: string;
+  leaveHref?: string;
 }) {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -374,16 +398,23 @@ export default function WebinarRoom({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [kicked, setKicked] = useState(false);
+  const backHref = leaveHref || "/webinars";
 
   const fetchToken = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/webinars/${webinarId}/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(joinMode ? { mode: joinMode } : {}),
-      });
+      const res = guestMode
+        ? await fetch(`/api/webinars/external/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ joinToken: guestJoinToken }),
+          })
+        : await fetch(`/api/webinars/${webinarId}/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(joinMode ? { mode: joinMode } : {}),
+          });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Could not join room");
@@ -398,7 +429,7 @@ export default function WebinarRoom({
     } finally {
       setLoading(false);
     }
-  }, [webinarId, joinMode]);
+  }, [webinarId, joinMode, guestMode, guestJoinToken]);
 
   useEffect(() => {
     void fetchToken();
@@ -437,8 +468,8 @@ export default function WebinarRoom({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-10">
         <p className="font-body text-orange">You were removed from this webinar.</p>
-        <Link href="/webinars" className="font-body text-sm text-cyan hover:underline">
-          Back to webinars
+        <Link href={backHref} className="font-body text-sm text-cyan hover:underline">
+          {guestMode ? "Back to your registration" : "Back to webinars"}
         </Link>
       </div>
     );
@@ -455,8 +486,8 @@ export default function WebinarRoom({
         >
           Retry
         </button>
-        <Link href="/webinars" className="font-body text-sm text-cyan hover:underline">
-          Back to webinars
+        <Link href={backHref} className="font-body text-sm text-cyan hover:underline">
+          {guestMode ? "Back to your registration" : "Back to webinars"}
         </Link>
       </div>
     );
@@ -488,6 +519,8 @@ export default function WebinarRoom({
         onEnd={() => void handleEnd()}
         currentUserId={userId}
         designatedHostUserId={designatedHostUserId}
+        guestMode={guestMode}
+        leaveHref={leaveHref}
       />
       <span className="sr-only">
         {userName} ({userId})

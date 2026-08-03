@@ -81,7 +81,7 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "Live Webinars",
     tagline: "Hosted with LiveKit",
     description:
-      "Scheduled webinars with multi-host stage, screen share, raise hand, chat, people list, moderation, and recordings.",
+      "Scheduled webinars with multi-host stage, screen share, raise hand, chat, people list, moderation, recordings, and secure outside-network signup pages for non-members.",
     since: "2.0",
   },
   {
@@ -94,6 +94,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.39",
+    date: "August 2, 2026",
+    title: "Outside-network webinar signup",
+    summary:
+      "Admins can open a secure public invite page so people outside the hub can register and join a webinar without becoming members.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin toggle for an outside meeting spot with a copyable secure invite link",
+      },
+      {
+        kind: "feature",
+        text: "Public /w/[token] signup page — name + email only, personal access link after register",
+      },
+      {
+        kind: "feature",
+        text: "Outside guests join the LiveKit room as audience viewers (no hub account)",
+      },
+    ],
+  },
   {
     version: "2.38",
     date: "August 2, 2026",

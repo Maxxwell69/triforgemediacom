@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { webinarRoomName } from "@/lib/webinars";
+import { generateWebinarExternalToken } from "@/lib/webinarExternal";
 import {
   createWebinarSchema,
   updateWebinarHostAvatarSchema,
@@ -44,6 +45,7 @@ export async function createWebinarAction(formData: FormData) {
     scheduledAt: String(formData.get("scheduledAt") || ""),
     status: String(formData.get("status") || "SCHEDULED"),
     hostAvatarUrl: String(formData.get("hostAvatarUrl") || ""),
+    externalSignupEnabled: formData.get("externalSignupEnabled") === "on",
   };
 
   const parsed = createWebinarSchema.safeParse(raw);
@@ -52,6 +54,7 @@ export async function createWebinarAction(formData: FormData) {
   }
 
   const scheduledAt = parseScheduledAt(parsed.data.scheduledAt);
+  const externalSignupEnabled = parsed.data.externalSignupEnabled;
 
   const webinar = await prisma.webinar.create({
     data: {
@@ -62,6 +65,8 @@ export async function createWebinarAction(formData: FormData) {
       hostAvatarUrl: parsed.data.hostAvatarUrl || null,
       hostUserId: session.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
+      externalSignupEnabled,
+      externalInviteToken: externalSignupEnabled ? generateWebinarExternalToken() : null,
     },
   });
 
@@ -246,5 +251,54 @@ export async function deleteWebinarRecordingAction(recordingId: string) {
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${recording.webinarId}`);
+  return { error: null };
+}
+
+/** Enable/disable the secure outside-network signup page for a webinar. */
+export async function setWebinarExternalSignupAction(
+  webinarId: string,
+  enabled: boolean
+) {
+  await requireAdmin();
+
+  const existing = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  if (!existing) return { error: "Webinar not found" };
+  if (existing.status === "ENDED") {
+    return { error: "Cannot change external signup on an ended webinar." };
+  }
+
+  const token =
+    enabled && !existing.externalInviteToken
+      ? generateWebinarExternalToken()
+      : existing.externalInviteToken;
+
+  await prisma.webinar.update({
+    where: { id: webinarId },
+    data: {
+      externalSignupEnabled: enabled,
+      externalInviteToken: enabled ? token : existing.externalInviteToken,
+    },
+  });
+
+  revalidatePath("/admin/webinars");
+  return { error: null };
+}
+
+/** Rotate the public invite token (old links stop working). */
+export async function regenerateWebinarExternalInviteAction(webinarId: string) {
+  await requireAdmin();
+
+  const existing = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  if (!existing) return { error: "Webinar not found" };
+  if (!existing.externalSignupEnabled) {
+    return { error: "Enable external signup first." };
+  }
+
+  await prisma.webinar.update({
+    where: { id: webinarId },
+    data: { externalInviteToken: generateWebinarExternalToken() },
+  });
+
+  revalidatePath("/admin/webinars");
   return { error: null };
 }

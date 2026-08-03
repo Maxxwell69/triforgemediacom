@@ -75,6 +75,21 @@ export default function CreateWebinarForm() {
         </label>
       </div>
 
+      <label className="flex items-start gap-3 rounded-lg border border-off-white/10 bg-charcoal/60 px-3 py-3 font-body text-sm text-off-white/70">
+        <input
+          type="checkbox"
+          name="externalSignupEnabled"
+          className="mt-1 accent-orange"
+        />
+        <span>
+          <span className="font-semibold text-off-white">Outside-network signup page</span>
+          <span className="mt-0.5 block text-xs text-off-white/45">
+            Creates a secure public page outsiders can use to register for this webinar only —
+            no hub membership required. You&apos;ll get a shareable invite link after create.
+          </span>
+        </span>
+      </label>
+
       {error && <p className="font-body text-sm text-orange">{error}</p>}
 
       <button

@@ -26,12 +26,14 @@ export default function WebinarSidePanel({
   canModerate,
   currentUserId,
   designatedHostUserId,
+  guestMode = false,
 }: {
   webinarId: string;
   canSendChat: boolean;
   canModerate: boolean;
   currentUserId: string;
   designatedHostUserId?: string | null;
+  guestMode?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("chat");
   const [chatUnread, setChatUnread] = useState(0);
@@ -67,22 +69,30 @@ export default function WebinarSidePanel({
 
       {/* Keep Chat mounted while on People so polling continues and unread can update. */}
       <div className={`min-h-0 flex-1 overflow-hidden ${tab === "chat" ? "" : "hidden"}`}>
-        <WebinarChat
-          webinarId={webinarId}
-          canSend={canSendChat}
-          canModerate={canModerate}
-          currentUserId={currentUserId}
-          embedded
-          active={tab === "chat"}
-          onUnreadChange={setChatUnread}
-        />
+        {guestMode ? (
+          <div className="flex h-full items-center justify-center px-4 text-center">
+            <p className="font-body text-sm text-off-white/45">
+              Chat is for hub members. You&apos;re watching as an outside guest.
+            </p>
+          </div>
+        ) : (
+          <WebinarChat
+            webinarId={webinarId}
+            canSend={canSendChat}
+            canModerate={canModerate}
+            currentUserId={currentUserId}
+            embedded
+            active={tab === "chat"}
+            onUnreadChange={setChatUnread}
+          />
+        )}
       </div>
       <div
         className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
           tab === "people" ? "" : "hidden"
         }`}
       >
-        <WebinarAvatarSettings webinarId={webinarId} />
+        {!guestMode && <WebinarAvatarSettings webinarId={webinarId} />}
         <div className="min-h-0 flex-1 overflow-hidden">
           <WebinarParticipants
             webinarId={webinarId}

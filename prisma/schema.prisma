@@ -922,6 +922,10 @@ model Webinar {
   /// Optional branded host photo shown on webinar cards / detail (not the User.image).
   hostAvatarUrl   String?
   livekitRoomName String        @unique
+  /// When true, outsiders can register via the secure /w/[token] page (not hub members).
+  externalSignupEnabled Boolean @default(false)
+  /// Unguessable token for the public external signup / invite page.
+  externalInviteToken   String? @unique
   startedAt       DateTime?
   endedAt         DateTime?
   createdAt       DateTime      @default(now())
@@ -932,8 +936,28 @@ model Webinar {
   chatMessages  WebinarChatMessage[]
   stageRequests WebinarStageRequest[]
   recordings    WebinarRecording[]
+  externalGuests WebinarGuest[]
 
   @@index([status, scheduledAt])
+}
+
+/// Outside-network registrant for a webinar with external signup enabled.
+/// Not a hub User — join is via personal joinToken only.
+model WebinarGuest {
+  id           String    @id @default(cuid())
+  webinarId    String
+  name         String
+  email        String
+  /// Personal secret used to open the guest access / room pages.
+  joinToken    String    @unique
+  registeredAt DateTime  @default(now())
+  joinedAt     DateTime?
+  kickedAt     DateTime?
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  @@unique([webinarId, email])
+  @@index([webinarId])
 }
 
 model WebinarRecording {

@@ -17,6 +17,8 @@ export const createWebinarSchema = z.object({
   scheduledAt: z.string().min(1, "Schedule a date/time"),
   status: z.enum(["DRAFT", "SCHEDULED"]).default("SCHEDULED"),
   hostAvatarUrl: optionalImageUrl,
+  /** Outside-network signup page for people who are not hub members. */
+  externalSignupEnabled: z.boolean().default(false),
 });
 
 export const updateWebinarSchema = z.object({
@@ -25,6 +27,11 @@ export const updateWebinarSchema = z.object({
   scheduledAt: z.string().min(1).optional(),
   status: z.enum(["DRAFT", "SCHEDULED"]).optional(),
   hostAvatarUrl: optionalImageUrl,
+});
+
+export const webinarExternalSignupSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: z.string().trim().email("Enter a valid email").max(254),
 });
 
 export const updateWebinarHostAvatarSchema = z.object({

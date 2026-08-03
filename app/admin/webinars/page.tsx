@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isLiveKitConfigured } from "@/lib/livekit";
+import { webinarExternalInviteUrl } from "@/lib/webinarExternal";
 import CreateWebinarForm from "@/components/webinars/CreateWebinarForm";
 import AdminWebinarActions from "@/components/webinars/AdminWebinarActions";
 import AdminWebinarHostAvatar from "@/components/webinars/AdminWebinarHostAvatar";
 import AdminWebinarRecordings from "@/components/webinars/AdminWebinarRecordings";
+import AdminWebinarExternalSignup from "@/components/webinars/AdminWebinarExternalSignup";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,16 @@ export default async function AdminWebinarsPage() {
     include: {
       host: { select: { name: true, email: true } },
       recordings: { orderBy: { sortOrder: "asc" }, select: { id: true, title: true, url: true } },
+      externalGuests: {
+        orderBy: { registeredAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          registeredAt: true,
+          joinedAt: true,
+        },
+      },
       _count: { select: { attendances: true, chatMessages: true } },
     },
   });
@@ -34,8 +46,9 @@ export default async function AdminWebinarsPage() {
         WEBI<span className="text-gradient">NARS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Schedule member webinars powered by LiveKit Cloud. After a session, attach screen recordings
-        so members can rewatch on the webinar page.
+        Schedule member webinars powered by LiveKit Cloud. Optionally open a secure outside signup
+        page for people who are not in the network. After a session, attach screen recordings so
+        members can rewatch on the webinar page.
       </p>
 
       {!livekitReady && (
@@ -81,6 +94,9 @@ export default async function AdminWebinarsPage() {
                       <p className="mt-1 font-body text-xs text-off-white/50">
                         {w.scheduledAt.toLocaleString()} · Host: {hostName} ·{" "}
                         {w._count.attendances} joined · {w._count.chatMessages} messages
+                        {w.externalSignupEnabled
+                          ? ` · ${w.externalGuests.length} outside signup${w.externalGuests.length === 1 ? "" : "s"}`
+                          : ""}
                       </p>
                       {w.description && (
                         <p className="mt-2 font-body text-sm text-off-white/70">{w.description}</p>
@@ -103,6 +119,22 @@ export default async function AdminWebinarsPage() {
                   </div>
                 </div>
                 <AdminWebinarHostAvatar webinarId={w.id} hostAvatarUrl={w.hostAvatarUrl} />
+                <AdminWebinarExternalSignup
+                  webinarId={w.id}
+                  enabled={w.externalSignupEnabled}
+                  inviteUrl={
+                    w.externalInviteToken
+                      ? webinarExternalInviteUrl(w.externalInviteToken)
+                      : null
+                  }
+                  guests={w.externalGuests.map((g) => ({
+                    id: g.id,
+                    name: g.name,
+                    email: g.email,
+                    registeredAt: g.registeredAt.toISOString(),
+                    joinedAt: g.joinedAt?.toISOString() ?? null,
+                  }))}
+                />
                 <AdminWebinarRecordings
                   webinarId={w.id}
                   recordings={w.recordings}
