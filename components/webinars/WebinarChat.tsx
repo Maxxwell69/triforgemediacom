@@ -20,6 +20,7 @@ export default function WebinarChat({
   canSend,
   canModerate = false,
   currentUserId,
+  guestJoinToken,
   embedded = false,
   active = true,
   onUnreadChange,
@@ -28,6 +29,8 @@ export default function WebinarChat({
   canSend: boolean;
   canModerate?: boolean;
   currentUserId?: string;
+  /** Outside guest personal token — uses public chat API instead of hub session. */
+  guestJoinToken?: string;
   /** Hide outer border/title when nested in the Chat/People side panel. */
   embedded?: boolean;
   /** When false (e.g. People tab), new messages from others bump the unread badge. */
@@ -76,9 +79,15 @@ export default function WebinarChat({
 
     async function load(initial: boolean) {
       const cursor = afterRef.current || removedCursorRef.current;
-      const qs = !initial && cursor ? `?after=${encodeURIComponent(cursor)}` : "";
+      const params = new URLSearchParams();
+      if (!initial && cursor) params.set("after", cursor);
+      if (guestJoinToken) params.set("joinToken", guestJoinToken);
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const url = guestJoinToken
+        ? `/api/webinars/external/chat${qs}`
+        : `/api/webinars/${webinarId}/chat${qs}`;
       try {
-        const res = await fetch(`/api/webinars/${webinarId}/chat${qs}`);
+        const res = await fetch(url);
         if (!res.ok) return;
         const data = (await res.json()) as {
           messages: ChatMessage[];
@@ -127,7 +136,7 @@ export default function WebinarChat({
       cancelled = true;
       clearInterval(id);
     };
-  }, [webinarId, currentUserId]);
+  }, [webinarId, currentUserId, guestJoinToken]);
 
   useEffect(() => {
     if (!active) return;
@@ -149,14 +158,24 @@ export default function WebinarChat({
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim() || sending || muted) return;
+    if (guestJoinToken === undefined && !webinarId) return;
     setSending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/webinars/${webinarId}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: body.trim() }),
-      });
+      const res = await fetch(
+        guestJoinToken
+          ? `/api/webinars/external/chat`
+          : `/api/webinars/${webinarId}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            guestJoinToken
+              ? { joinToken: guestJoinToken, body: body.trim() }
+              : { body: body.trim() }
+          ),
+        }
+      );
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to send");

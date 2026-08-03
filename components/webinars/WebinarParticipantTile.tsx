@@ -66,7 +66,9 @@ export default function WebinarParticipantTile({
           {hasLiveVideo ? (
             <VideoTrack
               trackRef={trackReference}
-              className="h-full w-full object-cover"
+              className={`h-full w-full ${
+                isScreenShare ? "object-contain bg-black" : "object-cover"
+              }`}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-b from-[#222] to-[#111] px-4">

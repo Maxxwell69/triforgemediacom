@@ -227,20 +227,24 @@ export default function WebinarStage({ layoutMode }: { layoutMode: StageLayoutMo
 
   return (
     <LayoutContextProvider value={layoutContext}>
-      <div className="h-full min-h-[180px] overflow-hidden rounded-xl border border-off-white/10 bg-black [&_.lk-focus-layout-wrapper]:h-full [&_.lk-grid-layout-wrapper]:h-full [&_.lk-grid-layout]:h-full [&_.lk-focus-layout]:h-full [&_.lk-participant-tile]:h-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover">
+      {/*
+        FocusLayoutContainer already renders .lk-focus-layout (1fr | 5fr).
+        Do NOT nest another .lk-focus-layout — that pinches the share into a thin bar.
+      */}
+      <div className="webinar-stage h-full min-h-[180px] overflow-hidden rounded-xl border border-off-white/10 bg-black">
         {showFocus && focusTrack ? (
-          <div className="lk-focus-layout-wrapper h-full">
+          <div className="lk-focus-layout-wrapper h-full !h-full">
             <FocusLayoutContainer className="h-full">
               <CarouselLayout tracks={carouselTracks}>
                 <WebinarParticipantTile />
               </CarouselLayout>
-              <div className="lk-focus-layout h-full min-h-0">
+              <div className="h-full min-h-0 min-w-0">
                 <WebinarParticipantTile trackRef={focusTrack} />
               </div>
             </FocusLayoutContainer>
           </div>
         ) : (
-          <div className="lk-grid-layout-wrapper h-full">
+          <div className="lk-grid-layout-wrapper h-full !h-full">
             <GridLayout tracks={gridTracks.length > 0 ? gridTracks : stageTracks}>
               <WebinarParticipantTile />
             </GridLayout>

@@ -5,23 +5,16 @@ import { isMuted } from "@/lib/moderation";
 import {
   canJoinWebinar,
   canViewWebinar,
-  displayNameForUser,
   isWebinarChatMuted,
 } from "@/lib/webinars";
 import { chatMessageSchema } from "@/lib/validations/webinar";
-import { getMemberAvatarUrl } from "@/lib/memberDisplay";
+import {
+  serializeWebinarChatAuthor,
+  webinarChatAuthorSelect,
+  webinarChatGuestSelect,
+} from "@/lib/webinarChat";
 
 export const dynamic = "force-dynamic";
-
-const webinarChatAuthorSelect = {
-  id: true,
-  name: true,
-  email: true,
-  image: true,
-  profile: { select: { socialLinks: true, username: true } },
-  tiktokConnection: { select: { displayName: true, avatarUrl: true } },
-  tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
-} as const;
 
 export async function GET(
   req: Request,
@@ -56,6 +49,7 @@ export async function GET(
     take: 100,
     include: {
       user: { select: webinarChatAuthorSelect },
+      guest: { select: webinarChatGuestSelect },
     },
   });
 
@@ -82,11 +76,7 @@ export async function GET(
       id: m.id,
       body: m.body,
       createdAt: m.createdAt.toISOString(),
-      user: {
-        id: m.user.id,
-        name: displayNameForUser(m.user),
-        image: getMemberAvatarUrl(m.user) || m.user.image,
-      },
+      user: serializeWebinarChatAuthor(m.user, m.guest),
     })),
     removedIds,
     chatMutedUntil: attendance?.chatMutedUntil?.toISOString() ?? null,
@@ -165,6 +155,7 @@ export async function POST(
     },
     include: {
       user: { select: webinarChatAuthorSelect },
+      guest: { select: webinarChatGuestSelect },
     },
   });
 
@@ -173,11 +164,7 @@ export async function POST(
       id: message.id,
       body: message.body,
       createdAt: message.createdAt.toISOString(),
-      user: {
-        id: message.user.id,
-        name: displayNameForUser(message.user),
-        image: getMemberAvatarUrl(message.user) || message.user.image,
-      },
+      user: serializeWebinarChatAuthor(message.user, message.guest),
     },
   });
 }

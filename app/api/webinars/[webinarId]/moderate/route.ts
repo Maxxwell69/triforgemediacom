@@ -70,7 +70,8 @@ async function moderateOutsideGuest(
   webinarId: string,
   roomName: string,
   guestId: string,
-  action: string
+  action: string,
+  durationMinutes?: number
 ) {
   const guest = await prisma.webinarGuest.findFirst({
     where: { id: guestId, webinarId },
@@ -133,7 +134,25 @@ async function moderateOutsideGuest(
     return NextResponse.json({ ok: true });
   }
 
-  if (action === "demote_host" || action === "mute_chat" || action === "unmute_chat") {
+  if (action === "mute_chat") {
+    const minutes = durationMinutes && durationMinutes > 0 ? durationMinutes : 60 * 24;
+    const chatMutedUntil = new Date(Date.now() + minutes * 60_000);
+    await prisma.webinarGuest.update({
+      where: { id: guest.id },
+      data: { chatMutedUntil },
+    });
+    return NextResponse.json({ ok: true, chatMutedUntil: chatMutedUntil.toISOString() });
+  }
+
+  if (action === "unmute_chat") {
+    await prisma.webinarGuest.update({
+      where: { id: guest.id },
+      data: { chatMutedUntil: null },
+    });
+    return NextResponse.json({ ok: true, chatMutedUntil: null });
+  }
+
+  if (action === "demote_host") {
     return NextResponse.json(
       { error: "That action isn't available for outside guests." },
       { status: 400 }
@@ -221,7 +240,8 @@ export async function POST(
       webinar.id,
       webinar.livekitRoomName,
       guestId,
-      action
+      action,
+      durationMinutes
     );
     if (guestResult) return guestResult;
   }

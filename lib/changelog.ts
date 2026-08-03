@@ -95,6 +95,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.44",
+    date: "August 3, 2026",
+    title: "Outside webinar stage, leave & chat fixes",
+    summary:
+      "Screen share takes the main stage with others onboard, leave warns on any nav link, phone shares stay readable, and outside guests can use webinar chat.",
+    items: [
+      {
+        kind: "fix",
+        text: "Screen share fills the main stage when other hosts are present (no more thin-bar focus layout)",
+      },
+      {
+        kind: "fix",
+        text: "Leaving a webinar via sidebar, logo, or other links now asks for confirmation",
+      },
+      {
+        kind: "fix",
+        text: "Phone screen shares use contain fit, and host tiles stay viewable on mobile during share",
+      },
+      {
+        kind: "feature",
+        text: "Outside-network guests can read and send webinar chat without a hub account",
+      },
+    ],
+  },
+  {
     version: "2.43",
     date: "August 3, 2026",
     title: "Hide outside webinars from the hub",

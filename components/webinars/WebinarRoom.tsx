@@ -250,8 +250,8 @@ function RoomChrome({
   const [layoutMode, setLayoutMode] = useState<StageLayoutMode>("auto");
   const backHref = leaveHref || "/webinars";
 
-  // Warn hosts before accidental leave / tab close while in the room.
-  useWebinarLeaveGuard(hostPowers);
+  // Warn before accidental leave via Leave, sidebar/logo links, or tab close.
+  useWebinarLeaveGuard(true);
 
   return (
     <div className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden lg:flex-row">
@@ -260,7 +260,7 @@ function RoomChrome({
           <div className="min-w-0 flex-1">
             <WebinarLeaveLink
               href={backHref}
-              warn={hostPowers}
+              warn
               className="font-body text-xs text-off-white/40 hover:text-off-white/70"
             >
               ← Leave
@@ -357,11 +357,12 @@ function RoomChrome({
       <div className="flex h-[32vh] max-h-64 min-h-44 shrink-0 flex-col overflow-hidden border-t border-off-white/10 lg:h-full lg:max-h-none lg:min-h-0 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
         <WebinarSidePanel
           webinarId={webinarId}
-          canSendChat={!guestMode}
+          canSendChat
           canModerate={canModerate}
           currentUserId={currentUserId}
           designatedHostUserId={designatedHostUserId}
           guestMode={guestMode}
+          guestJoinToken={guestJoinToken}
         />
       </div>
     </div>

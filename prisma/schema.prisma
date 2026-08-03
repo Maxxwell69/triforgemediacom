@@ -957,11 +957,14 @@ model WebinarGuest {
   /// Pending raise-hand; cleared when approved/denied or when they go on stage.
   stageRequestStatus StageRequestStatus?
   stageRequestedAt   DateTime?
+  /// Webinar-scoped chat mute for outside guests; null = not muted.
+  chatMutedUntil  DateTime?
   registeredAt DateTime  @default(now())
   joinedAt     DateTime?
   kickedAt     DateTime?
 
-  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  webinar      Webinar             @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  chatMessages WebinarChatMessage[]
 
   @@unique([webinarId, email])
   @@index([webinarId])
@@ -1007,15 +1010,20 @@ model WebinarAttendance {
 model WebinarChatMessage {
   id        String    @id @default(cuid())
   webinarId String
-  userId    String
+  /// Hub member author — null when posted by an outside guest.
+  userId    String?
+  /// Outside-network guest author — null when posted by a hub member.
+  guestId   String?
   body      String
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
-  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webinar Webinar      @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guest   WebinarGuest? @relation(fields: [guestId], references: [id], onDelete: Cascade)
 
   @@index([webinarId, createdAt])
+  @@index([guestId])
 }
 
 model WebinarStageRequest {
