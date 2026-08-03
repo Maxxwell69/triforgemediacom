@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { canJoinWebinar, isWebinarHost } from "@/lib/webinars";
+import { webinarGuestIdentity } from "@/lib/webinarExternal";
 
 export const dynamic = "force-dynamic";
 
@@ -24,12 +25,50 @@ export async function GET(
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  const requests = await prisma.webinarStageRequest.findMany({
-    where: { webinarId: webinar.id, status: "PENDING" },
-    include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
-    },
-    orderBy: { createdAt: "asc" },
+  const [memberRequests, guestRequests] = await Promise.all([
+    prisma.webinarStageRequest.findMany({
+      where: { webinarId: webinar.id, status: "PENDING" },
+      include: {
+        user: { select: { id: true, name: true, email: true, image: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.webinarGuest.findMany({
+      where: {
+        webinarId: webinar.id,
+        stageRequestStatus: "PENDING",
+        kickedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        stageRequestedAt: true,
+      },
+      orderBy: { stageRequestedAt: "asc" },
+    }),
+  ]);
+
+  const requests = [
+    ...memberRequests.map((r) => ({
+      id: r.id,
+      user: r.user,
+      createdAt: r.createdAt,
+    })),
+    ...guestRequests.map((g) => ({
+      id: `guest_${g.id}`,
+      user: {
+        id: webinarGuestIdentity(g.id),
+        name: g.name,
+        email: g.email,
+        image: null as string | null,
+      },
+      createdAt: g.stageRequestedAt,
+    })),
+  ].sort((a, b) => {
+    const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return at - bt;
   });
 
   return NextResponse.json({ requests });

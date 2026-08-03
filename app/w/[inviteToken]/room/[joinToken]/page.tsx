@@ -3,7 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canJoinWebinar } from "@/lib/webinars";
 import { isLiveKitConfigured } from "@/lib/livekit";
-import { webinarGuestIdentity } from "@/lib/webinarExternal";
+import {
+  resolveWebinarGuestRole,
+  webinarGuestIdentity,
+} from "@/lib/webinarExternal";
 import WebinarRoom from "@/components/webinars/WebinarRoom";
 
 export const dynamic = "force-dynamic";
@@ -66,13 +69,15 @@ export default async function ExternalWebinarRoomPage({
     );
   }
 
+  const role = resolveWebinarGuestRole(guest);
+
   return (
     <main className="flex h-[100dvh] min-h-0 flex-1 flex-col overflow-hidden">
       <WebinarRoom
         webinarId={guest.webinar.id}
         title={guest.webinar.title}
         status={guest.webinar.status}
-        initialRole="AUDIENCE"
+        initialRole={role}
         userId={webinarGuestIdentity(guest.id)}
         userName={guest.name}
         designatedHostUserId={guest.webinar.hostUserId}

@@ -197,6 +197,16 @@ export async function endWebinarAction(webinarId: string) {
     data: { leftAt: new Date() },
   });
 
+  await prisma.webinarGuest.updateMany({
+    where: { webinarId },
+    data: {
+      role: "AUDIENCE",
+      forcedAudience: false,
+      stageRequestStatus: null,
+      stageRequestedAt: null,
+    },
+  });
+
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);

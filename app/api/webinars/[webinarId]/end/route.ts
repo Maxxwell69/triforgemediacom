@@ -42,5 +42,15 @@ export async function POST(
     },
   });
 
+  await prisma.webinarGuest.updateMany({
+    where: { webinarId: webinar.id },
+    data: {
+      role: "AUDIENCE",
+      forcedAudience: false,
+      stageRequestStatus: null,
+      stageRequestedAt: null,
+    },
+  });
+
   return NextResponse.json({ webinar: updated });
 }

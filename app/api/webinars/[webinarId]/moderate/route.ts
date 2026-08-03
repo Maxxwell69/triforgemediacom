@@ -9,27 +9,34 @@ import {
   type WebinarTokenRole,
 } from "@/lib/livekit";
 import { canModerateWebinar, getAttendanceAvatarUrl } from "@/lib/webinars";
+import {
+  parseWebinarGuestId,
+  webinarGuestIdentity,
+} from "@/lib/webinarExternal";
 import { webinarModerateSchema } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
 
 async function stageMetadata(
   webinarId: string,
-  userId: string,
+  identity: string,
   role: WebinarTokenRole
 ) {
-  const avatarUrl = await getAttendanceAvatarUrl(webinarId, userId);
+  const guestId = parseWebinarGuestId(identity);
+  const avatarUrl = guestId
+    ? null
+    : await getAttendanceAvatarUrl(webinarId, identity);
   return buildWebinarParticipantMeta({ role, avatarUrl });
 }
 
-async function revokeStage(roomName: string, webinarId: string, userId: string) {
+async function revokeStage(roomName: string, webinarId: string, identity: string) {
   if (!isLiveKitConfigured()) return;
   try {
     await setParticipantPublish({
       roomName,
-      identity: userId,
+      identity,
       canPublish: false,
-      metadata: await stageMetadata(webinarId, userId, "audience"),
+      metadata: await stageMetadata(webinarId, identity, "audience"),
     });
   } catch {
     // Participant may already be disconnected.
@@ -39,24 +46,101 @@ async function revokeStage(roomName: string, webinarId: string, userId: string) 
 async function grantStage(
   roomName: string,
   webinarId: string,
-  userId: string,
+  identity: string,
   asHost: boolean
 ) {
   if (!isLiveKitConfigured()) return;
   try {
     await setParticipantPublish({
       roomName,
-      identity: userId,
+      identity,
       canPublish: true,
       metadata: await stageMetadata(
         webinarId,
-        userId,
+        identity,
         asHost ? "host" : "speaker"
       ),
     });
   } catch {
     // Token remint / reconnect will pick up role.
   }
+}
+
+async function moderateOutsideGuest(
+  webinarId: string,
+  roomName: string,
+  guestId: string,
+  action: string
+) {
+  const guest = await prisma.webinarGuest.findFirst({
+    where: { id: guestId, webinarId },
+    select: { id: true },
+  });
+  if (!guest) {
+    return NextResponse.json({ error: "Guest not found." }, { status: 404 });
+  }
+
+  const identity = webinarGuestIdentity(guest.id);
+
+  if (action === "invite_stage") {
+    await prisma.webinarGuest.update({
+      where: { id: guest.id },
+      data: {
+        role: "SPEAKER",
+        forcedAudience: false,
+        kickedAt: null,
+        stageRequestStatus: "APPROVED",
+        stageRequestedAt: null,
+      },
+    });
+    await grantStage(roomName, webinarId, identity, false);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "remove_stage") {
+    await prisma.webinarGuest.update({
+      where: { id: guest.id },
+      data: {
+        role: "AUDIENCE",
+        forcedAudience: true,
+        stageRequestStatus: null,
+        stageRequestedAt: null,
+      },
+    });
+    await revokeStage(roomName, webinarId, identity);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "kick") {
+    await prisma.webinarGuest.update({
+      where: { id: guest.id },
+      data: {
+        role: "AUDIENCE",
+        forcedAudience: true,
+        kickedAt: new Date(),
+        stageRequestStatus: null,
+        stageRequestedAt: null,
+      },
+    });
+    await revokeStage(roomName, webinarId, identity);
+    if (isLiveKitConfigured()) {
+      try {
+        await removeParticipant({ roomName, identity });
+      } catch {
+        // Already gone.
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "demote_host" || action === "mute_chat" || action === "unmute_chat") {
+    return NextResponse.json(
+      { error: "That action isn't available for outside guests." },
+      { status: 400 }
+    );
+  }
+
+  return null;
 }
 
 export async function POST(
@@ -129,6 +213,17 @@ export async function POST(
   // Remaining actions require a target user.
   if (!userId) {
     return NextResponse.json({ error: "User id required." }, { status: 400 });
+  }
+
+  const guestId = parseWebinarGuestId(userId);
+  if (guestId) {
+    const guestResult = await moderateOutsideGuest(
+      webinar.id,
+      webinar.livekitRoomName,
+      guestId,
+      action
+    );
+    if (guestResult) return guestResult;
   }
 
   if (action === "invite_stage") {

@@ -7,9 +7,28 @@ import {
   setParticipantPublish,
 } from "@/lib/livekit";
 import { getAttendanceAvatarUrl, isWebinarHost } from "@/lib/webinars";
+import { parseWebinarGuestId, webinarGuestIdentity } from "@/lib/webinarExternal";
 import { stageInviteSchema } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
+
+async function grantPublish(
+  roomName: string,
+  identity: string,
+  avatarUrl?: string | null
+) {
+  if (!isLiveKitConfigured()) return;
+  try {
+    await setParticipantPublish({
+      roomName,
+      identity,
+      canPublish: true,
+      metadata: buildWebinarParticipantMeta({ role: "speaker", avatarUrl }),
+    });
+  } catch {
+    // Participant may not be connected yet — token refresh will grant publish.
+  }
+}
 
 export async function POST(
   req: Request,
@@ -46,6 +65,41 @@ export async function POST(
   }
 
   const { userId, approve } = parsed.data;
+  const guestId = parseWebinarGuestId(userId);
+
+  if (guestId) {
+    const guest = await prisma.webinarGuest.findFirst({
+      where: { id: guestId, webinarId: webinar.id },
+      select: { id: true },
+    });
+    if (!guest) {
+      return NextResponse.json({ error: "Guest not found." }, { status: 404 });
+    }
+
+    if (approve) {
+      await prisma.webinarGuest.update({
+        where: { id: guest.id },
+        data: {
+          role: "SPEAKER",
+          forcedAudience: false,
+          kickedAt: null,
+          stageRequestStatus: "APPROVED",
+          stageRequestedAt: null,
+        },
+      });
+      await grantPublish(webinar.livekitRoomName, webinarGuestIdentity(guest.id));
+    } else {
+      await prisma.webinarGuest.update({
+        where: { id: guest.id },
+        data: {
+          stageRequestStatus: "DENIED",
+          stageRequestedAt: null,
+        },
+      });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
 
   if (approve) {
     await prisma.webinarAttendance.upsert({
@@ -76,19 +130,8 @@ export async function POST(
       update: { status: "APPROVED", resolvedAt: new Date() },
     });
 
-    if (isLiveKitConfigured()) {
-      try {
-        const avatarUrl = await getAttendanceAvatarUrl(webinar.id, userId);
-        await setParticipantPublish({
-          roomName: webinar.livekitRoomName,
-          identity: userId,
-          canPublish: true,
-          metadata: buildWebinarParticipantMeta({ role: "speaker", avatarUrl }),
-        });
-      } catch {
-        // Participant may not be connected yet — token refresh will grant publish.
-      }
-    }
+    const avatarUrl = await getAttendanceAvatarUrl(webinar.id, userId);
+    await grantPublish(webinar.livekitRoomName, userId, avatarUrl);
   } else {
     await prisma.webinarStageRequest.updateMany({
       where: { webinarId: webinar.id, userId, status: "PENDING" },

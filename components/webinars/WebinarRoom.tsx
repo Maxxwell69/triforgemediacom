@@ -140,11 +140,13 @@ function AudienceControls({
   role,
   onRoleChange,
   guestMode,
+  guestJoinToken,
 }: {
   webinarId: string;
   role: WebinarParticipantRole;
   onRoleChange: (role: WebinarParticipantRole) => void;
   guestMode?: boolean;
+  guestJoinToken?: string;
 }) {
   const { localParticipant } = useLocalParticipant();
   const room = useRoomContext();
@@ -171,7 +173,13 @@ function AudienceControls({
     setRaising(true);
     setError(null);
     try {
-      const res = await fetch(`/api/webinars/${webinarId}/stage-request`, { method: "POST" });
+      const res = guestMode
+        ? await fetch(`/api/webinars/external/stage-request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ joinToken: guestJoinToken }),
+          })
+        : await fetch(`/api/webinars/${webinarId}/stage-request`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Could not raise hand");
@@ -193,19 +201,11 @@ function AudienceControls({
     );
   }
 
-  if (guestMode) {
-    return (
-      <p className="font-body text-xs text-off-white/40">
-        Guest viewer — watching only for this session.
-      </p>
-    );
-  }
-
   return (
     <div>
       <button
         type="button"
-        disabled={raising || raised}
+        disabled={raising || raised || (guestMode && !guestJoinToken)}
         onClick={() => void raiseHand()}
         className="rounded-lg border border-cyan/40 bg-cyan/10 px-3 py-1.5 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/15 disabled:opacity-50"
       >
@@ -227,6 +227,7 @@ function RoomChrome({
   currentUserId,
   designatedHostUserId,
   guestMode,
+  guestJoinToken,
   leaveHref,
 }: {
   webinarId: string;
@@ -239,6 +240,7 @@ function RoomChrome({
   currentUserId: string;
   designatedHostUserId: string;
   guestMode?: boolean;
+  guestJoinToken?: string;
   leaveHref?: string;
 }) {
   const participants = useParticipants();
@@ -321,6 +323,7 @@ function RoomChrome({
               role={role}
               onRoleChange={onRoleChange}
               guestMode={guestMode}
+              guestJoinToken={guestJoinToken}
             />
           </div>
         </div>
@@ -520,6 +523,7 @@ export default function WebinarRoom({
         currentUserId={userId}
         designatedHostUserId={designatedHostUserId}
         guestMode={guestMode}
+        guestJoinToken={guestJoinToken}
         leaveHref={leaveHref}
       />
       <span className="sr-only">

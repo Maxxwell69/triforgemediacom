@@ -117,6 +117,7 @@ export default function WebinarParticipants({
   const target = menu ? sorted.find((p) => p.identity === menu.userId) : null;
   const targetLabel = target ? roleLabel(target) : null;
   const isDesignatedHost = menu?.userId === designatedHostUserId;
+  const isOutsideGuest = !!menu?.userId.startsWith("wg_");
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -244,29 +245,33 @@ export default function WebinarParticipants({
               Remove host
             </button>
           )}
-          <div className="my-1 border-t border-off-white/10" />
-          <p className="px-2 py-0.5 font-body text-[10px] uppercase tracking-wide text-off-white/30">
-            Mute chat
-          </p>
-          {MUTE_PRESETS.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              disabled={busy}
-              onClick={() => void run("mute_chat", { durationMinutes: p.minutes })}
-              className="w-full rounded px-2 py-1.5 text-left font-body text-xs text-off-white/70 hover:bg-off-white/10 disabled:opacity-50"
-            >
-              {p.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("unmute_chat")}
-            className="w-full rounded px-2 py-1.5 text-left font-body text-xs text-off-white/70 hover:bg-off-white/10 disabled:opacity-50"
-          >
-            Unmute chat
-          </button>
+          {!isOutsideGuest && (
+            <>
+              <div className="my-1 border-t border-off-white/10" />
+              <p className="px-2 py-0.5 font-body text-[10px] uppercase tracking-wide text-off-white/30">
+                Mute chat
+              </p>
+              {MUTE_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void run("mute_chat", { durationMinutes: p.minutes })}
+                  className="w-full rounded px-2 py-1.5 text-left font-body text-xs text-off-white/70 hover:bg-off-white/10 disabled:opacity-50"
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void run("unmute_chat")}
+                className="w-full rounded px-2 py-1.5 text-left font-body text-xs text-off-white/70 hover:bg-off-white/10 disabled:opacity-50"
+              >
+                Unmute chat
+              </button>
+            </>
+          )}
           <div className="my-1 border-t border-off-white/10" />
           <button
             type="button"

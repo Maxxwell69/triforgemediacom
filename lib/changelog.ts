@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.40",
+    date: "August 2, 2026",
+    title: "Outside guests can join the stage",
+    summary:
+      "People who signed up through an outside webinar invite can raise their hand and be invited onto the host stage.",
+    items: [
+      {
+        kind: "feature",
+        text: "Outside guests can raise hand and get invited/removed from stage like members",
+      },
+      {
+        kind: "improve",
+        text: "Host raise-hand queue and People moderation include outside-network attendees",
+      },
+    ],
+  },
+  {
     version: "2.39",
     date: "August 2, 2026",
     title: "Outside-network webinar signup",

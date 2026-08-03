@@ -2,13 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { canJoinWebinar } from "@/lib/webinars";
-import { getLiveKitUrl, isLiveKitConfigured, mintWebinarToken } from "@/lib/livekit";
-import {
-  guestRoleToTokenRole,
-  resolveWebinarGuestRole,
-  webinarGuestIdentity,
-} from "@/lib/webinarExternal";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { resolveWebinarGuestRole } from "@/lib/webinarExternal";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +11,10 @@ const bodySchema = z.object({
   joinToken: z.string().min(16).max(128),
 });
 
+/** Outside guest raises hand to request stage. */
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limited = checkRateLimit(`webinar-guest-token:${ip}`, 30, 60 * 60 * 1000);
+  const limited = checkRateLimit(`webinar-guest-hand:${ip}`, 40, 60 * 60 * 1000);
   if (limited.limited) {
     return NextResponse.json(
       { error: "Too many attempts. Try again later." },
@@ -26,13 +22,6 @@ export async function POST(req: Request) {
         status: 429,
         headers: { "Retry-After": String(limited.retryAfterSeconds) },
       }
-    );
-  }
-
-  if (!isLiveKitConfigured()) {
-    return NextResponse.json(
-      { error: "LiveKit is not configured on this server." },
-      { status: 503 }
     );
   }
 
@@ -55,7 +44,6 @@ export async function POST(req: Request) {
         select: {
           id: true,
           status: true,
-          livekitRoomName: true,
           externalSignupEnabled: true,
         },
       },
@@ -74,38 +62,22 @@ export async function POST(req: Request) {
   }
 
   if (!canJoinWebinar(guest.webinar.status)) {
-    return NextResponse.json(
-      {
-        error:
-          guest.webinar.status === "ENDED"
-            ? "This webinar has ended."
-            : "This webinar is not open yet.",
-      },
-      { status: 403 }
-    );
-  }
-
-  if (!guest.joinedAt) {
-    await prisma.webinarGuest.update({
-      where: { id: guest.id },
-      data: { joinedAt: new Date() },
-    });
+    return NextResponse.json({ error: "Webinar is not open." }, { status: 403 });
   }
 
   const role = resolveWebinarGuestRole(guest);
-  const identity = webinarGuestIdentity(guest.id);
-  const token = await mintWebinarToken({
-    identity,
-    name: guest.name,
-    roomName: guest.webinar.livekitRoomName,
-    role: guestRoleToTokenRole(role),
+  if (role === "SPEAKER") {
+    return NextResponse.json({ error: "You are already on stage." }, { status: 400 });
+  }
+
+  const updated = await prisma.webinarGuest.update({
+    where: { id: guest.id },
+    data: {
+      stageRequestStatus: "PENDING",
+      stageRequestedAt: new Date(),
+    },
+    select: { id: true, stageRequestStatus: true, stageRequestedAt: true },
   });
 
-  return NextResponse.json({
-    token,
-    url: getLiveKitUrl(),
-    roomName: guest.webinar.livekitRoomName,
-    role,
-    avatarUrl: null,
-  });
+  return NextResponse.json({ request: updated });
 }

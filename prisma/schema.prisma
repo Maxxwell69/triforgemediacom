@@ -950,6 +950,13 @@ model WebinarGuest {
   email        String
   /// Personal secret used to open the guest access / room pages.
   joinToken    String    @unique
+  /// Session role for LiveKit (audience by default; SPEAKER when invited on stage).
+  role            WebinarParticipantRole @default(AUDIENCE)
+  /// Blocks re-stage until host invites again (same idea as WebinarAttendance.forcedAudience).
+  forcedAudience  Boolean                @default(false)
+  /// Pending raise-hand; cleared when approved/denied or when they go on stage.
+  stageRequestStatus StageRequestStatus?
+  stageRequestedAt   DateTime?
   registeredAt DateTime  @default(now())
   joinedAt     DateTime?
   kickedAt     DateTime?
@@ -958,6 +965,7 @@ model WebinarGuest {
 
   @@unique([webinarId, email])
   @@index([webinarId])
+  @@index([webinarId, stageRequestStatus])
 }
 
 model WebinarRecording {
