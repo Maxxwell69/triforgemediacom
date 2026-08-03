@@ -3,11 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CarouselLayout,
-  FocusLayout,
   FocusLayoutContainer,
   GridLayout,
   LayoutContextProvider,
-  ParticipantTile,
   isTrackReference,
   useCreateLayoutContext,
   usePinnedTracks,
@@ -21,6 +19,8 @@ import {
   type RemoteParticipant,
   type RemoteTrackPublication,
 } from "livekit-client";
+import WebinarParticipantTile from "@/components/webinars/WebinarParticipantTile";
+import { parseWebinarParticipantMeta } from "@/lib/webinarParticipantMeta";
 
 export type StageLayoutMode = "auto" | "grid" | "focus";
 
@@ -30,13 +30,7 @@ function isOnStage(track: TrackReferenceOrPlaceholder): boolean {
   if (track.source === Track.Source.ScreenShare) {
     return isTrackReference(track) && Boolean(track.publication);
   }
-  let role = "audience";
-  try {
-    role =
-      (JSON.parse(track.participant.metadata || "{}") as { role?: string }).role || "audience";
-  } catch {
-    // ignore bad metadata
-  }
+  const role = parseWebinarParticipantMeta(track.participant.metadata).role || "audience";
   return (
     role === "host" ||
     role === "speaker" ||
@@ -233,20 +227,22 @@ export default function WebinarStage({ layoutMode }: { layoutMode: StageLayoutMo
 
   return (
     <LayoutContextProvider value={layoutContext}>
-      <div className="h-full min-h-[180px] overflow-hidden rounded-xl border border-off-white/10 bg-black [&_.lk-focus-layout-wrapper]:h-full [&_.lk-grid-layout-wrapper]:h-full [&_.lk-grid-layout]:h-full [&_.lk-focus-layout]:h-full [&_.lk-participant-tile]:h-full [&_.lk-participant-tile]:rounded-lg [&_.lk-participant-tile]:border [&_.lk-participant-tile]:border-off-white/10 [&_video]:h-full [&_video]:w-full [&_video]:object-cover">
+      <div className="h-full min-h-[180px] overflow-hidden rounded-xl border border-off-white/10 bg-black [&_.lk-focus-layout-wrapper]:h-full [&_.lk-grid-layout-wrapper]:h-full [&_.lk-grid-layout]:h-full [&_.lk-focus-layout]:h-full [&_.lk-participant-tile]:h-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover">
         {showFocus && focusTrack ? (
           <div className="lk-focus-layout-wrapper h-full">
             <FocusLayoutContainer className="h-full">
               <CarouselLayout tracks={carouselTracks}>
-                <ParticipantTile />
+                <WebinarParticipantTile />
               </CarouselLayout>
-              <FocusLayout trackRef={focusTrack} />
+              <div className="lk-focus-layout h-full min-h-0">
+                <WebinarParticipantTile trackRef={focusTrack} />
+              </div>
             </FocusLayoutContainer>
           </div>
         ) : (
           <div className="lk-grid-layout-wrapper h-full">
             <GridLayout tracks={gridTracks.length > 0 ? gridTracks : stageTracks}>
-              <ParticipantTile />
+              <WebinarParticipantTile />
             </GridLayout>
           </div>
         )}

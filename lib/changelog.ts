@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.41",
+    date: "August 2, 2026",
+    title: "Stage avatars & speaking glow",
+    summary:
+      "Your webinar avatar now fills the stage tile when the camera is off, and active speakers get an orange glow.",
+    items: [
+      {
+        kind: "feature",
+        text: "Custom stage tiles show the People-panel avatar instead of the grey silhouette",
+      },
+      {
+        kind: "feature",
+        text: "Speaking participants glow on stage (tile border + avatar halo + Talking badge)",
+      },
+    ],
+  },
+  {
     version: "2.40",
     date: "August 2, 2026",
     title: "Outside guests can join the stage",

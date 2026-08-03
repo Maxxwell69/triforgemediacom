@@ -110,7 +110,7 @@ export default function WebinarAvatarSettings({ webinarId }: { webinarId: string
             />
           </label>
           <p className="mt-1 font-body text-[10px] text-off-white/35">
-            Shown in People for hosts, guests, and speakers.
+            Shown on stage and in People when your camera is off.
           </p>
         </div>
       </div>
