@@ -12,6 +12,7 @@ import MobileShell from "@/components/MobileShell";
 import PresenceBeacon from "@/components/PresenceBeacon";
 import { getChannelUnreadCounts } from "@/lib/channelReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
+import { isLegacyBugChannelName } from "@/lib/bugs";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
@@ -43,7 +44,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
         select: { nickname: true, avatarUrl: true, uniqueId: true },
       }),
     ]);
-  const channels = allChannels.filter((c) => canAccessChannel(user.role, c, userGroupIds));
+  const channels = allChannels.filter(
+    (c) => canAccessChannel(user.role, c, userGroupIds) && !isLegacyBugChannelName(c.name)
+  );
   const unreadCounts = await getChannelUnreadCounts(
     user.id,
     channels.map((c) => c.id)
@@ -119,6 +122,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
           Webinars
+        </Link>
+        <Link
+          href="/bugs"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Bug reports
         </Link>
         <Link
           href="/account"

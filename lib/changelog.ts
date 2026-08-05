@@ -95,6 +95,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.47",
+    date: "August 5, 2026",
+    title: "Bug report board",
+    summary:
+      "Members file bugs on a public board with status, finder credit, and time-to-fix — admins manage timing and get email alerts.",
+    items: [
+      {
+        kind: "feature",
+        text: "Bug Reports board (/bugs) — submit, track Reported / Being worked on / Fixed / Couldn't reproduce, with credit to the finder",
+      },
+      {
+        kind: "feature",
+        text: "Admin bug queue — edit status, entered/fixed times, notes; emails when a bug is reported and when it's marked fixed",
+      },
+      {
+        kind: "improve",
+        text: "Legacy #bugs chat channel is hidden from the sidebar in favor of the new board",
+      },
+    ],
+  },
+  {
     version: "2.46",
     date: "August 5, 2026",
     title: "Profile photos that don’t expire",

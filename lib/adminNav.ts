@@ -104,6 +104,11 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "Moderation",
         description: "Moderation log and history",
       },
+      {
+        href: "/admin/bugs",
+        label: "Bug reports",
+        description: "Status, timing, and finder credit",
+      },
     ],
   },
   {

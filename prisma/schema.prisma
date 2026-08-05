@@ -116,6 +116,7 @@ model User {
   webinarChatMessages        WebinarChatMessage[]
   webinarStageRequests       WebinarStageRequest[]
   channelReads               ChannelRead[]
+  bugReports                 BugReport[]
 }
 
 // ---------- Application / invite flow ----------
@@ -1039,4 +1040,33 @@ model WebinarStageRequest {
 
   @@unique([webinarId, userId])
   @@index([webinarId, status])
+}
+
+// ---------- Bug reports (replaces free-form #bugs chat) ----------
+
+enum BugReportStatus {
+  REPORTED
+  IN_PROGRESS
+  FIXED
+  COULD_NOT_REPRODUCE
+}
+
+model BugReport {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  status      BugReportStatus @default(REPORTED)
+  /// When the bug was entered — admin-editable for credit / SLA timing.
+  reportedAt  DateTime        @default(now())
+  /// When it was marked fixed — admin-editable; drives time-to-fix.
+  fixedAt     DateTime?
+  adminNotes  String?
+  reporterId  String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status, reportedAt])
+  @@index([reporterId])
 }

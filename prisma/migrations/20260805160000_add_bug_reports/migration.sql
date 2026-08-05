@@ -1,0 +1,27 @@
+-- CreateEnum
+CREATE TYPE "BugReportStatus" AS ENUM ('REPORTED', 'IN_PROGRESS', 'FIXED', 'COULD_NOT_REPRODUCE');
+
+-- CreateTable
+CREATE TABLE "BugReport" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "status" "BugReportStatus" NOT NULL DEFAULT 'REPORTED',
+    "reportedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "fixedAt" TIMESTAMP(3),
+    "adminNotes" TEXT,
+    "reporterId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BugReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "BugReport_status_reportedAt_idx" ON "BugReport"("status", "reportedAt");
+
+-- CreateIndex
+CREATE INDEX "BugReport_reporterId_idx" ON "BugReport"("reporterId");
+
+-- AddForeignKey
+ALTER TABLE "BugReport" ADD CONSTRAINT "BugReport_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

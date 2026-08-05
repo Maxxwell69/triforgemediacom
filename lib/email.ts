@@ -515,6 +515,69 @@ export async function sendEmailChangedNotice(oldEmail: string, newEmail: string,
   await send(oldEmail, subject, html);
 }
 
+// ---------- Bug report admin alerts ----------
+
+export type BugReportAlertData = {
+  title: string;
+  description: string;
+  reporterName: string;
+  statusLabel: string;
+  reportId: string;
+  reportedAtLabel: string;
+  fixedAtLabel?: string | null;
+  durationLabel?: string | null;
+};
+
+export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailContent {
+  return {
+    subject: `Bug reported: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New bug report</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">A member filed a bug on the hub.</p>
+      ${row("Title", escapeHtml(data.title))}
+      ${row("Reported by", escapeHtml(data.reporterName))}
+      ${row("Status", escapeHtml(data.statusLabel))}
+      ${row("Entered", escapeHtml(data.reportedAtLabel))}
+      ${row("Details", escapeHtml(data.description).replace(/\n/g, "<br/>"))}
+      ${button(`${SAMPLE_APP_URL}/admin/bugs`, "Open bug reports")}
+    `),
+  };
+}
+
+export function buildBugFixedAdminAlert(data: BugReportAlertData): EmailContent {
+  return {
+    subject: `Bug fixed: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#00D4FF;font-size:20px;margin:0 0 8px;">Bug marked fixed</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">Credit to <strong>${escapeHtml(data.reporterName)}</strong> for finding it.</p>
+      ${row("Title", escapeHtml(data.title))}
+      ${row("Found by", escapeHtml(data.reporterName))}
+      ${row("Entered", escapeHtml(data.reportedAtLabel))}
+      ${row("Fixed", escapeHtml(data.fixedAtLabel || "—"))}
+      ${data.durationLabel ? row("Time to fix", escapeHtml(data.durationLabel)) : ""}
+      ${button(`${SAMPLE_APP_URL}/bugs`, "View on the board")}
+    `),
+  };
+}
+
+export async function sendBugReportedAdminAlert(
+  adminEmails: string[],
+  data: BugReportAlertData
+) {
+  if (adminEmails.length === 0) return;
+  const { subject, html } = buildBugReportedAdminAlert(data);
+  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+}
+
+export async function sendBugFixedAdminAlert(
+  adminEmails: string[],
+  data: BugReportAlertData
+) {
+  if (adminEmails.length === 0) return;
+  const { subject, html } = buildBugFixedAdminAlert(data);
+  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+}
+
 // ---------- Hub migration invite (GHL import) ----------
 
 /**
