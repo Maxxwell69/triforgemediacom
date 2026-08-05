@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.51",
+    date: "August 5, 2026",
+    title: "Hub Bug tickets & credit",
+    summary:
+      "Every Hub Bug gets a trackable ticket number (HB-0001), and admins can assign finder credit to any member.",
+    items: [
+      {
+        kind: "feature",
+        text: "Unique ticket numbers (HB-0001…) on the board, admin queue, and alert emails",
+      },
+      {
+        kind: "feature",
+        text: "Admin can reassign Hub Bug credit by choosing a member from the list",
+      },
+    ],
+  },
+  {
     version: "2.50",
     date: "August 5, 2026",
     title: "Hub Bug cleanup",

@@ -1060,6 +1060,8 @@ enum BugReportPlatform {
 
 model BugReport {
   id            String             @id @default(cuid())
+  /// Public trackable ticket id (HB-0001). Auto-increments.
+  ticketNumber  Int                @unique @default(autoincrement())
   title         String
   description   String
   status        BugReportStatus    @default(REPORTED)

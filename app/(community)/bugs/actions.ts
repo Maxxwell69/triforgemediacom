@@ -9,6 +9,7 @@ import {
   BUG_PLATFORM_LABELS,
   BUG_STATUS_LABELS,
   formatBugDateTime,
+  formatBugTicket,
 } from "@/lib/bugs";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
@@ -98,6 +99,7 @@ export async function createBugReportAction(formData: FormData) {
       reporterName,
       statusLabel: BUG_STATUS_LABELS.REPORTED,
       reportId: report.id,
+      ticketLabel: formatBugTicket(report.ticketNumber),
       reportedAtLabel: formatBugDateTime(report.reportedAt),
       platformLabel: BUG_PLATFORM_LABELS[report.platform],
       pageUrl: report.pageUrl,
@@ -109,5 +111,5 @@ export async function createBugReportAction(formData: FormData) {
 
   revalidatePath("/bugs");
   revalidatePath("/admin/bugs");
-  redirect("/bugs?submitted=1");
+  redirect(`/bugs?submitted=1&ticket=${encodeURIComponent(formatBugTicket(report.ticketNumber))}`);
 }

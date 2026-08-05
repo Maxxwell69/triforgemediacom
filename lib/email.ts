@@ -523,6 +523,7 @@ export type BugReportAlertData = {
   reporterName: string;
   statusLabel: string;
   reportId: string;
+  ticketLabel: string;
   reportedAtLabel: string;
   fixedAtLabel?: string | null;
   durationLabel?: string | null;
@@ -539,10 +540,11 @@ export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailConte
       )
     : "";
   return {
-    subject: `Hub Bug: ${data.title}`,
+    subject: `Hub Bug ${data.ticketLabel}: ${data.title}`,
     html: layout(`
-      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New Hub Bug</h1>
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New Hub Bug ${escapeHtml(data.ticketLabel)}</h1>
       <p style="line-height:1.6;margin:0 0 16px;">A member filed a Hub Bug report.</p>
+      ${row("Ticket", escapeHtml(data.ticketLabel))}
       ${row("Title", escapeHtml(data.title))}
       ${row("Reported by", escapeHtml(data.reporterName))}
       ${row("Where", escapeHtml(data.platformLabel || "—"))}
@@ -558,10 +560,11 @@ export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailConte
 
 export function buildBugFixedAdminAlert(data: BugReportAlertData): EmailContent {
   return {
-    subject: `Hub Bug fixed: ${data.title}`,
+    subject: `Hub Bug ${data.ticketLabel} fixed: ${data.title}`,
     html: layout(`
-      <h1 style="color:#00D4FF;font-size:20px;margin:0 0 8px;">Hub Bug marked fixed</h1>
+      <h1 style="color:#00D4FF;font-size:20px;margin:0 0 8px;">${escapeHtml(data.ticketLabel)} marked fixed</h1>
       <p style="line-height:1.6;margin:0 0 16px;">Credit to <strong>${escapeHtml(data.reporterName)}</strong> for finding it.</p>
+      ${row("Ticket", escapeHtml(data.ticketLabel))}
       ${row("Title", escapeHtml(data.title))}
       ${row("Found by", escapeHtml(data.reporterName))}
       ${row("Entered", escapeHtml(data.reportedAtLabel))}

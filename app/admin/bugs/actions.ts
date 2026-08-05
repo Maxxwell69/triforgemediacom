@@ -10,6 +10,7 @@ import {
   BUG_STATUS_LABELS,
   formatBugDateTime,
   formatBugFixDuration,
+  formatBugTicket,
 } from "@/lib/bugs";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
@@ -38,12 +39,23 @@ function parseDateTimeLocal(value: string): Date | null {
   return d;
 }
 
+const reporterSelect = {
+  id: true,
+  name: true,
+  profile: { select: { socialLinks: true, username: true, showRealName: true } },
+  tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+  tiktokStatsSnapshot: {
+    select: { nickname: true, avatarUrl: true, uniqueId: true },
+  },
+} as const;
+
 export async function updateBugReportAction(formData: FormData) {
   await requireAdmin();
 
   const parsed = updateBugReportSchema.safeParse({
     id: formData.get("id"),
     status: formData.get("status"),
+    reporterId: formData.get("reporterId"),
     reportedAt: formData.get("reportedAt"),
     fixedAt: formData.get("fixedAt") ?? "",
     adminNotes: formData.get("adminNotes") ?? "",
@@ -54,21 +66,15 @@ export async function updateBugReportAction(formData: FormData) {
 
   const existing = await prisma.bugReport.findUnique({
     where: { id: parsed.data.id },
-    include: {
-      reporter: {
-        select: {
-          id: true,
-          name: true,
-          profile: { select: { socialLinks: true, username: true, showRealName: true } },
-          tiktokConnection: { select: { displayName: true, avatarUrl: true } },
-          tiktokStatsSnapshot: {
-            select: { nickname: true, avatarUrl: true, uniqueId: true },
-          },
-        },
-      },
-    },
+    include: { reporter: { select: reporterSelect } },
   });
   if (!existing) throw new Error("Bug report not found");
+
+  const creditUser = await prisma.user.findFirst({
+    where: { id: parsed.data.reporterId, status: "ACTIVE" },
+    select: reporterSelect,
+  });
+  if (!creditUser) throw new Error("Selected member not found or not active");
 
   const reportedAt = parseDateTimeLocal(parsed.data.reportedAt);
   if (!reportedAt) throw new Error("Invalid reported time");
@@ -86,6 +92,7 @@ export async function updateBugReportAction(formData: FormData) {
     where: { id: existing.id },
     data: {
       status,
+      reporterId: creditUser.id,
       reportedAt,
       fixedAt,
       adminNotes: parsed.data.adminNotes?.trim() || null,
@@ -99,9 +106,10 @@ export async function updateBugReportAction(formData: FormData) {
       await sendBugFixedAdminAlert(admins, {
         title: updated.title,
         description: updated.description,
-        reporterName: getMemberDisplayName(existing.reporter),
+        reporterName: getMemberDisplayName(creditUser),
         statusLabel: BUG_STATUS_LABELS.FIXED,
         reportId: updated.id,
+        ticketLabel: formatBugTicket(updated.ticketNumber),
         reportedAtLabel: formatBugDateTime(updated.reportedAt),
         fixedAtLabel: updated.fixedAt ? formatBugDateTime(updated.fixedAt) : null,
         durationLabel: formatBugFixDuration(updated.reportedAt, updated.fixedAt),

@@ -26,7 +26,7 @@ function parseFilter(raw: string | undefined): (typeof FILTERS)[number] {
 export default async function BugsPage({
   searchParams,
 }: {
-  searchParams?: { filter?: string; submitted?: string; error?: string };
+  searchParams?: { filter?: string; submitted?: string; ticket?: string; error?: string };
 }) {
   await requireProfile();
   const filter = parseFilter(searchParams?.filter);
@@ -79,7 +79,14 @@ export default async function BugsPage({
 
         {searchParams?.submitted === "1" && (
           <p className="mt-4 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
-            Thanks — your Hub Bug is logged as Reported. Admins have been notified.
+            Thanks — your Hub Bug
+            {searchParams.ticket ? (
+              <>
+                {" "}
+                <span className="font-semibold">{searchParams.ticket}</span>
+              </>
+            ) : null}{" "}
+            is logged as Reported. Admins have been notified.
           </p>
         )}
 
@@ -110,6 +117,7 @@ export default async function BugsPage({
               key={report.id}
               report={{
                 id: report.id,
+                ticketNumber: report.ticketNumber,
                 title: report.title,
                 description: report.description,
                 status: report.status,

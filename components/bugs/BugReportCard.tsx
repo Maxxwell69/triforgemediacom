@@ -6,10 +6,12 @@ import {
   BUG_STATUS_STYLES,
   formatBugDateTime,
   formatBugFixDuration,
+  formatBugTicket,
 } from "@/lib/bugs";
 
 export type BugReportCardData = {
   id: string;
+  ticketNumber: number;
   title: string;
   description: string;
   status: BugReportStatus;
@@ -39,6 +41,9 @@ export default function BugReportCard({ report }: { report: BugReportCardData })
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2.5 py-0.5 font-body text-[11px] font-bold tracking-wide text-cyan">
+              {formatBugTicket(report.ticketNumber)}
+            </span>
             <span
               className={`rounded-full border px-2.5 py-0.5 font-body text-[11px] font-semibold uppercase tracking-wide ${BUG_STATUS_STYLES[report.status]}`}
             >

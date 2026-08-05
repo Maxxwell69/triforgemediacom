@@ -28,6 +28,7 @@ export const createBugReportSchema = z.object({
 export const updateBugReportSchema = z.object({
   id: z.string().min(1),
   status: z.enum(BUG_REPORT_STATUSES),
+  reporterId: z.string().min(1, "Select who gets credit"),
   reportedAt: z.string().min(1, "Reported time is required"),
   fixedAt: z.string().optional().or(z.literal("")),
   adminNotes: z.string().trim().max(2000).optional().or(z.literal("")),

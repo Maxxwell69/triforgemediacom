@@ -69,6 +69,11 @@ export function formatBugDateTime(date: Date): string {
   return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
+/** Public trackable ticket label, e.g. HB-0007. */
+export function formatBugTicket(ticketNumber: number): string {
+  return `HB-${String(ticketNumber).padStart(4, "0")}`;
+}
+
 /** Value for `<input type="datetime-local">` in the viewer's local timezone. */
 export function toDateTimeLocalValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
