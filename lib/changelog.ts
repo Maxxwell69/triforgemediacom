@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.50",
+    date: "August 5, 2026",
+    title: "Hub Bug cleanup",
+    summary:
+      "Removed the legacy #bugs chat channel and the chat-import tools — Hub Bug is the only path.",
+    items: [
+      {
+        kind: "improve",
+        text: "Deleted the old #bugs chat channel from the database",
+      },
+      {
+        kind: "improve",
+        text: "Removed Hub Bug import-from-chat admin tools and scripts",
+      },
+    ],
+  },
+  {
     version: "2.49",
     date: "August 5, 2026",
     title: "Hub Bug",

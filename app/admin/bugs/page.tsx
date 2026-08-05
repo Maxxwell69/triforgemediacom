@@ -3,15 +3,10 @@ import { requireAdminPage } from "@/lib/session";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { BUG_REPORT_STATUSES, BUG_STATUS_LABELS, BUG_STATUS_SORT_ORDER } from "@/lib/bugs";
 import BugReportAdminRow from "@/components/admin/BugReportAdminRow";
-import { importBugChannelAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBugsPage({
-  searchParams,
-}: {
-  searchParams?: { import?: string; msg?: string };
-}) {
+export default async function AdminBugsPage() {
   await requireAdminPage();
 
   const reports = await prisma.bugReport.findMany({
@@ -61,38 +56,10 @@ export default async function AdminBugsPage({
         }).join("")}
       </p>
 
-      {searchParams?.msg && (
-        <p
-          className={`mt-4 rounded-lg border px-4 py-3 font-body text-sm ${
-            searchParams.import === "ok"
-              ? "border-cyan/30 bg-cyan/10 text-cyan"
-              : "border-orange/30 bg-orange/10 text-orange"
-          }`}
-        >
-          {searchParams.msg}
-        </p>
-      )}
-
-      <form action={importBugChannelAction} className="glass mt-6 rounded-2xl p-5">
-        <h2 className="font-display text-lg tracking-wide text-off-white/80">
-          Import from #bugs chat
-        </h2>
-        <p className="mt-1 font-body text-xs text-off-white/45">
-          Pulls messages from the legacy bugs channel into Hub Bug (safe to run more than once —
-          already-imported messages are skipped).
-        </p>
-        <button
-          type="submit"
-          className="mt-3 rounded-lg border border-cyan/40 px-4 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10"
-        >
-          Import #bugs messages
-        </button>
-      </form>
-
       <div className="mt-8 flex flex-col gap-4">
         {reports.length === 0 && (
           <p className="glass rounded-2xl p-8 text-center font-body text-off-white/50">
-            No Hub Bug reports yet. Members submit from /bugs, or import the old chat above.
+            No Hub Bug reports yet. Members submit from /bugs.
           </p>
         )}
         {reports.map((report) => (

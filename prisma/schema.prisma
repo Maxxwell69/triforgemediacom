@@ -1073,8 +1073,6 @@ model BugReport {
   /// When it was marked fixed — admin-editable; drives time-to-fix.
   fixedAt       DateTime?
   adminNotes    String?
-  /// Set when imported from the legacy #bugs chat — makes re-import idempotent.
-  sourceMessageId String?          @unique
   reporterId    String
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt

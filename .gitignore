@@ -28,9 +28,6 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# one-off Hub Bug chat exports (may contain member content)
-scripts/bug-channel-export.json
-
 # vercel
 .vercel
 
