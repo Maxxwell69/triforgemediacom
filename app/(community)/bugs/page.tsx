@@ -70,7 +70,7 @@ export default async function BugsPage({
     <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-5xl tracking-wide">
-          BUG <span className="text-gradient">REPORTS</span>
+          HUB <span className="text-gradient">BUG</span>
         </h1>
         <p className="mt-2 font-body text-off-white/60">
           Spot something broken? File it here. The board shows status, who found it, and how long
@@ -79,7 +79,7 @@ export default async function BugsPage({
 
         {searchParams?.submitted === "1" && (
           <p className="mt-4 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
-            Thanks — your bug is on the board as Reported. Admins have been notified.
+            Thanks — your Hub Bug is logged as Reported. Admins have been notified.
           </p>
         )}
 
@@ -102,7 +102,7 @@ export default async function BugsPage({
         <div className="mt-6 flex flex-col gap-3">
           {reports.length === 0 && (
             <p className="glass rounded-2xl p-8 text-center font-body text-off-white/50">
-              No bug reports{filter === "ALL" ? " yet" : " in this status"}.
+              No Hub Bug reports{filter === "ALL" ? " yet" : " in this status"}.
             </p>
           )}
           {reports.map((report) => (

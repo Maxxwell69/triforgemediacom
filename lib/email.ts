@@ -539,10 +539,10 @@ export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailConte
       )
     : "";
   return {
-    subject: `Bug reported: ${data.title}`,
+    subject: `Hub Bug: ${data.title}`,
     html: layout(`
-      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New bug report</h1>
-      <p style="line-height:1.6;margin:0 0 16px;">A member filed a bug on the hub.</p>
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New Hub Bug</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">A member filed a Hub Bug report.</p>
       ${row("Title", escapeHtml(data.title))}
       ${row("Reported by", escapeHtml(data.reporterName))}
       ${row("Where", escapeHtml(data.platformLabel || "—"))}
@@ -551,16 +551,16 @@ export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailConte
       ${row("Status", escapeHtml(data.statusLabel))}
       ${row("Entered", escapeHtml(data.reportedAtLabel))}
       ${row("Details", escapeHtml(data.description).replace(/\n/g, "<br/>"))}
-      ${button(`${SAMPLE_APP_URL}/admin/bugs`, "Open bug reports")}
+      ${button(`${SAMPLE_APP_URL}/admin/bugs`, "Open Hub Bug")}
     `),
   };
 }
 
 export function buildBugFixedAdminAlert(data: BugReportAlertData): EmailContent {
   return {
-    subject: `Bug fixed: ${data.title}`,
+    subject: `Hub Bug fixed: ${data.title}`,
     html: layout(`
-      <h1 style="color:#00D4FF;font-size:20px;margin:0 0 8px;">Bug marked fixed</h1>
+      <h1 style="color:#00D4FF;font-size:20px;margin:0 0 8px;">Hub Bug marked fixed</h1>
       <p style="line-height:1.6;margin:0 0 16px;">Credit to <strong>${escapeHtml(data.reporterName)}</strong> for finding it.</p>
       ${row("Title", escapeHtml(data.title))}
       ${row("Found by", escapeHtml(data.reporterName))}

@@ -106,7 +106,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         href: "/admin/bugs",
-        label: "Bug reports",
+        label: "Hub Bug",
         description: "Status, timing, and finder credit",
       },
     ],

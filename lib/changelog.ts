@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.49",
+    date: "August 5, 2026",
+    title: "Hub Bug",
+    summary:
+      "The bug board is now Hub Bug, with a one-click import from the old #bugs chat channel.",
+    items: [
+      {
+        kind: "improve",
+        text: "Renamed the reporting system to Hub Bug across member and admin UI",
+      },
+      {
+        kind: "feature",
+        text: "Admin can import legacy #bugs chat messages into Hub Bug (idempotent)",
+      },
+    ],
+  },
+  {
     version: "2.48",
     date: "August 5, 2026",
     title: "Richer bug reports",

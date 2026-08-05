@@ -14,6 +14,8 @@ import {
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { sendBugFixedAdminAlert } from "@/lib/email";
+import { importBugChannelMessages } from "@/lib/importBugChannel";
+import { redirect } from "next/navigation";
 
 async function requireAdmin() {
   const session = await auth();
@@ -122,4 +124,24 @@ export async function deleteBugReportAction(formData: FormData) {
   await prisma.bugReport.delete({ where: { id } });
   revalidatePath("/admin/bugs");
   revalidatePath("/bugs");
+}
+
+/** One-time (safe to re-run) import of legacy #bugs chat into Hub Bug. */
+export async function importBugChannelAction() {
+  await requireAdmin();
+  const result = await importBugChannelMessages();
+  revalidatePath("/admin/bugs");
+  revalidatePath("/bugs");
+
+  if (!result.channelName) {
+    redirect(
+      `/admin/bugs?import=missing&msg=${encodeURIComponent("No #bugs chat channel found in this database.")}`
+    );
+  }
+
+  redirect(
+    `/admin/bugs?import=ok&msg=${encodeURIComponent(
+      `Imported ${result.imported} from #${result.channelName} (${result.skipped} skipped, ${result.scanned} scanned).`
+    )}`
+  );
 }

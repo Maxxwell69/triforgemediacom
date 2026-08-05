@@ -35,7 +35,7 @@ export const BUG_STATUS_STYLES: Record<BugReportStatus, string> = {
   COULD_NOT_REPRODUCE: "border-off-white/20 bg-off-white/5 text-off-white/50",
 };
 
-/** Old free-form chat channels that the Bug Reports board replaces. */
+/** Old free-form chat channels that Hub Bug replaces. */
 export function isLegacyBugChannelName(name: string): boolean {
   const n = name.trim().toLowerCase().replace(/^#/, "");
   return n === "bugs" || n === "bug" || n === "bug-reports" || n === "bugreports";

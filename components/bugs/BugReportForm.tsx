@@ -15,7 +15,7 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:opacity-60"
     >
-      {pending ? "Submitting…" : "Submit bug report"}
+      {pending ? "Submitting…" : "Submit Hub Bug"}
     </button>
   );
 }
@@ -66,7 +66,7 @@ export default function BugReportForm({
       encType="multipart/form-data"
       className="glass flex flex-col gap-3 rounded-2xl p-6"
     >
-      <h2 className="font-display text-xl tracking-wide text-off-white/80">Report a bug</h2>
+      <h2 className="font-display text-xl tracking-wide text-off-white/80">File a Hub Bug</h2>
       <p className="font-body text-xs text-off-white/45">
         You&apos;ll get credit on the board when the team marks it fixed.
       </p>
