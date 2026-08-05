@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { startOfTodayUTC } from "@/lib/tiktask";
@@ -59,6 +60,9 @@ export async function POST(
       },
     }),
   ]);
+
+  revalidatePath("/apps/tiktask");
+  revalidatePath("/home");
 
   return NextResponse.json({ task: updatedTask, xpAwarded: dailyTask.template.xpValue });
 }

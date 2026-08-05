@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Task = {
   id: string;
@@ -12,10 +13,15 @@ type Task = {
 };
 
 export default function TaskList({ tasks: initialTasks }: { tasks: Task[] }) {
+  const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastXp, setLastXp] = useState<number | null>(null);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   async function complete(taskId: string) {
     setPendingId(taskId);
@@ -32,6 +38,7 @@ export default function TaskList({ tasks: initialTasks }: { tasks: Task[] }) {
       );
       setLastXp(data.xpAwarded);
       setTimeout(() => setLastXp(null), 2500);
+      router.refresh();
     } catch {
       setError("Couldn't complete task");
     } finally {

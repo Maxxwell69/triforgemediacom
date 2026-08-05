@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.45",
+    date: "August 5, 2026",
+    title: "TikTask completed tasks stick",
+    summary:
+      "Checking off a TikTask now stays crossed off when you leave and come back.",
+    items: [
+      {
+        kind: "fix",
+        text: "Completed TikTasks stay crossed off after navigating away (fresh load instead of a stale cached list)",
+      },
+    ],
+  },
+  {
     version: "2.44",
     date: "August 3, 2026",
     title: "Outside webinar stage, leave & chat fixes",

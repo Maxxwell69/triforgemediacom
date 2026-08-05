@@ -3,6 +3,8 @@ import { getOrGenerateTodayTasks } from "@/lib/tiktask";
 import { hasTikTaskAccess } from "@/lib/groups";
 import TaskList from "@/components/tiktask/TaskList";
 
+export const dynamic = "force-dynamic";
+
 export default async function TikTaskPage() {
   const { user, profile } = await requireProfile();
 
