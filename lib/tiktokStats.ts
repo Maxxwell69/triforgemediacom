@@ -5,6 +5,7 @@ import {
   isTikToolsConfigured,
   parseTikTokUniqueId,
 } from "@/lib/tiktools";
+import { persistTikTokAvatarUrl } from "@/lib/tiktokAvatar";
 
 const STATS_MIN_INTERVAL_MS = 30_000;
 
@@ -200,6 +201,9 @@ export async function refreshTikTokStatsSnapshot(
   }
 
   const resolvedUniqueId = userProfile?.uniqueId ?? uniqueId;
+  const avatarUrl = userProfile
+    ? await persistTikTokAvatarUrl(userId, userProfile.avatarUrl)
+    : undefined;
 
   await prisma.tikTokStatsSnapshot.upsert({
     where: { userId },
@@ -207,7 +211,7 @@ export async function refreshTikTokStatsSnapshot(
       userId,
       uniqueId: resolvedUniqueId,
       nickname: userProfile?.nickname ?? null,
-      avatarUrl: userProfile?.avatarUrl ?? null,
+      avatarUrl: avatarUrl ?? null,
       verified: userProfile?.verified ?? false,
       bio: userProfile?.signature ?? null,
       followerCount: userProfile?.followerCount ?? 0,
@@ -226,7 +230,7 @@ export async function refreshTikTokStatsSnapshot(
         ? {
             uniqueId: userProfile.uniqueId,
             nickname: userProfile.nickname,
-            avatarUrl: userProfile.avatarUrl,
+            avatarUrl,
             verified: userProfile.verified,
             bio: userProfile.signature,
             followerCount: userProfile.followerCount,

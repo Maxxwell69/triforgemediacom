@@ -1,4 +1,7 @@
-// eslint-disable-next-line @next/next/no-img-element -- external TikTok CDN avatars aren't in next.config's image domains
+"use client";
+
+import { useEffect, useState } from "react";
+
 export default function MemberAvatar({
   avatarUrl,
   initial,
@@ -13,17 +16,25 @@ export default function MemberAvatar({
   /** Green presence dot — true when the member is currently on the hub. */
   online?: boolean;
 }) {
+  const [failed, setFailed] = useState(false);
   const dot = Math.max(10, Math.round(size * 0.28));
+  const showImage = !!avatarUrl && !failed;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [avatarUrl]);
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element -- external / R2 avatars; next/image domains vary
         <img
           src={avatarUrl}
           alt=""
           width={size}
           height={size}
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
           className="rounded-full object-cover"
           style={{ width: size, height: size }}
         />

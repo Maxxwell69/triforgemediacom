@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { formatCount } from "@/lib/formatCount";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export type TikTokStatsCardData = {
   uniqueId: string;
@@ -28,18 +29,12 @@ export default function TikTokStatsCard({
   return (
     <div className="glass flex flex-col gap-4 rounded-2xl p-6">
       <div className="flex items-center gap-3">
-        {stats.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external TikTok CDN avatar
-          <img
-            src={stats.avatarUrl}
-            alt=""
-            className="h-12 w-12 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange to-cyan font-display text-charcoal">
-            🎵
-          </div>
-        )}
+        <MemberAvatar
+          avatarUrl={stats.avatarUrl}
+          initial={(stats.nickname || stats.uniqueId).replace(/^@/, "").charAt(0).toUpperCase() || "?"}
+          size={48}
+          textSize="text-lg"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-body text-sm font-semibold text-off-white">

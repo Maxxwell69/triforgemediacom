@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { exchangeCodeForTokens, fetchTikTokUserInfo, TIKTOK_STATE_COOKIE } from "@/lib/tiktokOAuth";
+import { persistTikTokAvatarUrl } from "@/lib/tiktokAvatar";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -38,13 +39,14 @@ export async function GET(req: Request) {
     const tokens = await exchangeCodeForTokens(code);
     const info = await fetchTikTokUserInfo(tokens.access_token);
     const now = Date.now();
+    const avatarUrl = await persistTikTokAvatarUrl(session.user.id, info.avatar_url);
 
     await prisma.tikTokConnection.upsert({
       where: { userId: session.user.id },
       update: {
         openId: tokens.open_id,
         displayName: info.display_name,
-        avatarUrl: info.avatar_url,
+        avatarUrl,
         followerCount: info.follower_count,
         followingCount: info.following_count,
         likesCount: info.likes_count,
@@ -59,7 +61,7 @@ export async function GET(req: Request) {
         userId: session.user.id,
         openId: tokens.open_id,
         displayName: info.display_name,
-        avatarUrl: info.avatar_url,
+        avatarUrl,
         followerCount: info.follower_count,
         followingCount: info.following_count,
         likesCount: info.likes_count,

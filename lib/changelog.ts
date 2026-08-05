@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.46",
+    date: "August 5, 2026",
+    title: "Profile photos that don’t expire",
+    summary:
+      "TikTok profile photos are saved on our CDN so they stop breaking a few days after stats refresh.",
+    items: [
+      {
+        kind: "fix",
+        text: "Mirror TikTok avatars to R2 when stats refresh — signed CDN links no longer leave broken photos on profiles",
+      },
+      {
+        kind: "fix",
+        text: "Expired avatar URLs auto-refresh on member profiles; failed images fall back to initials instead of a broken icon",
+      },
+    ],
+  },
+  {
     version: "2.45",
     date: "August 5, 2026",
     title: "TikTask completed tasks stick",

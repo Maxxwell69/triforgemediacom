@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { persistTikTokAvatarUrl } from "@/lib/tiktokAvatar";
 
 // TikTok Login Kit (OAuth 2.0) — read-only identity + stats. TikTok's public
 // API has no endpoint for liking, commenting, or otherwise engaging with
@@ -145,11 +146,12 @@ export async function refreshTikTokStats(userId: string) {
   if (!accessToken) return null;
 
   const info = await fetchTikTokUserInfo(accessToken);
+  const avatarUrl = await persistTikTokAvatarUrl(userId, info.avatar_url);
   return prisma.tikTokConnection.update({
     where: { userId },
     data: {
       displayName: info.display_name,
-      avatarUrl: info.avatar_url,
+      avatarUrl,
       followerCount: info.follower_count,
       followingCount: info.following_count,
       likesCount: info.likes_count,

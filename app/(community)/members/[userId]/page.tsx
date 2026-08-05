@@ -6,6 +6,8 @@ import { getUserPointsTotal } from "@/lib/points";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import { isExpiredSignedAvatarUrl } from "@/lib/tiktokAvatar";
+import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
 import { isOnline } from "@/lib/presence";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
@@ -37,7 +39,7 @@ export default async function MemberProfilePage({
 }) {
   await requireProfile();
 
-  const member = await prisma.user.findFirst({
+  let member = await prisma.user.findFirst({
     where: {
       id: params.userId,
       status: "ACTIVE",
@@ -54,6 +56,28 @@ export default async function MemberProfilePage({
   });
   if (!member || !member.profile) notFound();
 
+  // TikTok CDN avatar URLs expire; refresh + mirror to R2 when the signed link is stale.
+  const staleAvatar =
+    isExpiredSignedAvatarUrl(member.tiktokStatsSnapshot?.avatarUrl) ||
+    isExpiredSignedAvatarUrl(member.tiktokConnection?.avatarUrl);
+  if (staleAvatar) {
+    await refreshTikTokStatsSnapshot(member.id, { force: true }).catch(() => null);
+    const refreshed = await prisma.user.findFirst({
+      where: { id: member.id },
+      include: {
+        profile: true,
+        groupMemberships: { include: { group: true } },
+        tiktokConnection: true,
+        tiktokStatsSnapshot: true,
+        tags: { include: { tag: true } },
+      },
+    });
+    if (refreshed?.profile) member = refreshed;
+  }
+
+  const profile = member.profile;
+  if (!profile) notFound();
+
   const points = await getUserPointsTotal(member.id);
   const displayName = getMemberDisplayName(member);
   const avatarUrl = getMemberAvatarUrl(member);
@@ -61,10 +85,10 @@ export default async function MemberProfilePage({
   const online = isOnline(member.lastSeenAt);
   const groups = member.groupMemberships.map((m) => m.group);
   const tags = member.tags.map((ut) => ut.tag);
-  const socialLinks = (member.profile.socialLinks as Record<string, string> | null) ?? {};
+  const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
   const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
   const tiktokUrl = socialLinks.tiktok || null;
-  const pinnedVideoUrl = member.profile.pinnedTiktokVideoUrl || null;
+  const pinnedVideoUrl = profile.pinnedTiktokVideoUrl || null;
   const tiktokEmbedHtml = pinnedVideoUrl ? await getTikTokEmbedHtml(pinnedVideoUrl) : null;
 
   return (
@@ -96,9 +120,9 @@ export default async function MemberProfilePage({
                     </span>
                   )}
                 </p>
-                {member.profile.platform && (
+                {profile.platform && (
                   <span className="mt-1 inline-block rounded-full border border-cyan/30 px-2 py-0.5 font-body text-xs text-cyan">
-                    {PLATFORM_LABELS[member.profile.platform]}
+                    {PLATFORM_LABELS[profile.platform]}
                   </span>
                 )}
               </div>
@@ -112,9 +136,9 @@ export default async function MemberProfilePage({
             />
           </div>
 
-          {member.profile.bio && (
+          {profile.bio && (
             <p className="font-body text-sm leading-relaxed text-off-white/70">
-              {member.profile.bio}
+              {profile.bio}
             </p>
           )}
 
