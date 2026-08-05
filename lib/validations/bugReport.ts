@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BUG_REPORT_STATUSES } from "@/lib/bugs";
+import { BUG_REPORT_PLATFORMS, BUG_REPORT_STATUSES } from "@/lib/bugs";
 
 export const createBugReportSchema = z.object({
   title: z
@@ -12,6 +12,17 @@ export const createBugReportSchema = z.object({
     .trim()
     .min(10, "Describe the bug in a bit more detail")
     .max(5000, "Description must be under 5000 characters"),
+  platform: z.enum(BUG_REPORT_PLATFORMS, { error: "Select where you saw the bug" }),
+  pageUrl: z
+    .string()
+    .trim()
+    .max(2000, "URL is too long")
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^https?:\/\//i.test(v) || v.startsWith("/"),
+      "Enter a full URL (https://…) or a path starting with /"
+    ),
 });
 
 export const updateBugReportSchema = z.object({

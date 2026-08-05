@@ -1,6 +1,7 @@
 import Link from "next/link";
-import type { BugReportStatus } from "@prisma/client";
+import type { BugReportPlatform, BugReportStatus } from "@prisma/client";
 import {
+  BUG_PLATFORM_LABELS,
   BUG_STATUS_LABELS,
   BUG_STATUS_STYLES,
   formatBugDateTime,
@@ -12,6 +13,9 @@ export type BugReportCardData = {
   title: string;
   description: string;
   status: BugReportStatus;
+  platform: BugReportPlatform;
+  pageUrl: string | null;
+  screenshotUrl: string | null;
   reportedAt: Date;
   fixedAt: Date | null;
   reporterName: string;
@@ -40,6 +44,9 @@ export default function BugReportCard({ report }: { report: BugReportCardData })
             >
               {BUG_STATUS_LABELS[report.status]}
             </span>
+            <span className="rounded-full border border-off-white/15 px-2.5 py-0.5 font-body text-[11px] text-off-white/55">
+              {BUG_PLATFORM_LABELS[report.platform]}
+            </span>
             {isFixed && (
               <span className="font-body text-[11px] font-semibold text-emerald-400/80">
                 ✓ Fixed
@@ -62,6 +69,45 @@ export default function BugReportCard({ report }: { report: BugReportCardData })
       <p className="mt-3 whitespace-pre-wrap font-body text-sm leading-relaxed text-off-white/70">
         {report.description}
       </p>
+
+      {(report.pageUrl || report.screenshotUrl) && (
+        <div className="mt-3 flex flex-col gap-2">
+          {report.pageUrl && (
+            <p className="font-body text-xs text-off-white/45">
+              URL:{" "}
+              <a
+                href={
+                  report.pageUrl.startsWith("http")
+                    ? report.pageUrl
+                    : report.pageUrl.startsWith("/")
+                      ? report.pageUrl
+                      : `https://${report.pageUrl}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-cyan hover:underline"
+              >
+                {report.pageUrl}
+              </a>
+            </p>
+          )}
+          {report.screenshotUrl && (
+            <a
+              href={report.screenshotUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block max-w-md overflow-hidden rounded-xl border border-off-white/10"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={report.screenshotUrl}
+                alt="Bug screenshot"
+                className="max-h-64 w-full object-contain bg-black/40"
+              />
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-off-white/10 pt-3 font-body text-xs text-off-white/45">
         <p>

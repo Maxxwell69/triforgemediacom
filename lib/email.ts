@@ -526,9 +526,18 @@ export type BugReportAlertData = {
   reportedAtLabel: string;
   fixedAtLabel?: string | null;
   durationLabel?: string | null;
+  platformLabel?: string | null;
+  pageUrl?: string | null;
+  screenshotUrl?: string | null;
 };
 
 export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailContent {
+  const screenshotLink = data.screenshotUrl
+    ? row(
+        "Screenshot",
+        `<a href="${safeHref(data.screenshotUrl) || "#"}" style="color:#00D4FF;">View image</a>`
+      )
+    : "";
   return {
     subject: `Bug reported: ${data.title}`,
     html: layout(`
@@ -536,6 +545,9 @@ export function buildBugReportedAdminAlert(data: BugReportAlertData): EmailConte
       <p style="line-height:1.6;margin:0 0 16px;">A member filed a bug on the hub.</p>
       ${row("Title", escapeHtml(data.title))}
       ${row("Reported by", escapeHtml(data.reporterName))}
+      ${row("Where", escapeHtml(data.platformLabel || "—"))}
+      ${data.pageUrl ? row("Page URL", escapeHtml(data.pageUrl)) : ""}
+      ${screenshotLink}
       ${row("Status", escapeHtml(data.statusLabel))}
       ${row("Entered", escapeHtml(data.reportedAtLabel))}
       ${row("Details", escapeHtml(data.description).replace(/\n/g, "<br/>"))}

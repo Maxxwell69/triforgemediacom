@@ -1051,19 +1051,31 @@ enum BugReportStatus {
   COULD_NOT_REPRODUCE
 }
 
+enum BugReportPlatform {
+  WEBSITE
+  PHONE_IOS
+  PHONE_ANDROID
+  OTHER
+}
+
 model BugReport {
-  id          String          @id @default(cuid())
-  title       String
-  description String
-  status      BugReportStatus @default(REPORTED)
+  id            String             @id @default(cuid())
+  title         String
+  description   String
+  status        BugReportStatus    @default(REPORTED)
+  platform      BugReportPlatform  @default(WEBSITE)
+  /// Page where the bug happened (optional).
+  pageUrl       String?
+  /// Optional screenshot hosted on R2.
+  screenshotUrl String?
   /// When the bug was entered — admin-editable for credit / SLA timing.
-  reportedAt  DateTime        @default(now())
+  reportedAt    DateTime           @default(now())
   /// When it was marked fixed — admin-editable; drives time-to-fix.
-  fixedAt     DateTime?
-  adminNotes  String?
-  reporterId  String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  fixedAt       DateTime?
+  adminNotes    String?
+  reporterId    String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 

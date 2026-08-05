@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.48",
+    date: "August 5, 2026",
+    title: "Richer bug reports",
+    summary:
+      "Bug reports now capture device type, page URL, and an optional screenshot so the team can reproduce issues faster.",
+    items: [
+      {
+        kind: "feature",
+        text: "Bug form includes where (website / iOS / Android / other), optional page URL with paste, and optional screenshot upload",
+      },
+    ],
+  },
+  {
     version: "2.47",
     date: "August 5, 2026",
     title: "Bug report board",

@@ -1,4 +1,4 @@
-import type { BugReportStatus } from "@prisma/client";
+import type { BugReportPlatform, BugReportStatus } from "@prisma/client";
 
 export const BUG_REPORT_STATUSES = [
   "REPORTED",
@@ -7,11 +7,25 @@ export const BUG_REPORT_STATUSES = [
   "COULD_NOT_REPRODUCE",
 ] as const satisfies readonly BugReportStatus[];
 
+export const BUG_REPORT_PLATFORMS = [
+  "WEBSITE",
+  "PHONE_IOS",
+  "PHONE_ANDROID",
+  "OTHER",
+] as const satisfies readonly BugReportPlatform[];
+
 export const BUG_STATUS_LABELS: Record<BugReportStatus, string> = {
   REPORTED: "Reported",
   IN_PROGRESS: "Being worked on",
   FIXED: "Fixed",
   COULD_NOT_REPRODUCE: "Couldn't reproduce",
+};
+
+export const BUG_PLATFORM_LABELS: Record<BugReportPlatform, string> = {
+  WEBSITE: "Website",
+  PHONE_IOS: "Phone (iOS)",
+  PHONE_ANDROID: "Phone (Android)",
+  OTHER: "Other",
 };
 
 export const BUG_STATUS_STYLES: Record<BugReportStatus, string> = {
