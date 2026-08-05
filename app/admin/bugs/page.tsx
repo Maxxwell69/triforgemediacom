@@ -3,11 +3,13 @@ import { requireAdminPage } from "@/lib/session";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { BUG_REPORT_STATUSES, BUG_STATUS_LABELS, BUG_STATUS_SORT_ORDER } from "@/lib/bugs";
 import BugReportAdminRow from "@/components/admin/BugReportAdminRow";
+import { markBugReportsRead } from "@/lib/bugReads";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBugsPage() {
-  await requireAdminPage();
+  const admin = await requireAdminPage();
+  await markBugReportsRead(admin.id).catch(() => {});
 
   const [reports, memberRows] = await Promise.all([
     prisma.bugReport.findMany({

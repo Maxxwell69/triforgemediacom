@@ -11,6 +11,7 @@ import type { BugReportStatus } from "@prisma/client";
 import BugReportCard from "@/components/bugs/BugReportCard";
 import BugReportForm from "@/components/bugs/BugReportForm";
 import { createBugReportAction } from "./actions";
+import { markBugReportsRead } from "@/lib/bugReads";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,8 @@ export default async function BugsPage({
 }: {
   searchParams?: { filter?: string; submitted?: string; ticket?: string; error?: string };
 }) {
-  await requireProfile();
+  const { user } = await requireProfile();
+  await markBugReportsRead(user.id).catch(() => {});
   const filter = parseFilter(searchParams?.filter);
 
   const [reports, counts] = await Promise.all([

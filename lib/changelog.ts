@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.52",
+    date: "August 5, 2026",
+    title: "Hub Bug unread badge",
+    summary:
+      "A red count appears next to Hub Bug in the sidebar when there are new tickets you haven’t seen yet.",
+    items: [
+      {
+        kind: "feature",
+        text: "Sidebar Hub Bug badge shows how many new entries since your last visit (clears when you open the board)",
+      },
+    ],
+  },
+  {
     version: "2.51",
     date: "August 5, 2026",
     title: "Hub Bug tickets & credit",

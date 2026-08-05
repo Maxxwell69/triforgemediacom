@@ -11,8 +11,10 @@ import SignOutButton from "@/components/SignOutButton";
 import MobileShell from "@/components/MobileShell";
 import PresenceBeacon from "@/components/PresenceBeacon";
 import { getChannelUnreadCounts } from "@/lib/channelReads";
+import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
+import HubBugNavLink from "@/components/HubBugNavLink";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
@@ -20,7 +22,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   // Mark online on every community page load (beacon keeps it fresh).
   await touchPresence(user.id).catch(() => {});
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats] =
+  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats, hubBugUnread] =
     await Promise.all([
       prisma.channel.findMany({
         orderBy: { createdAt: "asc" },
@@ -43,6 +45,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         where: { userId: user.id },
         select: { nickname: true, avatarUrl: true, uniqueId: true },
       }),
+      getBugReportUnreadCount(user.id),
     ]);
   const channels = allChannels.filter(
     (c) => canAccessChannel(user.role, c, userGroupIds) && !isLegacyBugChannelName(c.name)
@@ -123,12 +126,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         >
           Webinars
         </Link>
-        <Link
-          href="/bugs"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Hub Bug
-        </Link>
+        <HubBugNavLink initialCount={hubBugUnread} />
         <Link
           href="/account"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
