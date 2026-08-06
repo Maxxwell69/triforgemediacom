@@ -8,11 +8,14 @@ import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { isExpiredSignedAvatarUrl } from "@/lib/tiktokAvatar";
 import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
+import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
+import { isAdminRole } from "@/lib/rbac";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
 import MemberAvatar from "@/components/MemberAvatar";
 import TikTokStatsCard from "@/components/TikTokStatsCard";
+import EffectCheckbox from "@/components/admin/EffectCheckbox";
 
 export const dynamic = "force-dynamic";
 
@@ -37,14 +40,16 @@ export default async function MemberProfilePage({
 }: {
   params: { userId: string };
 }) {
-  await requireProfile();
+  const { user: viewer } = await requireProfile();
+  const isAdmin = isAdminRole(viewer.role);
 
   let member = await prisma.user.findFirst({
     where: {
       id: params.userId,
       status: "ACTIVE",
       profile: { isNot: null },
-      hiddenFromDirectory: false,
+      // Admins can open hidden profiles to manage Effect / review.
+      ...(isAdmin ? {} : { hiddenFromDirectory: false }),
     },
     include: {
       profile: true,
@@ -128,12 +133,15 @@ export default async function MemberProfilePage({
               </div>
             </div>
 
-            <ShareButton
-              title={displayName}
-              text={`Check out ${displayName} on TriForge Media.`}
-              url={profileShareUrl(member.id)}
-              label="Share profile"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              {isAdmin && <EffectCheckbox userId={member.id} effect={member.effect} />}
+              <ShareButton
+                title={displayName}
+                text={`Check out ${displayName} on TriForge Media.`}
+                url={profileShareUrl(member.id)}
+                label="Share profile"
+              />
+            </div>
           </div>
 
           {profile.bio && (
@@ -144,30 +152,36 @@ export default async function MemberProfilePage({
 
           {groups.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {groups.map((g) => (
-                <span
-                  key={g.id}
-                  className="rounded-full border px-2 py-0.5 font-body text-xs"
-                  style={{ borderColor: `${g.color}66`, color: g.color }}
-                >
-                  {g.name}
-                </span>
-              ))}
+              {groups.map((g) => {
+                const color = networkBadgeColor(g.name, g.color, member.effect);
+                return (
+                  <span
+                    key={g.id}
+                    className="rounded-full border px-2 py-0.5 font-body text-xs"
+                    style={{ borderColor: `${color}66`, color }}
+                  >
+                    {g.name}
+                  </span>
+                );
+              })}
             </div>
           )}
 
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  title={tag.description ?? undefined}
-                  className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
-                  style={{ borderColor: `${tag.color}66`, color: tag.color }}
-                >
-                  {tag.name}
-                </span>
-              ))}
+              {tags.map((tag) => {
+                const color = networkBadgeColor(tag.name, tag.color, member.effect);
+                return (
+                  <span
+                    key={tag.id}
+                    title={tag.description ?? undefined}
+                    className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
+                    style={{ borderColor: `${color}66`, color }}
+                  >
+                    {tag.name}
+                  </span>
+                );
+              })}
             </div>
           )}
 

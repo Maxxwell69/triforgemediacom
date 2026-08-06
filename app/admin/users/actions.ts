@@ -108,6 +108,20 @@ export async function setHiddenFromDirectory(userId: string, hidden: boolean) {
   revalidatePath("/members");
 }
 
+/** Admin-only: green CN badge text when enabled. */
+export async function setUserEffect(userId: string, effect: boolean) {
+  await requireAdmin();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { effect },
+  });
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/members");
+  revalidatePath(`/members/${userId}`);
+}
+
 export async function toggleUserGroup(userId: string, groupId: string, isMember: boolean) {
   await requireAdmin();
 

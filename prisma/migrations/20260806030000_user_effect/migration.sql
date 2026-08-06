@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "effect" BOOLEAN NOT NULL DEFAULT false;

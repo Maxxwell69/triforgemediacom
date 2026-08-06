@@ -15,6 +15,7 @@ import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
 import TikTokStatsCard from "@/components/TikTokStatsCard";
 import { refreshTikTokStatsAction } from "./actions";
+import { networkBadgeColor } from "@/lib/mnCn";
 
 export default async function AccountPage({
   searchParams,
@@ -35,7 +36,7 @@ export default async function AccountPage({
     select: { socialLinks: true, username: true },
   });
 
-  const [points, userBadges, certificates, tiktokStats, selfAssignableTags, myTags] =
+  const [points, userBadges, certificates, tiktokStats, selfAssignableTags, myTags, effectRow] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -51,7 +52,9 @@ export default async function AccountPage({
       prisma.tikTokStatsSnapshot.findUnique({ where: { userId: user.id } }),
       prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
       prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
+      prisma.user.findUnique({ where: { id: user.id }, select: { effect: true } }),
     ]);
+  const effectEnabled = effectRow?.effect ?? false;
 
   const myTagIds = myTags.map((ut) => ut.tagId);
   const adminOnlyTags = myTags.map((ut) => ut.tag).filter((tag) => !tag.selfAssignable);
@@ -193,16 +196,19 @@ export default async function AccountPage({
                   Awarded by admin
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {adminOnlyTags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      title={tag.description ?? undefined}
-                      className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold"
-                      style={{ borderColor: `${tag.color}66`, color: tag.color }}
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
+                  {adminOnlyTags.map((tag) => {
+                    const color = networkBadgeColor(tag.name, tag.color, effectEnabled);
+                    return (
+                      <span
+                        key={tag.id}
+                        title={tag.description ?? undefined}
+                        className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold"
+                        style={{ borderColor: `${color}66`, color }}
+                      >
+                        {tag.name}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}

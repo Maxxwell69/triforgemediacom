@@ -3,7 +3,7 @@ import type { Prisma, UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPointsTotals } from "@/lib/points";
-import { backfillNetworkMemberships } from "@/lib/mnCn";
+import { backfillNetworkMemberships, networkBadgeColor } from "@/lib/mnCn";
 import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
@@ -14,6 +14,7 @@ import AddMemberForm from "@/components/admin/AddMemberForm";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
+import EffectCheckbox from "@/components/admin/EffectCheckbox";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ const ROLE_SORT: Record<UserRole, number> = {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: { track?: string; q?: string; role?: string };
+  searchParams?: { track?: string; q?: string; role?: string; effect?: string };
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
@@ -53,6 +54,7 @@ export default async function AdminUsersPage({
     searchParams?.track === "CN" || searchParams?.track === "MN"
       ? searchParams.track
       : null;
+  const effectFilter = searchParams?.effect === "1" || searchParams?.effect === "true";
   const roleParam = (searchParams?.role || "").toUpperCase();
   const roleFilter: RoleFilter =
     roleParam === "STAFF" ||
@@ -75,6 +77,10 @@ export default async function AdminUsersPage({
     where.role = { in: ["ADMIN", "MOD"] };
   } else if (roleFilter) {
     where.role = roleFilter;
+  }
+
+  if (effectFilter) {
+    where.effect = true;
   }
 
   if (trackFilter) {
@@ -158,13 +164,16 @@ export default async function AdminUsersPage({
   function listHref(opts: {
     track?: "CN" | "MN" | null;
     role?: RoleFilter;
+    effect?: boolean;
     includeQ?: boolean;
   }) {
     const params = new URLSearchParams();
     const track = opts.track === undefined ? trackFilter : opts.track;
     const role = opts.role === undefined ? roleFilter : opts.role;
+    const effect = opts.effect === undefined ? effectFilter : opts.effect;
     if (track) params.set("track", track);
     if (role) params.set("role", role);
+    if (effect) params.set("effect", "1");
     if (opts.includeQ !== false && q) params.set("q", q);
     const qs = params.toString();
     return qs ? `/admin/users?${qs}` : "/admin/users";
@@ -183,6 +192,7 @@ export default async function AdminUsersPage({
             ? ` · ${roleFilter.toLowerCase()}s`
             : ""}
         {trackFilter ? ` · ${trackFilter}` : ""}
+        {effectFilter ? " · Effect" : ""}
         {q ? ` matching “${q}”` : ""}
       </p>
 
@@ -193,6 +203,7 @@ export default async function AdminUsersPage({
       >
         {trackFilter && <input type="hidden" name="track" value={trackFilter} />}
         {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
+        {effectFilter && <input type="hidden" name="effect" value="1" />}
         <input
           type="search"
           name="q"
@@ -258,6 +269,16 @@ export default async function AdminUsersPage({
             </Link>
           );
         })}
+        <Link
+          href={listHref({ effect: !effectFilter })}
+          className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+            effectFilter
+              ? "border-emerald-400 bg-emerald-400/20 text-emerald-400"
+              : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+          }`}
+        >
+          Effect
+        </Link>
       </div>
 
       <div className="mt-8">
@@ -337,6 +358,7 @@ export default async function AdminUsersPage({
                     <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
                   )}
                   <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
+                  <EffectCheckbox userId={user.id} effect={user.effect} />
                   <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
                   <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
                 </div>
@@ -347,15 +369,18 @@ export default async function AdminUsersPage({
                   {groups.length === 0 && (
                     <span className="font-body text-xs text-off-white/30">No groups</span>
                   )}
-                  {groups.map((g) => (
-                    <span
-                      key={g.id}
-                      className="rounded-full border px-2 py-0.5 font-body text-xs"
-                      style={{ borderColor: `${g.color}66`, color: g.color }}
-                    >
-                      {g.name}
-                    </span>
-                  ))}
+                  {groups.map((g) => {
+                    const color = networkBadgeColor(g.name, g.color, user.effect);
+                    return (
+                      <span
+                        key={g.id}
+                        className="rounded-full border px-2 py-0.5 font-body text-xs"
+                        style={{ borderColor: `${color}66`, color }}
+                      >
+                        {g.name}
+                      </span>
+                    );
+                  })}
                   <UserGroupsEditor
                     userId={user.id}
                     allGroups={allGroups}

@@ -5,7 +5,22 @@ export const MN_TAG_NAME = "MN";
 export const CN_GROUP_NAME = "CN";
 export const CN_TAG_NAME = "CN";
 
+/** Green used for CN badges when a user's admin "Effect" flag is on. */
+export const CN_EFFECT_COLOR = "#22C55E";
+
 export type NetworkTrack = "CN" | "MN";
+
+/** CN pill/text color — green when Effect is enabled, otherwise the stored tag/group color. */
+export function networkBadgeColor(
+  name: string,
+  baseColor: string,
+  effectEnabled: boolean
+): string {
+  if (effectEnabled && name.toUpperCase() === CN_TAG_NAME) {
+    return CN_EFFECT_COLOR;
+  }
+  return baseColor;
+}
 
 /**
  * Media Network (MN) = creators who already have an agency representing them

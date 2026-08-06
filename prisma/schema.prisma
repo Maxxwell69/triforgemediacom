@@ -73,6 +73,8 @@ model User {
   mutedUntil    DateTime? // null = not muted; future timestamp = muted until then
   receivesAdminAlerts Boolean @default(true) // admins can opt out of notification emails (e.g. figurehead accounts)
   hiddenFromDirectory Boolean @default(false) // excludes this account from /members (e.g. shared/figurehead admin logins)
+  /// Admin-only flag: when true, CN group/tag text renders green instead of orange.
+  effect          Boolean  @default(false)
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
   lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)

@@ -95,6 +95,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.54",
+    date: "August 6, 2026",
+    title: "CN Effect badge",
+    summary:
+      "Admins can mark members with Effect so their CN badge shows green, and filter those members in search.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin-only Effect checkbox on user profiles — turns CN group/tag text green",
+      },
+      {
+        kind: "feature",
+        text: "Filter by Effect on admin user search and the members directory (admins)",
+      },
+    ],
+  },
+  {
     version: "2.53",
     date: "August 6, 2026",
     title: "Webinar audience targeting",

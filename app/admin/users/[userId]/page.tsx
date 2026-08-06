@@ -12,6 +12,7 @@ import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
+import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import TikTokStatsCard from "@/components/TikTokStatsCard";
@@ -20,6 +21,7 @@ import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/li
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
 import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
+import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 
 export const dynamic = "force-dynamic";
@@ -228,6 +230,7 @@ export default async function AdminUserDetailPage({
             <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
           )}
           <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
+          <EffectCheckbox userId={user.id} effect={user.effect} />
           {canDm && !isSelf && user.status === "ACTIVE" && (
             <StartDmButton userId={user.id} userName={displayName} />
           )}
@@ -294,15 +297,30 @@ export default async function AdminUserDetailPage({
         </h2>
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           {groups.length === 0 && <span className="font-body text-xs text-off-white/30">No groups</span>}
-          {groups.map((g) => (
-            <span
-              key={g.id}
-              className="rounded-full border px-2 py-0.5 font-body text-xs"
-              style={{ borderColor: `${g.color}66`, color: g.color }}
-            >
-              {g.name}
-            </span>
-          ))}
+          {groups.map((g) => {
+            const color = networkBadgeColor(g.name, g.color, user.effect);
+            return (
+              <span
+                key={g.id}
+                className="rounded-full border px-2 py-0.5 font-body text-xs"
+                style={{ borderColor: `${color}66`, color }}
+              >
+                {g.name}
+              </span>
+            );
+          })}
+          {user.tags.map((ut) => {
+            const color = networkBadgeColor(ut.tag.name, ut.tag.color, user.effect);
+            return (
+              <span
+                key={ut.tagId}
+                className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
+                style={{ borderColor: `${color}66`, color }}
+              >
+                {ut.tag.name}
+              </span>
+            );
+          })}
           <UserGroupsEditor userId={user.id} allGroups={allGroups} memberGroupIds={groups.map((g) => g.id)} />
           <UserTagsEditor userId={user.id} allTags={allTags} memberTagIds={tagIds} />
           <UserBadgesEditor userId={user.id} allBadges={allBadges} memberBadgeIds={badgeIds} />

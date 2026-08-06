@@ -3,12 +3,13 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
-import { backfillNetworkMemberships } from "@/lib/mnCn";
+import { backfillNetworkMemberships, networkBadgeColor } from "@/lib/mnCn";
 import { ensureLiveTag, LIVE_STALE_MS } from "@/lib/tiktokLive";
 import { parseTikTokUniqueId } from "@/lib/tiktools";
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { isOnline } from "@/lib/presence";
+import { isAdminRole } from "@/lib/rbac";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
@@ -33,12 +34,22 @@ function tagFilterWhere(tag: { id: string; name: string }): Prisma.UserWhereInpu
   return { tags: { some: { tagId: tag.id } } };
 }
 
+function membersHref(opts: { tag?: string | null; effect?: boolean }) {
+  const params = new URLSearchParams();
+  if (opts.tag) params.set("tag", opts.tag);
+  if (opts.effect) params.set("effect", "1");
+  const qs = params.toString();
+  return qs ? `/members?${qs}` : "/members";
+}
+
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams?: { tag?: string };
+  searchParams?: { tag?: string; effect?: string };
 }) {
-  await requireProfile();
+  const { user: viewer } = await requireProfile();
+  const isAdmin = isAdminRole(viewer.role);
+  const effectFilter = searchParams?.effect === "1" || searchParams?.effect === "true";
 
   // Keep CN/MN tag+group in sync so chips and profile badges stay aligned.
   await backfillNetworkMemberships();
@@ -60,6 +71,7 @@ export default async function MembersPage({
       profile: { isNot: null },
       hiddenFromDirectory: false,
       ...(activeTag ? tagFilterWhere(activeTag) : {}),
+      ...(effectFilter ? { effect: true } : {}),
     },
     include: {
       profile: true,
@@ -81,12 +93,13 @@ export default async function MembersPage({
         </h1>
         <p className="mt-2 font-body text-off-white/60">
           {members.length} active member{members.length === 1 ? "" : "s"}
+          {effectFilter ? " · Effect" : ""}
         </p>
 
-        {allTags.length > 0 && (
+        {(allTags.length > 0 || isAdmin) && (
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
-              href="/members"
+              href={membersHref({ effect: effectFilter })}
               className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
                 !activeTag
                   ? "border-off-white/40 bg-off-white/10 text-off-white"
@@ -100,7 +113,7 @@ export default async function MembersPage({
               return (
                 <Link
                   key={tag.id}
-                  href={`/members?tag=${tag.id}`}
+                  href={membersHref({ tag: tag.id, effect: effectFilter })}
                   className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition"
                   style={
                     active
@@ -112,6 +125,21 @@ export default async function MembersPage({
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                href={membersHref({
+                  tag: activeTag?.id ?? null,
+                  effect: !effectFilter,
+                })}
+                className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+                  effectFilter
+                    ? "border-emerald-400 bg-emerald-400/20 text-emerald-400"
+                    : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+                }`}
+              >
+                Effect
+              </Link>
+            )}
           </div>
         )}
 
@@ -182,29 +210,35 @@ export default async function MembersPage({
 
                 {groups.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {groups.map((g) => (
-                      <span
-                        key={g.id}
-                        className="rounded-full border px-2 py-0.5 font-body text-xs"
-                        style={{ borderColor: `${g.color}66`, color: g.color }}
-                      >
-                        {g.name}
-                      </span>
-                    ))}
+                    {groups.map((g) => {
+                      const color = networkBadgeColor(g.name, g.color, member.effect);
+                      return (
+                        <span
+                          key={g.id}
+                          className="rounded-full border px-2 py-0.5 font-body text-xs"
+                          style={{ borderColor: `${color}66`, color }}
+                        >
+                          {g.name}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
-                        style={{ borderColor: `${tag.color}66`, color: tag.color }}
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
+                    {tags.map((tag) => {
+                      const color = networkBadgeColor(tag.name, tag.color, member.effect);
+                      return (
+                        <span
+                          key={tag.id}
+                          className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
+                          style={{ borderColor: `${color}66`, color }}
+                        >
+                          {tag.name}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
