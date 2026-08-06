@@ -10,6 +10,7 @@ import {
 } from "@/lib/livekit";
 import { uploadImage } from "@/lib/r2";
 import { ALLOWED_IMAGE_MIME_TYPES } from "@/lib/uploadConstraints";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import { canJoinWebinar, canViewWebinar, roleToTokenRole } from "@/lib/webinars";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +28,12 @@ async function requireJoinedParticipant(
   userId: string,
   userRole: UserRole
 ) {
-  const webinar = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  const [webinar, networkTrack] = await Promise.all([
+    prisma.webinar.findUnique({ where: { id: webinarId } }),
+    getUserNetworkTrack(userId),
+  ]);
   if (!webinar) return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
-  if (!canViewWebinar(webinar, userRole, userId)) {
+  if (!canViewWebinar(webinar, userRole, userId, networkTrack)) {
     return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
   }
   if (!canJoinWebinar(webinar.status)) {

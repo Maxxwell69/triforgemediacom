@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.53",
+    date: "August 6, 2026",
+    title: "Webinar audience targeting",
+    summary:
+      "Admins can schedule webinars for all members, Creator Network (CN), Media Network (MN), or admins only.",
+    items: [
+      {
+        kind: "feature",
+        text: "Create and edit webinars with audience: All, CN, MN, or Admins — hub list and join enforce the choice",
+      },
+    ],
+  },
+  {
     version: "2.52",
     date: "August 5, 2026",
     title: "Hub Bug unread badge",

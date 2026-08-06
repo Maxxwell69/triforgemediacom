@@ -2,8 +2,11 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canViewWebinar } from "@/lib/webinars";
+import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import { isAdminRole } from "@/lib/rbac";
 import MemberAvatar from "@/components/MemberAvatar";
+import type { WebinarAudience } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function WebinarsPage() {
   const { user } = await requireProfile();
+  const networkTrack = await getUserNetworkTrack(user.id);
 
   const webinars = await prisma.webinar.findMany({
     orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
@@ -25,7 +29,9 @@ export default async function WebinarsPage() {
     },
   });
 
-  const visible = webinars.filter((w) => canViewWebinar(w, user.role, user.id));
+  const visible = webinars.filter((w) =>
+    canViewWebinar(w, user.role, user.id, networkTrack)
+  );
 
   const live = visible.filter((w) => w.status === "LIVE");
   const upcoming = visible.filter((w) => w.status === "SCHEDULED" || w.status === "DRAFT");
@@ -63,7 +69,7 @@ export default async function WebinarsPage() {
                 <h2 className="font-display text-2xl tracking-wide text-orange">Live now</h2>
                 <div className="mt-3 flex flex-col gap-3">
                   {live.map((w) => (
-                    <WebinarCard key={w.id} webinar={w} />
+                    <WebinarCard key={w.id} webinar={w} showAudience={isAdminRole(user.role)} />
                   ))}
                 </div>
               </section>
@@ -74,7 +80,7 @@ export default async function WebinarsPage() {
                 <h2 className="font-display text-2xl tracking-wide text-off-white/80">Upcoming</h2>
                 <div className="mt-3 flex flex-col gap-3">
                   {upcoming.map((w) => (
-                    <WebinarCard key={w.id} webinar={w} />
+                    <WebinarCard key={w.id} webinar={w} showAudience={isAdminRole(user.role)} />
                   ))}
                 </div>
               </section>
@@ -85,7 +91,7 @@ export default async function WebinarsPage() {
                 <h2 className="font-display text-2xl tracking-wide text-off-white/50">Past</h2>
                 <div className="mt-3 flex flex-col gap-3">
                   {past.map((w) => (
-                    <WebinarCard key={w.id} webinar={w} />
+                    <WebinarCard key={w.id} webinar={w} showAudience={isAdminRole(user.role)} />
                   ))}
                 </div>
               </section>
@@ -99,6 +105,7 @@ export default async function WebinarsPage() {
 
 function WebinarCard({
   webinar,
+  showAudience,
 }: {
   webinar: {
     id: string;
@@ -106,10 +113,12 @@ function WebinarCard({
     description: string | null;
     scheduledAt: Date;
     status: string;
+    audience: WebinarAudience;
     hostAvatarUrl: string | null;
     host: { name: string | null; email: string };
     _count: { attendances: number; recordings: number };
   };
+  showAudience: boolean;
 }) {
   const canEnter = webinar.status === "LIVE" || webinar.status === "SCHEDULED";
   const hasRecording = webinar._count.recordings > 0;
@@ -139,6 +148,11 @@ function WebinarCard({
             >
               {STATUS_LABEL[webinar.status] || webinar.status}
             </span>
+            {showAudience && webinar.audience !== "ALL" && (
+              <span className="rounded bg-off-white/10 px-2 py-0.5 font-body text-xs text-off-white/60">
+                {WEBINAR_AUDIENCE_LABELS[webinar.audience]}
+              </span>
+            )}
             {hasRecording && (
               <span className="rounded bg-cyan/15 px-2 py-0.5 font-body text-xs text-cyan">
                 Recording

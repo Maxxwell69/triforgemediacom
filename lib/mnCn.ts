@@ -158,6 +158,39 @@ export async function backfillNetworkMemberships(): Promise<{ updated: number }>
 }
 
 /**
+ * Resolve the user's CN/MN track from tag or group membership.
+ * Returns null when neither track is assigned.
+ */
+export async function getUserNetworkTrack(
+  userId: string
+): Promise<NetworkTrack | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      tags: { select: { tag: { select: { name: true } } } },
+      groupMemberships: { select: { group: { select: { name: true } } } },
+    },
+  });
+  if (!user) return null;
+
+  const names = new Set(
+    [
+      ...user.tags.map((t) => t.tag.name.toUpperCase()),
+      ...user.groupMemberships.map((g) => g.group.name.toUpperCase()),
+    ].filter(Boolean)
+  );
+
+  const hasCn = names.has(CN_TAG_NAME.toUpperCase());
+  const hasMn = names.has(MN_TAG_NAME.toUpperCase());
+  if (hasCn && !hasMn) return "CN";
+  if (hasMn && !hasCn) return "MN";
+  // Prefer tag if somehow both are present (shouldn't happen after sync).
+  if (hasCn) return "CN";
+  if (hasMn) return "MN";
+  return null;
+}
+
+/**
  * Resolve emails for a network track — matches CN/MN tag, group, or
  * application.answers.track so broadcasts reach people even if one of the
  * three signals is missing.

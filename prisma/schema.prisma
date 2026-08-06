@@ -902,6 +902,14 @@ enum WebinarStatus {
   ENDED
 }
 
+/// Hub visibility for who can see/join a webinar (outside-network guests use invite links separately).
+enum WebinarAudience {
+  ALL
+  CN
+  MN
+  ADMIN
+}
+
 enum WebinarParticipantRole {
   HOST
   SPEAKER
@@ -920,6 +928,8 @@ model Webinar {
   description     String?
   scheduledAt     DateTime
   status          WebinarStatus @default(DRAFT)
+  /// Who in the hub can see this webinar: all members, CN, MN, or admins only.
+  audience        WebinarAudience @default(ALL)
   hostUserId      String
   /// Optional branded host photo shown on webinar cards / detail (not the User.image).
   hostAvatarUrl   String?
@@ -941,6 +951,7 @@ model Webinar {
   externalGuests WebinarGuest[]
 
   @@index([status, scheduledAt])
+  @@index([audience, status, scheduledAt])
 }
 
 /// Outside-network registrant for a webinar with external signup enabled.

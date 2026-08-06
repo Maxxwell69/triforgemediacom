@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { isLiveKitConfigured, mintWebinarToken, getLiveKitUrl } from "@/lib/livekit";
 import { getMemberAvatarUrl } from "@/lib/memberDisplay";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import {
   canJoinWebinar,
   canViewWebinar,
@@ -47,15 +48,18 @@ export async function POST(
     // empty body is fine
   }
 
-  const webinar = await prisma.webinar.findUnique({
-    where: { id: params.webinarId },
-  });
+  const [webinar, networkTrack] = await Promise.all([
+    prisma.webinar.findUnique({
+      where: { id: params.webinarId },
+    }),
+    getUserNetworkTrack(auth.user.id),
+  ]);
 
   if (!webinar) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
-  if (!canViewWebinar(webinar, auth.user.role, auth.user.id)) {
+  if (!canViewWebinar(webinar, auth.user.role, auth.user.id, networkTrack)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 

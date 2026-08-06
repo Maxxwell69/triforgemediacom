@@ -7,6 +7,7 @@ import {
   canJoinWebinar,
   canViewWebinar,
 } from "@/lib/webinars";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import WebinarRecordingPlayer from "@/components/webinars/WebinarRecordingPlayer";
 import MemberAvatar from "@/components/MemberAvatar";
 
@@ -18,6 +19,7 @@ export default async function WebinarDetailPage({
   params: { webinarId: string };
 }) {
   const { user } = await requireProfile();
+  const networkTrack = await getUserNetworkTrack(user.id);
 
   const webinar = await prisma.webinar.findUnique({
     where: { id: params.webinarId },
@@ -28,7 +30,7 @@ export default async function WebinarDetailPage({
     },
   });
 
-  if (!webinar || !canViewWebinar(webinar, user.role, user.id)) {
+  if (!webinar || !canViewWebinar(webinar, user.role, user.id, networkTrack)) {
     notFound();
   }
 

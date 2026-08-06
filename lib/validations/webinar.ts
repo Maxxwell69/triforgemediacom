@@ -11,11 +11,31 @@ const optionalImageUrl = z
     "Host avatar must be a valid image URL"
   );
 
+export const webinarAudienceSchema = z.enum(["ALL", "CN", "MN", "ADMIN"]);
+
+export const WEBINAR_AUDIENCE_OPTIONS = [
+  { value: "ALL", label: "All members" },
+  { value: "CN", label: "Creator Network (CN)" },
+  { value: "MN", label: "Media Network (MN)" },
+  { value: "ADMIN", label: "Admins only" },
+] as const;
+
+export const WEBINAR_AUDIENCE_LABELS: Record<
+  (typeof WEBINAR_AUDIENCE_OPTIONS)[number]["value"],
+  string
+> = {
+  ALL: "All members",
+  CN: "Creator Network (CN)",
+  MN: "Media Network (MN)",
+  ADMIN: "Admins only",
+};
+
 export const createWebinarSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   scheduledAt: z.string().min(1, "Schedule a date/time"),
   status: z.enum(["DRAFT", "SCHEDULED"]).default("SCHEDULED"),
+  audience: webinarAudienceSchema.default("ALL"),
   hostAvatarUrl: optionalImageUrl,
   /** Outside-network signup page for people who are not hub members. */
   externalSignupEnabled: z.boolean().default(false),
@@ -26,6 +46,7 @@ export const updateWebinarSchema = z.object({
   description: z.string().trim().max(2000).optional().nullable(),
   scheduledAt: z.string().min(1).optional(),
   status: z.enum(["DRAFT", "SCHEDULED"]).optional(),
+  audience: webinarAudienceSchema.optional(),
   hostAvatarUrl: optionalImageUrl,
 });
 

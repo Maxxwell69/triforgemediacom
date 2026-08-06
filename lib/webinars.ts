@@ -1,20 +1,30 @@
-import type { UserRole, Webinar, WebinarParticipantRole, WebinarStatus } from "@prisma/client";
+import type {
+  UserRole,
+  Webinar,
+  WebinarParticipantRole,
+  WebinarStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { getChatDisplayName } from "@/lib/memberDisplay";
+import type { NetworkTrack } from "@/lib/mnCn";
+
+export { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 
 export function webinarRoomName(webinarId: string) {
   return `webinar_${webinarId}`;
 }
 
 /**
- * Hub visibility: members see scheduled/live/ended hub webinars.
- * Drafts and outside-network webinars are staff/host only (outsiders use /w/[token]).
+ * Hub visibility: members see scheduled/live/ended hub webinars for their audience.
+ * Drafts, admin-only, and outside-network webinars are staff/host only
+ * (outsiders use /w/[token]).
  */
 export function canViewWebinar(
-  webinar: Pick<Webinar, "status" | "hostUserId" | "externalSignupEnabled">,
+  webinar: Pick<Webinar, "status" | "hostUserId" | "externalSignupEnabled" | "audience">,
   userRole: UserRole,
-  userId: string
+  userId: string,
+  networkTrack?: NetworkTrack | null
 ) {
   const isStaffOrHost = isAdminRole(userRole) || webinar.hostUserId === userId;
 
@@ -23,8 +33,17 @@ export function canViewWebinar(
     return false;
   }
 
-  if (webinar.status !== "DRAFT") return true;
-  return isStaffOrHost;
+  if (webinar.status === "DRAFT") {
+    return isStaffOrHost;
+  }
+
+  // Staff and the designated host can always see hub webinars (management).
+  if (isStaffOrHost) return true;
+
+  if (webinar.audience === "ADMIN") return false;
+  if (webinar.audience === "CN") return networkTrack === "CN";
+  if (webinar.audience === "MN") return networkTrack === "MN";
+  return true;
 }
 
 export function canJoinWebinar(status: WebinarStatus) {

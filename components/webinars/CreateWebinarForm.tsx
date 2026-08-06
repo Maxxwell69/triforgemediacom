@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createWebinarAction } from "@/app/admin/webinars/actions";
 import ImageUploadField from "@/components/ImageUploadField";
+import { WEBINAR_AUDIENCE_OPTIONS } from "@/lib/validations/webinar";
 
 export default function CreateWebinarForm() {
   const [error, setError] = useState<string | null>(null);
@@ -63,17 +64,35 @@ export default function CreateWebinarForm() {
           />
         </label>
         <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
-          Visibility
+          Publish status
           <select
             name="status"
             defaultValue="SCHEDULED"
             className="rounded-lg border border-off-white/15 bg-charcoal px-3 py-2 text-off-white outline-none focus:border-orange"
           >
-            <option value="SCHEDULED">Scheduled (visible to members)</option>
-            <option value="DRAFT">Draft (admins only)</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="DRAFT">Draft (hidden until published)</option>
           </select>
         </label>
       </div>
+
+      <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
+        Audience
+        <select
+          name="audience"
+          defaultValue="ALL"
+          className="rounded-lg border border-off-white/15 bg-charcoal px-3 py-2 text-off-white outline-none focus:border-orange"
+        >
+          {WEBINAR_AUDIENCE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-off-white/45">
+          Who can see and join this webinar in the hub. Admins always see every webinar.
+        </span>
+      </label>
 
       <label className="flex items-start gap-3 rounded-lg border border-off-white/10 bg-charcoal/60 px-3 py-3 font-body text-sm text-off-white/70">
         <input

@@ -44,6 +44,7 @@ export async function createWebinarAction(formData: FormData) {
     description: String(formData.get("description") || ""),
     scheduledAt: String(formData.get("scheduledAt") || ""),
     status: String(formData.get("status") || "SCHEDULED"),
+    audience: String(formData.get("audience") || "ALL"),
     hostAvatarUrl: String(formData.get("hostAvatarUrl") || ""),
     externalSignupEnabled: formData.get("externalSignupEnabled") === "on",
   };
@@ -62,6 +63,7 @@ export async function createWebinarAction(formData: FormData) {
       description: parsed.data.description || null,
       scheduledAt,
       status: parsed.data.status,
+      audience: parsed.data.audience,
       hostAvatarUrl: parsed.data.hostAvatarUrl || null,
       hostUserId: session.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
@@ -94,6 +96,7 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
     description: formData.has("description") ? String(formData.get("description")) : undefined,
     scheduledAt: formData.get("scheduledAt") ? String(formData.get("scheduledAt")) : undefined,
     status: formData.get("status") ? String(formData.get("status")) : undefined,
+    audience: formData.get("audience") ? String(formData.get("audience")) : undefined,
   };
 
   const parsed = updateWebinarSchema.safeParse(raw);
@@ -112,6 +115,7 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
         ? { scheduledAt: parseScheduledAt(parsed.data.scheduledAt) }
         : {}),
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
+      ...(parsed.data.audience ? { audience: parsed.data.audience } : {}),
     },
   });
 
@@ -261,6 +265,32 @@ export async function deleteWebinarRecordingAction(recordingId: string) {
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${recording.webinarId}`);
+  return { error: null };
+}
+
+/** Change who in the hub can see this webinar (CN / MN / all / admins). */
+export async function setWebinarAudienceAction(
+  webinarId: string,
+  audience: string
+) {
+  await requireAdmin();
+
+  const existing = await prisma.webinar.findUnique({ where: { id: webinarId } });
+  if (!existing) return { error: "Webinar not found" };
+
+  const parsed = updateWebinarSchema.safeParse({ audience });
+  if (!parsed.success || !parsed.data.audience) {
+    return { error: parsed.error?.issues[0]?.message || "Invalid audience" };
+  }
+
+  await prisma.webinar.update({
+    where: { id: webinarId },
+    data: { audience: parsed.data.audience },
+  });
+
+  revalidatePath("/admin/webinars");
+  revalidatePath("/webinars");
+  revalidatePath(`/webinars/${webinarId}`);
   return { error: null };
 }
 

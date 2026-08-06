@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { isAdminRole } from "@/lib/rbac";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import { canViewWebinar, webinarRoomName } from "@/lib/webinars";
 import { createWebinarSchema } from "@/lib/validations/webinar";
+import { generateWebinarExternalToken } from "@/lib/webinarExternal";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,8 @@ export async function GET() {
     return NextResponse.json(body, { status });
   }
 
+  const networkTrack = await getUserNetworkTrack(auth.user.id);
+
   const webinars = await prisma.webinar.findMany({
     orderBy: { scheduledAt: "desc" },
     include: {
@@ -23,7 +27,7 @@ export async function GET() {
   });
 
   const visible = webinars.filter((w) =>
-    canViewWebinar(w, auth.user.role, auth.user.id)
+    canViewWebinar(w, auth.user.role, auth.user.id, networkTrack)
   );
 
   return NextResponse.json({ webinars: visible });
@@ -59,15 +63,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid scheduled date" }, { status: 400 });
   }
 
+  const externalSignupEnabled = parsed.data.externalSignupEnabled;
+
   const webinar = await prisma.webinar.create({
     data: {
       title: parsed.data.title,
       description: parsed.data.description || null,
       scheduledAt,
       status: parsed.data.status,
+      audience: parsed.data.audience,
       hostAvatarUrl: parsed.data.hostAvatarUrl || null,
       hostUserId: auth.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
+      externalSignupEnabled,
+      externalInviteToken: externalSignupEnabled ? generateWebinarExternalToken() : null,
     },
   });
 

@@ -4,10 +4,12 @@ import { isLiveKitConfigured } from "@/lib/livekit";
 import { webinarExternalInviteUrl } from "@/lib/webinarExternal";
 import CreateWebinarForm from "@/components/webinars/CreateWebinarForm";
 import AdminWebinarActions from "@/components/webinars/AdminWebinarActions";
+import AdminWebinarAudience from "@/components/webinars/AdminWebinarAudience";
 import AdminWebinarHostAvatar from "@/components/webinars/AdminWebinarHostAvatar";
 import AdminWebinarRecordings from "@/components/webinars/AdminWebinarRecordings";
 import AdminWebinarExternalSignup from "@/components/webinars/AdminWebinarExternalSignup";
 import MemberAvatar from "@/components/MemberAvatar";
+import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +48,9 @@ export default async function AdminWebinarsPage() {
         WEBI<span className="text-gradient">NARS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Schedule member webinars. Optionally open a secure outside signup page for people who are
-        not in the network. After a session, attach screen recordings so members can rewatch on the
-        webinar page.
+        Schedule webinars for all members, Creator Network (CN), Media Network (MN), or admins
+        only. Optionally open a secure outside signup page for people who are not in the network.
+        After a session, attach screen recordings so members can rewatch on the webinar page.
       </p>
 
       {!livekitReady && (
@@ -90,6 +92,9 @@ export default async function AdminWebinarsPage() {
                         >
                           {w.status}
                         </span>
+                        <span className="rounded bg-off-white/10 px-2 py-0.5 font-body text-xs text-off-white/60">
+                          {WEBINAR_AUDIENCE_LABELS[w.audience]}
+                        </span>
                       </div>
                       <p className="mt-1 font-body text-xs text-off-white/50">
                         {w.scheduledAt.toLocaleString()} · Host: {hostName} ·{" "}
@@ -118,6 +123,7 @@ export default async function AdminWebinarsPage() {
                     />
                   </div>
                 </div>
+                <AdminWebinarAudience webinarId={w.id} audience={w.audience} />
                 <AdminWebinarHostAvatar webinarId={w.id} hostAvatarUrl={w.hostAvatarUrl} />
                 <AdminWebinarExternalSignup
                   webinarId={w.id}

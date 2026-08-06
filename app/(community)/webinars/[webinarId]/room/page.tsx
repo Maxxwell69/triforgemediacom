@@ -11,6 +11,7 @@ import {
   resolveParticipantRole,
   type WebinarJoinMode,
 } from "@/lib/webinars";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import WebinarRoom from "@/components/webinars/WebinarRoom";
 import WebinarJoinChooser from "@/components/webinars/WebinarJoinChooser";
 
@@ -24,16 +25,19 @@ export default async function WebinarRoomPage({
   searchParams: { as?: string };
 }) {
   const { user } = await requireProfile();
-  const identity = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: {
-      name: true,
-      email: true,
-      profile: { select: { socialLinks: true, username: true } },
-      tiktokConnection: { select: { displayName: true, avatarUrl: true } },
-      tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
-    },
-  });
+  const [networkTrack, identity] = await Promise.all([
+    getUserNetworkTrack(user.id),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        name: true,
+        email: true,
+        profile: { select: { socialLinks: true, username: true } },
+        tiktokConnection: { select: { displayName: true, avatarUrl: true } },
+        tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
+      },
+    }),
+  ]);
 
   const webinar = await prisma.webinar.findUnique({
     where: { id: params.webinarId },
@@ -42,7 +46,7 @@ export default async function WebinarRoomPage({
     },
   });
 
-  if (!webinar || !canViewWebinar(webinar, user.role, user.id)) {
+  if (!webinar || !canViewWebinar(webinar, user.role, user.id, networkTrack)) {
     notFound();
   }
 

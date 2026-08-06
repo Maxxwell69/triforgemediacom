@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { isMuted } from "@/lib/moderation";
+import { getUserNetworkTrack } from "@/lib/mnCn";
 import {
   canJoinWebinar,
   canViewWebinar,
@@ -26,12 +27,15 @@ export async function GET(
     return NextResponse.json(body, { status });
   }
 
-  const webinar = await prisma.webinar.findUnique({ where: { id: params.webinarId } });
+  const [webinar, networkTrack] = await Promise.all([
+    prisma.webinar.findUnique({ where: { id: params.webinarId } }),
+    getUserNetworkTrack(auth.user.id),
+  ]);
   if (!webinar) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
-  if (!canViewWebinar(webinar, auth.user.role, auth.user.id)) {
+  if (!canViewWebinar(webinar, auth.user.role, auth.user.id, networkTrack)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
@@ -93,12 +97,15 @@ export async function POST(
     return NextResponse.json(body, { status });
   }
 
-  const webinar = await prisma.webinar.findUnique({ where: { id: params.webinarId } });
+  const [webinar, networkTrack] = await Promise.all([
+    prisma.webinar.findUnique({ where: { id: params.webinarId } }),
+    getUserNetworkTrack(auth.user.id),
+  ]);
   if (!webinar) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
-  if (!canViewWebinar(webinar, auth.user.role, auth.user.id)) {
+  if (!canViewWebinar(webinar, auth.user.role, auth.user.id, networkTrack)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 
