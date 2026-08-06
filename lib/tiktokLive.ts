@@ -11,8 +11,15 @@ import { ensureTikTokSocialLink } from "@/lib/tiktokStats";
 export const LIVE_TAG_NAME = "LIVE";
 export const LIVE_TAG_COLOR = "#FD4802";
 
-/** Hide / clear LIVE if we haven't confirmed liveness within this window. */
-export const LIVE_STALE_MS = 12 * 60 * 1000;
+/**
+ * Hide / clear LIVE if we haven't confirmed liveness within this window.
+ * Sized for GitHub Actions cron drift (often 30–120+ min between runs, not a
+ * true every-5-minute cadence) so creators don't vanish from /live mid-stream.
+ */
+export const LIVE_STALE_MS = 90 * 60 * 1000;
+
+/** Re-poll tik.tools when someone opens /live and data is older than this. */
+export const LIVE_PAGE_REFRESH_MS = 4 * 60 * 1000;
 
 /** Admin-only tag so members can't self-assign fake LIVE status. */
 export async function ensureLiveTag() {
@@ -354,4 +361,41 @@ export function liveNotStaleWhere(now = new Date()) {
     isLive: true as const,
     liveCheckedAt: { gte: new Date(now.getTime() - LIVE_STALE_MS) },
   };
+}
+
+/**
+ * If the roster hasn't been polled recently, sync now so /live stays accurate
+ * even when GitHub Actions cron is delayed or dropped.
+ */
+export async function refreshLiveRosterIfStale(): Promise<{
+  refreshed: boolean;
+  liveCheckedAt: Date | null;
+}> {
+  if (!isTikToolsConfigured()) {
+    return { refreshed: false, liveCheckedAt: null };
+  }
+
+  const latest = await prisma.tikTokStatsSnapshot.findFirst({
+    orderBy: { liveCheckedAt: "desc" },
+    select: { liveCheckedAt: true },
+  });
+  const ageMs = latest?.liveCheckedAt
+    ? Date.now() - latest.liveCheckedAt.getTime()
+    : Number.POSITIVE_INFINITY;
+
+  if (ageMs < LIVE_PAGE_REFRESH_MS) {
+    return { refreshed: false, liveCheckedAt: latest?.liveCheckedAt ?? null };
+  }
+
+  try {
+    await syncRosterLiveStatus();
+    const after = await prisma.tikTokStatsSnapshot.findFirst({
+      orderBy: { liveCheckedAt: "desc" },
+      select: { liveCheckedAt: true },
+    });
+    return { refreshed: true, liveCheckedAt: after?.liveCheckedAt ?? null };
+  } catch (err) {
+    console.error("refreshLiveRosterIfStale failed:", err);
+    return { refreshed: false, liveCheckedAt: latest?.liveCheckedAt ?? null };
+  }
 }

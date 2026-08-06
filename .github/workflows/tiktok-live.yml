@@ -2,8 +2,9 @@ name: TikTok live sync
 
 on:
   schedule:
-    # Every 5 minutes — keep LIVE tags and /live page fresh
-    - cron: "*/5 * * * *"
+    # GitHub often delays/drops */5 jobs. Fire 4×/hour on off-peak minutes
+    # so /live stays fresher without relying on top-of-hour queue spikes.
+    - cron: "3,18,33,48 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -13,6 +14,7 @@ jobs:
       - name: Call tiktok-live cron endpoint
         run: |
           http_code=$(curl -s -o response.txt -w "%{http_code}" \
+            --max-time 90 \
             "https://hub.triforgemedia.com/api/cron/tiktok-live?secret=${{ secrets.CRON_SECRET }}")
           echo "HTTP status: $http_code"
           echo "Response body:"

@@ -3,13 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { formatCount } from "@/lib/formatCount";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
-import { liveNotStaleWhere } from "@/lib/tiktokLive";
+import { liveNotStaleWhere, refreshLiveRosterIfStale } from "@/lib/tiktokLive";
 import MemberAvatar from "@/components/MemberAvatar";
 
 export const dynamic = "force-dynamic";
+/** Allow a tik.tools roster poll when opening /live with stale data. */
+export const maxDuration = 60;
 
 export default async function LivePage() {
   await requireProfile();
+
+  const { liveCheckedAt: lastCheckedAt } = await refreshLiveRosterIfStale();
 
   const liveCreators = await prisma.tikTokStatsSnapshot.findMany({
     where: {
@@ -31,6 +35,13 @@ export default async function LivePage() {
     orderBy: [{ liveViewerCount: "desc" }, { liveCheckedAt: "desc" }],
   });
 
+  const checkedLabel = lastCheckedAt
+    ? `Checked ${lastCheckedAt.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      })}`
+    : null;
+
   return (
     <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-5xl">
@@ -44,6 +55,7 @@ export default async function LivePage() {
               {liveCreators.length > 0
                 ? ` · ${liveCreators.length} live now`
                 : ""}
+              {checkedLabel ? ` · ${checkedLabel}` : ""}
             </p>
           </div>
           <Link
@@ -60,8 +72,7 @@ export default async function LivePage() {
               Nobody&apos;s live right now
             </p>
             <p className="mt-2 font-body text-sm text-off-white/50">
-              This list refreshes automatically every few minutes. Check back when creators go
-              live.
+              This page re-checks TikTok when you open it. Check back when creators go live.
             </p>
             <Link
               href="/members"

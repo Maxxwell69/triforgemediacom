@@ -103,13 +103,17 @@ Both cron endpoints are plain HTTP routes guarded by `CRON_SECRET`
 | Job | Workflow | Schedule | Endpoint |
 |---|---|---|---|
 | TikTask streak reminders | `streak-reminders.yml` | Daily 01:00 UTC | `/api/cron/streak-reminders` |
-| TikTok live sync | `tiktok-live.yml` | Every 5 minutes | `/api/cron/tiktok-live` |
+| TikTok live sync | `tiktok-live.yml` | ~every 15 min (4×/hour) | `/api/cron/tiktok-live` |
 
 **TikTok live sync** backfills missing TikTok social links from apply handles,
 polls tik.tools for who’s live, updates `TikTokStatsSnapshot`, and assigns/clears
 the admin-only **LIVE** tag (powers `/live` and member filters). Requires
 `TIKTOOLS_API_KEY` on production. Trigger on-demand from the Actions tab
 (`workflow_dispatch`) after deploy to populate handles immediately.
+
+GitHub Actions schedules are best-effort and often drift past 5 minutes, so the
+hub also re-polls when someone opens `/live` if the roster is older than a few
+minutes, and keeps confirmed LIVE rows visible for up to 90 minutes.
 
 Staging doesn’t need these crons unless you’re testing them there.
 

@@ -95,6 +95,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.55",
+    date: "August 6, 2026",
+    title: "Live board stays fresh",
+    summary:
+      "Who’s Live no longer goes blank between delayed cron runs — opening the page re-checks TikTok, and confirmed lives stay visible longer.",
+    items: [
+      {
+        kind: "fix",
+        text: "Opening /live re-polls tik.tools when the roster is more than a few minutes old",
+      },
+      {
+        kind: "fix",
+        text: "LIVE status stays visible for 90 minutes (was 12) so GitHub Actions cron drift doesn’t hide streamers",
+      },
+      {
+        kind: "improve",
+        text: "Live sync GitHub Action schedules 4×/hour on off-peak minutes for more reliable polls",
+      },
+    ],
+  },
+  {
     version: "2.54",
     date: "August 6, 2026",
     title: "CN Effect badge",
