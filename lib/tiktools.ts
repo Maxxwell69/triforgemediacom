@@ -133,6 +133,86 @@ export async function fetchUserProfile(
   };
 }
 
+export type TikToolsRoomInfo = {
+  roomId: string | null;
+  title: string | null;
+  userCount: number | null;
+  totalUser: number | null;
+  likeCount: number | null;
+  liveDurationSeconds: number | null;
+  status: number | null;
+};
+
+/**
+ * Pro+ server-side room snapshot (mode:fetch). Needs a room_id from checkLive.
+ * Returns null when the key/tier cannot fetch or the creator is offline.
+ */
+export async function fetchRoomInfo(roomId: string): Promise<TikToolsRoomInfo | null> {
+  if (!roomId.trim()) return null;
+
+  try {
+    const url = new URL(`${API_BASE}/webcast/room_info`);
+    url.searchParams.set("apiKey", apiKey());
+
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey(),
+      },
+      body: JSON.stringify({ room_id: roomId, mode: "fetch" }),
+      cache: "no-store",
+    });
+
+    const data = (await res.json().catch(() => ({}))) as {
+      status_code?: number;
+      message?: string;
+      error?: string | { message?: string };
+      data?: {
+        room_id?: string;
+        title?: string;
+        user_count?: number | null;
+        total_user?: number | null;
+        like_count?: number | null;
+        live_duration_seconds?: number | null;
+        status?: number | null;
+      };
+    };
+
+    if (!res.ok) {
+      console.error(
+        "tik.tools room_info failed:",
+        typeof data.error === "string"
+          ? data.error
+          : data.error?.message || data.message || res.status
+      );
+      return null;
+    }
+
+    if (typeof data.status_code === "number" && data.status_code !== 0) {
+      console.error("tik.tools room_info status_code:", data.status_code, data.message);
+      return null;
+    }
+
+    const room = data.data;
+    if (!room) return null;
+
+    return {
+      roomId: room.room_id ?? roomId,
+      title: room.title ?? null,
+      userCount: typeof room.user_count === "number" ? room.user_count : null,
+      totalUser: typeof room.total_user === "number" ? room.total_user : null,
+      likeCount: typeof room.like_count === "number" ? room.like_count : null,
+      liveDurationSeconds:
+        typeof room.live_duration_seconds === "number" ? room.live_duration_seconds : null,
+      status: typeof room.status === "number" ? room.status : null,
+    };
+  } catch (err) {
+    console.error("tik.tools room_info error:", err);
+    return null;
+  }
+}
+
 /** Definitive live check (title + viewers when live). */
 export async function checkLive(uniqueId: string): Promise<TikToolsLiveStatus> {
   const data = (await tiktoolsGet("/webcast/check_alive", { unique_id: uniqueId })) as {

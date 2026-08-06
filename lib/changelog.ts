@@ -58,9 +58,9 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
   },
   {
     name: "TikTok Stats & Live",
-    tagline: "Profile counts · who's live",
+    tagline: "Profile counts · who's live · private insights",
     description:
-      "Members keep their TikTok handle on profile — the hub pulls followers, likes, video count, Live/Offline, auto LIVE tags, and a Live page for the community (via tik.tools, no TikTok login).",
+      "Members keep their TikTok handle on profile — the hub pulls followers, likes, video count, Live/Offline, auto LIVE tags, and a Live page for the community (via tik.tools, no TikTok login). Detailed Creator Insights stay private to the owner and admins.",
     since: "2.25",
   },
   {
@@ -94,6 +94,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.56",
+    date: "August 6, 2026",
+    title: "Private Creator Insights",
+    summary:
+      "Owners and admins get a richer TikTok analytics dashboard on Account and Admin user pages — other members only see the public TikTok link.",
+    items: [
+      {
+        kind: "feature",
+        text: "Creator Insights panel: reach, engagement ratios, live session metrics, and hub XP/streak",
+      },
+      {
+        kind: "feature",
+        text: "When live, Pro+ room_info enriches viewers, live likes, duration, and total joined",
+      },
+      {
+        kind: "improve",
+        text: "Detailed TikTok stats removed from public member profiles (Live badge + link remain)",
+      },
+    ],
+  },
   {
     version: "2.55",
     date: "August 6, 2026",

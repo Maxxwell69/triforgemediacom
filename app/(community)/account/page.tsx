@@ -13,9 +13,10 @@ import ChangePasswordForm from "./ChangePasswordForm";
 import TagPicker from "@/components/TagPicker";
 import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
-import TikTokStatsCard from "@/components/TikTokStatsCard";
+import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
 import { refreshTikTokStatsAction } from "./actions";
 import { networkBadgeColor } from "@/lib/mnCn";
+import { loadCreatorInsights } from "@/lib/creatorInsights";
 
 export default async function AccountPage({
   searchParams,
@@ -36,7 +37,7 @@ export default async function AccountPage({
     select: { socialLinks: true, username: true },
   });
 
-  const [points, userBadges, certificates, tiktokStats, selfAssignableTags, myTags, effectRow] =
+  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, effectRow] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -50,6 +51,7 @@ export default async function AccountPage({
         orderBy: { issuedAt: "desc" },
       }),
       prisma.tikTokStatsSnapshot.findUnique({ where: { userId: user.id } }),
+      loadCreatorInsights(user.id),
       prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
       prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
       prisma.user.findUnique({ where: { id: user.id }, select: { effect: true } }),
@@ -222,8 +224,11 @@ export default async function AccountPage({
         </div>
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
-          TikTok stats
+          Creator insights
         </h2>
+        <p className="mt-1 font-body text-xs text-off-white/40">
+          Private analytics for you — other members only see your public TikTok link.
+        </p>
         <div className="mt-4">
           {searchParams?.tiktok === "refreshed" && (
             <p className="mb-3 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
@@ -236,9 +241,9 @@ export default async function AccountPage({
             </p>
           )}
 
-          {tiktokStats ? (
-            <TikTokStatsCard
-              stats={tiktokStats}
+          {insights ? (
+            <CreatorInsightsPanel
+              insights={insights}
               actions={
                 <form action={refreshTikTokStatsAction}>
                   <button
@@ -250,11 +255,17 @@ export default async function AccountPage({
                 </form>
               }
             />
-          ) : tiktokUniqueId ? (
+          ) : tiktokStats || tiktokUniqueId ? (
             <div className="glass flex flex-col items-center gap-3 rounded-2xl p-6 text-center">
               <p className="font-body text-sm text-off-white/60">
-                Pull followers, likes, video count, and whether you&apos;re live from{" "}
-                <span className="text-off-white">@{tiktokUniqueId}</span>.
+                Pull followers, likes, video count, and whether you&apos;re live
+                {tiktokUniqueId ? (
+                  <>
+                    {" "}
+                    from <span className="text-off-white">@{tiktokUniqueId}</span>
+                  </>
+                ) : null}
+                .
               </p>
               <form action={refreshTikTokStatsAction}>
                 <button

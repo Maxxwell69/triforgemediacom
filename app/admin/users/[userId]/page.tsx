@@ -15,7 +15,7 @@ import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityTog
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
-import TikTokStatsCard from "@/components/TikTokStatsCard";
+import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
 import AdminTikTokLinkForm from "@/components/admin/AdminTikTokLinkForm";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { PLATFORM_LABELS } from "@/lib/platforms";
@@ -23,6 +23,7 @@ import { canInitiateDm } from "@/lib/dmAccess";
 import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
+import { loadCreatorInsights } from "@/lib/creatorInsights";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export default async function AdminUserDetailPage({
   const currentUserId = session!.user.id;
   const canDm = await canInitiateDm(currentUserId, session!.user.role);
 
-  const [user, allGroups, allTags, allBadges] = await Promise.all([
+  const [user, allGroups, allTags, allBadges, insights] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.userId },
       include: {
@@ -111,6 +112,7 @@ export default async function AdminUserDetailPage({
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
     prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, icon: true } }),
+    loadCreatorInsights(params.userId),
   ]);
 
   if (!user) notFound();
@@ -560,12 +562,13 @@ export default async function AdminUserDetailPage({
         </section>
       )}
 
-      {/* TikTok link + stats */}
+      {/* TikTok link + private creator insights */}
       <section className="glass mt-6 rounded-2xl p-6">
         <h2 className="font-display text-lg tracking-wide text-off-white/80">TIKTOK</h2>
         <p className="mt-1 font-body text-xs text-off-white/40">
           Set the member&apos;s TikTok URL so it shows on their profile and Members directory.
-          Saving with a valid handle also refreshes stats and live status.
+          Saving with a valid handle also refreshes stats and live status. Detailed insights below
+          are admin-only (and on the member&apos;s Account page).
         </p>
         <div className="mt-4">
           <AdminTikTokLinkForm
@@ -575,9 +578,12 @@ export default async function AdminUserDetailPage({
             }
           />
         </div>
-        {user.tiktokStatsSnapshot && (
+        {insights && (
           <div className="mt-5 border-t border-off-white/10 pt-5">
-            <TikTokStatsCard stats={user.tiktokStatsSnapshot} />
+            <CreatorInsightsPanel
+              insights={insights}
+              eyebrow="Creator insights · admin only"
+            />
           </div>
         )}
       </section>

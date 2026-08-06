@@ -14,7 +14,6 @@ import { isAdminRole } from "@/lib/rbac";
 import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
 import MemberAvatar from "@/components/MemberAvatar";
-import TikTokStatsCard from "@/components/TikTokStatsCard";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 
 export const dynamic = "force-dynamic";
@@ -224,10 +223,13 @@ export default async function MemberProfilePage({
                 </div>
               </div>
 
-              {member.tiktokStatsSnapshot && (
-                <div className="mt-4">
-                  <TikTokStatsCard stats={member.tiktokStatsSnapshot} />
-                </div>
+              {member.tiktokStatsSnapshot?.isLive && (
+                <p className="mt-3 font-body text-xs text-orange">
+                  ● Live now
+                  {member.tiktokStatsSnapshot.liveTitle
+                    ? ` — ${member.tiktokStatsSnapshot.liveTitle}`
+                    : ""}
+                </p>
               )}
 
               {tiktokEmbedHtml ? (
