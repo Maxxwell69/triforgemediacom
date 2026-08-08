@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminRole } from "@/lib/rbac";
 import {
   availabilitySlotSchema,
   bookingNotesSchema,
-  calendarEventSchema,
   parseDateTime,
 } from "@/lib/validations/calendar";
 
@@ -26,11 +26,14 @@ function revalidateCalendar() {
   revalidatePath("/admin/calendar");
 }
 
-/** Members post go-live / free / busy windows. */
+/** Staff availability — managed from Account for now (not the public calendar). */
 export async function createAvailabilitySlot(
   formData: FormData
 ): Promise<{ error: string | null }> {
   const user = await requireActiveUser();
+  if (!isAdminRole(user.role)) {
+    return { error: "Only staff can manage availability right now." };
+  }
   const parsed = availabilitySlotSchema.safeParse({
     kind: formData.get("kind") || "FREE",
     label: formData.get("label") || "",
@@ -75,62 +78,14 @@ export async function deleteAvailabilitySlot(
   slotId: string
 ): Promise<{ error: string | null }> {
   const user = await requireActiveUser();
+  if (!isAdminRole(user.role)) {
+    return { error: "Only staff can manage availability right now." };
+  }
   const slot = await prisma.availabilitySlot.findUnique({ where: { id: slotId } });
   if (!slot) return { error: "Slot not found" };
-  if (slot.userId !== user.id) return { error: "Not authorized" };
+  if (slot.userId !== user.id && !isAdminRole(user.role)) return { error: "Not authorized" };
 
   await prisma.availabilitySlot.delete({ where: { id: slotId } });
-  revalidateCalendar();
-  return { error: null };
-}
-
-/** Members create hub EVENT / LIVE special events. */
-export async function createMemberCalendarEvent(
-  formData: FormData
-): Promise<{ error: string | null }> {
-  const user = await requireActiveUser();
-  const kindRaw = String(formData.get("kind") || "EVENT");
-  if (kindRaw !== "EVENT" && kindRaw !== "LIVE") {
-    return { error: "Members can post Event or Live only." };
-  }
-
-  const parsed = calendarEventSchema.safeParse({
-    title: formData.get("title"),
-    description: formData.get("description"),
-    kind: kindRaw,
-    visibility: "HUB",
-    startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt") || "",
-    location: formData.get("location") || "",
-    groupId: "",
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message || "Invalid event" };
-  }
-
-  let startsAt: Date;
-  let endsAt: Date | null = null;
-  try {
-    startsAt = parseDateTime(parsed.data.startsAt, "start time");
-    endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time") : null;
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Invalid times" };
-  }
-  if (endsAt && endsAt <= startsAt) return { error: "End time must be after start time" };
-
-  await prisma.calendarEvent.create({
-    data: {
-      title: parsed.data.title,
-      description: parsed.data.description || null,
-      kind: parsed.data.kind,
-      visibility: "HUB",
-      startsAt,
-      endsAt,
-      location: parsed.data.location || null,
-      createdById: user.id,
-    },
-  });
-
   revalidateCalendar();
   return { error: null };
 }

@@ -116,6 +116,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.63",
+    date: "August 8, 2026",
+    title: "Calendar is view-only; Events stay in admin",
+    summary:
+      "The member calendar is a clean month view of scheduled events. Staff schedule via Admin → Events and manage availability on Account.",
+    items: [
+      {
+        kind: "improve",
+        text: "Member Calendar shows scheduled events only — no posting or booking UI",
+      },
+      {
+        kind: "improve",
+        text: "Admin → Events is the hub event scheduler (separate from the member calendar)",
+      },
+      {
+        kind: "feature",
+        text: "Staff set personal availability on Account (member event posting comes later there too)",
+      },
+    ],
+  },
+  {
     version: "2.62",
     date: "August 8, 2026",
     title: "Hub Calendar — events, availability & booking",

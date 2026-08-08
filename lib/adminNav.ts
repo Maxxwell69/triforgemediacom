@@ -118,8 +118,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   },
   {
     id: "webinars",
-    label: "Live & calendar",
-    description: "Webinars, events, and booking",
+    label: "Live & events",
+    description: "Webinars and hub events",
     links: [
       {
         href: "/admin/webinars",
@@ -128,8 +128,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         href: "/admin/calendar",
-        label: "Calendar",
-        description: "Meetings, events, availability, bookings",
+        label: "Events",
+        description: "Schedule hub meetings and events",
       },
     ],
   },

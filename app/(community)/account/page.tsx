@@ -15,9 +15,11 @@ import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
 import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
 import BroadcastEmailPreference from "@/components/account/BroadcastEmailPreference";
+import AdminAvailabilityPanel from "@/components/account/AdminAvailabilityPanel";
 import { refreshTikTokStatsAction } from "./actions";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
+import { isAdminRole } from "@/lib/rbac";
 
 export default async function AccountPage({
   searchParams,
@@ -38,7 +40,9 @@ export default async function AccountPage({
     select: { socialLinks: true, username: true },
   });
 
-  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, prefsRow] =
+  const isStaff = isAdminRole(user.role);
+
+  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, prefsRow, availabilitySlots] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -59,6 +63,13 @@ export default async function AccountPage({
         where: { id: user.id },
         select: { effect: true, broadcastEmailsOptIn: true },
       }),
+      isStaff
+        ? prisma.availabilitySlot.findMany({
+            where: { userId: user.id, startsAt: { gte: new Date() } },
+            orderBy: { startsAt: "asc" },
+            take: 40,
+          })
+        : Promise.resolve([]),
     ]);
   const effectEnabled = prefsRow?.effect ?? false;
   const broadcastEmailsOptIn = prefsRow?.broadcastEmailsOptIn ?? true;
@@ -149,6 +160,26 @@ export default async function AccountPage({
             </div>
           )}
         </div>
+
+        {isStaff && (
+          <>
+            <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+              Availability
+            </h2>
+            <div className="mt-4">
+              <AdminAvailabilityPanel
+                slots={availabilitySlots.map((s) => ({
+                  id: s.id,
+                  kind: s.kind,
+                  label: s.label,
+                  startsAt: s.startsAt.toISOString(),
+                  endsAt: s.endsAt.toISOString(),
+                  isBookable: s.isBookable,
+                }))}
+              />
+            </div>
+          </>
+        )}
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
           Name & username
