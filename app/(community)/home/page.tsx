@@ -22,7 +22,7 @@ export default async function HomePage() {
 
   const [allChannels, userGroupIds, tikTaskAccess, points, enrollments, memberCount, pendingRedemptions, announcement] =
     await Promise.all([
-      prisma.channel.findMany({ include: { groups: { select: { id: true } } } }),
+      prisma.channel.findMany({ include: { groups: { select: { id: true, isHome: true } } } }),
       getUserGroupIds(user.id),
       hasTikTaskAccess(user.id),
       getUserPointsTotal(user.id),
@@ -112,17 +112,16 @@ export default async function HomePage() {
             href="/rewards"
             icon="🎁"
             title="Rewards"
-            description="Spend your points on real perks."
+            description="Spend points on perks — or check the XP leaderboard."
             stat={`${points} points available`}
             accent="orange"
           />
 
           <DashboardCard
-            href="/leaderboard"
-            icon="🏆"
-            title="Leaderboard"
-            description="Daily, weekly, and monthly XP rankings."
-            stat={`${points} XP earned`}
+            href="/groups"
+            icon="🏠"
+            title="Groups"
+            description="Home hub plus inviteable spaces."
             accent="cyan"
           />
 

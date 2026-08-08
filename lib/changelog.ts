@@ -116,6 +116,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.60",
+    date: "August 8, 2026",
+    title: "Groups Phase B — Home, invites & applications",
+    summary:
+      "Home is the main hub space, members can apply or accept invites to other groups, and Projects stay admin-only for now.",
+    items: [
+      {
+        kind: "feature",
+        text: "Home group auto-enrolls active members; main MEMBER channels attach to Home",
+      },
+      {
+        kind: "feature",
+        text: "Group roles (manager / mod / member), invite links, and apply/approve flows",
+      },
+      {
+        kind: "feature",
+        text: "Member Groups pages plus richer Admin → Groups management",
+      },
+      {
+        kind: "improve",
+        text: "Projects removed from member nav (admin-only); Leaderboard tucked under Rewards",
+      },
+    ],
+  },
+  {
     version: "2.59",
     date: "August 8, 2026",
     title: "Groups, Projects & Calendar scaffold",

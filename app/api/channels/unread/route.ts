@@ -15,7 +15,7 @@ export async function GET() {
 
   const [allChannels, userGroupIds] = await Promise.all([
     prisma.channel.findMany({
-      select: { id: true, minRole: true, groups: { select: { id: true } } },
+      select: { id: true, minRole: true, groups: { select: { id: true, isHome: true } } },
     }),
     getUserGroupIds(auth.user.id),
   ]);

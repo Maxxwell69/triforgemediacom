@@ -7,4 +7,11 @@ export const groupSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Enter a valid hex color, e.g. #FD4802"),
+  joinMode: z.enum(["INVITE_ONLY", "APPLY", "CLOSED"]).optional(),
+});
+
+export const groupMemberRoleSchema = z.enum(["MANAGER", "MOD", "MEMBER"]);
+
+export const groupApplicationMessageSchema = z.object({
+  message: z.string().trim().max(500).optional().or(z.literal("")),
 });

@@ -13,7 +13,7 @@ export async function GET() {
   const [channels, userGroupIds] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
-      include: { groups: { select: { id: true } } },
+      include: { groups: { select: { id: true, isHome: true } } },
     }),
     getUserGroupIds(result.user.id),
   ]);

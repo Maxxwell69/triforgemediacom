@@ -19,7 +19,7 @@ export default async function ChannelPage({
   const [channel, userGroupIds, dbUser] = await Promise.all([
     prisma.channel.findUnique({
       where: { id: params.channelId },
-      include: { groups: { select: { id: true } } },
+      include: { groups: { select: { id: true, isHome: true } } },
     }),
     getUserGroupIds(user.id),
     prisma.user.findUnique({ where: { id: user.id }, select: { mutedUntil: true } }),

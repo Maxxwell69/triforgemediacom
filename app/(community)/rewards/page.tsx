@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
@@ -35,6 +36,12 @@ export default async function RewardsPage() {
             <p className="mt-2 font-body text-off-white/60">
               Spend your points on perks. Redemptions are reviewed by the team.
             </p>
+            <Link
+              href="/leaderboard"
+              className="mt-3 inline-block font-body text-sm text-cyan transition hover:underline"
+            >
+              View XP leaderboard →
+            </Link>
           </div>
           <div className="glass rounded-2xl px-6 py-3 text-right">
             <p className="font-body text-xs text-off-white/50">Your balance</p>

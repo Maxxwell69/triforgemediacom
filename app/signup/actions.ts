@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { ensureUserInHomeGroup } from "@/lib/groups";
 import { signupSchema } from "@/lib/validations/signup";
 
 export type SignupResult = { error: string } | never;
@@ -63,6 +64,8 @@ export async function completeSignup(
         ]
       : []),
   ]);
+
+  await ensureUserInHomeGroup(application.userId);
 
   redirect("/login?welcome=1");
 }

@@ -10,6 +10,8 @@ type Group = {
   description: string | null;
   color: string;
   grantsTikTaskAccess: boolean;
+  isHome: boolean;
+  joinMode: "INVITE_ONLY" | "APPLY" | "CLOSED";
   memberCount: number;
   channelCount: number;
 };
@@ -32,7 +34,13 @@ export default function GroupRow({ group }: { group: Group }) {
       >
         <input type="hidden" name="id" value={group.id} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-          <input name="name" defaultValue={group.name} required className={fieldClass} />
+          <input
+            name="name"
+            defaultValue={group.name}
+            required
+            disabled={group.isHome}
+            className={fieldClass}
+          />
           <input
             name="color"
             defaultValue={group.color}
@@ -46,6 +54,16 @@ export default function GroupRow({ group }: { group: Group }) {
           rows={2}
           className={fieldClass}
         />
+        {!group.isHome && (
+          <label className="font-body text-sm text-off-white/70">
+            Join mode
+            <select name="joinMode" defaultValue={group.joinMode} className={`${fieldClass} mt-1`}>
+              <option value="INVITE_ONLY">Invite only</option>
+              <option value="APPLY">Members can apply</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </label>
+        )}
         <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
           <input
             type="checkbox"
@@ -82,11 +100,16 @@ export default function GroupRow({ group }: { group: Group }) {
           style={{ backgroundColor: group.color }}
         />
         <div className="min-w-0">
-          <p className="truncate font-body text-sm font-medium text-off-white">{group.name}</p>
+          <p className="truncate font-body text-sm font-medium text-off-white">
+            {group.name}
+            {group.isHome && <span className="ml-2 text-xs text-cyan">Home</span>}
+          </p>
           <p className="truncate font-body text-xs text-off-white/40">
             {group.memberCount} member{group.memberCount === 1 ? "" : "s"}
             {" \u00b7 "}
             {group.channelCount} channel{group.channelCount === 1 ? "" : "s"}
+            {" \u00b7 "}
+            {group.joinMode}
             {" \u00b7 "}
             TikTask {group.grantsTikTaskAccess ? "allowed" : "blocked"}
           </p>
@@ -106,19 +129,21 @@ export default function GroupRow({ group }: { group: Group }) {
         >
           Edit
         </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => {
-            if (!confirm(`Delete "${group.name}"? This can't be undone.`)) return;
-            startTransition(async () => {
-              await deleteGroup(group.id);
-            });
-          }}
-          className="rounded-lg border border-orange/40 px-3 py-1 font-body text-xs font-semibold text-orange transition hover:bg-orange/10 disabled:opacity-40"
-        >
-          Delete
-        </button>
+        {!group.isHome && (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              if (!confirm(`Delete "${group.name}"? This can't be undone.`)) return;
+              startTransition(async () => {
+                await deleteGroup(group.id);
+              });
+            }}
+            className="rounded-lg border border-orange/40 px-3 py-1 font-body text-xs font-semibold text-orange transition hover:bg-orange/10 disabled:opacity-40"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );

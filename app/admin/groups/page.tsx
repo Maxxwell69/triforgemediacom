@@ -9,7 +9,7 @@ const fieldClass =
 
 export default async function AdminGroupsPage() {
   const groups = await prisma.group.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ isHome: "desc" }, { name: "asc" }],
     include: {
       _count: { select: { members: true, channels: true } },
     },
@@ -18,11 +18,11 @@ export default async function AdminGroupsPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-display text-5xl tracking-wide">
-        GROUPS <span className="text-gradient">& ROOMS</span>
+        GROUPS <span className="text-gradient">& SPACES</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Groups are hub spaces with channel access, TikTask gates, and (soon) roles, invites, and
-        applications. The Home group is the main community space.
+        Home is the main hub. Other spaces support roles (manager / mod / member), invite links,
+        and applications. Channels attached to non-Home groups become exception rooms.
       </p>
 
       <form
@@ -52,6 +52,14 @@ export default async function AdminGroupsPage() {
           placeholder="Optional description"
           className={fieldClass}
         />
+        <label className="font-body text-sm text-off-white/70">
+          Join mode
+          <select name="joinMode" defaultValue="INVITE_ONLY" className={`${fieldClass} mt-1`}>
+            <option value="INVITE_ONLY">Invite only</option>
+            <option value="APPLY">Members can apply</option>
+            <option value="CLOSED">Closed</option>
+          </select>
+        </label>
         <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
           <input
             type="checkbox"
@@ -84,6 +92,8 @@ export default async function AdminGroupsPage() {
               description: group.description,
               color: group.color,
               grantsTikTaskAccess: group.grantsTikTaskAccess,
+              isHome: group.isHome,
+              joinMode: group.joinMode,
               memberCount: group._count.members,
               channelCount: group._count.channels,
             }}

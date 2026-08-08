@@ -11,7 +11,7 @@ async function getAccessibleChannel(channelId: string, userId: string, userRole:
   const [channel, userGroupIds] = await Promise.all([
     prisma.channel.findUnique({
       where: { id: channelId },
-      include: { groups: { select: { id: true } } },
+      include: { groups: { select: { id: true, isHome: true } } },
     }),
     getUserGroupIds(userId),
   ]);

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { canAccessChannel, getUserGroupIds, hasTikTaskAccess } from "@/lib/groups";
+import {
+  canAccessChannel,
+  ensureUserInHomeGroup,
+  getUserGroupIds,
+  hasTikTaskAccess,
+} from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import { canInitiateDm, isTrueAdmin } from "@/lib/dmAccess";
 import { touchPresence } from "@/lib/presence";
@@ -21,12 +26,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   // Mark online on every community page load (beacon keeps it fresh).
   await touchPresence(user.id).catch(() => {});
+  // Keep every active member in the Home space before resolving channel ACL.
+  await ensureUserInHomeGroup(user.id).catch(() => {});
 
   const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats, hubBugUnread] =
     await Promise.all([
       prisma.channel.findMany({
         orderBy: { createdAt: "asc" },
-        include: { groups: { select: { id: true } } },
+        include: { groups: { select: { id: true, isHome: true } } },
       }),
       prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
       getUserGroupIds(user.id),
@@ -103,12 +110,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Groups
         </Link>
         <Link
-          href="/apps/projects"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Projects
-        </Link>
-        <Link
           href="/calendar"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
@@ -121,16 +122,16 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Members
         </Link>
         <Link
-          href="/leaderboard"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Leaderboard
-        </Link>
-        <Link
           href="/rewards"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
           Rewards
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="rounded-lg py-1 pl-6 pr-3 font-body text-xs text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/80"
+        >
+          Leaderboard
         </Link>
         <Link
           href="/learn"
