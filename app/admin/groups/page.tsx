@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { createGroup } from "./actions";
 import GroupRow from "@/components/admin/GroupRow";
+import ImageUploadField from "@/components/ImageUploadField";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function AdminGroupsPage() {
           placeholder="Optional description"
           className={fieldClass}
         />
+        <ImageUploadField name="imageUrl" folder="group-images" label="Group image" />
         <label className="font-body text-sm text-off-white/70">
           Join mode
           <select name="joinMode" defaultValue="INVITE_ONLY" className={`${fieldClass} mt-1`}>
@@ -91,6 +93,7 @@ export default async function AdminGroupsPage() {
               name: group.name,
               description: group.description,
               color: group.color,
+              imageUrl: group.imageUrl,
               grantsTikTaskAccess: group.grantsTikTaskAccess,
               isHome: group.isHome,
               joinMode: group.joinMode,

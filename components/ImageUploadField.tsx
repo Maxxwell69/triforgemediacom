@@ -12,7 +12,8 @@ type UploadFolder =
   | "course-thumbnails"
   | "lesson-thumbnails"
   | "reward-images"
-  | "host-avatars";
+  | "host-avatars"
+  | "group-images";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -30,6 +31,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "host-avatars": {
     dimensions: "512\u00D7512px (1:1)",
     hint: "Shows as the host photo on webinar cards and detail pages \u2014 square crops best.",
+  },
+  "group-images": {
+    dimensions: "512\u00D7512px (1:1)",
+    hint: "Shows as the group icon in lists and the space switcher \u2014 square crops best.",
   },
 };
 

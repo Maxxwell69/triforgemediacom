@@ -6,6 +6,7 @@ import GroupMembersManager from "@/components/admin/GroupMembersManager";
 import GroupInvitePanel from "@/components/admin/GroupInvitePanel";
 import GroupApplicationsPanel from "@/components/admin/GroupApplicationsPanel";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
+import ImageUploadField from "@/components/ImageUploadField";
 import { updateGroup } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -62,10 +63,19 @@ export default async function AdminGroupDetailPage({
         &larr; All groups
       </Link>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span
-          className="h-5 w-5 shrink-0 rounded-full border border-off-white/20"
-          style={{ backgroundColor: group.color }}
-        />
+        {group.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={group.imageUrl}
+            alt=""
+            className="h-12 w-12 shrink-0 rounded-xl object-cover border border-off-white/15"
+          />
+        ) : (
+          <span
+            className="h-5 w-5 shrink-0 rounded-full border border-off-white/20"
+            style={{ backgroundColor: group.color }}
+          />
+        )}
         <h1 className="font-display text-5xl tracking-wide text-gradient">{group.name}</h1>
         {group.isHome && (
           <span className="rounded-md border border-cyan/40 px-2 py-0.5 font-body text-xs text-cyan">
@@ -98,6 +108,12 @@ export default async function AdminGroupDetailPage({
             defaultValue={group.description ?? ""}
             rows={2}
             className={fieldClass}
+          />
+          <ImageUploadField
+            name="imageUrl"
+            folder="group-images"
+            label="Group image"
+            defaultValue={group.imageUrl}
           />
           {!group.isHome && (
             <label className="font-body text-sm text-off-white/70">

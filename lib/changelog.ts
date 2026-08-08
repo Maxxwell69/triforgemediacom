@@ -116,6 +116,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.67",
+    date: "August 8, 2026",
+    title: "Space-scoped channels, Rewards leaderboard, group images",
+    summary:
+      "Switching groups now swaps the left channel list, the XP leaderboard lives on Rewards, and admins can upload group images.",
+    items: [
+      {
+        kind: "improve",
+        text: "Sidebar Space switcher filters channels to the selected group (Home by default)",
+      },
+      {
+        kind: "improve",
+        text: "Leaderboard moved onto the Rewards page; nested nav link removed",
+      },
+      {
+        kind: "feature",
+        text: "Admin Groups can upload a square group image shown in lists and the space switcher",
+      },
+    ],
+  },
+  {
     version: "2.66",
     date: "August 8, 2026",
     title: "Account areas with breadcrumbs",

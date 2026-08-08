@@ -31,6 +31,7 @@ function parseGroupForm(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
     color: formData.get("color"),
+    imageUrl: formData.get("imageUrl") || "",
     joinMode: formData.get("joinMode") || undefined,
   });
   if (!parsed.success) {
@@ -58,6 +59,7 @@ export async function createGroup(formData: FormData) {
       name: data.name,
       description: data.description || null,
       color: data.color,
+      imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
       joinMode: data.joinMode ?? "INVITE_ONLY",
     },
@@ -84,6 +86,7 @@ export async function updateGroup(formData: FormData) {
       name: existing.isHome ? undefined : data.name,
       description: data.description || null,
       color: data.color,
+      imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
       // Home stays CLOSED — join is automatic via hub membership.
       joinMode: existing.isHome ? "CLOSED" : data.joinMode ?? "INVITE_ONLY",

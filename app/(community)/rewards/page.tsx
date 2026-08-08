@@ -1,8 +1,10 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import RewardCard from "@/components/RewardCard";
+import LeaderboardSection, {
+  parseLeaderboardPeriod,
+} from "@/components/LeaderboardSection";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +14,13 @@ const STATUS_STYLES: Record<string, string> = {
   CANCELLED: "text-off-white/40",
 };
 
-export default async function RewardsPage() {
+export default async function RewardsPage({
+  searchParams,
+}: {
+  searchParams?: { period?: string };
+}) {
   const { user } = await requireProfile();
+  const period = parseLeaderboardPeriod(searchParams?.period);
 
   const [rewards, points, redemptions] = await Promise.all([
     prisma.reward.findMany({ where: { isActive: true }, orderBy: { costPoints: "asc" } }),
@@ -36,12 +43,6 @@ export default async function RewardsPage() {
             <p className="mt-2 font-body text-off-white/60">
               Spend your points on perks. Redemptions are reviewed by the team.
             </p>
-            <Link
-              href="/leaderboard"
-              className="mt-3 inline-block font-body text-sm text-cyan transition hover:underline"
-            >
-              View XP leaderboard →
-            </Link>
           </div>
           <div className="glass rounded-2xl px-6 py-3 text-right">
             <p className="font-body text-xs text-off-white/50">Your balance</p>
@@ -97,6 +98,10 @@ export default async function RewardsPage() {
             ))}
           </div>
         </section>
+
+        <div className="mt-12 max-w-2xl">
+          <LeaderboardSection viewerId={user.id} period={period} periodHrefBase="/rewards" />
+        </div>
       </div>
     </main>
   );

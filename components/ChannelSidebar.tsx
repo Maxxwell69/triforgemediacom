@@ -24,8 +24,10 @@ function UnreadBadge({ count }: { count: number }) {
 
 export default function ChannelSidebar({
   channels: initialChannels,
+  spaceName,
 }: {
   channels: ChannelListItem[];
+  spaceName?: string | null;
 }) {
   const pathname = usePathname();
   const [unread, setUnread] = useState<Record<string, number>>(() => {
@@ -73,7 +75,7 @@ export default function ChannelSidebar({
   return (
     <nav className="flex flex-col gap-0.5">
       <p className="px-3 pb-2 font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
-        Channels
+        {spaceName ? `${spaceName} channels` : "Channels"}
       </p>
       {initialChannels.length === 0 && (
         <p className="px-3 font-body text-sm text-off-white/40">No channels yet</p>

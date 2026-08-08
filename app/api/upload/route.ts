@@ -10,6 +10,7 @@ const ALLOWED_FOLDERS = new Set([
   "lesson-thumbnails",
   "reward-images",
   "host-avatars",
+  "group-images",
 ]);
 
 export async function POST(request: NextRequest) {

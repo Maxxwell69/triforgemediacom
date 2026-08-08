@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,8 @@ import { canManageGroup, ensureUserInHomeGroup } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import ApplyToGroupForm from "@/components/groups/ApplyToGroupForm";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
+import SyncActiveGroup from "@/components/groups/SyncActiveGroup";
+import { ACTIVE_GROUP_COOKIE } from "@/lib/activeGroup";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,7 @@ export default async function GroupDetailPage({
 }) {
   const { user } = await requireProfile();
   await ensureUserInHomeGroup(user.id);
+  const currentActiveId = cookies().get(ACTIVE_GROUP_COOKIE)?.value ?? null;
 
   const group = await prisma.group.findUnique({
     where: { id: params.groupId },
@@ -53,6 +57,9 @@ export default async function GroupDetailPage({
 
   return (
     <main className="flex-1 px-6 py-10">
+      {(isMember || isAdminRole(user.role)) && (
+        <SyncActiveGroup groupId={group.id} currentActiveId={currentActiveId} />
+      )}
       <div className="mx-auto max-w-3xl">
         <Link
           href="/groups"
@@ -62,10 +69,19 @@ export default async function GroupDetailPage({
         </Link>
 
         <div className="mt-4 flex items-center gap-3">
-          <span
-            className="h-5 w-5 shrink-0 rounded-full border border-off-white/20"
-            style={{ backgroundColor: group.color }}
-          />
+          {group.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={group.imageUrl}
+              alt=""
+              className="h-12 w-12 shrink-0 rounded-xl object-cover border border-off-white/15"
+            />
+          ) : (
+            <span
+              className="h-5 w-5 shrink-0 rounded-full border border-off-white/20"
+              style={{ backgroundColor: group.color }}
+            />
+          )}
           <h1 className="font-display text-5xl tracking-wide text-gradient">{group.name}</h1>
           {group.isHome && (
             <span className="rounded-md border border-cyan/40 px-2 py-0.5 font-body text-xs text-cyan">

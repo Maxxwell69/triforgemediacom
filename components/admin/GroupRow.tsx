@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { updateGroup, deleteGroup } from "@/app/admin/groups/actions";
+import ImageUploadField from "@/components/ImageUploadField";
 
 type Group = {
   id: string;
   name: string;
   description: string | null;
   color: string;
+  imageUrl: string | null;
   grantsTikTaskAccess: boolean;
   isHome: boolean;
   joinMode: "INVITE_ONLY" | "APPLY" | "CLOSED";
@@ -54,6 +56,12 @@ export default function GroupRow({ group }: { group: Group }) {
           rows={2}
           className={fieldClass}
         />
+        <ImageUploadField
+          name="imageUrl"
+          folder="group-images"
+          label="Group image"
+          defaultValue={group.imageUrl}
+        />
         {!group.isHome && (
           <label className="font-body text-sm text-off-white/70">
             Join mode
@@ -95,10 +103,19 @@ export default function GroupRow({ group }: { group: Group }) {
   return (
     <div className="glass flex items-center justify-between gap-4 rounded-xl p-4">
       <div className="flex min-w-0 items-center gap-3">
-        <span
-          className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
-          style={{ backgroundColor: group.color }}
-        />
+        {group.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={group.imageUrl}
+            alt=""
+            className="h-8 w-8 shrink-0 rounded-lg object-cover border border-off-white/15"
+          />
+        ) : (
+          <span
+            className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
+            style={{ backgroundColor: group.color }}
+          />
+        )}
         <div className="min-w-0">
           <p className="truncate font-body text-sm font-medium text-off-white">
             {group.name}

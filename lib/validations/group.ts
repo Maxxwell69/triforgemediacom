@@ -7,6 +7,12 @@ export const groupSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Enter a valid hex color, e.g. #FD4802"),
+  imageUrl: z
+    .string()
+    .trim()
+    .url("Enter a valid image URL")
+    .optional()
+    .or(z.literal("")),
   joinMode: z.enum(["INVITE_ONLY", "APPLY", "CLOSED"]).optional(),
 });
 

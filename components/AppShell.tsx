@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import {
   canAccessChannel,
   ensureUserInHomeGroup,
+  getHomeGroup,
   getUserGroupIds,
   hasTikTaskAccess,
 } from "@/lib/groups";
@@ -20,58 +22,110 @@ import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
 import HubBugNavLink from "@/components/HubBugNavLink";
+import GroupSpaceSwitcher from "@/components/groups/GroupSpaceSwitcher";
+import {
+  ACTIVE_GROUP_COOKIE,
+  filterChannelsForActiveGroup,
+  resolveActiveGroupId,
+} from "@/lib/activeGroup";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
 
-  // Mark online on every community page load (beacon keeps it fresh).
   await touchPresence(user.id).catch(() => {});
-  // Keep every active member in the Home space before resolving channel ACL.
   await ensureUserInHomeGroup(user.id).catch(() => {});
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats, hubBugUnread, assignedProjectCount] =
-    await Promise.all([
-      prisma.channel.findMany({
-        orderBy: { createdAt: "asc" },
-        include: { groups: { select: { id: true, isHome: true } } },
-      }),
-      prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
-      getUserGroupIds(user.id),
-      hasTikTaskAccess(user.id),
-      canInitiateDm(user.id, user.role),
-      isTrueAdmin(user.role)
-        ? prisma.directConversation.count()
-        : prisma.directConversation.count({
-            where: { participants: { some: { userId: user.id } } },
-          }),
-      prisma.tikTokConnection.findUnique({
-        where: { userId: user.id },
-        select: { displayName: true, avatarUrl: true },
-      }),
-      prisma.tikTokStatsSnapshot.findUnique({
-        where: { userId: user.id },
-        select: { nickname: true, avatarUrl: true, uniqueId: true },
-      }),
-      getBugReportUnreadCount(user.id),
-      prisma.project.count({
-        where: {
-          status: { not: "ARCHIVED" },
-          OR: [
-            { members: { some: { userId: user.id } } },
-            { tasks: { some: { assigneeId: user.id } } },
-          ],
+  const [
+    allChannels,
+    xpAgg,
+    userGroupIds,
+    tikTaskAccess,
+    canDm,
+    dmCount,
+    tiktokConnection,
+    tiktokStats,
+    hubBugUnread,
+    assignedProjectCount,
+    homeGroup,
+    memberships,
+    allGroupIds,
+  ] = await Promise.all([
+    prisma.channel.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { groups: { select: { id: true, isHome: true } } },
+    }),
+    prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
+    getUserGroupIds(user.id),
+    hasTikTaskAccess(user.id),
+    canInitiateDm(user.id, user.role),
+    isTrueAdmin(user.role)
+      ? prisma.directConversation.count()
+      : prisma.directConversation.count({
+          where: { participants: { some: { userId: user.id } } },
+        }),
+    prisma.tikTokConnection.findUnique({
+      where: { userId: user.id },
+      select: { displayName: true, avatarUrl: true },
+    }),
+    prisma.tikTokStatsSnapshot.findUnique({
+      where: { userId: user.id },
+      select: { nickname: true, avatarUrl: true, uniqueId: true },
+    }),
+    getBugReportUnreadCount(user.id),
+    prisma.project.count({
+      where: {
+        status: { not: "ARCHIVED" },
+        OR: [
+          { members: { some: { userId: user.id } } },
+          { tasks: { some: { assigneeId: user.id } } },
+        ],
+      },
+    }),
+    getHomeGroup(),
+    prisma.groupMember.findMany({
+      where: { userId: user.id },
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            imageUrl: true,
+            isHome: true,
+          },
         },
-      }),
-    ]);
-  const channels = allChannels.filter(
+      },
+      orderBy: { addedAt: "asc" },
+    }),
+    prisma.group.findMany({ select: { id: true } }),
+  ]);
+
+  const accessible = allChannels.filter(
     (c) => canAccessChannel(user.role, c, userGroupIds) && !isLegacyBugChannelName(c.name)
   );
+
+  const isAdmin = isAdminRole(user.role);
+  const allowedGroupIds = isAdmin
+    ? allGroupIds.map((g) => g.id)
+    : userGroupIds;
+
+  const activeGroupId = resolveActiveGroupId(
+    cookies().get(ACTIVE_GROUP_COOKIE)?.value,
+    allowedGroupIds,
+    homeGroup?.id ?? null
+  );
+
+  const channels = filterChannelsForActiveGroup(
+    accessible,
+    activeGroupId,
+    homeGroup?.id ?? null
+  );
+
   const unreadCounts = await getChannelUnreadCounts(
     user.id,
     channels.map((c) => c.id)
   );
   const totalXp = xpAgg._sum.amount ?? 0;
-  const isAdmin = isAdminRole(user.role);
   const showMyProjects = !isAdmin && assignedProjectCount > 0;
   const showDms = canDm || dmCount > 0 || isTrueAdmin(user.role);
   const sidebarLabel = getChatDisplayName({
@@ -82,6 +136,10 @@ export default async function AppShell({ children }: { children: React.ReactNode
       : null,
     tiktokStatsSnapshot: tiktokStats,
   });
+
+  const spaces = memberships
+    .map((m) => m.group)
+    .sort((a, b) => Number(b.isHome) - Number(a.isHome) || a.name.localeCompare(b.name));
 
   const sidebar = (
     <>
@@ -146,12 +204,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Rewards
         </Link>
         <Link
-          href="/leaderboard"
-          className="rounded-lg py-1 pl-6 pr-3 font-body text-xs text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/80"
-        >
-          Leaderboard
-        </Link>
-        <Link
           href="/learn"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
@@ -181,7 +233,10 @@ export default async function AppShell({ children }: { children: React.ReactNode
         </Link>
       )}
 
+      <GroupSpaceSwitcher spaces={spaces} activeGroupId={activeGroupId} />
+
       <ChannelSidebar
+        spaceName={spaces.find((s) => s.id === activeGroupId)?.name ?? null}
         channels={channels.map((c) => ({
           id: c.id,
           name: c.name,

@@ -19,6 +19,7 @@ export default async function GroupsPage() {
             name: true,
             description: true,
             color: true,
+            imageUrl: true,
             isHome: true,
             joinMode: true,
             _count: { select: { members: true, channels: true } },
@@ -39,6 +40,7 @@ export default async function GroupsPage() {
         name: true,
         description: true,
         color: true,
+        imageUrl: true,
         _count: { select: { members: true } },
       },
     }),
@@ -70,10 +72,19 @@ export default async function GroupsPage() {
                 className="glass flex items-center justify-between gap-4 rounded-xl p-4 transition hover:border-cyan/30"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
-                    style={{ backgroundColor: group.color }}
-                  />
+                  {group.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={group.imageUrl}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-lg object-cover border border-off-white/15"
+                    />
+                  ) : (
+                    <span
+                      className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
+                      style={{ backgroundColor: group.color }}
+                    />
+                  )}
                   <div className="min-w-0">
                     <p className="truncate font-body text-sm font-medium text-off-white">
                       {group.name}
@@ -105,10 +116,19 @@ export default async function GroupsPage() {
                   className="glass flex items-center justify-between gap-4 rounded-xl p-4 transition hover:border-orange/30"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
-                      style={{ backgroundColor: group.color }}
-                    />
+                    {group.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={group.imageUrl}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded-lg object-cover border border-off-white/15"
+                      />
+                    ) : (
+                      <span
+                        className="h-4 w-4 shrink-0 rounded-full border border-off-white/20"
+                        style={{ backgroundColor: group.color }}
+                      />
+                    )}
                     <div className="min-w-0">
                       <p className="truncate font-body text-sm font-medium text-off-white">
                         {group.name}

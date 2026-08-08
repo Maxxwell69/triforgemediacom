@@ -291,6 +291,8 @@ model Group {
   name                String        @unique
   description         String?
   color               String        @default("#FD4802")
+  /// Optional square icon shown in group lists and the space switcher.
+  imageUrl            String?
   grantsTikTaskAccess Boolean       @default(true)
   /// System main hub space. Only one row should have isHome=true.
   isHome              Boolean       @default(false)
