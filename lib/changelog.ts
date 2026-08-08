@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.72",
+    date: "August 8, 2026",
+    title: "Simplify sidebar — DMs live in Admin",
+    summary:
+      "Space switcher and Direct messages are out of the main sidebar; staff open DMs from Admin → Chat & safety.",
+    items: [
+      {
+        kind: "improve",
+        text: "Removed Space and Direct messages from the main community sidebar",
+      },
+      {
+        kind: "improve",
+        text: "Added Direct messages under Admin → Chat & safety (DM settings renamed)",
+      },
+    ],
+  },
+  {
     version: "2.71",
     date: "August 8, 2026",
     title: "Pre-prod booking & calendar security hardening",

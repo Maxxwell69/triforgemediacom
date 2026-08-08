@@ -10,7 +10,6 @@ import {
   hasTikTaskAccess,
 } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
-import { canInitiateDm, isTrueAdmin } from "@/lib/dmAccess";
 import { touchPresence } from "@/lib/presence";
 import Logo from "@/components/Logo";
 import ChannelSidebar from "@/components/ChannelSidebar";
@@ -22,7 +21,6 @@ import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
 import HubBugNavLink from "@/components/HubBugNavLink";
-import GroupSpaceSwitcher from "@/components/groups/GroupSpaceSwitcher";
 import {
   ACTIVE_GROUP_COOKIE,
   filterChannelsForActiveGroup,
@@ -40,8 +38,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
     xpAgg,
     userGroupIds,
     tikTaskAccess,
-    canDm,
-    dmCount,
     tiktokConnection,
     tiktokStats,
     hubBugUnread,
@@ -57,12 +53,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
     prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
     getUserGroupIds(user.id),
     hasTikTaskAccess(user.id),
-    canInitiateDm(user.id, user.role),
-    isTrueAdmin(user.role)
-      ? prisma.directConversation.count()
-      : prisma.directConversation.count({
-          where: { participants: { some: { userId: user.id } } },
-        }),
     prisma.tikTokConnection.findUnique({
       where: { userId: user.id },
       select: { displayName: true, avatarUrl: true },
@@ -127,7 +117,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
   const totalXp = xpAgg._sum.amount ?? 0;
   const showMyProjects = !isAdmin && assignedProjectCount > 0;
-  const showDms = canDm || dmCount > 0 || isTrueAdmin(user.role);
   const sidebarLabel = getChatDisplayName({
     name: user.name ?? null,
     profile: { socialLinks: profile.socialLinks, username: profile.username },
@@ -223,17 +212,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Account
         </Link>
       </div>
-
-      {showDms && (
-        <Link
-          href="/dms"
-          className="mb-3 rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Direct messages
-        </Link>
-      )}
-
-      <GroupSpaceSwitcher spaces={spaces} activeGroupId={activeGroupId} />
 
       <ChannelSidebar
         spaceName={spaces.find((s) => s.id === activeGroupId)?.name ?? null}

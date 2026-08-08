@@ -100,8 +100,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     description: "Chat, DMs, and moderation",
     links: [
       {
+        href: "/dms",
+        label: "Direct messages",
+        description: "Open your DM inbox and conversations",
+      },
+      {
         href: "/admin/chat",
-        label: "Chat / DMs",
+        label: "DM settings",
         description: "DM access mode and allowlist",
       },
       {
