@@ -21,8 +21,8 @@ export default async function AdminGroupsPage() {
         GROUPS <span className="text-gradient">& ROOMS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Groups grant exceptions on top of role gates &mdash; attach channels to make VIP rooms,
-        and toggle TikTask access per group.
+        Groups are hub spaces with channel access, TikTask gates, and (soon) roles, invites, and
+        applications. The Home group is the main community space.
       </p>
 
       <form

@@ -122,6 +122,18 @@ model User {
   channelReads               ChannelRead[]
   bugReports                 BugReport[]
   bugReportRead              BugReportRead?
+  groupInvitesSent           GroupInvite[]          @relation("GroupInvitedBy")
+  groupApplications          GroupApplication[]     @relation("GroupApplicant")
+  groupApplicationsReviewed  GroupApplication[]     @relation("GroupAppReviewer")
+  projectsCreated            Project[]              @relation("ProjectCreatedBy")
+  projectMemberships         ProjectMember[]
+  projectTasksCreated        ProjectTask[]          @relation("ProjectTaskCreatedBy")
+  projectTasksAssigned       ProjectTask[]          @relation("ProjectTaskAssignee")
+  calendarEventsCreated      CalendarEvent[]        @relation("CalendarEventCreatedBy")
+  calendarEventAttendances   CalendarEventAttendee[]
+  availabilitySlots          AvailabilitySlot[]
+  calendarBookingsMade       CalendarBooking[]      @relation("CalendarBookingBooker")
+  calendarBookingsHosted     CalendarBooking[]      @relation("CalendarBookingHost")
 }
 
 // ---------- Application / invite flow ----------
@@ -248,36 +260,101 @@ model ChannelRead {
   @@index([userId])
 }
 
-// ---------- Groups (rooms/tools access control) ----------
-// A group with zero channels/default TikTask access behaves as a no-op.
-// Attaching channels turns a Channel into an "exception room" also visible
-// to group members regardless of role (see lib/groups.ts for the rules).
+// ---------- Groups (spaces + ACL) ----------
+// Evolved from access-control-only groups into member spaces with roles,
+// invites, and applications. ACL rules still apply: attaching channels makes
+// exception rooms visible to group members (see lib/groups.ts).
+// The Home group (isHome=true) is the main hub space for default channels.
+
+enum GroupJoinMode {
+  INVITE_ONLY // admins/managers invite; no open apply
+  APPLY       // members can request to join; managers/admins approve
+  CLOSED      // no invites/applies (used for system Home until Phase B wiring)
+}
+
+enum GroupMemberRole {
+  MANAGER // can manage members, invites, apps (admins always can)
+  MOD     // can moderate within the group
+  MEMBER
+}
+
+enum GroupApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
 model Group {
-  id                  String   @id @default(cuid())
-  name                String   @unique
+  id                  String        @id @default(cuid())
+  name                String        @unique
   description         String?
-  color               String   @default("#FD4802")
-  grantsTikTaskAccess Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  color               String        @default("#FD4802")
+  grantsTikTaskAccess Boolean       @default(true)
+  /// System main hub space. Only one row should have isHome=true.
+  isHome              Boolean       @default(false)
+  joinMode            GroupJoinMode @default(INVITE_ONLY)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   members           GroupMember[]
-  channels          Channel[]     @relation("ChannelGroups")
-  courses           Course[]      @relation("CourseGroups")
-  completionCourses Course[]      @relation("CourseCompletionGroup")
+  invites           GroupInvite[]
+  applications      GroupApplication[]
+  channels          Channel[]          @relation("ChannelGroups")
+  courses           Course[]           @relation("CourseGroups")
+  completionCourses Course[]           @relation("CourseCompletionGroup")
+  projects          Project[]
+  calendarEvents    CalendarEvent[]
+
+  @@index([isHome])
 }
 
 model GroupMember {
-  id      String   @id @default(cuid())
+  id      String          @id @default(cuid())
   userId  String
   groupId String
-  addedAt DateTime @default(now())
+  role    GroupMemberRole @default(MEMBER)
+  addedAt DateTime        @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
+  @@index([groupId, role])
+}
+
+model GroupInvite {
+  id          String    @id @default(cuid())
+  groupId     String
+  token       String    @unique
+  /// Optional email lock — null means anyone with the link can accept (while logged in).
+  email       String?
+  invitedById String
+  expiresAt   DateTime?
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation("GroupInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+}
+
+model GroupApplication {
+  id           String                 @id @default(cuid())
+  groupId      String
+  userId       String
+  message      String?
+  status       GroupApplicationStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime               @default(now())
+
+  group      Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user       User  @relation("GroupApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("GroupAppReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([groupId, userId])
+  @@index([groupId, status])
 }
 
 model Message {
@@ -947,12 +1024,14 @@ model Webinar {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  host          User                  @relation("WebinarHost", fields: [hostUserId], references: [id])
-  attendances   WebinarAttendance[]
-  chatMessages  WebinarChatMessage[]
-  stageRequests WebinarStageRequest[]
-  recordings    WebinarRecording[]
+  host           User                  @relation("WebinarHost", fields: [hostUserId], references: [id])
+  attendances    WebinarAttendance[]
+  chatMessages   WebinarChatMessage[]
+  stageRequests  WebinarStageRequest[]
+  recordings     WebinarRecording[]
   externalGuests WebinarGuest[]
+  /// Hub calendar mirror for mass-audience webinars (see lib/calendar.ts).
+  calendarEvent  CalendarEvent?
 
   @@index([status, scheduledAt])
   @@index([audience, status, scheduledAt])
@@ -1110,4 +1189,201 @@ model BugReportRead {
   updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Projects (admin-assigned hub work — distinct from TikTask) ----------
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  DONE
+  ARCHIVED
+}
+
+enum ProjectTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  /// Optional scope to a group space.
+  groupId     String?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  group     Group?          @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  members   ProjectMember[]
+  tasks     ProjectTask[]
+
+  @@index([status])
+  @@index([groupId])
+}
+
+/// Membership grants visibility. Members only see a project if they are a
+/// ProjectMember and/or assigned to at least one ProjectTask.
+model ProjectMember {
+  id        String            @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(MEMBER)
+  addedAt   DateTime          @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model ProjectTask {
+  id          String            @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  status      ProjectTaskStatus @default(TODO)
+  assigneeId  String?
+  createdById String
+  dueAt       DateTime?
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee  User?   @relation("ProjectTaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy User    @relation("ProjectTaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([assigneeId])
+}
+
+// ---------- Calendar / availability / booking ----------
+
+enum CalendarEventKind {
+  MEETING
+  EVENT
+  LIVE
+  WEBINAR
+  OTHER
+}
+
+enum CalendarEventVisibility {
+  /// Visible to all active hub members.
+  HUB
+  /// Visible to members of groupId (required when GROUP).
+  GROUP
+  /// Visible only to creator + explicit attendees.
+  PRIVATE
+}
+
+enum CalendarBookingStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+  CANCELLED
+}
+
+enum AvailabilityKind {
+  /// Creator go-live window.
+  LIVE
+  /// Open for meeting booking.
+  FREE
+  /// Blocked / busy (not bookable).
+  BUSY
+}
+
+model CalendarEvent {
+  id          String                  @id @default(cuid())
+  title       String
+  description String?
+  kind        CalendarEventKind       @default(EVENT)
+  visibility  CalendarEventVisibility @default(HUB)
+  startsAt    DateTime
+  endsAt      DateTime?
+  location    String?
+  groupId     String?
+  createdById String
+  /// When set, this row mirrors a mass-audience Webinar on the hub calendar.
+  webinarId   String?                 @unique
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  group     Group?                  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy User                    @relation("CalendarEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  webinar   Webinar?                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  attendees CalendarEventAttendee[]
+  bookings  CalendarBooking[]
+
+  @@index([startsAt])
+  @@index([kind, startsAt])
+  @@index([groupId])
+}
+
+model CalendarEventAttendee {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+model AvailabilitySlot {
+  id         String          @id @default(cuid())
+  userId     String
+  kind       AvailabilityKind @default(FREE)
+  label      String?
+  startsAt   DateTime
+  endsAt     DateTime
+  isBookable Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings CalendarBooking[]
+
+  @@index([userId, startsAt])
+  @@index([startsAt, endsAt])
+}
+
+/// Booking a FREE availability slot, or an RSVP-style booking tied to an event.
+model CalendarBooking {
+  id        String                @id @default(cuid())
+  slotId    String?
+  eventId   String?
+  bookerId  String
+  hostId    String?
+  status    CalendarBookingStatus @default(PENDING)
+  notes     String?
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  slot   AvailabilitySlot? @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  event  CalendarEvent?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  booker User              @relation("CalendarBookingBooker", fields: [bookerId], references: [id], onDelete: Cascade)
+  host   User?             @relation("CalendarBookingHost", fields: [hostId], references: [id], onDelete: SetNull)
+
+  @@index([bookerId])
+  @@index([hostId])
+  @@index([slotId])
+  @@index([eventId])
+  @@index([startsAt])
 }

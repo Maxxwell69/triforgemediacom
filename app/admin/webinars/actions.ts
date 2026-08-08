@@ -12,6 +12,7 @@ import {
   updateWebinarSchema,
   webinarRecordingSchema,
 } from "@/lib/validations/webinar";
+import { syncCalendarEventForWebinar } from "@/lib/calendar";
 
 async function requireAdmin() {
   const session = await auth();
@@ -72,13 +73,17 @@ export async function createWebinarAction(formData: FormData) {
     },
   });
 
-  await prisma.webinar.update({
+  const updated = await prisma.webinar.update({
     where: { id: webinar.id },
     data: { livekitRoomName: webinarRoomName(webinar.id) },
   });
 
+  await syncCalendarEventForWebinar(updated);
+
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
+  revalidatePath("/calendar");
+  revalidatePath("/admin/calendar");
   return { error: null, webinarId: webinar.id };
 }
 
@@ -104,7 +109,7 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  await prisma.webinar.update({
+  const updated = await prisma.webinar.update({
     where: { id: webinarId },
     data: {
       ...(parsed.data.title ? { title: parsed.data.title } : {}),
@@ -119,9 +124,13 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
     },
   });
 
+  await syncCalendarEventForWebinar(updated);
+
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);
+  revalidatePath("/calendar");
+  revalidatePath("/admin/calendar");
   return { error: null };
 }
 
@@ -162,6 +171,8 @@ export async function deleteWebinarAction(webinarId: string) {
   await prisma.webinar.delete({ where: { id: webinarId } });
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
+  revalidatePath("/calendar");
+  revalidatePath("/admin/calendar");
   return { error: null };
 }
 
@@ -171,7 +182,7 @@ export async function startWebinarAction(webinarId: string) {
   if (!webinar) return { error: "Webinar not found" };
   if (webinar.status === "ENDED") return { error: "Already ended" };
 
-  await prisma.webinar.update({
+  const updated = await prisma.webinar.update({
     where: { id: webinarId },
     data: {
       status: "LIVE",
@@ -180,9 +191,12 @@ export async function startWebinarAction(webinarId: string) {
     },
   });
 
+  await syncCalendarEventForWebinar(updated);
+
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);
+  revalidatePath("/calendar");
   return { error: null };
 }
 
@@ -191,10 +205,12 @@ export async function endWebinarAction(webinarId: string) {
   const webinar = await prisma.webinar.findUnique({ where: { id: webinarId } });
   if (!webinar) return { error: "Webinar not found" };
 
-  await prisma.webinar.update({
+  const updated = await prisma.webinar.update({
     where: { id: webinarId },
     data: { status: "ENDED", endedAt: new Date() },
   });
+
+  await syncCalendarEventForWebinar(updated);
 
   await prisma.webinarAttendance.updateMany({
     where: { webinarId, leftAt: null },
@@ -214,6 +230,7 @@ export async function endWebinarAction(webinarId: string) {
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);
+  revalidatePath("/calendar");
   return { error: null };
 }
 
@@ -283,14 +300,18 @@ export async function setWebinarAudienceAction(
     return { error: parsed.error?.issues[0]?.message || "Invalid audience" };
   }
 
-  await prisma.webinar.update({
+  const updated = await prisma.webinar.update({
     where: { id: webinarId },
     data: { audience: parsed.data.audience },
   });
 
+  await syncCalendarEventForWebinar(updated);
+
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath(`/webinars/${webinarId}`);
+  revalidatePath("/calendar");
+  revalidatePath("/admin/calendar");
   return { error: null };
 }
 

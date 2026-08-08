@@ -85,6 +85,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "2.0",
   },
   {
+    name: "Groups & Spaces",
+    tagline: "Home + inviteable spaces",
+    description:
+      "Evolving hub groups into spaces with Home as the main community, member roles, invites/applications, and per-group channels (building out from the existing access-control groups).",
+    since: "2.59",
+  },
+  {
+    name: "Hub Projects",
+    tagline: "Assigned work (not TikTask)",
+    description:
+      "Admin-assigned projects and tasks for hub members — separate from TikTask’s daily creator habits. Members only see work they’re added to.",
+    since: "2.59",
+  },
+  {
+    name: "Hub Calendar",
+    tagline: "Events, availability & booking",
+    description:
+      "Meetings and events, member availability (including go-live windows), booking, and mass webinars mirrored onto the shared calendar.",
+    since: "2.59",
+  },
+  {
     name: "Admin Command Center",
     tagline: "Ops for the whole hub",
     description:
@@ -94,6 +115,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.59",
+    date: "August 8, 2026",
+    title: "Groups, Projects & Calendar scaffold",
+    summary:
+      "Foundation for three new hub modules on staging — schema, nav, and placeholder pages — ready to build out.",
+    items: [
+      {
+        kind: "program",
+        text: "Groups v2: Home space, join modes, member roles, invites & applications in the data model",
+      },
+      {
+        kind: "program",
+        text: "Hub Projects: admin-assigned projects/tasks (separate from TikTask); members only see what they’re on",
+      },
+      {
+        kind: "program",
+        text: "Calendar: events, availability slots, bookings; mass webinars sync onto the calendar",
+      },
+      {
+        kind: "feature",
+        text: "Sidebar + admin nav entries for Groups, Projects, and Calendar (scaffold pages)",
+      },
+    ],
+  },
   {
     version: "2.58",
     date: "August 7, 2026",

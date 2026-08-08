@@ -97,6 +97,24 @@ export default async function AppShell({ children }: { children: React.ReactNode
           Live
         </Link>
         <Link
+          href="/groups"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Groups
+        </Link>
+        <Link
+          href="/apps/projects"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Projects
+        </Link>
+        <Link
+          href="/calendar"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Calendar
+        </Link>
+        <Link
           href="/members"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >

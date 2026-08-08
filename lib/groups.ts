@@ -14,7 +14,18 @@ import { isAdminRole, meetsMinRole } from "@/lib/rbac";
  *  - Course access: zero groups = open to anyone with a profile; one or
  *    more groups = member of at least one attached group. Admins/Mods
  *    always pass (preview).
+ *
+ * Groups v2 (scaffold): Home space (isHome), member roles, invites, and
+ * applications. Channel trees scoped per group land in a later phase —
+ * ACL behavior above stays the source of truth until then.
  */
+
+export async function getHomeGroup() {
+  return prisma.group.findFirst({
+    where: { isHome: true },
+    select: { id: true, name: true, description: true, color: true, joinMode: true },
+  });
+}
 
 export async function getUserGroupIds(userId: string): Promise<string[]> {
   const memberships = await prisma.groupMember.findMany({

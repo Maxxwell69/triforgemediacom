@@ -41,12 +41,17 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     id: "tasks",
     label: "Tasks",
-    description: "TikTask templates",
+    description: "TikTask and hub projects",
     links: [
       {
         href: "/admin/tasks",
         label: "Task templates",
         description: "Daily creator tasks by platform and goal",
+      },
+      {
+        href: "/admin/projects",
+        label: "Projects",
+        description: "Assign hub projects and tasks to members",
       },
     ],
   },
@@ -58,7 +63,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       {
         href: "/admin/groups",
         label: "Groups",
-        description: "Access groups and memberships",
+        description: "Spaces, roles, invites, and channel access",
       },
       {
         href: "/admin/tags",
@@ -113,13 +118,18 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   },
   {
     id: "webinars",
-    label: "Webinars",
-    description: "Live sessions",
+    label: "Live & calendar",
+    description: "Webinars, events, and booking",
     links: [
       {
         href: "/admin/webinars",
         label: "Webinars",
         description: "Schedule and manage webinars",
+      },
+      {
+        href: "/admin/calendar",
+        label: "Calendar",
+        description: "Meetings, events, availability, bookings",
       },
     ],
   },
