@@ -40,8 +40,8 @@ export default async function AdminEventsPage() {
           Admin → Webinars
         </Link>{" "}
         sync here automatically. Set your personal availability on{" "}
-        <Link href="/account" className="text-cyan hover:underline">
-          Account
+        <Link href="/account/booking" className="text-cyan hover:underline">
+          Account → Booking
         </Link>
         .
       </p>

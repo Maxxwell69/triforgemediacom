@@ -81,6 +81,7 @@ export async function updateProfile(
   });
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   return { success: true };
 }
 
@@ -120,6 +121,7 @@ export async function updateNameIdentity(
   ]);
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   revalidatePath("/members");
   revalidatePath(`/members/${user.id}`);
   return { success: true };
@@ -140,6 +142,7 @@ export async function updateShowRealName(
   });
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   revalidatePath("/members");
   revalidatePath(`/members/${user.id}`);
   return { success: true };
@@ -226,6 +229,7 @@ export async function changeEmail(
   }
 
   revalidatePath("/account");
+  revalidatePath("/account/security");
   return { success: true };
 }
 
@@ -233,13 +237,14 @@ export async function refreshTikTokStatsAction() {
   const user = await requireUser();
   const result = await refreshTikTokStatsSnapshot(user.id, { force: true });
   revalidatePath("/account");
+  revalidatePath("/account/insights");
   revalidatePath(`/members/${user.id}`);
   if (!result.ok) {
     redirect(
-      `/account?tiktok=error&tiktok_message=${encodeURIComponent(result.error)}`
+      `/account/insights?tiktok=error&tiktok_message=${encodeURIComponent(result.error)}`
     );
   }
-  redirect("/account?tiktok=refreshed");
+  redirect("/account/insights?tiktok=refreshed");
 }
 
 export async function toggleMyTag(tagId: string, added: boolean) {
@@ -261,6 +266,7 @@ export async function toggleMyTag(tagId: string, added: boolean) {
   }
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   revalidatePath("/members");
   revalidatePath(`/members/${user.id}`);
 }
@@ -274,5 +280,6 @@ export async function setBroadcastEmailsOptInAction(
     data: { broadcastEmailsOptIn: optIn },
   });
   revalidatePath("/account");
+  revalidatePath("/account/security");
   return { error: null };
 }

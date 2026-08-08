@@ -51,6 +51,7 @@ export async function ensureBookingPage() {
     },
   });
   revalidatePath("/account");
+  revalidatePath("/account/booking");
   return page.id;
 }
 
@@ -95,6 +96,7 @@ export async function updateBookingPageSettings(
   });
 
   revalidatePath("/account");
+  revalidatePath("/account/booking");
   revalidatePath(`/book/${parsed.data.slug}`);
   return { error: null };
 }
@@ -140,6 +142,7 @@ export async function setBookingWeeklyWindows(
   ]);
 
   revalidatePath("/account");
+  revalidatePath("/account/booking");
   revalidatePath(`/book/${page.slug}`);
   return { error: null };
 }

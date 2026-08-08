@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   if (!isTikTokConfigured()) {
-    const url = new URL("/account", APP_URL);
+    const url = new URL("/account/insights", APP_URL);
     url.searchParams.set("tiktok", "error");
     url.searchParams.set("tiktok_message", "TikTok integration isn't set up yet — check back soon.");
     return NextResponse.redirect(url);

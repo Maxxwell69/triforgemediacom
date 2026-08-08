@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.66",
+    date: "August 8, 2026",
+    title: "Account areas with breadcrumbs",
+    summary:
+      "Account is a hub that opens separate pages for Booking, Creator Insights, Profile, and Security — each with breadcrumbs back to Account.",
+    items: [
+      {
+        kind: "improve",
+        text: "Split Account into /account/booking, /insights, /profile, and /security",
+      },
+      {
+        kind: "improve",
+        text: "Breadcrumb navigation on every Account sub-page",
+      },
+    ],
+  },
+  {
     version: "2.65",
     date: "August 8, 2026",
     title: "Account page feature shortcuts",

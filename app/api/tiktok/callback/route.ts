@@ -8,7 +8,7 @@ import { persistTikTokAvatarUrl } from "@/lib/tiktokAvatar";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 function redirectToAccount(status: "connected" | "error", message?: string) {
-  const url = new URL("/account", APP_URL);
+  const url = new URL("/account/insights", APP_URL);
   url.searchParams.set("tiktok", status);
   if (message) url.searchParams.set("tiktok_message", message);
   return NextResponse.redirect(url);
