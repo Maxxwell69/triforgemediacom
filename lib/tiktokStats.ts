@@ -205,19 +205,27 @@ export async function refreshTikTokStatsSnapshot(
     ? await persistTikTokAvatarUrl(userId, userProfile.avatarUrl)
     : undefined;
 
+  const leagueFound = userProfile?.league?.found ? userProfile.league : null;
+
   await prisma.tikTokStatsSnapshot.upsert({
     where: { userId },
     create: {
       userId,
       uniqueId: resolvedUniqueId,
+      tiktokUserId: userProfile?.tiktokUserId ?? null,
       nickname: userProfile?.nickname ?? null,
       avatarUrl: avatarUrl ?? null,
       verified: userProfile?.verified ?? false,
       bio: userProfile?.signature ?? null,
+      bioLink: userProfile?.bioLink ?? null,
+      bioLinkRisk: userProfile?.bioLinkRisk ?? null,
       followerCount: userProfile?.followerCount ?? 0,
       followingCount: userProfile?.followingCount ?? 0,
       heartCount: userProfile?.heartCount ?? 0,
       videoCount: userProfile?.videoCount ?? 0,
+      leagueLabel: leagueFound?.classLabel ?? null,
+      leagueRegion: leagueFound?.region ?? null,
+      leagueRank: leagueFound?.rank ?? null,
       isLive: live?.isLive ?? false,
       roomId: live?.roomId ?? null,
       liveTitle: live?.title ?? null,
@@ -229,14 +237,20 @@ export async function refreshTikTokStatsSnapshot(
       ...(userProfile
         ? {
             uniqueId: userProfile.uniqueId,
+            tiktokUserId: userProfile.tiktokUserId,
             nickname: userProfile.nickname,
             avatarUrl,
             verified: userProfile.verified,
             bio: userProfile.signature,
+            bioLink: userProfile.bioLink,
+            bioLinkRisk: userProfile.bioLinkRisk,
             followerCount: userProfile.followerCount,
             followingCount: userProfile.followingCount,
             heartCount: userProfile.heartCount,
             videoCount: userProfile.videoCount,
+            leagueLabel: leagueFound?.classLabel ?? null,
+            leagueRegion: leagueFound?.region ?? null,
+            leagueRank: leagueFound?.rank ?? null,
             statsFetchedAt: now,
           }
         : { uniqueId: resolvedUniqueId }),

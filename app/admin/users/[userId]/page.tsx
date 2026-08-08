@@ -24,6 +24,11 @@ import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
+import {
+  ensureTikTokSocialLink,
+  ensureTikTokStatsIfMissing,
+} from "@/lib/tiktokStats";
+import { refreshUserCreatorInsightsFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +84,11 @@ export default async function AdminUserDetailPage({
   const session = await auth();
   const currentUserId = session!.user.id;
   const canDm = await canInitiateDm(currentUserId, session!.user.role);
+
+  await ensureTikTokSocialLink(params.userId).catch(() => null);
+  await ensureTikTokStatsIfMissing(params.userId).catch((err) => {
+    console.error("Admin auto TikTok stats fetch failed:", err);
+  });
 
   const [user, allGroups, allTags, allBadges, insights] = await Promise.all([
     prisma.user.findUnique({
@@ -263,6 +273,62 @@ export default async function AdminUserDetailPage({
           }
         />
       </div>
+
+      {/* Creator insights — admin view of tik.tools profile intel */}
+      <section className="mt-6">
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-display text-lg tracking-wide text-off-white/80">
+            CREATOR INSIGHTS
+          </h2>
+          <p className="mt-1 font-body text-xs text-off-white/40">
+            TikTok reach, engagement ratios, bio link, and Diamond Rush league (when your tik.tools
+            tier returns it). Same private panel the member sees on Account → Insights.
+          </p>
+          <div className="mt-4">
+            <AdminTikTokLinkForm
+              userId={user.id}
+              currentUrl={
+                ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok ?? ""
+              }
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          {insights ? (
+            <CreatorInsightsPanel
+              insights={insights}
+              eyebrow="Creator insights · admin only"
+              actions={
+                <form action={refreshUserCreatorInsightsFormAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                  >
+                    Refresh insights
+                  </button>
+                </form>
+              }
+            />
+          ) : (
+            <div className="glass flex flex-col items-start gap-3 rounded-2xl p-6">
+              <p className="font-body text-sm text-off-white/55">
+                No TikTok stats cached yet. Save a TikTok URL above, then refresh to pull creator
+                insights from tik.tools.
+              </p>
+              <form action={refreshUserCreatorInsightsFormAction}>
+                <input type="hidden" name="userId" value={user.id} />
+                <button
+                  type="submit"
+                  className="rounded-lg bg-gradient-to-r from-orange to-cyan px-5 py-2 font-body text-sm font-semibold text-charcoal transition hover:opacity-90"
+                >
+                  Fetch creator insights
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Private contact — admin only; never shown on /members */}
       <section className="glass mt-6 rounded-2xl p-6">
@@ -562,31 +628,6 @@ export default async function AdminUserDetailPage({
         </section>
       )}
 
-      {/* TikTok link + private creator insights */}
-      <section className="glass mt-6 rounded-2xl p-6">
-        <h2 className="font-display text-lg tracking-wide text-off-white/80">TIKTOK</h2>
-        <p className="mt-1 font-body text-xs text-off-white/40">
-          Set the member&apos;s TikTok URL so it shows on their profile and Members directory.
-          Saving with a valid handle also refreshes stats and live status. Detailed insights below
-          are admin-only (and on the member&apos;s Account page).
-        </p>
-        <div className="mt-4">
-          <AdminTikTokLinkForm
-            userId={user.id}
-            currentUrl={
-              ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok ?? ""
-            }
-          />
-        </div>
-        {insights && (
-          <div className="mt-5 border-t border-off-white/10 pt-5">
-            <CreatorInsightsPanel
-              insights={insights}
-              eyebrow="Creator insights · admin only"
-            />
-          </div>
-        )}
-      </section>
     </main>
   );
 }

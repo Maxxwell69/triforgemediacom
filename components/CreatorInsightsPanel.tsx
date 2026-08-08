@@ -19,6 +19,11 @@ function formatRatio(n: number, digits = 1): string {
   return n.toFixed(digits);
 }
 
+function normalizeBioLink(link: string): string {
+  if (/^https?:\/\//i.test(link)) return link;
+  return `https://${link}`;
+}
+
 function MetricTile({
   label,
   value,
@@ -65,6 +70,7 @@ export default function CreatorInsightsPanel({
   const liveDuration = insights.room?.liveDurationSeconds ?? null;
   const liveLikes = insights.room?.likeCount ?? null;
   const liveTotal = insights.room?.totalUser ?? null;
+  const hasLeague = Boolean(insights.leagueLabel || insights.leagueRegion || insights.leagueRank);
 
   return (
     <div className="glass flex flex-col gap-5 rounded-2xl p-6">
@@ -104,6 +110,7 @@ export default function CreatorInsightsPanel({
             </div>
             <p className="font-body text-xs text-off-white/45">
               @{insights.uniqueId}
+              {insights.tiktokUserId ? ` · ID ${insights.tiktokUserId}` : null}
               {updatedAt
                 ? ` · Updated ${updatedAt.toLocaleString([], {
                     dateStyle: "medium",
@@ -118,6 +125,25 @@ export default function CreatorInsightsPanel({
 
       {insights.bio && (
         <p className="font-body text-sm leading-relaxed text-off-white/65">{insights.bio}</p>
+      )}
+
+      {insights.bioLink && (
+        <p className="font-body text-sm text-off-white/55">
+          Bio link:{" "}
+          <a
+            href={normalizeBioLink(insights.bioLink)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan hover:underline"
+          >
+            {insights.bioLink}
+          </a>
+          {insights.bioLinkRisk != null ? (
+            <span className="ml-2 text-xs text-off-white/35">
+              risk {insights.bioLinkRisk}
+            </span>
+          ) : null}
+        </p>
       )}
 
       <div>
@@ -136,7 +162,7 @@ export default function CreatorInsightsPanel({
         <p className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/40">
           Engagement ratios
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <MetricTile
             label="Likes / follower"
             value={formatRatio(insights.likesPerFollower)}
@@ -145,8 +171,38 @@ export default function CreatorInsightsPanel({
             label="Videos / 1k followers"
             value={formatRatio(insights.videosPer1kFollowers)}
           />
+          <MetricTile
+            label="Followers / following"
+            value={formatRatio(insights.followerFollowingRatio)}
+          />
+          <MetricTile
+            label="Likes / video"
+            value={formatRatio(insights.likesPerVideo, 0)}
+            accent="orange"
+          />
         </div>
       </div>
+
+      {hasLeague && (
+        <div>
+          <p className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/40">
+            Diamond Rush league
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <MetricTile
+              label="Class"
+              value={insights.leagueLabel || "—"}
+              accent="cyan"
+            />
+            <MetricTile label="Region" value={insights.leagueRegion || "—"} />
+            <MetricTile
+              label="Rank"
+              value={insights.leagueRank != null ? `#${insights.leagueRank}` : "—"}
+              accent="orange"
+            />
+          </div>
+        </div>
+      )}
 
       {insights.isLive && (
         <div className="rounded-xl border border-orange/25 bg-orange/5 p-4">

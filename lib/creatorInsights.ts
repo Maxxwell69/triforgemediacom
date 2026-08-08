@@ -5,14 +5,20 @@ import { fetchRoomInfo, type TikToolsRoomInfo } from "@/lib/tiktools";
 
 export type CreatorInsightsData = {
   uniqueId: string;
+  tiktokUserId: string | null;
   nickname: string | null;
   avatarUrl: string | null;
   verified: boolean;
   bio: string | null;
+  bioLink: string | null;
+  bioLinkRisk: number | null;
   followerCount: number;
   followingCount: number;
   heartCount: number;
   videoCount: number;
+  leagueLabel: string | null;
+  leagueRegion: string | null;
+  leagueRank: number | null;
   isLive: boolean;
   liveTitle: string | null;
   liveViewerCount: number | null;
@@ -23,6 +29,10 @@ export type CreatorInsightsData = {
   likesPerFollower: number;
   /** Videos per 1k followers. */
   videosPer1kFollowers: number;
+  /** Followers per following (audience vs accounts they follow). */
+  followerFollowingRatio: number;
+  /** Average likes across published videos. */
+  likesPerVideo: number;
   hubPoints: number;
   streakCount: number;
   room: TikToolsRoomInfo | null;
@@ -59,14 +69,20 @@ export async function loadCreatorInsights(
   const followers = snapshot.followerCount;
   return {
     uniqueId: snapshot.uniqueId,
+    tiktokUserId: snapshot.tiktokUserId,
     nickname: snapshot.nickname,
     avatarUrl: snapshot.avatarUrl,
     verified: snapshot.verified,
     bio: snapshot.bio,
+    bioLink: snapshot.bioLink,
+    bioLinkRisk: snapshot.bioLinkRisk,
     followerCount: snapshot.followerCount,
     followingCount: snapshot.followingCount,
     heartCount: snapshot.heartCount,
     videoCount: snapshot.videoCount,
+    leagueLabel: snapshot.leagueLabel,
+    leagueRegion: snapshot.leagueRegion,
+    leagueRank: snapshot.leagueRank,
     isLive: snapshot.isLive,
     liveTitle: room?.title || snapshot.liveTitle,
     liveViewerCount:
@@ -76,6 +92,8 @@ export async function loadCreatorInsights(
     liveCheckedAt: snapshot.liveCheckedAt,
     likesPerFollower: ratio(snapshot.heartCount, followers),
     videosPer1kFollowers: ratio(snapshot.videoCount * 1000, followers),
+    followerFollowingRatio: ratio(followers, snapshot.followingCount),
+    likesPerVideo: ratio(snapshot.heartCount, snapshot.videoCount),
     hubPoints: points,
     streakCount: profile?.streakCount ?? 0,
     room,

@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.69",
+    date: "August 8, 2026",
+    title: "Admin creator insights + more TikTok intel",
+    summary:
+      "Admin user pages surface Creator Insights with refresh, plus extra tik.tools fields like bio link, Diamond Rush league, and engagement ratios.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Users shows Creator Insights near the top with fetch/refresh",
+      },
+      {
+        kind: "improve",
+        text: "Insights add bio link, TikTok user id, followers/following ratio, likes/video, and Diamond Rush league when available",
+      },
+    ],
+  },
+  {
     version: "2.68",
     date: "August 8, 2026",
     title: "Course visibility by group",

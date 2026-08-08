@@ -34,16 +34,29 @@ export function parseTikTokUniqueId(urlOrHandle: string | null | undefined): str
   return null;
 }
 
+export type TikToolsLeague = {
+  found: boolean;
+  region: string | null;
+  classLabel: string | null;
+  rank: number | null;
+  /** Present when the API key tier cannot read league data. */
+  upgradeRequired: boolean;
+};
+
 export type TikToolsUserProfile = {
   uniqueId: string;
+  tiktokUserId: string | null;
   nickname: string | null;
   signature: string | null;
+  bioLink: string | null;
+  bioLinkRisk: number | null;
   verified: boolean;
   avatarUrl: string | null;
   followerCount: number;
   followingCount: number;
   heartCount: number;
   videoCount: number;
+  league: TikToolsLeague | null;
 };
 
 export type TikToolsLiveStatus = {
@@ -97,9 +110,12 @@ export async function fetchUserProfile(
   const data = (await tiktoolsGet("/webcast/user_profile", params)) as {
     data?: {
       profile?: {
+        id?: string | number;
         uniqueId?: string;
         nickname?: string;
         signature?: string;
+        bioLink?: string;
+        bioLinkRisk?: number;
         verified?: boolean;
         avatarMedium?: string;
         avatarLarger?: string;
@@ -111,6 +127,14 @@ export async function fetchUserProfile(
           videoCount?: number;
         };
       };
+      league?: {
+        found?: boolean;
+        region?: string | null;
+        classLabel?: string | null;
+        rank?: number | null;
+        available_on?: string;
+        message?: string;
+      };
     };
   };
 
@@ -120,16 +144,35 @@ export async function fetchUserProfile(
   }
 
   const stats = profile.stats ?? {};
+  const bioLinkRaw = typeof profile.bioLink === "string" ? profile.bioLink.trim() : "";
+  const leagueRaw = data.data?.league;
+  let league: TikToolsLeague | null = null;
+  if (leagueRaw) {
+    const upgradeRequired = Boolean(leagueRaw.available_on || /upgrade/i.test(leagueRaw.message || ""));
+    league = {
+      found: !!leagueRaw.found && !upgradeRequired,
+      region: leagueRaw.region ?? null,
+      classLabel: leagueRaw.classLabel ?? null,
+      rank: typeof leagueRaw.rank === "number" ? leagueRaw.rank : null,
+      upgradeRequired,
+    };
+  }
+
   return {
     uniqueId: (profile.uniqueId || uniqueId).toLowerCase(),
+    tiktokUserId:
+      profile.id != null && String(profile.id).trim() ? String(profile.id) : null,
     nickname: profile.nickname ?? null,
     signature: profile.signature ?? null,
+    bioLink: bioLinkRaw || null,
+    bioLinkRisk: typeof profile.bioLinkRisk === "number" ? profile.bioLinkRisk : null,
     verified: !!profile.verified,
     avatarUrl: profile.avatarMedium || profile.avatarLarger || profile.avatarThumb || null,
     followerCount: Number(stats.followerCount ?? 0),
     followingCount: Number(stats.followingCount ?? 0),
     heartCount: Number(stats.heartCount ?? 0),
     videoCount: Number(stats.videoCount ?? 0),
+    league,
   };
 }
 

@@ -528,14 +528,24 @@ model TikTokStatsSnapshot {
   id               String    @id @default(cuid())
   userId           String    @unique
   uniqueId         String
+  /// Numeric TikTok user id from tik.tools user_profile (string to avoid JS precision loss).
+  tiktokUserId     String?
   nickname         String?
   avatarUrl        String?
   verified         Boolean   @default(false)
   bio              String?
+  /// Creator link-in-bio URL from TikTok (tik.tools).
+  bioLink          String?
+  /// TikTok link-risk score when provided by tik.tools.
+  bioLinkRisk      Int?
   followerCount    Int       @default(0)
   followingCount   Int       @default(0)
   heartCount       Int       @default(0)
   videoCount       Int       @default(0)
+  /// Diamond Rush class label when Ultra/Agency tier returns it (e.g. D5, A1).
+  leagueLabel      String?
+  leagueRegion     String?
+  leagueRank       Int?
   isLive           Boolean   @default(false)
   liveTitle        String?
   liveViewerCount  Int?

@@ -350,5 +350,28 @@ export async function updateUserTikTokLink(
   revalidatePath("/members");
   revalidatePath("/live");
   revalidatePath("/account");
+  revalidatePath("/account/insights");
   return { ok: true };
+}
+
+/** Force-refresh tik.tools creator insights for a member (admin user page). */
+export async function refreshUserCreatorInsightsAction(
+  userId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+  const { refreshTikTokStatsSnapshot } = await import("@/lib/tiktokStats");
+  const result = await refreshTikTokStatsSnapshot(userId, { force: true });
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath(`/members/${userId}`);
+  revalidatePath("/live");
+  revalidatePath("/account");
+  revalidatePath("/account/insights");
+  return result;
+}
+
+export async function refreshUserCreatorInsightsFormAction(formData: FormData) {
+  const userId = String(formData.get("userId") || "");
+  if (!userId) throw new Error("Missing user");
+  const result = await refreshUserCreatorInsightsAction(userId);
+  if (!result.ok) throw new Error(result.error);
 }
