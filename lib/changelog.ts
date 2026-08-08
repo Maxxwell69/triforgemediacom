@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.65",
+    date: "August 8, 2026",
+    title: "Account page feature shortcuts",
+    summary:
+      "Account opens with clear buttons for Calendar, Booking, Creator Insights, Profile, and Security — email and password live under Security.",
+    items: [
+      {
+        kind: "improve",
+        text: "Account page feature grid for Calendar, Booking, Insights, Profile, and Security",
+      },
+      {
+        kind: "improve",
+        text: "Email preferences, change email, and change password grouped under Security",
+      },
+    ],
+  },
+  {
     version: "2.64",
     date: "August 8, 2026",
     title: "Calendly-style staff booking",
