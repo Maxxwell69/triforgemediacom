@@ -3,7 +3,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createLesson, createModule } from "../actions";
 import CourseEditForm from "@/components/admin/CourseEditForm";
-import CourseGroupsForm from "@/components/admin/CourseGroupsForm";
 import LessonRow from "@/components/admin/LessonRow";
 import ModuleRow from "@/components/admin/ModuleRow";
 import BadgeManager from "@/components/admin/BadgeManager";
@@ -52,8 +51,8 @@ export default async function AdminCourseDetailPage({
       },
     }),
     prisma.group.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, color: true },
+      orderBy: [{ isHome: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, color: true, isHome: true },
     }),
   ]);
 
@@ -180,20 +179,10 @@ export default async function AdminCourseDetailPage({
             xpReward: detail.xpReward,
             completionGroupId: detail.completionGroupId,
             certificateEnabled: detail.certificateEnabled,
+            accessGroupIds: detail.groups.map((g) => g.id),
           }}
-          groups={allGroups.map((g) => ({ id: g.id, name: g.name }))}
+          groups={allGroups}
         />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="font-display text-2xl tracking-wide text-off-white/80">Access groups</h2>
-        <div className="glass mt-4 rounded-2xl p-6">
-          <CourseGroupsForm
-            courseId={detail.id}
-            allGroups={allGroups}
-            selectedGroupIds={detail.groups.map((g) => g.id)}
-          />
-        </div>
       </section>
 
       <section className="mt-10">

@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.68",
+    date: "August 8, 2026",
+    title: "Course visibility by group",
+    summary:
+      "When creating or editing a course, pick which groups can see that training — e.g. Gaming only, not Shop Owners.",
+    items: [
+      {
+        kind: "feature",
+        text: "New course form includes “Who can see this training” group checkboxes",
+      },
+      {
+        kind: "improve",
+        text: "Course edit saves access groups with the course; list shows who each course is visible to",
+      },
+    ],
+  },
+  {
     version: "2.67",
     date: "August 8, 2026",
     title: "Space-scoped channels, Rewards leaderboard, group images",

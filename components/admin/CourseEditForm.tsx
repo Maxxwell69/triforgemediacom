@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { updateCourse } from "@/app/admin/courses/actions";
 import ImageUploadField from "@/components/ImageUploadField";
+import CourseGroupAccessFields from "@/components/admin/CourseGroupAccessFields";
 
-type Group = { id: string; name: string };
+type Group = { id: string; name: string; color: string; isHome?: boolean };
 
 type Course = {
   id: string;
@@ -16,6 +17,7 @@ type Course = {
   xpReward: number;
   completionGroupId: string | null;
   certificateEnabled: boolean;
+  accessGroupIds: string[];
 };
 
 const fieldClass =
@@ -62,8 +64,9 @@ export default function CourseEditForm({
         defaultValue={course.thumbnailUrl}
         label="Thumbnail"
       />
+      <CourseGroupAccessFields groups={groups} selectedGroupIds={course.accessGroupIds} />
       <label className="flex flex-col gap-1 font-body text-xs text-off-white/60">
-        Completion group
+        Completion group (optional)
         <select
           name="completionGroupId"
           defaultValue={course.completionGroupId ?? ""}
@@ -77,7 +80,7 @@ export default function CourseEditForm({
           ))}
         </select>
         <span className="text-off-white/40">
-          Auto-add members to this group when they finish the course.
+          Different from visibility — auto-adds members to this group when they finish the course.
         </span>
       </label>
       <div className="flex flex-wrap items-center gap-6">

@@ -14,6 +14,7 @@ type Course = {
   xpReward: number;
   lessonCount: number;
   enrollmentCount: number;
+  accessGroups?: { id: string; name: string; color: string }[];
 };
 
 export default function CourseRow({
@@ -62,6 +63,16 @@ export default function CourseRow({
             {course.enrollmentCount} enrolled
             {" \u00b7 "}+{course.xpReward} XP
             {course.category ? ` \u00b7 ${course.category}` : ""}
+          </p>
+          <p className="mt-1 truncate font-body text-xs text-off-white/50">
+            {course.accessGroups && course.accessGroups.length > 0 ? (
+              <>
+                Visible to:{" "}
+                {course.accessGroups.map((g) => g.name).join(", ")}
+              </>
+            ) : (
+              "Visible to: everyone"
+            )}
           </p>
         </div>
       </div>

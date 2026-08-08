@@ -59,10 +59,26 @@ function parseCourseForm(formData: FormData) {
   return parsed.data;
 }
 
+function parseGroupIds(formData: FormData): string[] {
+  return formData
+    .getAll("groupIds")
+    .map(String)
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 export async function createCourse(formData: FormData) {
   await requireAdmin();
   const data = parseCourseForm(formData);
+  const groupIds = parseGroupIds(formData);
   const maxOrder = await prisma.course.aggregate({ _max: { order: true } });
+
+  if (groupIds.length > 0) {
+    const found = await prisma.group.count({ where: { id: { in: groupIds } } });
+    if (found !== groupIds.length) {
+      throw new Error("One or more selected groups were not found");
+    }
+  }
 
   await prisma.course.create({
     data: {
@@ -72,10 +88,14 @@ export async function createCourse(formData: FormData) {
       category: data.category || null,
       xpReward: data.xpReward,
       order: (maxOrder._max.order ?? -1) + 1,
+      ...(groupIds.length > 0
+        ? { groups: { connect: groupIds.map((id) => ({ id })) } }
+        : {}),
     },
   });
 
   revalidatePath("/admin/courses");
+  revalidatePath("/learn");
 }
 
 export async function updateCourse(formData: FormData) {
@@ -84,6 +104,14 @@ export async function updateCourse(formData: FormData) {
   const data = parseCourseForm(formData);
   const isPublished = formData.get("isPublished") === "on";
   const certificateEnabled = formData.get("certificateEnabled") === "on";
+  const groupIds = parseGroupIds(formData);
+
+  if (groupIds.length > 0) {
+    const found = await prisma.group.count({ where: { id: { in: groupIds } } });
+    if (found !== groupIds.length) {
+      throw new Error("One or more selected groups were not found");
+    }
+  }
 
   await prisma.course.update({
     where: { id },
@@ -96,6 +124,7 @@ export async function updateCourse(formData: FormData) {
       isPublished,
       certificateEnabled,
       completionGroupId: data.completionGroupId || null,
+      groups: { set: groupIds.map((gid) => ({ id: gid })) },
     },
   });
 
