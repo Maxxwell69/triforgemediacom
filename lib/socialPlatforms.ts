@@ -15,7 +15,7 @@ export const SOCIAL_PLATFORM_META: Record<
   TIKTOK: {
     label: "TikTok",
     icon: "🎵",
-    placeholder: "https://tiktok.com/@triforgemedia",
+    placeholder: "https://www.tiktok.com/@forge_live_cn",
   },
   INSTAGRAM: {
     label: "Instagram",

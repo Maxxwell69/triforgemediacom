@@ -95,6 +95,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.57",
+    date: "August 7, 2026",
+    title: "Company TikTok @forge_live_cn",
+    summary:
+      "TriForge’s official company TikTok on the hub is now @forge_live_cn.",
+    items: [
+      {
+        kind: "improve",
+        text: "Company social TikTok set to https://www.tiktok.com/@forge_live_cn",
+      },
+    ],
+  },
+  {
     version: "2.56",
     date: "August 6, 2026",
     title: "Private Creator Insights",
