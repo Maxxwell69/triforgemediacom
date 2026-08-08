@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canManageGroup } from "@/lib/groups";
 import { groupApplicationMessageSchema } from "@/lib/validations/group";
+import { z } from "zod";
 
 async function requireActiveUser() {
   const session = await auth();
@@ -15,6 +17,11 @@ async function requireActiveUser() {
   if (!dbUser || dbUser.status !== "ACTIVE") throw new Error("Not authorized");
   return dbUser;
 }
+
+const groupChannelSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(50),
+  description: z.string().trim().max(300).optional().or(z.literal("")),
+});
 
 export async function applyToGroup(
   groupId: string,
@@ -101,4 +108,48 @@ export async function acceptGroupInvite(
   revalidatePath("/groups");
   revalidatePath(`/groups/${invite.groupId}`);
   return { error: null, groupId: invite.groupId };
+}
+
+/** Group managers (or hub admins) create a channel scoped to this group. */
+export async function createGroupChannel(
+  groupId: string,
+  formData: FormData
+): Promise<{ error: string | null; channelId?: string }> {
+  const user = await requireActiveUser();
+
+  if (!(await canManageGroup(user.id, user.role, groupId))) {
+    return { error: "Only group managers can create channels for this space." };
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { id: true, isHome: true },
+  });
+  if (!group) return { error: "Group not found" };
+
+  const parsed = groupChannelSchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description") ?? "",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid channel" };
+  }
+
+  // Normalize Discord-style names: lowercase, spaces → hyphens
+  const name = parsed.data.name.toLowerCase().replace(/\s+/g, "-");
+
+  const channel = await prisma.channel.create({
+    data: {
+      name,
+      description: parsed.data.description || null,
+      minRole: "MEMBER",
+      groups: { connect: { id: groupId } },
+    },
+  });
+
+  revalidatePath(`/groups/${groupId}`);
+  revalidatePath(`/admin/groups/${groupId}`);
+  revalidatePath("/admin/channels");
+  revalidatePath("/channels");
+  return { error: null, channelId: channel.id };
 }

@@ -29,7 +29,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   // Keep every active member in the Home space before resolving channel ACL.
   await ensureUserInHomeGroup(user.id).catch(() => {});
 
-  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats, hubBugUnread] =
+  const [allChannels, xpAgg, userGroupIds, tikTaskAccess, canDm, dmCount, tiktokConnection, tiktokStats, hubBugUnread, assignedProjectCount] =
     await Promise.all([
       prisma.channel.findMany({
         orderBy: { createdAt: "asc" },
@@ -53,6 +53,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
         select: { nickname: true, avatarUrl: true, uniqueId: true },
       }),
       getBugReportUnreadCount(user.id),
+      prisma.project.count({
+        where: {
+          status: { not: "ARCHIVED" },
+          OR: [
+            { members: { some: { userId: user.id } } },
+            { tasks: { some: { assigneeId: user.id } } },
+          ],
+        },
+      }),
     ]);
   const channels = allChannels.filter(
     (c) => canAccessChannel(user.role, c, userGroupIds) && !isLegacyBugChannelName(c.name)
@@ -63,6 +72,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
   const totalXp = xpAgg._sum.amount ?? 0;
   const isAdmin = isAdminRole(user.role);
+  const showMyProjects = !isAdmin && assignedProjectCount > 0;
   const showDms = canDm || dmCount > 0 || isTrueAdmin(user.role);
   const sidebarLabel = getChatDisplayName({
     name: user.name ?? null,
@@ -109,6 +119,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
         >
           Groups
         </Link>
+        {showMyProjects && (
+          <Link
+            href="/apps/projects"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Projects
+          </Link>
+        )}
         <Link
           href="/calendar"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"

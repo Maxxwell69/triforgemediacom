@@ -5,6 +5,7 @@ import GroupChannelsForm from "@/components/admin/GroupChannelsForm";
 import GroupMembersManager from "@/components/admin/GroupMembersManager";
 import GroupInvitePanel from "@/components/admin/GroupInvitePanel";
 import GroupApplicationsPanel from "@/components/admin/GroupApplicationsPanel";
+import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 import { updateGroup } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -138,6 +139,12 @@ export default async function AdminGroupDetailPage({
             : "Members of this group can view these channels regardless of role (exception rooms)."}
         </p>
         <div className="glass mt-4 rounded-2xl p-6">
+          <p className="mb-3 font-body text-sm font-medium text-off-white/70">New channel for this space</p>
+          <CreateGroupChannelForm groupId={group.id} />
+          <div className="my-6 border-t border-off-white/10" />
+          <p className="mb-3 font-body text-sm font-medium text-off-white/70">
+            Attach existing channels
+          </p>
           <GroupChannelsForm
             groupId={group.id}
             allChannels={allChannels}

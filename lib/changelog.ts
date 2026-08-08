@@ -116,6 +116,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.61",
+    date: "August 8, 2026",
+    title: "Group channels & hub Projects",
+    summary:
+      "Group managers can create channels for their space, and admins can assign hub projects and tasks to members.",
+    items: [
+      {
+        kind: "feature",
+        text: "Group managers create channels scoped to their space (also from Admin → Groups)",
+      },
+      {
+        kind: "feature",
+        text: "Admin → Projects: create projects, add members, assign tasks with due dates",
+      },
+      {
+        kind: "feature",
+        text: "Members see My Projects only when assigned — can update status on their tasks",
+      },
+    ],
+  },
+  {
     version: "2.60",
     date: "August 8, 2026",
     title: "Groups Phase B — Home, invites & applications",

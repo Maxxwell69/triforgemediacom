@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { ensureUserInHomeGroup } from "@/lib/groups";
+import { canManageGroup, ensureUserInHomeGroup } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import ApplyToGroupForm from "@/components/groups/ApplyToGroupForm";
+import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function GroupDetailPage({
 
   const membership = group.members.find((m) => m.userId === user.id) ?? null;
   const isMember = Boolean(membership);
+  const canManage = await canManageGroup(user.id, user.role, group.id);
   const showAdminLink = isAdminRole(user.role);
 
   const pendingApp =
@@ -105,7 +107,7 @@ export default async function GroupDetailPage({
               <div className="mt-4 flex flex-col gap-2">
                 {group.channels.length === 0 && (
                   <p className="glass rounded-xl p-4 font-body text-sm text-off-white/40">
-                    No channels attached to this space yet.
+                    No channels in this space yet.
                   </p>
                 )}
                 {group.channels.map((ch) => (
@@ -118,6 +120,14 @@ export default async function GroupDetailPage({
                   </Link>
                 ))}
               </div>
+              {canManage && (
+                <div className="glass mt-4 rounded-2xl p-4">
+                  <p className="mb-3 font-body text-sm text-off-white/60">
+                    Create a channel for this space. Group members will see it in chat.
+                  </p>
+                  <CreateGroupChannelForm groupId={group.id} />
+                </div>
+              )}
             </section>
 
             <section className="mt-10">
