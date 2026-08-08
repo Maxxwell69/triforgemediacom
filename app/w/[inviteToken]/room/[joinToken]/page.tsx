@@ -32,11 +32,8 @@ export default async function ExternalWebinarRoomPage({
     },
   });
 
-  if (
-    !guest ||
-    guest.webinar.externalInviteToken !== params.inviteToken ||
-    !guest.webinar.externalSignupEnabled
-  ) {
+  // Personal joinToken is enough — open signup may be disabled for private appointments.
+  if (!guest || guest.webinar.externalInviteToken !== params.inviteToken) {
     notFound();
   }
 

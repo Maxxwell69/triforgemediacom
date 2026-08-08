@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   }
 
   const guest = await loadGuest(parsed.data.joinToken);
-  if (!guest || !guest.webinar.externalSignupEnabled) {
+  if (!guest) {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
   if (guest.kickedAt) {
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
   }
 
   const guest = await loadGuest(tokenParsed.data.joinToken);
-  if (!guest || !guest.webinar.externalSignupEnabled) {
+  if (!guest) {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
   if (guest.kickedAt) {

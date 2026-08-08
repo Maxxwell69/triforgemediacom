@@ -62,7 +62,8 @@ export async function POST(req: Request) {
     },
   });
 
-  if (!guest || !guest.webinar.externalSignupEnabled) {
+  // Valid joinToken grants access even when open public signup is disabled.
+  if (!guest) {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 

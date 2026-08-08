@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     },
   });
 
-  if (!guest || !guest.webinar.externalSignupEnabled) {
+  if (!guest) {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 

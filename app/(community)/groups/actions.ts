@@ -93,17 +93,20 @@ export async function acceptGroupInvite(
     return { error: "This invite was issued for a different email address." };
   }
 
-  await prisma.$transaction([
-    prisma.groupMember.upsert({
-      where: { userId_groupId: { userId: user.id, groupId: invite.groupId } },
-      update: {},
-      create: { userId: user.id, groupId: invite.groupId, role: "MEMBER" },
-    }),
-    prisma.groupInvite.update({
-      where: { id: invite.id },
-      data: { acceptedAt: new Date() },
-    }),
-  ]);
+  // Claim the invite atomically so two concurrent accepts can't both succeed.
+  const claimed = await prisma.groupInvite.updateMany({
+    where: { id: invite.id, acceptedAt: null },
+    data: { acceptedAt: new Date() },
+  });
+  if (claimed.count !== 1) {
+    return { error: "This invite is invalid or already used." };
+  }
+
+  await prisma.groupMember.upsert({
+    where: { userId_groupId: { userId: user.id, groupId: invite.groupId } },
+    update: {},
+    create: { userId: user.id, groupId: invite.groupId, role: "MEMBER" },
+  });
 
   revalidatePath("/groups");
   revalidatePath(`/groups/${invite.groupId}`);

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
+import { canViewEvent } from "@/lib/calendar";
+import { getUserGroupIds } from "@/lib/groups";
 import {
   availabilitySlotSchema,
   bookingNotesSchema,
@@ -161,11 +163,22 @@ export async function rsvpCalendarEvent(
       createdById: true,
       webinarId: true,
       visibility: true,
+      groupId: true,
+      attendees: { select: { userId: true } },
     },
   });
   if (!event) return { error: "Event not found" };
   if (event.webinarId) {
     return { error: "Join webinars from the Webinars page." };
+  }
+
+  const userGroupIds = await getUserGroupIds(user.id);
+  if (!canViewEvent(event, user.id, user.role, userGroupIds)) {
+    return { error: "Event not found" };
+  }
+  // Private appointments are invite-only — don't let RSVP expand the attendee list.
+  if (event.visibility === "PRIVATE") {
+    return { error: "This event is invite-only." };
   }
 
   const existing = await prisma.calendarBooking.findFirst({

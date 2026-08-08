@@ -29,11 +29,8 @@ export default async function ExternalWebinarAccessPage({
     },
   });
 
-  if (
-    !guest ||
-    guest.webinar.externalInviteToken !== params.inviteToken ||
-    !guest.webinar.externalSignupEnabled
-  ) {
+  // Allow personal joinToken links even when open signup is disabled (e.g. 1:1 bookings).
+  if (!guest || guest.webinar.externalInviteToken !== params.inviteToken) {
     notFound();
   }
 

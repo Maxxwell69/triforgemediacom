@@ -116,6 +116,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.71",
+    date: "August 8, 2026",
+    title: "Pre-prod booking & calendar security hardening",
+    summary:
+      "Public booking is rate-limited and closed to open webinar signup, RSVP respects event visibility, and staff emails are no longer shown on booking pages.",
+    items: [
+      {
+        kind: "fix",
+        text: "Calendar RSVP now enforces event visibility (no PRIVATE/GROUP bypass)",
+      },
+      {
+        kind: "fix",
+        text: "Appointment bookings disable open webinar signup; personal join links still work",
+      },
+      {
+        kind: "fix",
+        text: "Public booking rate limits + advisory lock to prevent double-book races",
+      },
+      {
+        kind: "fix",
+        text: "Public /book pages never fall back to staff login email for host name",
+      },
+    ],
+  },
+  {
     version: "2.70",
     date: "August 8, 2026",
     title: "Fix admin insights fetch crash",
