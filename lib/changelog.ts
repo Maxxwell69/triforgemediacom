@@ -116,6 +116,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.64",
+    date: "August 8, 2026",
+    title: "Calendly-style staff booking",
+    summary:
+      "Admins set weekly availability on Account, share a /book link, and confirmed appointments email both sides plus create a private webinar room.",
+    items: [
+      {
+        kind: "feature",
+        text: "Account → Booking: weekly hours, duration, timezone, and shareable booking link",
+      },
+      {
+        kind: "feature",
+        text: "Public /book/[slug] page for guests to pick a slot and confirm",
+      },
+      {
+        kind: "feature",
+        text: "On book: confirmation emails + private webinar with guest join link",
+      },
+    ],
+  },
+  {
     version: "2.63",
     date: "August 8, 2026",
     title: "Calendar is view-only; Events stay in admin",

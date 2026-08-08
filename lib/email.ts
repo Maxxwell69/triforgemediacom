@@ -595,6 +595,79 @@ export async function sendEmailChangedNotice(oldEmail: string, newEmail: string,
   await send(oldEmail, subject, html);
 }
 
+// ---------- Appointment booking (Calendly-style) ----------
+
+export type AppointmentEmailData = {
+  bookerName: string;
+  bookerEmail: string;
+  hostName: string;
+  hostEmail: string;
+  title: string;
+  whenLabel: string;
+  timezone: string;
+  guestJoinUrl: string;
+  hostWebinarUrl: string;
+  notes?: string | null;
+};
+
+export function buildAppointmentBookerEmail(data: AppointmentEmailData): EmailContent {
+  const name = escapeHtml(data.bookerName);
+  const host = escapeHtml(data.hostName);
+  const title = escapeHtml(data.title);
+  const when = escapeHtml(data.whenLabel);
+  const tz = escapeHtml(data.timezone);
+  const notes = data.notes
+    ? `<p style="line-height:1.6;color:rgba(245,245,245,0.65);">Notes: ${escapeHtml(data.notes)}</p>`
+    : "";
+  return {
+    subject: `Confirmed: ${data.title} with ${data.hostName}`,
+    html: layout(`
+      <h1 style="color:#FD4802;margin:0 0 16px;">You're booked</h1>
+      <p style="line-height:1.6;">Hi ${name}, your meeting with <strong>${host}</strong> is confirmed.</p>
+      <p style="line-height:1.6;"><strong>${title}</strong><br/>${when}<br/><span style="color:rgba(245,245,245,0.55);font-size:13px;">${tz}</span></p>
+      ${notes}
+      ${button("Join meeting", data.guestJoinUrl)}
+      <p style="line-height:1.5;margin-top:20px;color:rgba(245,245,245,0.45);font-size:12px;">
+        Save this email — your personal join link is above.
+      </p>
+    `),
+  };
+}
+
+export function buildAppointmentHostEmail(data: AppointmentEmailData): EmailContent {
+  const booker = escapeHtml(data.bookerName);
+  const email = escapeHtml(data.bookerEmail);
+  const title = escapeHtml(data.title);
+  const when = escapeHtml(data.whenLabel);
+  const notes = data.notes
+    ? `<p style="line-height:1.6;color:rgba(245,245,245,0.65);">Notes: ${escapeHtml(data.notes)}</p>`
+    : "";
+  return {
+    subject: `New booking: ${data.bookerName} — ${data.title}`,
+    html: layout(`
+      <h1 style="color:#00D4FF;margin:0 0 16px;">New appointment</h1>
+      <p style="line-height:1.6;"><strong>${booker}</strong> (${email}) booked time with you.</p>
+      <p style="line-height:1.6;"><strong>${title}</strong><br/>${when}</p>
+      ${notes}
+      ${button("Open meeting room", data.hostWebinarUrl)}
+    `),
+  };
+}
+
+export async function sendAppointmentBookedEmails(
+  data: AppointmentEmailData,
+  idempotencyBase: string
+) {
+  const booker = buildAppointmentBookerEmail(data);
+  const host = buildAppointmentHostEmail(data);
+  await send(data.bookerEmail, booker.subject, booker.html, {
+    idempotencyKey: `appointment-booker/${idempotencyBase}`,
+  });
+  await send(data.hostEmail, host.subject, host.html, {
+    idempotencyKey: `appointment-host/${idempotencyBase}`,
+  });
+}
+
 // ---------- Bug report admin alerts ----------
 
 export type BugReportAlertData = {

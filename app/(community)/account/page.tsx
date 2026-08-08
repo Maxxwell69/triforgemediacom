@@ -15,11 +15,12 @@ import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
 import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
 import BroadcastEmailPreference from "@/components/account/BroadcastEmailPreference";
-import AdminAvailabilityPanel from "@/components/account/AdminAvailabilityPanel";
+import BookingSchedulePanel from "@/components/account/BookingSchedulePanel";
 import { refreshTikTokStatsAction } from "./actions";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { isAdminRole } from "@/lib/rbac";
+import { bookingPageUrl } from "@/lib/booking";
 
 export default async function AccountPage({
   searchParams,
@@ -42,7 +43,7 @@ export default async function AccountPage({
 
   const isStaff = isAdminRole(user.role);
 
-  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, prefsRow, availabilitySlots] =
+  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, prefsRow, bookingPage] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -64,12 +65,13 @@ export default async function AccountPage({
         select: { effect: true, broadcastEmailsOptIn: true },
       }),
       isStaff
-        ? prisma.availabilitySlot.findMany({
-            where: { userId: user.id, startsAt: { gte: new Date() } },
-            orderBy: { startsAt: "asc" },
-            take: 40,
+        ? prisma.bookingPage.findUnique({
+            where: { hostUserId: user.id },
+            include: {
+              weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
+            },
           })
-        : Promise.resolve([]),
+        : Promise.resolve(null),
     ]);
   const effectEnabled = prefsRow?.effect ?? false;
   const broadcastEmailsOptIn = prefsRow?.broadcastEmailsOptIn ?? true;
@@ -164,18 +166,31 @@ export default async function AccountPage({
         {isStaff && (
           <>
             <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
-              Availability
+              Booking
             </h2>
             <div className="mt-4">
-              <AdminAvailabilityPanel
-                slots={availabilitySlots.map((s) => ({
-                  id: s.id,
-                  kind: s.kind,
-                  label: s.label,
-                  startsAt: s.startsAt.toISOString(),
-                  endsAt: s.endsAt.toISOString(),
-                  isBookable: s.isBookable,
-                }))}
+              <BookingSchedulePanel
+                page={
+                  bookingPage
+                    ? {
+                        id: bookingPage.id,
+                        slug: bookingPage.slug,
+                        title: bookingPage.title,
+                        description: bookingPage.description,
+                        timezone: bookingPage.timezone,
+                        durationMins: bookingPage.durationMins,
+                        bufferMins: bookingPage.bufferMins,
+                        aheadDays: bookingPage.aheadDays,
+                        isActive: bookingPage.isActive,
+                        bookingUrl: bookingPageUrl(bookingPage.slug),
+                        weeklyWindows: bookingPage.weeklyWindows.map((w) => ({
+                          dayOfWeek: w.dayOfWeek,
+                          startMinute: w.startMinute,
+                          endMinute: w.endMinute,
+                        })),
+                      }
+                    : null
+                }
               />
             </div>
           </>
