@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.70",
+    date: "August 8, 2026",
+    title: "Fix admin insights fetch crash",
+    summary:
+      "Fetching creator insights from Admin → Users no longer blanks the page — failures show an inline message instead.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin creator insights refresh no longer throws an Application error on TikTok/API failure",
+      },
+      {
+        kind: "improve",
+        text: "Insights load errors are contained so the rest of the admin user page still renders",
+      },
+    ],
+  },
+  {
     version: "2.69",
     date: "August 8, 2026",
     title: "Admin creator insights + more TikTok intel",

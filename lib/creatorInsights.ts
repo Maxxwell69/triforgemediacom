@@ -50,52 +50,61 @@ function ratio(numerator: number, denominator: number): number {
 export async function loadCreatorInsights(
   userId: string
 ): Promise<CreatorInsightsData | null> {
-  const [snapshot, profile, points] = await Promise.all([
-    prisma.tikTokStatsSnapshot.findUnique({ where: { userId } }),
-    prisma.profile.findUnique({
-      where: { userId },
-      select: { streakCount: true },
-    }),
-    getUserPointsTotal(userId),
-  ]);
+  try {
+    const [snapshot, profile, points] = await Promise.all([
+      prisma.tikTokStatsSnapshot.findUnique({ where: { userId } }),
+      prisma.profile.findUnique({
+        where: { userId },
+        select: { streakCount: true },
+      }),
+      getUserPointsTotal(userId),
+    ]);
 
-  if (!snapshot) return null;
+    if (!snapshot) return null;
 
-  let room: TikToolsRoomInfo | null = null;
-  if (snapshot.isLive && snapshot.roomId) {
-    room = await fetchRoomInfo(snapshot.roomId);
+    let room: TikToolsRoomInfo | null = null;
+    if (snapshot.isLive && snapshot.roomId) {
+      room = await fetchRoomInfo(snapshot.roomId).catch((err) => {
+        console.error("loadCreatorInsights room_info failed:", err);
+        return null;
+      });
+    }
+
+    const followers = snapshot.followerCount;
+    return {
+      uniqueId: snapshot.uniqueId,
+      tiktokUserId: snapshot.tiktokUserId ?? null,
+      nickname: snapshot.nickname,
+      avatarUrl: snapshot.avatarUrl,
+      verified: snapshot.verified,
+      bio: snapshot.bio,
+      bioLink: snapshot.bioLink ?? null,
+      bioLinkRisk: snapshot.bioLinkRisk ?? null,
+      followerCount: snapshot.followerCount,
+      followingCount: snapshot.followingCount,
+      heartCount: snapshot.heartCount,
+      videoCount: snapshot.videoCount,
+      leagueLabel: snapshot.leagueLabel ?? null,
+      leagueRegion: snapshot.leagueRegion ?? null,
+      leagueRank: snapshot.leagueRank ?? null,
+      isLive: snapshot.isLive,
+      liveTitle: room?.title || snapshot.liveTitle,
+      liveViewerCount:
+        room?.userCount != null ? room.userCount : snapshot.liveViewerCount,
+      roomId: snapshot.roomId,
+      statsFetchedAt: snapshot.statsFetchedAt,
+      liveCheckedAt: snapshot.liveCheckedAt,
+      likesPerFollower: ratio(snapshot.heartCount, followers),
+      videosPer1kFollowers: ratio(snapshot.videoCount * 1000, followers),
+      followerFollowingRatio: ratio(followers, snapshot.followingCount),
+      likesPerVideo: ratio(snapshot.heartCount, snapshot.videoCount),
+      hubPoints: points,
+      streakCount: profile?.streakCount ?? 0,
+      room,
+    };
+  } catch (err) {
+    // Missing migration columns / tik.tools blips must not 500 Account or Admin pages.
+    console.error("loadCreatorInsights failed:", err);
+    return null;
   }
-
-  const followers = snapshot.followerCount;
-  return {
-    uniqueId: snapshot.uniqueId,
-    tiktokUserId: snapshot.tiktokUserId,
-    nickname: snapshot.nickname,
-    avatarUrl: snapshot.avatarUrl,
-    verified: snapshot.verified,
-    bio: snapshot.bio,
-    bioLink: snapshot.bioLink,
-    bioLinkRisk: snapshot.bioLinkRisk,
-    followerCount: snapshot.followerCount,
-    followingCount: snapshot.followingCount,
-    heartCount: snapshot.heartCount,
-    videoCount: snapshot.videoCount,
-    leagueLabel: snapshot.leagueLabel,
-    leagueRegion: snapshot.leagueRegion,
-    leagueRank: snapshot.leagueRank,
-    isLive: snapshot.isLive,
-    liveTitle: room?.title || snapshot.liveTitle,
-    liveViewerCount:
-      room?.userCount != null ? room.userCount : snapshot.liveViewerCount,
-    roomId: snapshot.roomId,
-    statsFetchedAt: snapshot.statsFetchedAt,
-    liveCheckedAt: snapshot.liveCheckedAt,
-    likesPerFollower: ratio(snapshot.heartCount, followers),
-    videosPer1kFollowers: ratio(snapshot.videoCount * 1000, followers),
-    followerFollowingRatio: ratio(followers, snapshot.followingCount),
-    likesPerVideo: ratio(snapshot.heartCount, snapshot.videoCount),
-    hubPoints: points,
-    streakCount: profile?.streakCount ?? 0,
-    room,
-  };
 }

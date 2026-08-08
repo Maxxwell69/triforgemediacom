@@ -24,10 +24,6 @@ import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
-import {
-  ensureTikTokSocialLink,
-  ensureTikTokStatsIfMissing,
-} from "@/lib/tiktokStats";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -78,17 +74,16 @@ function formatDateTime(date: Date | null): string {
 
 export default async function AdminUserDetailPage({
   params,
+  searchParams,
 }: {
   params: { userId: string };
+  searchParams?: { insights?: string; insights_message?: string };
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
   const canDm = await canInitiateDm(currentUserId, session!.user.role);
-
-  await ensureTikTokSocialLink(params.userId).catch(() => null);
-  await ensureTikTokStatsIfMissing(params.userId).catch((err) => {
-    console.error("Admin auto TikTok stats fetch failed:", err);
-  });
+  const insightsStatus = searchParams?.insights;
+  const insightsMessage = searchParams?.insights_message;
 
   const [user, allGroups, allTags, allBadges, insights] = await Promise.all([
     prisma.user.findUnique({
@@ -100,7 +95,6 @@ export default async function AdminUserDetailPage({
         tags: { include: { tag: true } },
         userBadges: { include: { badge: true }, orderBy: { awardedAt: "desc" } },
         tiktokConnection: true,
-        tiktokStatsSnapshot: true,
         enrollments: {
           include: { course: { include: { lessons: { select: { id: true } } } } },
           orderBy: { enrolledAt: "desc" },
@@ -122,7 +116,10 @@ export default async function AdminUserDetailPage({
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
     prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, icon: true } }),
-    loadCreatorInsights(params.userId),
+    loadCreatorInsights(params.userId).catch((err) => {
+      console.error("Admin user insights load failed:", err);
+      return null;
+    }),
   ]);
 
   if (!user) notFound();
@@ -284,6 +281,16 @@ export default async function AdminUserDetailPage({
             TikTok reach, engagement ratios, bio link, and Diamond Rush league (when your tik.tools
             tier returns it). Same private panel the member sees on Account → Insights.
           </p>
+          {insightsStatus === "refreshed" && (
+            <p className="mt-3 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
+              Creator insights updated from tik.tools.
+            </p>
+          )}
+          {insightsStatus === "error" && (
+            <p className="mt-3 rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+              {insightsMessage || "Couldn't refresh creator insights."}
+            </p>
+          )}
           <div className="mt-4">
             <AdminTikTokLinkForm
               userId={user.id}

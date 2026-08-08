@@ -370,8 +370,26 @@ export async function refreshUserCreatorInsightsAction(
 }
 
 export async function refreshUserCreatorInsightsFormAction(formData: FormData) {
+  const { redirect } = await import("next/navigation");
   const userId = String(formData.get("userId") || "");
-  if (!userId) throw new Error("Missing user");
-  const result = await refreshUserCreatorInsightsAction(userId);
-  if (!result.ok) throw new Error(result.error);
+  if (!userId) redirect("/admin/users");
+
+  let result: { ok: true } | { ok: false; error: string };
+  try {
+    result = await refreshUserCreatorInsightsAction(userId);
+  } catch (err) {
+    // Never let this form action throw — Next surfaces that as Application error.
+    console.error("refreshUserCreatorInsightsFormAction failed:", err);
+    result = {
+      ok: false,
+      error: err instanceof Error ? err.message : "Couldn't refresh creator insights.",
+    };
+  }
+
+  if (!result.ok) {
+    redirect(
+      `/admin/users/${userId}?insights=error&insights_message=${encodeURIComponent(result.error)}`
+    );
+  }
+  redirect(`/admin/users/${userId}?insights=refreshed`);
 }
