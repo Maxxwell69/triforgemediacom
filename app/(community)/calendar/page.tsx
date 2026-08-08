@@ -12,7 +12,6 @@ import { createAvailabilitySlot, createMemberCalendarEvent } from "./actions";
 import BookSlotButton from "@/components/calendar/BookSlotButton";
 import RsvpButton from "@/components/calendar/RsvpButton";
 import BookingRespondButtons from "@/components/calendar/BookingRespondButtons";
-import DeleteSlotButton from "@/components/calendar/DeleteSlotButton";
 import CalendarForm from "@/components/calendar/CalendarForm";
 
 export const dynamic = "force-dynamic";
