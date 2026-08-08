@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { generateDraftAction, sendBroadcastAction } from "@/app/admin/broadcast/actions";
+import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
+import BroadcastSpamScorePanel from "@/components/admin/BroadcastSpamScorePanel";
 
 type Tag = { id: string; name: string };
 type Group = { id: string; name: string };
@@ -34,6 +36,11 @@ export default function BroadcastComposer({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const spamScore = useMemo(
+    () => scoreBroadcastContent(subject, bodyText),
+    [subject, bodyText]
+  );
+
   function handleGenerate() {
     setError(null);
     setSuccessMsg(null);
@@ -51,6 +58,13 @@ export default function BroadcastComposer({
   function handleSend(formData: FormData) {
     setError(null);
     setSuccessMsg(null);
+
+    if (!spamScore.canSend) {
+      setError(
+        `Deliverability score ${spamScore.score}/100 is too low. Fix the issues below before sending.`
+      );
+      return;
+    }
 
     const audienceLabel =
       audienceType === "ALL_MEMBERS"
@@ -73,7 +87,26 @@ export default function BroadcastComposer({
         setError(result.error);
         return;
       }
-      setSuccessMsg(`Sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}.`);
+      const parts = [
+        `Sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}.`,
+      ];
+      if (result.skippedUnsubscribed > 0) {
+        parts.push(
+          `Skipped ${result.skippedUnsubscribed} unsubscribed.`
+        );
+      }
+      if (result.failed > 0) {
+        parts.push(
+          `${result.failed} failed${
+            result.failedEmails.length
+              ? ` (${result.failedEmails.join(", ")}${
+                  result.failed > result.failedEmails.length ? ", …" : ""
+                })`
+              : ""
+          }.`
+        );
+      }
+      setSuccessMsg(parts.join(" "));
       setSubject("");
       setBodyText("");
       setTopic("");
@@ -133,6 +166,11 @@ export default function BroadcastComposer({
             placeholder="Email body — separate paragraphs with a blank line"
             className={`${fieldClass} mt-2`}
           />
+          {(subject.trim() || bodyText.trim()) && (
+            <div className="mt-3">
+              <BroadcastSpamScorePanel score={spamScore} />
+            </div>
+          )}
         </div>
 
         <div>
@@ -193,7 +231,7 @@ export default function BroadcastComposer({
               <input type="hidden" name="track" value={track} />
               <p className="font-body text-xs text-off-white/40">
                 Matches CN/MN tag, group membership, or application track — including invited
-                members who haven&apos;t signed up yet.
+                members who haven&apos;t signed up yet. Unsubscribed members are skipped.
               </p>
             </div>
           )}
@@ -255,10 +293,16 @@ export default function BroadcastComposer({
 
         <button
           type="submit"
-          disabled={sending || !subject.trim() || !bodyText.trim()}
+          disabled={
+            sending || !subject.trim() || !bodyText.trim() || !spamScore.canSend
+          }
           className="self-start rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {sending ? "Sending..." : "Send broadcast"}
+          {sending
+            ? "Sending..."
+            : !spamScore.canSend && (subject.trim() || bodyText.trim())
+              ? "Fix deliverability to send"
+              : "Send broadcast"}
         </button>
       </form>
     </div>

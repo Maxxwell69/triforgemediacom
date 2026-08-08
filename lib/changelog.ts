@@ -95,6 +95,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.58",
+    date: "August 7, 2026",
+    title: "Broadcast delivery, spam checks & unsubscribe",
+    summary:
+      "Admin broadcasts send reliably, get scored for spam risk before send, and include a real unsubscribe path.",
+    items: [
+      {
+        kind: "fix",
+        text: "Broadcasts use Resend batch sending with retries — no more mass 429 failures",
+      },
+      {
+        kind: "feature",
+        text: "Live deliverability score on Admin → Broadcast — blocks sends that look like spam",
+      },
+      {
+        kind: "feature",
+        text: "Unsubscribe link + one-click List-Unsubscribe; Account toggle to resubscribe",
+      },
+      {
+        kind: "improve",
+        text: "AI draft prompt tuned for inbox-friendly subjects and copy",
+      },
+    ],
+  },
+  {
     version: "2.57",
     date: "August 7, 2026",
     title: "Company TikTok @forge_live_cn",

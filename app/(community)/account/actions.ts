@@ -264,3 +264,15 @@ export async function toggleMyTag(tagId: string, added: boolean) {
   revalidatePath("/members");
   revalidatePath(`/members/${user.id}`);
 }
+
+export async function setBroadcastEmailsOptInAction(
+  optIn: boolean
+): Promise<{ error: string | null }> {
+  const user = await requireUser();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { broadcastEmailsOptIn: optIn },
+  });
+  revalidatePath("/account");
+  return { error: null };
+}

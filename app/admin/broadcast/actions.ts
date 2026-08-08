@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { generateBroadcastDraft, paragraphsToHtml } from "@/lib/aiEmail";
-import { sendBroadcastEmail } from "@/lib/email";
+import { sendBroadcastEmails, type BroadcastRecipient } from "@/lib/email";
+import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
 import {
   broadcastAudienceSchema,
   broadcastContentSchema,
@@ -18,9 +19,6 @@ async function requireAdmin() {
   if (!session || !isAdminRole(session.user.role)) {
     throw new Error("Not authorized");
   }
-  // Re-validate against the database instead of trusting the JWT claim alone —
-  // closes the window where a banned/demoted admin's existing session would
-  // otherwise stay valid until it naturally expires.
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true, status: true },
@@ -33,7 +31,9 @@ async function requireAdmin() {
 
 const BROADCAST_COOLDOWN_MS = 60_000;
 
-export type BroadcastDraftResult = { subject: string; bodyText: string; error: null } | { subject: null; bodyText: null; error: string };
+export type BroadcastDraftResult =
+  | { subject: string; bodyText: string; error: null }
+  | { subject: null; bodyText: null; error: string };
 
 export async function generateDraftAction(topic: string): Promise<BroadcastDraftResult> {
   await requireAdmin();
@@ -62,66 +62,122 @@ type Audience =
   | { audienceType: "SINGLE_USER"; email: string }
   | { audienceType: "NETWORK_TRACK"; track: NetworkTrack };
 
-/** ACTIVE + INVITED — invited CN/MN folks still have email and should get broadcasts. */
 const EMAILABLE_STATUSES: Array<"ACTIVE" | "INVITED"> = ["ACTIVE", "INVITED"];
 
 function isEmailable(status: string): boolean {
   return status === "ACTIVE" || status === "INVITED";
 }
 
-async function resolveAudience(
-  audience: Audience
-): Promise<{ emails: string[]; label: string }> {
+type AudienceResolve = {
+  recipients: BroadcastRecipient[];
+  label: string;
+  skippedUnsubscribed: number;
+};
+
+async function filterOptedIn(rows: { id: string; email: string; broadcastEmailsOptIn: boolean }[]): Promise<{
+  recipients: BroadcastRecipient[];
+  skippedUnsubscribed: number;
+}> {
+  const recipients: BroadcastRecipient[] = [];
+  let skippedUnsubscribed = 0;
+  for (const row of rows) {
+    if (!row.broadcastEmailsOptIn) {
+      skippedUnsubscribed++;
+      continue;
+    }
+    recipients.push({ userId: row.id, email: row.email });
+  }
+  return { recipients, skippedUnsubscribed };
+}
+
+async function resolveAudience(audience: Audience): Promise<AudienceResolve> {
   if (audience.audienceType === "ALL_MEMBERS") {
     const users = await prisma.user.findMany({
       where: { status: { in: EMAILABLE_STATUSES } },
-      select: { email: true },
+      select: { id: true, email: true, broadcastEmailsOptIn: true },
     });
-    return { emails: users.map((u) => u.email), label: "All members" };
+    const filtered = await filterOptedIn(users);
+    return { ...filtered, label: "All members" };
   }
 
   if (audience.audienceType === "TAG") {
     const tag = await prisma.tag.findUnique({
       where: { id: audience.tagId },
-      include: { users: { include: { user: { select: { email: true, status: true } } } } },
+      include: {
+        users: {
+          include: {
+            user: { select: { id: true, email: true, status: true, broadcastEmailsOptIn: true } },
+          },
+        },
+      },
     });
-    if (!tag) return { emails: [], label: "Unknown tag" };
-    const emails = tag.users
+    if (!tag) return { recipients: [], label: "Unknown tag", skippedUnsubscribed: 0 };
+    const rows = tag.users
       .filter((ut) => isEmailable(ut.user.status))
-      .map((ut) => ut.user.email);
-    return { emails, label: `Tag: ${tag.name}` };
+      .map((ut) => ut.user);
+    const filtered = await filterOptedIn(rows);
+    return { ...filtered, label: `Tag: ${tag.name}` };
   }
 
   if (audience.audienceType === "GROUP") {
     const group = await prisma.group.findUnique({
       where: { id: audience.groupId },
-      include: { members: { include: { user: { select: { email: true, status: true } } } } },
+      include: {
+        members: {
+          include: {
+            user: { select: { id: true, email: true, status: true, broadcastEmailsOptIn: true } },
+          },
+        },
+      },
     });
-    if (!group) return { emails: [], label: "Unknown group" };
-    const emails = group.members
+    if (!group) return { recipients: [], label: "Unknown group", skippedUnsubscribed: 0 };
+    const rows = group.members
       .filter((m) => isEmailable(m.user.status))
-      .map((m) => m.user.email);
-    return { emails, label: `Group: ${group.name}` };
+      .map((m) => m.user);
+    const filtered = await filterOptedIn(rows);
+    return { ...filtered, label: `Group: ${group.name}` };
   }
 
   if (audience.audienceType === "NETWORK_TRACK") {
-    return resolveNetworkTrackEmails(audience.track);
+    const { emails, label } = await resolveNetworkTrackEmails(audience.track);
+    const users = await prisma.user.findMany({
+      where: { email: { in: emails } },
+      select: { id: true, email: true, broadcastEmailsOptIn: true },
+    });
+    const filtered = await filterOptedIn(users);
+    return { ...filtered, label };
   }
 
-  const user = await prisma.user.findUnique({ where: { email: audience.email.toLowerCase() } });
-  return {
-    emails: user ? [user.email] : [],
-    label: `Single user: ${audience.email}`,
-  };
+  const user = await prisma.user.findUnique({
+    where: { email: audience.email.toLowerCase() },
+    select: { id: true, email: true, broadcastEmailsOptIn: true },
+  });
+  if (!user) {
+    return { recipients: [], label: `Single user: ${audience.email}`, skippedUnsubscribed: 0 };
+  }
+  const filtered = await filterOptedIn([user]);
+  return { ...filtered, label: `Single user: ${audience.email}` };
 }
 
-export type SendBroadcastResult = { sent: number; error: null } | { sent: null; error: string };
+export type SendBroadcastResult =
+  | {
+      sent: number;
+      failed: number;
+      failedEmails: string[];
+      skippedUnsubscribed: number;
+      error: null;
+    }
+  | {
+      sent: null;
+      failed: null;
+      failedEmails: null;
+      skippedUnsubscribed: null;
+      error: string;
+    };
 
 export async function sendBroadcastAction(formData: FormData): Promise<SendBroadcastResult> {
   const session = await requireAdmin();
 
-  // Guards against a double-click, a retried failed request, or resubmitting
-  // the form re-sending the same broadcast to the whole audience twice.
   const recentBroadcast = await prisma.broadcast.findFirst({
     where: {
       sentById: session.user.id,
@@ -135,6 +191,9 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     );
     return {
       sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
       error: `You just sent a broadcast — wait ${Math.max(secondsLeft, 1)}s before sending another to avoid duplicate sends.`,
     };
   }
@@ -144,7 +203,29 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     bodyHtml: formData.get("bodyText"),
   });
   if (!content.success) {
-    return { sent: null, error: content.error.issues[0]?.message || "Invalid content" };
+    return {
+      sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
+      error: content.error.issues[0]?.message || "Invalid content",
+    };
+  }
+
+  const spam = scoreBroadcastContent(content.data.subject, content.data.bodyHtml);
+  if (!spam.canSend) {
+    const top = spam.issues
+      .filter((i) => i.severity === "block" || i.severity === "warn")
+      .slice(0, 3)
+      .map((i) => i.text)
+      .join(" ");
+    return {
+      sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
+      error: `Deliverability score ${spam.score}/100 is too low to send. ${top || "Fix the flagged issues and try again."}`,
+    };
   }
 
   const audienceType = String(formData.get("audienceType"));
@@ -164,12 +245,27 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
 
   const audienceParsed = broadcastAudienceSchema.safeParse(audienceInput);
   if (!audienceParsed.success) {
-    return { sent: null, error: audienceParsed.error.issues[0]?.message || "Invalid audience" };
+    return {
+      sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
+      error: audienceParsed.error.issues[0]?.message || "Invalid audience",
+    };
   }
 
-  const { emails, label } = await resolveAudience(audienceParsed.data);
-  if (emails.length === 0) {
-    return { sent: null, error: "No recipients match that audience." };
+  const { recipients, label, skippedUnsubscribed } = await resolveAudience(audienceParsed.data);
+  if (recipients.length === 0) {
+    return {
+      sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
+      error:
+        skippedUnsubscribed > 0
+          ? "Everyone in that audience has unsubscribed from announcement emails."
+          : "No recipients match that audience.",
+    };
   }
 
   const paragraphs = content.data.bodyHtml
@@ -178,14 +274,25 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     .filter(Boolean);
   const bodyHtml = paragraphsToHtml(paragraphs);
 
-  let sent = 0;
-  const BATCH_SIZE = 25;
-  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
-    const batch = emails.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map((to) => sendBroadcastEmail(to, content.data.subject, bodyHtml))
-    );
-    sent += results.filter((r) => r.status === "fulfilled").length;
+  const batchPrefix = `hub-broadcast/${session.user.id}/${Date.now()}`;
+  const { sent, failed } = await sendBroadcastEmails(
+    recipients,
+    content.data.subject,
+    bodyHtml,
+    batchPrefix
+  );
+
+  if (sent === 0) {
+    return {
+      sent: null,
+      failed: null,
+      failedEmails: null,
+      skippedUnsubscribed: null,
+      error:
+        failed.length > 0
+          ? `Broadcast failed for all ${failed.length} recipients (check Resend rate limits / API key).`
+          : "Broadcast failed — no emails were sent.",
+    };
   }
 
   await prisma.broadcast.create({
@@ -200,5 +307,11 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
   });
 
   revalidatePath("/admin/broadcast");
-  return { sent, error: null };
+  return {
+    sent,
+    failed: failed.length,
+    failedEmails: failed.slice(0, 20),
+    skippedUnsubscribed,
+    error: null,
+  };
 }

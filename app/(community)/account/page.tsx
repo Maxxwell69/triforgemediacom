@@ -14,6 +14,7 @@ import TagPicker from "@/components/TagPicker";
 import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "./NameIdentityForm";
 import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
+import BroadcastEmailPreference from "@/components/account/BroadcastEmailPreference";
 import { refreshTikTokStatsAction } from "./actions";
 import { networkBadgeColor } from "@/lib/mnCn";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
@@ -37,7 +38,7 @@ export default async function AccountPage({
     select: { socialLinks: true, username: true },
   });
 
-  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, effectRow] =
+  const [points, userBadges, certificates, tiktokStats, insights, selfAssignableTags, myTags, prefsRow] =
     await Promise.all([
       getUserPointsTotal(user.id),
       prisma.userBadge.findMany({
@@ -54,9 +55,13 @@ export default async function AccountPage({
       loadCreatorInsights(user.id),
       prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
       prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
-      prisma.user.findUnique({ where: { id: user.id }, select: { effect: true } }),
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { effect: true, broadcastEmailsOptIn: true },
+      }),
     ]);
-  const effectEnabled = effectRow?.effect ?? false;
+  const effectEnabled = prefsRow?.effect ?? false;
+  const broadcastEmailsOptIn = prefsRow?.broadcastEmailsOptIn ?? true;
 
   const myTagIds = myTags.map((ut) => ut.tagId);
   const adminOnlyTags = myTags.map((ut) => ut.tag).filter((tag) => !tag.selfAssignable);
@@ -285,6 +290,11 @@ export default async function AccountPage({
             </div>
           )}
         </div>
+
+        <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
+          Email preferences
+        </h2>
+        <BroadcastEmailPreference initialOptIn={broadcastEmailsOptIn} />
 
         <h2 className="mt-10 font-display text-2xl tracking-wide text-off-white/80">
           Change email

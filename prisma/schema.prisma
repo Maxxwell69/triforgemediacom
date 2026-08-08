@@ -72,6 +72,8 @@ model User {
   status        UserStatus @default(PENDING_APPLICATION)
   mutedUntil    DateTime? // null = not muted; future timestamp = muted until then
   receivesAdminAlerts Boolean @default(true) // admins can opt out of notification emails (e.g. figurehead accounts)
+  /// Community announcement emails from Admin → Broadcast. Transactional mail (invites, password reset, etc.) is unaffected.
+  broadcastEmailsOptIn Boolean @default(true)
   hiddenFromDirectory Boolean @default(false) // excludes this account from /members (e.g. shared/figurehead admin logins)
   /// Admin-only flag: when true, CN group/tag text renders green instead of orange.
   effect          Boolean  @default(false)

@@ -117,6 +117,22 @@ minutes, and keeps confirmed LIVE rows visible for up to 90 minutes.
 
 Staging doesn’t need these crons unless you’re testing them there.
 
+## Email deliverability (Resend + DNS)
+
+Sending domain in Resend: `triforgemedia.com` (DKIM + `send` subdomain SPF are
+configured there). For inbox placement — especially Gmail/Outlook spam folders —
+also add a **DMARC** record at the DNS host for `triforgemedia.com` (currently
+Vercel DNS):
+
+| Type | Name | Value |
+|------|------|--------|
+| `TXT` | `_dmarc` | `v=DMARC1; p=none; rua=mailto:admin@triforgemedia.com; fo=1` |
+
+`p=none` monitors only (does not quarantine/reject). After a few weeks of clean
+reports, you can tighten to `p=quarantine`. Hub broadcasts use Resend's batch API
+plus `List-Unsubscribe` headers so bulk sends stay under rate limits and look less
+like unsolicited mail.
+
 ## Versioning
 
 `lib/version.ts` exports `APP_VERSION`, shown as a small `v1.7`-style badge in

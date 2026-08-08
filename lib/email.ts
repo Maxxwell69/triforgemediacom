@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 import { resolveEditableEmail } from "@/lib/emailTemplates";
 import {
+  broadcastUnsubscribeApiUrl,
+  broadcastUnsubscribePageUrl,
+} from "@/lib/broadcastUnsubscribe";
+import {
   button,
   escapeHtml,
   layout,
@@ -16,6 +20,17 @@ const apiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM_EMAIL || "TriForge <noreply@triforgemedia.com>";
 const resend = apiKey ? new Resend(apiKey) : null;
 
+/** Resend default is 10 req/s — stay under it when fan-out sending. */
+const BROADCAST_BATCH_SIZE = 50;
+const BROADCAST_CHUNK_GAP_MS = 250;
+const INDIVIDUAL_SEND_GAP_MS = 120;
+
+type SendOptions = {
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
+  maxRetries?: number;
+};
+
 /**
  * Every value below that ultimately comes from user input (names, notes,
  * social links, etc.) MUST be passed through escapeHtml before being interpolated
@@ -24,14 +39,71 @@ const resend = apiKey ? new Resend(apiKey) : null;
  * admin's or another member's mail client.
  */
 
-async function send(to: string, subject: string, html: string) {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableResendError(error: { name: string }): boolean {
+  return (
+    error.name === "rate_limit_exceeded" ||
+    error.name === "application_error" ||
+    error.name === "internal_server_error"
+  );
+}
+
+async function send(to: string, subject: string, html: string, options: SendOptions = {}) {
   if (!resend) {
     // Dev-friendly stub: no RESEND_API_KEY configured yet, so just log it.
     console.log(`[email:stub] To: ${to}\nSubject: ${subject}\n\n${html}\n`);
     return;
   }
 
-  await resend.emails.send({ from: fromEmail, to, subject, html });
+  const maxRetries = options.maxRetries ?? 4;
+  let lastMessage = "Failed to send email";
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const { data, error } = await resend.emails.send(
+      {
+        from: fromEmail,
+        to,
+        subject,
+        html,
+        ...(options.headers ? { headers: options.headers } : {}),
+      },
+      options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+    );
+
+    if (!error) {
+      return data;
+    }
+
+    lastMessage = error.message || lastMessage;
+    if (!isRetryableResendError(error) || attempt === maxRetries) {
+      throw new Error(lastMessage);
+    }
+
+    await sleep(Math.pow(2, attempt) * 1000);
+  }
+
+  throw new Error(lastMessage);
+}
+
+function broadcastListUnsubscribeHeaders(userId: string): Record<string, string> {
+  const apiUrl = broadcastUnsubscribeApiUrl(userId);
+  return {
+    "List-Unsubscribe": `<${apiUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
+
+function broadcastFooterHtml(userId: string): string {
+  const pageUrl = broadcastUnsubscribePageUrl(userId);
+  return `<p style="line-height:1.5;margin:24px 0 0;color:rgba(245,245,245,0.45);font-size:12px;">
+    You're receiving this because you're a TriForge Hub member.
+    <a href="${pageUrl}" style="color:#00D4FF;">Unsubscribe from announcement emails</a>
+    &nbsp;&middot;&nbsp;
+    <a href="${SAMPLE_APP_URL}/account" style="color:#00D4FF;">Account settings</a>
+  </p>`;
 }
 
 // ---------- Invite ----------
@@ -309,13 +381,22 @@ export function buildNewApplicationAdminAlert(application: NewApplicationAlertDa
   };
 }
 
+async function sendToMany(emails: string[], subject: string, html: string) {
+  if (emails.length === 0) return;
+  const results = await Promise.allSettled(emails.map((to) => send(to, subject, html)));
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("[email] multi-send failure:", result.reason);
+    }
+  }
+}
+
 export async function sendNewApplicationAdminAlert(
   adminEmails: string[],
   application: NewApplicationAlertData
 ) {
-  if (adminEmails.length === 0) return;
   const { subject, html } = buildNewApplicationAdminAlert(application);
-  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+  await sendToMany(adminEmails, subject, html);
 }
 
 // ---------- Creator Network info (sent immediately on CN-track application) ----------
@@ -478,9 +559,8 @@ export async function sendTikTokNetworkRequestAlert(
   adminEmails: string[],
   data: TikTokNetworkRequestAlertData
 ) {
-  if (adminEmails.length === 0) return;
   const { subject, html } = buildTikTokNetworkRequestAlert(data);
-  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+  await sendToMany(adminEmails, subject, html);
 }
 
 // ---------- Email changed notice ----------
@@ -579,18 +659,16 @@ export async function sendBugReportedAdminAlert(
   adminEmails: string[],
   data: BugReportAlertData
 ) {
-  if (adminEmails.length === 0) return;
   const { subject, html } = buildBugReportedAdminAlert(data);
-  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+  await sendToMany(adminEmails, subject, html);
 }
 
 export async function sendBugFixedAdminAlert(
   adminEmails: string[],
   data: BugReportAlertData
 ) {
-  if (adminEmails.length === 0) return;
   const { subject, html } = buildBugFixedAdminAlert(data);
-  await Promise.all(adminEmails.map((to) => send(to, subject, html)));
+  await sendToMany(adminEmails, subject, html);
 }
 
 // ---------- Hub migration invite (GHL import) ----------
@@ -632,6 +710,108 @@ export async function sendHubMigrationInviteEmail(to: string, name: string, url:
 
 // ---------- Broadcast (admin-authored, not a fixed template) ----------
 
-export async function sendBroadcastEmail(to: string, subject: string, bodyHtml: string) {
-  await send(to, subject, layout(bodyHtml));
+export type BroadcastRecipient = { email: string; userId: string };
+
+export type BroadcastSendResult = {
+  sent: number;
+  failed: string[];
+};
+
+function buildBroadcastPayload(to: BroadcastRecipient, subject: string, bodyHtml: string) {
+  const html = layout(`${bodyHtml}${broadcastFooterHtml(to.userId)}`);
+  const headers = broadcastListUnsubscribeHeaders(to.userId);
+  return { to: to.email, html, headers };
+}
+
+/**
+ * Fan-out for admin broadcasts. Uses Resend's batch API (1 request ≤ 100
+ * recipients) so we don't trip the 10 req/s single-send limit the way a
+ * Promise.all of individual sends did. Falls back to throttled single sends
+ * with retries if a chunk still fails. Each recipient gets a unique
+ * unsubscribe URL (footer + List-Unsubscribe headers).
+ */
+export async function sendBroadcastEmails(
+  recipients: BroadcastRecipient[],
+  subject: string,
+  bodyHtml: string,
+  batchPrefix: string
+): Promise<BroadcastSendResult> {
+  const byEmail = new Map<string, BroadcastRecipient>();
+  for (const r of recipients) {
+    const email = r.email.trim().toLowerCase();
+    if (!email || !r.userId) continue;
+    byEmail.set(email, { email, userId: r.userId });
+  }
+  const unique = Array.from(byEmail.values());
+  if (unique.length === 0) return { sent: 0, failed: [] };
+
+  if (!resend) {
+    for (const r of unique) {
+      const { html } = buildBroadcastPayload(r, subject, bodyHtml);
+      console.log(`[email:stub] To: ${r.email}\nSubject: ${subject}\n\n${html}\n`);
+    }
+    return { sent: unique.length, failed: [] };
+  }
+
+  let sent = 0;
+  const failed: string[] = [];
+
+  for (let i = 0; i < unique.length; i += BROADCAST_BATCH_SIZE) {
+    const chunk = unique.slice(i, i + BROADCAST_BATCH_SIZE);
+    const chunkIndex = Math.floor(i / BROADCAST_BATCH_SIZE);
+    const payloads = chunk.map((r) => {
+      const built = buildBroadcastPayload(r, subject, bodyHtml);
+      return {
+        from: fromEmail,
+        to: [built.to],
+        subject,
+        html: built.html,
+        headers: built.headers,
+      };
+    });
+
+    let chunkSent = false;
+    const maxRetries = 4;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const { error } = await resend.batch.send(payloads, {
+        idempotencyKey: `${batchPrefix}/chunk-${chunkIndex}`,
+      });
+
+      if (!error) {
+        sent += chunk.length;
+        chunkSent = true;
+        break;
+      }
+
+      if (!isRetryableResendError(error) || attempt === maxRetries) {
+        console.error(
+          `[email:broadcast] batch chunk ${chunkIndex} failed (${error.name}): ${error.message}`
+        );
+        break;
+      }
+
+      await sleep(Math.pow(2, attempt) * 1000);
+    }
+
+    if (!chunkSent) {
+      for (const r of chunk) {
+        try {
+          const built = buildBroadcastPayload(r, subject, bodyHtml);
+          await send(r.email, subject, built.html, {
+            headers: built.headers,
+            idempotencyKey: `${batchPrefix}/${r.email}`,
+          });
+          sent++;
+        } catch (err) {
+          console.error(`[email:broadcast] single send failed for ${r.email}:`, err);
+          failed.push(r.email);
+        }
+        await sleep(INDIVIDUAL_SEND_GAP_MS);
+      }
+    } else if (i + BROADCAST_BATCH_SIZE < unique.length) {
+      await sleep(BROADCAST_CHUNK_GAP_MS);
+    }
+  }
+
+  return { sent, failed };
 }
