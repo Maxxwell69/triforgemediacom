@@ -116,6 +116,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.62",
+    date: "August 8, 2026",
+    title: "Hub Calendar — events, availability & booking",
+    summary:
+      "Members and admins can schedule on the hub calendar, post go-live and free slots, book meetings, and RSVP — with mass webinars mirrored automatically.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Calendar: schedule meetings/events, review pending bookings",
+      },
+      {
+        kind: "feature",
+        text: "Members post availability (live / free / busy), hub events, and book open slots",
+      },
+      {
+        kind: "feature",
+        text: "RSVP on hub events; hosts confirm or decline booking requests",
+      },
+      {
+        kind: "improve",
+        text: "Mass webinars (All / CN / MN) continue to sync onto the shared calendar",
+      },
+    ],
+  },
+  {
     version: "2.61",
     date: "August 8, 2026",
     title: "Group channels & hub Projects",
