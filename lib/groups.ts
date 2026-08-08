@@ -12,6 +12,7 @@ import { isAdminRole, meetsMinRole } from "@/lib/rbac";
  *    non-Home groups and ALL of those groups set grantsTikTaskAccess = false.
  *  - Course access: zero groups = open; else member of an attached group.
  *    Admins/Mods always pass (preview).
+ *  - Hub admins/mods are implicit members of every group (no apply/invite).
  */
 
 const HOME_GROUP_ID = "home_group_system";

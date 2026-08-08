@@ -38,26 +38,35 @@ export default async function GroupDetailPage({
   if (!group) notFound();
 
   const membership = group.members.find((m) => m.userId === user.id) ?? null;
-  const isMember = Boolean(membership);
+  const isStaff = isAdminRole(user.role);
+  // Hub admins/mods are in every group — no apply/invite needed.
+  const isMember = Boolean(membership) || isStaff;
   const canManage = await canManageGroup(user.id, user.role, group.id);
-  const showAdminLink = isAdminRole(user.role);
 
   const pendingApp =
-    !isMember && group.joinMode === "APPLY"
+    !membership && !isStaff && group.joinMode === "APPLY"
       ? await prisma.groupApplication.findUnique({
           where: { groupId_userId: { groupId: group.id, userId: user.id } },
           select: { status: true },
         })
       : null;
 
-  // Non-members can only see APPLY-mode groups (or any group if hub admin).
-  if (!isMember && !isAdminRole(user.role) && group.joinMode !== "APPLY") {
+  // Non-members can only see APPLY-mode groups (staff already count as members).
+  if (!isMember && group.joinMode !== "APPLY") {
     notFound();
   }
 
+  const yourRoleLabel = membership
+    ? membership.role
+    : isStaff
+      ? user.role === "MOD"
+        ? "Mod"
+        : "Admin"
+      : null;
+
   return (
     <main className="flex-1 px-6 py-10">
-      {(isMember || isAdminRole(user.role)) && (
+      {isMember && (
         <SyncActiveGroup groupId={group.id} currentActiveId={currentActiveId} />
       )}
       <div className="mx-auto max-w-3xl">
@@ -94,10 +103,10 @@ export default async function GroupDetailPage({
         )}
         <p className="mt-2 font-body text-sm text-off-white/40">
           {group._count.members} members · {group._count.channels} channels
-          {membership ? ` · your role: ${membership.role}` : ""}
+          {yourRoleLabel ? ` · your role: ${yourRoleLabel}` : ""}
         </p>
 
-        {!isMember && group.joinMode === "APPLY" && (
+        {!membership && !isStaff && group.joinMode === "APPLY" && (
           <section className="glass mt-8 rounded-2xl p-6">
             {pendingApp?.status === "PENDING" ? (
               <p className="font-body text-sm text-cyan">
@@ -167,7 +176,7 @@ export default async function GroupDetailPage({
           </>
         )}
 
-        {showAdminLink && (
+        {isStaff && (
           <p className="mt-8 font-body text-sm text-off-white/40">
             Manage invites, roles, and channels in{" "}
             <Link href={`/admin/groups/${group.id}`} className="text-cyan hover:underline">

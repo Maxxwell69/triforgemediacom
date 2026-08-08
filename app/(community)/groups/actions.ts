@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageGroup } from "@/lib/groups";
+import { isAdminRole } from "@/lib/rbac";
 import { groupApplicationMessageSchema } from "@/lib/validations/group";
 import { z } from "zod";
 
@@ -28,6 +29,9 @@ export async function applyToGroup(
   formData: FormData
 ): Promise<{ error: string | null }> {
   const user = await requireActiveUser();
+  if (isAdminRole(user.role)) {
+    return { error: "Staff already have access to every group" };
+  }
   const parsed = groupApplicationMessageSchema.safeParse({
     message: formData.get("message") ?? "",
   });

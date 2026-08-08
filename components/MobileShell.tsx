@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 
 export default function MobileShell({
+  rail,
   sidebar,
   children,
   showAdminFab = false,
 }: {
+  rail?: React.ReactNode;
   sidebar: React.ReactNode;
   children: React.ReactNode;
   showAdminFab?: boolean;
@@ -59,26 +61,30 @@ export default function MobileShell({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col overflow-y-auto border-r border-off-white/10 bg-charcoal px-4 py-5 transition-transform duration-200 ease-out print:hidden md:sticky md:top-0 md:h-screen md:translate-x-0 md:bg-off-white/[0.02] ${
+        className={`fixed inset-y-0 left-0 z-50 flex shrink-0 transition-transform duration-200 ease-out print:hidden md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close menu"
-          className="mb-4 self-end text-off-white/50 transition hover:text-off-white md:hidden"
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-            <path
-              d="M3 3l12 12M15 3L3 15"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-        {sidebar}
+        {rail}
+
+        <div className="flex w-64 flex-col overflow-y-auto border-r border-off-white/10 bg-charcoal px-4 py-5 md:bg-off-white/[0.02]">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close menu"
+            className="mb-4 self-end text-off-white/50 transition hover:text-off-white md:hidden"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path
+                d="M3 3l12 12M15 3L3 15"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          {sidebar}
+        </div>
       </aside>
 
       <div

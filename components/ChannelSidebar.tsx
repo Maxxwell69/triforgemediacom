@@ -10,6 +10,13 @@ type ChannelListItem = {
   unreadCount?: number;
 };
 
+export type ChannelSpaceHeader = {
+  id: string;
+  name: string;
+  color: string;
+  imageUrl: string | null;
+};
+
 function UnreadBadge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
@@ -24,10 +31,10 @@ function UnreadBadge({ count }: { count: number }) {
 
 export default function ChannelSidebar({
   channels: initialChannels,
-  spaceName,
+  space,
 }: {
   channels: ChannelListItem[];
-  spaceName?: string | null;
+  space?: ChannelSpaceHeader | null;
 }) {
   const pathname = usePathname();
   const [unread, setUnread] = useState<Record<string, number>>(() => {
@@ -74,9 +81,41 @@ export default function ChannelSidebar({
 
   return (
     <nav className="flex flex-col gap-0.5">
-      <p className="px-3 pb-2 font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
-        {spaceName ? `${spaceName} channels` : "Channels"}
-      </p>
+      {space ? (
+        <Link
+          href={`/groups/${space.id}`}
+          className="mb-2 flex items-center gap-2.5 rounded-xl border border-off-white/10 bg-off-white/[0.04] px-2.5 py-2.5 transition hover:border-cyan/30 hover:bg-off-white/[0.07]"
+        >
+          {space.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={space.imageUrl}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-lg object-cover border border-off-white/15"
+            />
+          ) : (
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-off-white/20 font-display text-sm text-off-white/80"
+              style={{ backgroundColor: space.color }}
+              aria-hidden
+            >
+              {space.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-body text-sm font-semibold text-off-white">
+              {space.name}
+            </p>
+            <p className="font-body text-[11px] uppercase tracking-wider text-off-white/40">
+              Channels
+            </p>
+          </div>
+        </Link>
+      ) : (
+        <p className="px-3 pb-2 font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
+          Channels
+        </p>
+      )}
       {initialChannels.length === 0 && (
         <p className="px-3 font-body text-sm text-off-white/40">No channels yet</p>
       )}

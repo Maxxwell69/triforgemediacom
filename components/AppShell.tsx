@@ -21,6 +21,7 @@ import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
 import HubBugNavLink from "@/components/HubBugNavLink";
+import GroupServerRail from "@/components/groups/GroupServerRail";
 import {
   ACTIVE_GROUP_COOKIE,
   filterChannelsForActiveGroup,
@@ -43,8 +44,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     hubBugUnread,
     assignedProjectCount,
     homeGroup,
-    memberships,
-    allGroupIds,
+    allGroups,
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
@@ -72,22 +72,16 @@ export default async function AppShell({ children }: { children: React.ReactNode
       },
     }),
     getHomeGroup(),
-    prisma.groupMember.findMany({
-      where: { userId: user.id },
-      include: {
-        group: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            imageUrl: true,
-            isHome: true,
-          },
-        },
+    prisma.group.findMany({
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        imageUrl: true,
+        isHome: true,
       },
-      orderBy: { addedAt: "asc" },
+      orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
-    prisma.group.findMany({ select: { id: true } }),
   ]);
 
   const accessible = allChannels.filter(
@@ -95,9 +89,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   const isAdmin = isAdminRole(user.role);
-  const allowedGroupIds = isAdmin
-    ? allGroupIds.map((g) => g.id)
-    : userGroupIds;
+  const allowedGroupIds = isAdmin ? allGroups.map((g) => g.id) : userGroupIds;
 
   const activeGroupId = resolveActiveGroupId(
     cookies().get(ACTIVE_GROUP_COOKIE)?.value,
@@ -113,8 +105,25 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   const unreadCounts = await getChannelUnreadCounts(
     user.id,
-    channels.map((c) => c.id)
+    accessible.map((c) => c.id)
   );
+
+  const homeGroupId = homeGroup?.id ?? null;
+  const unreadByGroup: Record<string, number> = {};
+  for (const ch of accessible) {
+    const count = unreadCounts[ch.id] ?? 0;
+    if (count <= 0) continue;
+    if (ch.groups.length === 0) {
+      if (homeGroupId) {
+        unreadByGroup[homeGroupId] = (unreadByGroup[homeGroupId] ?? 0) + count;
+      }
+      continue;
+    }
+    for (const g of ch.groups) {
+      unreadByGroup[g.id] = (unreadByGroup[g.id] ?? 0) + count;
+    }
+  }
+
   const totalXp = xpAgg._sum.amount ?? 0;
   const showMyProjects = !isAdmin && assignedProjectCount > 0;
   const sidebarLabel = getChatDisplayName({
@@ -126,9 +135,21 @@ export default async function AppShell({ children }: { children: React.ReactNode
     tiktokStatsSnapshot: tiktokStats,
   });
 
-  const spaces = memberships
-    .map((m) => m.group)
-    .sort((a, b) => Number(b.isHome) - Number(a.isHome) || a.name.localeCompare(b.name));
+  const spaces = (isAdmin
+    ? allGroups
+    : allGroups.filter((g) => userGroupIds.includes(g.id))
+  ).map((g) => ({
+    ...g,
+    unreadCount: unreadByGroup[g.id] ?? 0,
+  }));
+
+  const activeSpace =
+    spaces.find((g) => g.id === activeGroupId) ??
+    (homeGroupId ? spaces.find((g) => g.id === homeGroupId) ?? null : null);
+
+  const rail = (
+    <GroupServerRail spaces={spaces} activeGroupId={activeGroupId} />
+  );
 
   const sidebar = (
     <>
@@ -214,7 +235,16 @@ export default async function AppShell({ children }: { children: React.ReactNode
       </div>
 
       <ChannelSidebar
-        spaceName={spaces.find((s) => s.id === activeGroupId)?.name ?? null}
+        space={
+          activeSpace
+            ? {
+                id: activeSpace.id,
+                name: activeSpace.name,
+                color: activeSpace.color,
+                imageUrl: activeSpace.imageUrl,
+              }
+            : null
+        }
         channels={channels.map((c) => ({
           id: c.id,
           name: c.name,
@@ -247,7 +277,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   return (
-    <MobileShell sidebar={sidebar} showAdminFab={isAdmin}>
+    <MobileShell rail={rail} sidebar={sidebar} showAdminFab={isAdmin}>
       <PresenceBeacon />
       {children}
     </MobileShell>

@@ -116,6 +116,40 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.74",
+    date: "August 8, 2026",
+    title: "Discord-style group rail",
+    summary:
+      "Switch spaces from a left icon rail like Discord servers; the channel column keeps the active group name and logo.",
+    items: [
+      {
+        kind: "feature",
+        text: "Far-left group rail with logos, active pill, unread badges, and hover names",
+      },
+      {
+        kind: "improve",
+        text: "Channel sidebar header shows the selected group’s name and logo",
+      },
+    ],
+  },
+  {
+    version: "2.73",
+    date: "August 8, 2026",
+    title: "Staff access every group without applying",
+    summary:
+      "Hub admins and mods are treated as members of every space — no application queue or Apply CTA.",
+    items: [
+      {
+        kind: "improve",
+        text: "Admins/mods see all groups under Your spaces and get full group pages without applying",
+      },
+      {
+        kind: "fix",
+        text: "applyToGroup rejects staff who already have implicit access",
+      },
+    ],
+  },
+  {
     version: "2.72",
     date: "August 8, 2026",
     title: "Simplify sidebar — DMs live in Admin",
