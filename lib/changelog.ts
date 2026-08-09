@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.77",
+    date: "August 9, 2026",
+    title: "Calendar redesign",
+    summary:
+      "Hub Calendar gets Month, Week, and Agenda views with color-coded event chips and a richer schedule layout.",
+    items: [
+      {
+        kind: "improve",
+        text: "Wider atmospheric calendar page with kind legend and Today jump",
+      },
+      {
+        kind: "feature",
+        text: "Month / Week / Agenda toggle with titled event chips and kind-colored detail cards",
+      },
+    ],
+  },
+  {
     version: "2.76",
     date: "August 9, 2026",
     title: "Hide network groups + live unread badges",
