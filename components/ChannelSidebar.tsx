@@ -42,6 +42,7 @@ export default function ChannelSidebar({
     for (const c of initialChannels) init[c.id] = c.unreadCount ?? 0;
     return init;
   });
+  const [flashKey, setFlashKey] = useState(0);
 
   useEffect(() => {
     const init: Record<string, number> = {};
@@ -79,12 +80,22 @@ export default function ChannelSidebar({
     setUnread((prev) => (prev[channelId] ? { ...prev, [channelId]: 0 } : prev));
   }, [pathname]);
 
+  // Flash the space header + channel list when the active group changes.
+  useEffect(() => {
+    if (!space?.id) return;
+    setFlashKey((k) => k + 1);
+  }, [space?.id]);
+
   return (
-    <nav className="flex flex-col gap-0.5">
+    <nav
+      key={space?.id ?? "no-space"}
+      className="flex flex-col gap-0.5 animate-[hubFadeUp_0.28s_ease-out_both]"
+    >
       {space ? (
         <Link
+          key={`space-flash-${flashKey}`}
           href={`/groups/${space.id}`}
-          className="mb-2 flex items-center gap-2.5 rounded-xl border border-off-white/10 bg-off-white/[0.04] px-2.5 py-2.5 transition hover:border-cyan/30 hover:bg-off-white/[0.07]"
+          className="group-switch-flash mb-2 flex items-center gap-2.5 rounded-xl border border-off-white/10 bg-off-white/[0.04] px-2.5 py-2.5 transition hover:border-cyan/30 hover:bg-off-white/[0.07]"
         >
           {space.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

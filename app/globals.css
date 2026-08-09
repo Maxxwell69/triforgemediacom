@@ -53,6 +53,28 @@ select option {
   }
 }
 
+/* Brief flash when switching active group in the channel sidebar */
+@keyframes groupSwitchFlash {
+  0% {
+    background-color: rgba(0, 212, 255, 0.18);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.45);
+  }
+  100% {
+    background-color: rgba(245, 245, 245, 0.04);
+    box-shadow: 0 0 0 1px rgba(245, 245, 245, 0.1);
+  }
+}
+
+.group-switch-flash {
+  animation: groupSwitchFlash 0.55s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-switch-flash {
+    animation: none;
+  }
+}
+
 /* Hub calendar day cells — soft glass panels (like dashboard cards), glow on hover */
 .cal-day-cell {
   --cal-accent: #fd4802;

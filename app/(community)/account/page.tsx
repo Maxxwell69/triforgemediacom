@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
+import { hasTikTaskAccess } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 import AccountFeatureLink from "@/components/account/AccountFeatureLink";
 import AccountPageShell from "@/components/account/AccountPageShell";
@@ -7,7 +8,10 @@ import AccountPageShell from "@/components/account/AccountPageShell";
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
   const isStaff = isAdminRole(user.role);
-  const points = await getUserPointsTotal(user.id);
+  const [points, tikTaskAccess] = await Promise.all([
+    getUserPointsTotal(user.id),
+    hasTikTaskAccess(user.id),
+  ]);
 
   return (
     <AccountPageShell
@@ -37,6 +41,14 @@ export default async function AccountPage() {
         Features
       </h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {tikTaskAccess && (
+          <AccountFeatureLink
+            href="/apps/tiktask"
+            title="TikTask"
+            description="Your daily creator tasks, streak, and XP."
+            accent="cyan"
+          />
+        )}
         <AccountFeatureLink
           href="/calendar"
           title="Calendar"

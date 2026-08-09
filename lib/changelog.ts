@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.82",
+    date: "August 9, 2026",
+    title: "Nav reorder + group switch flash",
+    summary:
+      "Groups leads the left menu, TikTask sits quietly under Account, and switching spaces flashes the channel list.",
+    items: [
+      {
+        kind: "improve",
+        text: "Groups moved to the top of the sidebar; TikTask nested under Account without highlight",
+      },
+      {
+        kind: "improve",
+        text: "Brief cyan flash on the space header when changing groups",
+      },
+    ],
+  },
+  {
     version: "2.81",
     date: "August 9, 2026",
     title: "Group unread badge overlay",

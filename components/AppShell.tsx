@@ -153,35 +153,24 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <Logo height={22} href="/home" />
       </div>
 
-      <Link
-        href="/home"
-        className="mb-2 flex items-center justify-between rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-      >
-        Dashboard
-      </Link>
-
-      {tikTaskAccess && (
-        <Link
-          href="/apps/tiktask"
-          className="mb-2 flex items-center justify-between rounded-lg border border-orange/30 bg-orange/10 px-3 py-2 font-body text-sm font-semibold text-orange transition hover:bg-orange/15"
-        >
-          TikTask
-          <span>→</span>
-        </Link>
-      )}
-
       <div className="mb-4 flex flex-col gap-0.5">
-        <Link
-          href="/live"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
-        >
-          Live
-        </Link>
         <Link
           href="/groups"
           className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
         >
           Groups
+        </Link>
+        <Link
+          href="/home"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+        >
+          Dashboard
+        </Link>
+        <Link
+          href="/live"
+          className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
+        >
+          Live
         </Link>
         {showMyProjects && (
           <Link
@@ -228,6 +217,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
         >
           Account
         </Link>
+        {tikTaskAccess && (
+          <Link
+            href="/apps/tiktask"
+            className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"
+          >
+            TikTask
+          </Link>
+        )}
       </div>
 
       <ChannelSidebar
