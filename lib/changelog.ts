@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.79",
+    date: "August 9, 2026",
+    title: "Calendar cells match dashboard cards",
+    summary:
+      "Day cells drop the white outlines for soft glass panels that glow orange on hover.",
+    items: [
+      {
+        kind: "improve",
+        text: "Month/Week day cells use borderless glass styling with hover glow like home dashboard cards",
+      },
+    ],
+  },
+  {
     version: "2.78",
     date: "August 9, 2026",
     title: "Calendar day hover & click polish",

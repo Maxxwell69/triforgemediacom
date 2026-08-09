@@ -375,14 +375,14 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
               </div>
               <div
                 key={monthLabel}
-                className="grid grid-cols-7 gap-1 animate-[hubFadeUp_0.3s_ease-out_both]"
+                className="grid grid-cols-7 gap-2 animate-[hubFadeUp_0.3s_ease-out_both]"
               >
                 {monthCells.map(({ date, key }) => {
                   if (!date) {
                     return (
                       <div
                         key={key}
-                        className="min-h-[4.5rem] rounded-xl bg-off-white/[0.02] sm:min-h-[5.75rem]"
+                        className="min-h-[4.5rem] rounded-2xl sm:min-h-[5.75rem]"
                       />
                     );
                   }
@@ -397,11 +397,9 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                       type="button"
                       onClick={(e) => selectDay(date, key, e)}
                       className={[
-                        "cal-day-cell flex min-h-[4.5rem] flex-col items-stretch rounded-xl border px-1 py-1.5 text-left sm:min-h-[5.75rem] sm:px-1.5",
-                        isSelected
-                          ? "cal-day-cell--selected border-orange/55 bg-orange/15 shadow-[0_0_0_1px_rgba(253,72,2,0.15)]"
-                          : "border-off-white/8 bg-off-white/[0.03]",
-                        isToday && !isSelected ? "ring-1 ring-cyan/45" : "",
+                        "cal-day-cell flex min-h-[4.5rem] flex-col items-stretch rounded-2xl px-1.5 py-2 text-left sm:min-h-[5.75rem] sm:px-2",
+                        isSelected ? "cal-day-cell--selected" : "",
+                        isToday && !isSelected ? "ring-1 ring-inset ring-cyan/35" : "",
                       ].join(" ")}
                     >
                       {cellRipple && (
@@ -465,11 +463,9 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                     type="button"
                     onClick={(e) => selectDay(date, key, e)}
                     className={[
-                      "cal-day-cell flex min-h-[10rem] flex-col items-stretch rounded-xl border p-2 text-left",
-                      isSelected
-                        ? "cal-day-cell--selected border-orange/55 bg-orange/15"
-                        : "border-off-white/8 bg-off-white/[0.03]",
-                      isToday && !isSelected ? "ring-1 ring-cyan/45" : "",
+                      "cal-day-cell flex min-h-[10rem] flex-col items-stretch rounded-2xl p-3 text-left",
+                      isSelected ? "cal-day-cell--selected" : "",
+                      isToday && !isSelected ? "ring-1 ring-inset ring-cyan/35" : "",
                     ].join(" ")}
                   >
                     {cellRipple && (

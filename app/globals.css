@@ -53,21 +53,34 @@ select option {
   }
 }
 
-/* Hub calendar day cells — hover lift/glow + click ignite ripple */
+/* Hub calendar day cells — soft glass panels (like dashboard cards), glow on hover */
 .cal-day-cell {
   --cal-accent: #fd4802;
-  --cal-accent-55: rgba(253, 72, 2, 0.55);
-  --cal-accent-66: rgba(253, 72, 2, 0.66);
   position: relative;
   overflow: hidden;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  border: 1px solid transparent;
+  background: rgba(245, 245, 245, 0.04);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease,
+    background-color 0.18s ease;
 }
 
 .cal-day-cell:hover {
-  border-color: var(--cal-accent);
-  box-shadow: 0 0 0 1px var(--cal-accent-55), 0 6px 18px -6px var(--cal-accent-66);
+  border-color: rgba(253, 72, 2, 0.4);
+  background: rgba(245, 245, 245, 0.06);
+  box-shadow: 0 0 24px rgba(253, 72, 2, 0.35);
   transform: translateY(-2px);
   z-index: 1;
+}
+
+.cal-day-cell--selected {
+  border-color: rgba(253, 72, 2, 0.35);
+  background: rgba(253, 72, 2, 0.12);
+}
+
+.cal-day-cell--selected:hover {
+  border-color: rgba(253, 72, 2, 0.5);
+  box-shadow: 0 0 24px rgba(253, 72, 2, 0.4);
 }
 
 .cal-day-cell__ripple {
