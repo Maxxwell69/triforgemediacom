@@ -1,7 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type MouseEvent, useMemo, useState } from "react";
 import Link from "next/link";
+
+type DayRipple = {
+  id: string;
+  cellKey: string;
+  x: number;
+  y: number;
+};
 
 export type CalendarEventItem = {
   id: string;
@@ -170,7 +177,29 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
   const [view, setView] = useState<CalendarView>("month");
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [selected, setSelected] = useState(() => new Date());
+  const [ripple, setRipple] = useState<DayRipple | null>(null);
   const today = useMemo(() => new Date(), []);
+
+  function selectDay(date: Date, cellKey: string, e: MouseEvent<HTMLButtonElement>) {
+    setSelected(date);
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const id = `${cellKey}-${Date.now()}`;
+    setRipple({
+      id,
+      cellKey,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    window.setTimeout(() => {
+      setRipple((current) => (current?.id === id ? null : current));
+    }, 500);
+  }
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEventItem[]>();
@@ -361,22 +390,30 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                   const isSelected = sameDay(date, selected);
                   const isToday = sameDay(date, today);
                   const overflow = Math.max(0, dayEvents.length - 2);
+                  const cellRipple = ripple?.cellKey === key ? ripple : null;
                   return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setSelected(date)}
+                      onClick={(e) => selectDay(date, key, e)}
                       className={[
-                        "flex min-h-[4.5rem] flex-col items-stretch rounded-xl border px-1 py-1.5 text-left transition sm:min-h-[5.75rem] sm:px-1.5",
+                        "cal-day-cell flex min-h-[4.5rem] flex-col items-stretch rounded-xl border px-1 py-1.5 text-left sm:min-h-[5.75rem] sm:px-1.5",
                         isSelected
-                          ? "border-orange/55 bg-orange/15 shadow-[0_0_0_1px_rgba(253,72,2,0.15)]"
-                          : "border-off-white/8 bg-off-white/[0.03] hover:border-off-white/20 hover:bg-off-white/[0.06]",
+                          ? "cal-day-cell--selected border-orange/55 bg-orange/15 shadow-[0_0_0_1px_rgba(253,72,2,0.15)]"
+                          : "border-off-white/8 bg-off-white/[0.03]",
                         isToday && !isSelected ? "ring-1 ring-cyan/45" : "",
                       ].join(" ")}
                     >
+                      {cellRipple && (
+                        <span
+                          className="cal-day-cell__ripple"
+                          style={{ left: cellRipple.x, top: cellRipple.y }}
+                          aria-hidden
+                        />
+                      )}
                       <span
                         className={[
-                          "mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full font-body text-xs",
+                          "relative mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full font-body text-xs",
                           isSelected
                             ? "bg-orange font-semibold text-charcoal"
                             : isToday
@@ -386,7 +423,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                       >
                         {date.getDate()}
                       </span>
-                      <div className="hidden flex-col gap-0.5 sm:flex">
+                      <div className="relative hidden flex-col gap-0.5 sm:flex">
                         {dayEvents.slice(0, 2).map((e) => (
                           <EventChip key={e.id} event={e} compact />
                         ))}
@@ -396,7 +433,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                           </span>
                         )}
                       </div>
-                      <div className="mt-auto flex justify-center gap-0.5 pt-1 sm:hidden">
+                      <div className="relative mt-auto flex justify-center gap-0.5 pt-1 sm:hidden">
                         {dayEvents.slice(0, 3).map((e) => (
                           <span
                             key={e.id}
@@ -421,20 +458,28 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                 const dayEvents = eventsByDay.get(key) ?? [];
                 const isSelected = sameDay(date, selected);
                 const isToday = sameDay(date, today);
+                const cellRipple = ripple?.cellKey === key ? ripple : null;
                 return (
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setSelected(date)}
+                    onClick={(e) => selectDay(date, key, e)}
                     className={[
-                      "flex min-h-[10rem] flex-col items-stretch rounded-xl border p-2 text-left transition",
+                      "cal-day-cell flex min-h-[10rem] flex-col items-stretch rounded-xl border p-2 text-left",
                       isSelected
-                        ? "border-orange/55 bg-orange/15"
-                        : "border-off-white/8 bg-off-white/[0.03] hover:border-off-white/20",
+                        ? "cal-day-cell--selected border-orange/55 bg-orange/15"
+                        : "border-off-white/8 bg-off-white/[0.03]",
                       isToday && !isSelected ? "ring-1 ring-cyan/45" : "",
                     ].join(" ")}
                   >
-                    <div className="mb-2 flex items-baseline justify-between gap-1">
+                    {cellRipple && (
+                      <span
+                        className="cal-day-cell__ripple"
+                        style={{ left: cellRipple.x, top: cellRipple.y }}
+                        aria-hidden
+                      />
+                    )}
+                    <div className="relative mb-2 flex items-baseline justify-between gap-1">
                       <span className="font-body text-[10px] uppercase tracking-wide text-off-white/40">
                         {WEEKDAYS[date.getDay()]}
                       </span>
@@ -451,7 +496,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                         {date.getDate()}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="relative flex flex-col gap-1">
                       {dayEvents.length === 0 && (
                         <span className="font-body text-[10px] text-off-white/25">—</span>
                       )}

@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.78",
+    date: "August 9, 2026",
+    title: "Calendar day hover & click polish",
+    summary:
+      "Calendar day cells lift with an orange glow on hover and spark a short ignite ripple on click.",
+    items: [
+      {
+        kind: "improve",
+        text: "Month and Week day cells: hover lift/glow plus click ripple (respects reduced motion)",
+      },
+    ],
+  },
+  {
     version: "2.77",
     date: "August 9, 2026",
     title: "Calendar redesign",

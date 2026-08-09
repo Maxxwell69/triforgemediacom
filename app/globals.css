@@ -53,6 +53,61 @@ select option {
   }
 }
 
+/* Hub calendar day cells — hover lift/glow + click ignite ripple */
+.cal-day-cell {
+  --cal-accent: #fd4802;
+  --cal-accent-55: rgba(253, 72, 2, 0.55);
+  --cal-accent-66: rgba(253, 72, 2, 0.66);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.cal-day-cell:hover {
+  border-color: var(--cal-accent);
+  box-shadow: 0 0 0 1px var(--cal-accent-55), 0 6px 18px -6px var(--cal-accent-66);
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
+.cal-day-cell__ripple {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 9999px;
+  background: var(--cal-accent);
+  pointer-events: none;
+  animation: calIgnite 0.5s ease-out forwards;
+}
+
+@keyframes calIgnite {
+  from {
+    opacity: 0.55;
+    transform: scale(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-day-cell {
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .cal-day-cell:hover {
+    transform: none;
+  }
+
+  .cal-day-cell__ripple {
+    display: none;
+    animation: none;
+  }
+}
+
 /* Webinar stage: LiveKit focus layout must fill the stage, not subtract a
    control-bar height we don't nest here. Screen share is the main tile;
    hosts stay in a readable strip (especially on phones). */
