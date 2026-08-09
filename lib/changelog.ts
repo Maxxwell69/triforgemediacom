@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.75",
+    date: "August 9, 2026",
+    title: "Fix Home group image save",
+    summary:
+      "Saving a Home group image no longer crashes admin — the locked name field is submitted correctly.",
+    items: [
+      {
+        kind: "fix",
+        text: "Home group settings can save image, color, and TikTask access without a server error",
+      },
+    ],
+  },
+  {
     version: "2.74",
     date: "August 8, 2026",
     title: "Discord-style group rail",

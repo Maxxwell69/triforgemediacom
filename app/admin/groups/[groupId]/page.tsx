@@ -95,13 +95,19 @@ export default async function AdminGroupDetailPage({
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Settings</h2>
         <form action={updateGroup} className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6">
           <input type="hidden" name="id" value={group.id} />
-          <input
-            name="name"
-            defaultValue={group.name}
-            required
-            disabled={group.isHome}
-            className={fieldClass}
-          />
+          {group.isHome ? (
+            <>
+              <input type="hidden" name="name" value={group.name} />
+              <input
+                defaultValue={group.name}
+                readOnly
+                aria-label="Group name (locked for Home)"
+                className={`${fieldClass} cursor-not-allowed opacity-60`}
+              />
+            </>
+          ) : (
+            <input name="name" defaultValue={group.name} required className={fieldClass} />
+          )}
           <input name="color" defaultValue={group.color} required className={fieldClass} />
           <textarea
             name="description"

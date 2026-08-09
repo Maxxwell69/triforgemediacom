@@ -36,13 +36,19 @@ export default function GroupRow({ group }: { group: Group }) {
       >
         <input type="hidden" name="id" value={group.id} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-          <input
-            name="name"
-            defaultValue={group.name}
-            required
-            disabled={group.isHome}
-            className={fieldClass}
-          />
+          {group.isHome ? (
+            <>
+              <input type="hidden" name="name" value={group.name} />
+              <input
+                defaultValue={group.name}
+                readOnly
+                aria-label="Group name (locked for Home)"
+                className={`${fieldClass} cursor-not-allowed opacity-60`}
+              />
+            </>
+          ) : (
+            <input name="name" defaultValue={group.name} required className={fieldClass} />
+          )}
           <input
             name="color"
             defaultValue={group.color}

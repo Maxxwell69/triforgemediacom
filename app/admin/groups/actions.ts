@@ -71,14 +71,21 @@ export async function createGroup(formData: FormData) {
 export async function updateGroup(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id"));
-  const data = parseGroupForm(formData);
-  const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
 
   const existing = await prisma.group.findUnique({
     where: { id },
-    select: { isHome: true },
+    select: { isHome: true, name: true },
   });
   if (!existing) throw new Error("Group not found");
+
+  // Home name is locked in the UI (disabled input). Disabled fields are omitted
+  // from FormData, so restore the stored name before validation.
+  if (existing.isHome) {
+    formData.set("name", existing.name);
+  }
+
+  const data = parseGroupForm(formData);
+  const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
 
   await prisma.group.update({
     where: { id },
