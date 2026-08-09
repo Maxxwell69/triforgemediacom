@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.83",
+    date: "August 9, 2026",
+    title: "Group switcher above the menu",
+    summary:
+      "Space icons now sit in a strip above the left menu instead of a far-left Discord-style column.",
+    items: [
+      {
+        kind: "improve",
+        text: "Group rail moved above the main sidebar menu as a horizontal switcher",
+      },
+    ],
+  },
+  {
     version: "2.82",
     date: "August 9, 2026",
     title: "Nav reorder + group switch flash",
