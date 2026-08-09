@@ -16,7 +16,7 @@ import ChannelSidebar from "@/components/ChannelSidebar";
 import SignOutButton from "@/components/SignOutButton";
 import MobileShell from "@/components/MobileShell";
 import PresenceBeacon from "@/components/PresenceBeacon";
-import { getChannelUnreadCounts } from "@/lib/channelReads";
+import { aggregateUnreadByGroup, getChannelUnreadCounts } from "@/lib/channelReads";
 import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
@@ -79,6 +79,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         color: true,
         imageUrl: true,
         isHome: true,
+        showInList: true,
       },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
@@ -89,7 +90,11 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   const isAdmin = isAdminRole(user.role);
-  const allowedGroupIds = isAdmin ? allGroups.map((g) => g.id) : userGroupIds;
+  // Network categories (showInList=false) stay out of the rail / active-space switcher.
+  const listableGroups = allGroups.filter((g) => g.isHome || g.showInList);
+  const allowedGroupIds = isAdmin
+    ? listableGroups.map((g) => g.id)
+    : listableGroups.filter((g) => userGroupIds.includes(g.id)).map((g) => g.id);
 
   const activeGroupId = resolveActiveGroupId(
     cookies().get(ACTIVE_GROUP_COOKIE)?.value,
@@ -109,20 +114,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   const homeGroupId = homeGroup?.id ?? null;
-  const unreadByGroup: Record<string, number> = {};
-  for (const ch of accessible) {
-    const count = unreadCounts[ch.id] ?? 0;
-    if (count <= 0) continue;
-    if (ch.groups.length === 0) {
-      if (homeGroupId) {
-        unreadByGroup[homeGroupId] = (unreadByGroup[homeGroupId] ?? 0) + count;
-      }
-      continue;
-    }
-    for (const g of ch.groups) {
-      unreadByGroup[g.id] = (unreadByGroup[g.id] ?? 0) + count;
-    }
-  }
+  const unreadByGroup = aggregateUnreadByGroup(accessible, unreadCounts, homeGroupId);
 
   const totalXp = xpAgg._sum.amount ?? 0;
   const showMyProjects = !isAdmin && assignedProjectCount > 0;
@@ -136,10 +128,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
   });
 
   const spaces = (isAdmin
-    ? allGroups
-    : allGroups.filter((g) => userGroupIds.includes(g.id))
+    ? listableGroups
+    : listableGroups.filter((g) => userGroupIds.includes(g.id))
   ).map((g) => ({
-    ...g,
+    id: g.id,
+    name: g.name,
+    color: g.color,
+    imageUrl: g.imageUrl,
+    isHome: g.isHome,
     unreadCount: unreadByGroup[g.id] ?? 0,
   }));
 

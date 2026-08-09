@@ -44,6 +44,8 @@ async function ensureGroupAndTag(
         description: opts.groupDescription,
         color: opts.color,
         grantsTikTaskAccess: true,
+        // MN/CN are network categories — not spaces in the group rail / directory.
+        showInList: false,
       },
     }),
     prisma.tag.upsert({

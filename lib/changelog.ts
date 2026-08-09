@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.76",
+    date: "August 9, 2026",
+    title: "Hide network groups + live unread badges",
+    summary:
+      "Admins can hide category groups (like MN) from listings, and unread red counters now update live on space icons.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin toggle to show or hide a group in /groups and the space switcher (MN/CN start hidden)",
+      },
+      {
+        kind: "improve",
+        text: "Group rail badges show live red unread counts, matching channel notification badges",
+      },
+    ],
+  },
+  {
     version: "2.75",
     date: "August 9, 2026",
     title: "Fix Home group image save",

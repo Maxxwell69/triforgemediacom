@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { setActiveGroupAction } from "@/app/(community)/groups/activeGroupActions";
 
 export type ServerRailSpace = {
@@ -17,7 +17,10 @@ export type ServerRailSpace = {
 function UnreadPill({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange px-1 font-body text-[10px] font-bold leading-none text-charcoal shadow-sm">
+    <span
+      className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#070707]"
+      aria-label={`${count} unread message${count === 1 ? "" : "s"}`}
+    >
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -32,6 +35,39 @@ export default function GroupServerRail({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [unreadByGroup, setUnreadByGroup] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const s of spaces) init[s.id] = s.unreadCount ?? 0;
+    return init;
+  });
+
+  useEffect(() => {
+    const init: Record<string, number> = {};
+    for (const s of spaces) init[s.id] = s.unreadCount ?? 0;
+    setUnreadByGroup(init);
+  }, [spaces]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch("/api/channels/unread");
+        if (!res.ok) return;
+        const data = (await res.json()) as { byGroup?: Record<string, number> };
+        if (!cancelled && data.byGroup) setUnreadByGroup(data.byGroup);
+      } catch {
+        // ignore transient errors
+      }
+    }
+
+    void load();
+    const id = setInterval(load, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   if (spaces.length === 0) return null;
 
@@ -43,6 +79,7 @@ export default function GroupServerRail({
       {spaces.map((space, index) => {
         const active = space.id === activeGroupId;
         const showHomeDivider = space.isHome && spaces.some((s, i) => i > index && !s.isHome);
+        const unreadCount = active ? 0 : unreadByGroup[space.id] ?? space.unreadCount ?? 0;
 
         return (
           <div key={space.id} className="flex w-full flex-col items-center gap-2">
@@ -58,7 +95,11 @@ export default function GroupServerRail({
               <button
                 type="button"
                 title={space.name}
-                aria-label={space.name}
+                aria-label={
+                  unreadCount > 0
+                    ? `${space.name}, ${unreadCount} unread`
+                    : space.name
+                }
                 aria-current={active ? "true" : undefined}
                 disabled={pending}
                 onClick={() => {
@@ -91,7 +132,7 @@ export default function GroupServerRail({
                     {space.name.slice(0, 1).toUpperCase()}
                   </span>
                 )}
-                <UnreadPill count={active ? 0 : space.unreadCount ?? 0} />
+                <UnreadPill count={unreadCount} />
               </button>
 
               {/* Hover label (Discord-style) */}
@@ -99,6 +140,11 @@ export default function GroupServerRail({
                 {space.name}
                 {space.isHome ? (
                   <span className="ml-1.5 text-xs font-normal text-cyan">Home</span>
+                ) : null}
+                {unreadCount > 0 ? (
+                  <span className="ml-1.5 text-xs font-normal text-red-400">
+                    {unreadCount > 99 ? "99+" : unreadCount} new
+                  </span>
                 ) : null}
               </span>
             </div>

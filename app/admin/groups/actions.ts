@@ -53,6 +53,7 @@ export async function createGroup(formData: FormData) {
   await requireAdmin();
   const data = parseGroupForm(formData);
   const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
+  const showInList = formData.get("showInList") === "on";
 
   await prisma.group.create({
     data: {
@@ -61,6 +62,7 @@ export async function createGroup(formData: FormData) {
       color: data.color,
       imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
+      showInList,
       joinMode: data.joinMode ?? "INVITE_ONLY",
     },
   });
@@ -86,6 +88,8 @@ export async function updateGroup(formData: FormData) {
 
   const data = parseGroupForm(formData);
   const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
+  // Home is always listed; other groups honor the checkbox.
+  const showInList = existing.isHome || formData.get("showInList") === "on";
 
   await prisma.group.update({
     where: { id },
@@ -95,6 +99,7 @@ export async function updateGroup(formData: FormData) {
       color: data.color,
       imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
+      showInList,
       // Home stays CLOSED — join is automatic via hub membership.
       joinMode: existing.isHome ? "CLOSED" : data.joinMode ?? "INVITE_ONLY",
     },

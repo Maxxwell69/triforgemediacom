@@ -14,6 +14,7 @@ export default async function GroupsPage() {
   // Hub admins/mods are in every space — list all groups, never the apply queue.
   if (isStaff) {
     const allGroups = await prisma.group.findMany({
+      where: { OR: [{ isHome: true }, { showInList: true }] },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
       select: {
         id: true,
@@ -85,7 +86,10 @@ export default async function GroupsPage() {
 
   const [memberships, openGroups, pendingApps] = await Promise.all([
     prisma.groupMember.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        group: { OR: [{ isHome: true }, { showInList: true }] },
+      },
       include: {
         group: {
           select: {
@@ -105,6 +109,7 @@ export default async function GroupsPage() {
     prisma.group.findMany({
       where: {
         isHome: false,
+        showInList: true,
         joinMode: "APPLY",
         members: { none: { userId: user.id } },
       },

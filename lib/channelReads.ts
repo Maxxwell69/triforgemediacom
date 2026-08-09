@@ -59,3 +59,26 @@ export async function getChannelUnreadCounts(
 
   return counts;
 }
+
+/** Roll channel unreads up to group badges (ungrouped → Home). */
+export function aggregateUnreadByGroup(
+  channels: { id: string; groups: { id: string }[] }[],
+  unreadCounts: Record<string, number>,
+  homeGroupId: string | null
+): Record<string, number> {
+  const byGroup: Record<string, number> = {};
+  for (const ch of channels) {
+    const count = unreadCounts[ch.id] ?? 0;
+    if (count <= 0) continue;
+    if (ch.groups.length === 0) {
+      if (homeGroupId) {
+        byGroup[homeGroupId] = (byGroup[homeGroupId] ?? 0) + count;
+      }
+      continue;
+    }
+    for (const g of ch.groups) {
+      byGroup[g.id] = (byGroup[g.id] ?? 0) + count;
+    }
+  }
+  return byGroup;
+}

@@ -12,6 +12,7 @@ type Group = {
   color: string;
   imageUrl: string | null;
   grantsTikTaskAccess: boolean;
+  showInList: boolean;
   isHome: boolean;
   joinMode: "INVITE_ONLY" | "APPLY" | "CLOSED";
   memberCount: number;
@@ -87,6 +88,17 @@ export default function GroupRow({ group }: { group: Group }) {
           />
           Members of this group can access TikTask
         </label>
+        {!group.isHome && (
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              name="showInList"
+              defaultChecked={group.showInList}
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Show in group listings and the space switcher
+          </label>
+        )}
         <div className="flex items-center gap-3">
           <button
             type="submit"
@@ -126,6 +138,9 @@ export default function GroupRow({ group }: { group: Group }) {
           <p className="truncate font-body text-sm font-medium text-off-white">
             {group.name}
             {group.isHome && <span className="ml-2 text-xs text-cyan">Home</span>}
+            {!group.isHome && !group.showInList && (
+              <span className="ml-2 text-xs text-off-white/40">Hidden</span>
+            )}
           </p>
           <p className="truncate font-body text-xs text-off-white/40">
             {group.memberCount} member{group.memberCount === 1 ? "" : "s"}
@@ -135,6 +150,7 @@ export default function GroupRow({ group }: { group: Group }) {
             {group.joinMode}
             {" \u00b7 "}
             TikTask {group.grantsTikTaskAccess ? "allowed" : "blocked"}
+            {!group.isHome && !group.showInList ? " · not in listings" : ""}
           </p>
         </div>
       </div>

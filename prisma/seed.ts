@@ -92,12 +92,13 @@ async function main() {
   // visible in admin immediately on a fresh environment.
   await prisma.group.upsert({
     where: { name: "MN" },
-    update: {},
+    update: { showInList: false },
     create: {
       name: "MN",
       description: "Creators represented by an outside agency for live hosting.",
       color: "#00D4FF",
       grantsTikTaskAccess: true,
+      showInList: false,
     },
   });
   await prisma.tag.upsert({
@@ -112,12 +113,13 @@ async function main() {
   });
   const cnGroup = await prisma.group.upsert({
     where: { name: "CN" },
-    update: {},
+    update: { showInList: false },
     create: {
       name: "CN",
       description: "Official TriForge Creator Network members.",
       color: "#FD4802",
       grantsTikTaskAccess: true,
+      showInList: false,
     },
   });
   const existingCnChannel = await prisma.channel.findFirst({ where: { name: "creator-network" } });

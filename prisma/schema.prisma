@@ -296,6 +296,8 @@ model Group {
   grantsTikTaskAccess Boolean       @default(true)
   /// System main hub space. Only one row should have isHome=true.
   isHome              Boolean       @default(false)
+  /// When false, hide from /groups and the space switcher rail (still usable for access/tags).
+  showInList          Boolean       @default(true)
   joinMode            GroupJoinMode @default(INVITE_ONLY)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -310,6 +312,7 @@ model Group {
   calendarEvents    CalendarEvent[]
 
   @@index([isHome])
+  @@index([showInList])
 }
 
 model GroupMember {

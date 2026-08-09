@@ -144,6 +144,22 @@ export default async function AdminGroupDetailPage({
             />
             Members of this group can access TikTask
           </label>
+          {!group.isHome && (
+            <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="showInList"
+                  defaultChecked={group.showInList}
+                  className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+                />
+                Show in group listings and the space switcher
+              </span>
+              <span className="pl-6 text-xs text-off-white/40">
+                Turn off for network categories (e.g. MN / CN) that should stay in admin only.
+              </span>
+            </label>
+          )}
           <button
             type="submit"
             className="self-start rounded-lg bg-cyan/90 px-4 py-2 font-body text-sm font-semibold text-charcoal"

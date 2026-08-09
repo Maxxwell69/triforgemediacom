@@ -71,6 +71,15 @@ export default async function AdminGroupsPage() {
           />
           Members of this group can access TikTask
         </label>
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="showInList"
+            defaultChecked
+            className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+          />
+          Show in group listings and the space switcher
+        </label>
         <button
           type="submit"
           className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
@@ -95,6 +104,7 @@ export default async function AdminGroupsPage() {
               color: group.color,
               imageUrl: group.imageUrl,
               grantsTikTaskAccess: group.grantsTikTaskAccess,
+              showInList: group.showInList,
               isHome: group.isHome,
               joinMode: group.joinMode,
               memberCount: group._count.members,
