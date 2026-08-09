@@ -61,14 +61,13 @@ export default function MobileShell({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col transition-transform duration-200 ease-out print:hidden md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex shrink-0 transition-transform duration-200 ease-out print:hidden md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Group switcher sits above the main menu */}
         {rail}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto border-r border-off-white/10 bg-charcoal px-4 py-5 md:bg-off-white/[0.02]">
+        <div className="flex w-64 flex-col overflow-y-auto border-r border-off-white/10 bg-charcoal px-4 py-5 md:bg-off-white/[0.02]">
           <button
             type="button"
             onClick={() => setOpen(false)}

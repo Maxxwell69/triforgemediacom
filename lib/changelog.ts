@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.84",
+    date: "August 9, 2026",
+    title: "Restore left group rail + default Home",
+    summary:
+      "Group circles are back on the left; Groups stays at the top of the menu; new sessions default to Home.",
+    items: [
+      {
+        kind: "fix",
+        text: "Revert horizontal group strip — space icons return to the left rail",
+      },
+      {
+        kind: "improve",
+        text: "First sign-in / no cookie defaults the active space to Home",
+      },
+    ],
+  },
+  {
     version: "2.83",
     date: "August 9, 2026",
     title: "Group switcher above the menu",

@@ -22,6 +22,7 @@ import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
 import HubBugNavLink from "@/components/HubBugNavLink";
 import GroupServerRail from "@/components/groups/GroupServerRail";
+import EnsureDefaultHomeGroup from "@/components/groups/EnsureDefaultHomeGroup";
 import {
   ACTIVE_GROUP_COOKIE,
   filterChannelsForActiveGroup,
@@ -96,8 +97,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
     ? listableGroups.map((g) => g.id)
     : listableGroups.filter((g) => userGroupIds.includes(g.id)).map((g) => g.id);
 
+  const activeGroupCookie = cookies().get(ACTIVE_GROUP_COOKIE)?.value;
   const activeGroupId = resolveActiveGroupId(
-    cookies().get(ACTIVE_GROUP_COOKIE)?.value,
+    activeGroupCookie,
     allowedGroupIds,
     homeGroup?.id ?? null
   );
@@ -271,6 +273,10 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   return (
     <MobileShell rail={rail} sidebar={sidebar} showAdminFab={isAdmin}>
+      <EnsureDefaultHomeGroup
+        homeGroupId={homeGroup?.id ?? null}
+        hasCookie={Boolean(activeGroupCookie)}
+      />
       <PresenceBeacon />
       {children}
     </MobileShell>

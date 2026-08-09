@@ -74,7 +74,7 @@ export default function GroupServerRail({
   return (
     <nav
       aria-label="Groups"
-      className="flex w-full shrink-0 items-center gap-2 overflow-x-auto border-b border-off-white/10 bg-[#070707] px-3 py-2.5"
+      className="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-off-white/10 bg-[#070707] py-3"
     >
       {spaces.map((space, index) => {
         const active = space.id === activeGroupId;
@@ -82,15 +82,17 @@ export default function GroupServerRail({
         const unreadCount = active ? 0 : unreadByGroup[space.id] ?? space.unreadCount ?? 0;
 
         return (
-          <div key={space.id} className="flex shrink-0 items-center gap-2">
-            <div className="group relative flex flex-col items-center">
+          <div key={space.id} className="flex w-full flex-col items-center gap-2">
+            <div className="group relative flex w-full justify-center">
               <span
-                className={`absolute -top-1.5 h-1 w-1 rounded-full bg-off-white transition-all ${
-                  active ? "w-5 opacity-100" : "w-0 opacity-0 group-hover:w-3 group-hover:opacity-70"
+                className={`absolute left-0 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-off-white transition-all ${
+                  active
+                    ? "h-10 opacity-100"
+                    : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-70"
                 }`}
                 aria-hidden
               />
-              <div className="relative h-10 w-10 shrink-0">
+              <div className="relative h-12 w-12 shrink-0">
                 <button
                   type="button"
                   title={space.name}
@@ -110,8 +112,8 @@ export default function GroupServerRail({
                   }}
                   className={`h-full w-full overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
                     active
-                      ? "rounded-xl shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
-                      : "rounded-[1.25rem] hover:rounded-xl"
+                      ? "rounded-2xl shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
+                      : "rounded-[1.5rem] hover:rounded-2xl"
                   } ${pending ? "opacity-60" : ""}`}
                   style={
                     space.imageUrl
@@ -127,7 +129,7 @@ export default function GroupServerRail({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center font-display text-base tracking-wide text-off-white">
+                    <span className="flex h-full w-full items-center justify-center font-display text-lg tracking-wide text-off-white">
                       {space.name.slice(0, 1).toUpperCase()}
                     </span>
                   )}
@@ -135,28 +137,34 @@ export default function GroupServerRail({
                 <UnreadPill count={unreadCount} />
               </div>
 
-              <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-charcoal px-2.5 py-1 font-body text-xs font-semibold text-off-white shadow-lg ring-1 ring-off-white/15 group-hover:block">
+              {/* Hover label (Discord-style) */}
+              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-charcoal px-3 py-1.5 font-body text-sm font-semibold text-off-white shadow-lg ring-1 ring-off-white/15 group-hover:block">
                 {space.name}
                 {space.isHome ? (
-                  <span className="ml-1 text-[10px] font-normal text-cyan">Home</span>
+                  <span className="ml-1.5 text-xs font-normal text-cyan">Home</span>
+                ) : null}
+                {unreadCount > 0 ? (
+                  <span className="ml-1.5 text-xs font-normal text-red-400">
+                    {unreadCount > 99 ? "99+" : unreadCount} new
+                  </span>
                 ) : null}
               </span>
             </div>
 
             {showHomeDivider ? (
-              <div className="mx-0.5 h-8 w-0.5 shrink-0 rounded-full bg-off-white/15" aria-hidden />
+              <div className="my-0.5 h-0.5 w-8 rounded-full bg-off-white/15" aria-hidden />
             ) : null}
           </div>
         );
       })}
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 pl-1">
-        <div className="h-8 w-0.5 rounded-full bg-off-white/15" aria-hidden />
+      <div className="mt-auto flex flex-col items-center gap-2 pt-2">
+        <div className="h-0.5 w-8 rounded-full bg-off-white/15" aria-hidden />
         <Link
           href="/groups"
           title="All groups"
           aria-label="All groups"
-          className="flex h-10 w-10 items-center justify-center rounded-[1.25rem] bg-off-white/5 font-display text-lg text-cyan transition hover:rounded-xl hover:bg-cyan/15 hover:text-cyan"
+          className="flex h-12 w-12 items-center justify-center rounded-[1.5rem] bg-off-white/5 font-display text-xl text-cyan transition hover:rounded-2xl hover:bg-cyan/15 hover:text-cyan"
         >
           +
         </Link>
