@@ -298,6 +298,8 @@ model Group {
   isHome              Boolean       @default(false)
   /// When false, hide from /groups and the space switcher rail (still usable for access/tags).
   showInList          Boolean       @default(true)
+  /// When true, members can create group-scoped events on the hub calendar.
+  canCreateEvents     Boolean       @default(false)
   joinMode            GroupJoinMode @default(INVITE_ONLY)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt

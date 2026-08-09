@@ -116,6 +116,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.80",
+    date: "August 9, 2026",
+    title: "Day view, event pages & group calendars",
+    summary:
+      "Open a full day on the calendar, click through to event pages, filter by group, and let admins enable group event creation.",
+    items: [
+      {
+        kind: "feature",
+        text: "Day view + Open full day, with event detail pages at /calendar/events/[id]",
+      },
+      {
+        kind: "feature",
+        text: "Admin toggle: group members can create group-scoped calendar events",
+      },
+      {
+        kind: "improve",
+        text: "Filter the hub calendar by All / Hub / group calendars",
+      },
+    ],
+  },
+  {
     version: "2.79",
     date: "August 9, 2026",
     title: "Calendar cells match dashboard cards",

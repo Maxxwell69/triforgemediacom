@@ -160,6 +160,20 @@ export default async function AdminGroupDetailPage({
               </span>
             </label>
           )}
+          <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="canCreateEvents"
+                defaultChecked={group.canCreateEvents}
+                className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+              />
+              Members can create events on the hub calendar
+            </span>
+            <span className="pl-6 text-xs text-off-white/40">
+              Lets this group post group-scoped events members can filter on Calendar.
+            </span>
+          </label>
           <button
             type="submit"
             className="self-start rounded-lg bg-cyan/90 px-4 py-2 font-body text-sm font-semibold text-charcoal"

@@ -80,6 +80,14 @@ export default async function AdminGroupsPage() {
           />
           Show in group listings and the space switcher
         </label>
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="canCreateEvents"
+            className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+          />
+          Members can create events on the hub calendar
+        </label>
         <button
           type="submit"
           className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
@@ -105,6 +113,7 @@ export default async function AdminGroupsPage() {
               imageUrl: group.imageUrl,
               grantsTikTaskAccess: group.grantsTikTaskAccess,
               showInList: group.showInList,
+              canCreateEvents: group.canCreateEvents,
               isHome: group.isHome,
               joinMode: group.joinMode,
               memberCount: group._count.members,

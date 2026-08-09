@@ -191,3 +191,46 @@ export function formatCalendarWhen(startsAt: Date, endsAt: Date | null) {
   });
   return `${start} → ${end}`;
 }
+
+/** Groups this user may schedule events for (admin toggle + membership). */
+export async function listEventCreatableGroups(userId: string, userRole: UserRole) {
+  if (isAdminRole(userRole)) {
+    return prisma.group.findMany({
+      where: { canCreateEvents: true },
+      orderBy: [{ isHome: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, color: true, isHome: true },
+    });
+  }
+
+  const memberships = await prisma.groupMember.findMany({
+    where: { userId, group: { canCreateEvents: true } },
+    include: {
+      group: { select: { id: true, name: true, color: true, isHome: true } },
+    },
+    orderBy: { addedAt: "asc" },
+  });
+  return memberships.map((m) => m.group);
+}
+
+/** Filter chips: Hub + listable groups the user can see. */
+export async function listCalendarFilterGroups(userId: string, userRole: UserRole) {
+  if (isAdminRole(userRole)) {
+    return prisma.group.findMany({
+      where: { OR: [{ isHome: true }, { showInList: true }, { canCreateEvents: true }] },
+      orderBy: [{ isHome: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, color: true, isHome: true, canCreateEvents: true },
+    });
+  }
+
+  const userGroupIds = await getUserGroupIds(userId);
+  if (userGroupIds.length === 0) return [];
+
+  return prisma.group.findMany({
+    where: {
+      id: { in: userGroupIds },
+      OR: [{ isHome: true }, { showInList: true }, { canCreateEvents: true }],
+    },
+    orderBy: [{ isHome: "desc" }, { name: "asc" }],
+    select: { id: true, name: true, color: true, isHome: true, canCreateEvents: true },
+  });
+}

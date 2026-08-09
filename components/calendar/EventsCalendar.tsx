@@ -20,9 +20,20 @@ export type CalendarEventItem = {
   description: string | null;
   webinarId: string | null;
   hostLabel: string | null;
+  groupId: string | null;
+  groupName: string | null;
+  groupColor: string | null;
 };
 
-type CalendarView = "month" | "week" | "agenda";
+export type CalendarFilterGroup = {
+  id: string;
+  name: string;
+  color: string;
+  isHome: boolean;
+};
+
+type CalendarView = "month" | "week" | "day" | "agenda";
+type CalendarFilter = "all" | "hub" | string;
 
 const KIND_LABEL: Record<string, string> = {
   MEETING: "Meeting",
@@ -134,10 +145,22 @@ function EventChip({ event, compact }: { event: CalendarEventItem; compact?: boo
   );
 }
 
-function EventDetailCard({ event }: { event: CalendarEventItem }) {
+function EventDetailCard({
+  event,
+  large,
+}: {
+  event: CalendarEventItem;
+  large?: boolean;
+}) {
   const accent = kindAccent(event.kind);
   return (
-    <div className="glass relative overflow-hidden rounded-xl p-4 transition hover:border-off-white/20">
+    <Link
+      href={`/calendar/events/${event.id}`}
+      className={[
+        "glass relative block overflow-hidden rounded-xl transition hover:border-orange/35 hover:shadow-glow",
+        large ? "p-5" : "p-4",
+      ].join(" ")}
+    >
       <span className={`absolute inset-y-0 left-0 w-1 ${accent.bar}`} aria-hidden />
       <div className="flex flex-wrap items-start justify-between gap-3 pl-2">
         <div className="min-w-0">
@@ -147,7 +170,19 @@ function EventDetailCard({ event }: { event: CalendarEventItem }) {
             >
               {KIND_LABEL[event.kind] || event.kind}
             </span>
-            <p className="font-body text-sm font-medium text-off-white">{event.title}</p>
+            {event.groupName && (
+              <span className="rounded-md border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50">
+                {event.groupName}
+              </span>
+            )}
+            <p
+              className={[
+                "font-medium text-off-white",
+                large ? "font-display text-xl tracking-wide" : "font-body text-sm",
+              ].join(" ")}
+            >
+              {event.title}
+            </p>
           </div>
           <p className="mt-1.5 font-body text-xs text-off-white/45">
             {formatTimeRange(event.startsAt, event.endsAt)}
@@ -155,30 +190,45 @@ function EventDetailCard({ event }: { event: CalendarEventItem }) {
             {event.hostLabel ? ` · ${event.hostLabel}` : ""}
           </p>
           {event.description && (
-            <p className="mt-2 font-body text-xs leading-relaxed text-off-white/55">
+            <p
+              className={[
+                "mt-2 font-body leading-relaxed text-off-white/55",
+                large ? "text-sm" : "text-xs line-clamp-2",
+              ].join(" ")}
+            >
               {event.description}
             </p>
           )}
         </div>
-        {event.webinarId && (
-          <Link
-            href={`/webinars/${event.webinarId}`}
-            className="shrink-0 rounded-lg border border-cyan/40 bg-cyan/10 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/20"
-          >
-            Open webinar
-          </Link>
-        )}
+        <span className="shrink-0 font-body text-xs font-semibold text-cyan">
+          {event.webinarId ? "Webinar →" : "View →"}
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
-export default function EventsCalendar({ events }: { events: CalendarEventItem[] }) {
+export default function EventsCalendar({
+  events,
+  filterGroups = [],
+}: {
+  events: CalendarEventItem[];
+  filterGroups?: CalendarFilterGroup[];
+}) {
   const [view, setView] = useState<CalendarView>("month");
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [selected, setSelected] = useState(() => new Date());
   const [ripple, setRipple] = useState<DayRipple | null>(null);
+  const [filter, setFilter] = useState<CalendarFilter>("all");
   const today = useMemo(() => new Date(), []);
+
+  const filteredEvents = useMemo(() => {
+    if (filter === "all") return events;
+    if (filter === "hub") {
+      return events.filter((e) => !e.groupId);
+    }
+    return events.filter((e) => e.groupId === filter);
+  }, [events, filter]);
 
   function selectDay(date: Date, cellKey: string, e: MouseEvent<HTMLButtonElement>) {
     setSelected(date);
@@ -203,7 +253,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEventItem[]>();
-    for (const event of events) {
+    for (const event of filteredEvents) {
       const d = new Date(event.startsAt);
       const key = dayKey(d);
       const list = map.get(key) ?? [];
@@ -217,7 +267,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
       );
     }
     return map;
-  }, [events]);
+  }, [filteredEvents]);
 
   const monthCells = useMemo(() => {
     const first = startOfMonth(cursor);
@@ -242,7 +292,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
   const agendaGroups = useMemo(() => {
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const end = addDays(start, 30);
-    const upcoming = events
+    const upcoming = filteredEvents
       .filter((e) => {
         const d = new Date(e.startsAt);
         return d >= start && d < end;
@@ -265,7 +315,7 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
       }
     }
     return groups;
-  }, [events, today]);
+  }, [filteredEvents, today]);
 
   const selectedEvents = eventsByDay.get(dayKey(selected)) ?? [];
   const monthLabel = cursor.toLocaleString([], { month: "long", year: "numeric" });
@@ -277,6 +327,12 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
     day: "numeric",
     year: "numeric",
   })}`;
+  const dayLabel = selected.toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   function goToday() {
     const now = new Date();
@@ -294,18 +350,86 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
     setCursor(startOfMonth(next));
   }
 
-  const navLabel = view === "week" ? weekLabel : monthLabel;
+  function shiftDay(delta: number) {
+    const next = addDays(selected, delta);
+    setSelected(next);
+    setCursor(startOfMonth(next));
+  }
+
+  function openFullDay(date: Date = selected) {
+    setSelected(date);
+    setCursor(startOfMonth(date));
+    setView("day");
+  }
+
+  const navLabel =
+    view === "week" ? weekLabel : view === "day" ? dayLabel : monthLabel;
 
   return (
     <div className="flex flex-col gap-6">
+      {filterGroups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/35">
+            Calendars
+          </span>
+          {(
+            [
+              ["all", "All"],
+              ["hub", "Hub"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setFilter(id)}
+              className={[
+                "rounded-full border px-3 py-1 font-body text-xs font-semibold transition",
+                filter === id
+                  ? "border-orange/50 bg-orange/15 text-orange"
+                  : "border-off-white/10 bg-off-white/[0.03] text-off-white/55 hover:border-off-white/25 hover:text-off-white",
+              ].join(" ")}
+            >
+              {label}
+            </button>
+          ))}
+          {filterGroups
+            .filter((g) => !g.isHome)
+            .map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setFilter(g.id)}
+                className={[
+                  "rounded-full border px-3 py-1 font-body text-xs font-semibold transition",
+                  filter === g.id
+                    ? "border-orange/50 bg-orange/15 text-orange"
+                    : "border-off-white/10 bg-off-white/[0.03] text-off-white/55 hover:border-off-white/25 hover:text-off-white",
+                ].join(" ")}
+              >
+                <span
+                  className="mr-1.5 inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: g.color }}
+                />
+                {g.name}
+              </button>
+            ))}
+        </div>
+      )}
+
       <div className="glass overflow-hidden rounded-2xl">
         <div className="flex flex-col gap-4 border-b border-off-white/10 bg-gradient-to-b from-off-white/[0.04] to-transparent px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2">
-            {(view === "month" || view === "week") && (
+            {(view === "month" || view === "week" || view === "day") && (
               <>
                 <button
                   type="button"
-                  onClick={() => (view === "week" ? shiftWeek(-1) : shiftMonth(-1))}
+                  onClick={() =>
+                    view === "day"
+                      ? shiftDay(-1)
+                      : view === "week"
+                        ? shiftWeek(-1)
+                        : shiftMonth(-1)
+                  }
                   className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-sm text-off-white/70 transition hover:border-cyan/40 hover:text-cyan"
                   aria-label="Previous"
                 >
@@ -313,7 +437,13 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                 </button>
                 <button
                   type="button"
-                  onClick={() => (view === "week" ? shiftWeek(1) : shiftMonth(1))}
+                  onClick={() =>
+                    view === "day"
+                      ? shiftDay(1)
+                      : view === "week"
+                        ? shiftWeek(1)
+                        : shiftMonth(1)
+                  }
                   className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-sm text-off-white/70 transition hover:border-cyan/40 hover:text-cyan"
                   aria-label="Next"
                 >
@@ -337,11 +467,12 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
             >
               Today
             </button>
-            <div className="flex rounded-lg border border-off-white/15 bg-charcoal/40 p-0.5">
+            <div className="flex flex-wrap rounded-lg border border-off-white/15 bg-charcoal/40 p-0.5">
               {(
                 [
                   ["month", "Month"],
                   ["week", "Week"],
+                  ["day", "Day"],
                   ["agenda", "Agenda"],
                 ] as const
               ).map(([id, label]) => (
@@ -506,6 +637,39 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
             </div>
           )}
 
+          {view === "day" && (
+            <div
+              key={dayLabel}
+              className="flex min-h-[28rem] flex-col gap-4 animate-[hubFadeUp_0.3s_ease-out_both]"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-body text-sm text-off-white/50">
+                  {selectedEvents.length === 0
+                    ? "Nothing scheduled — enjoy the open day."
+                    : `${selectedEvents.length} event${selectedEvents.length === 1 ? "" : "s"} today`}
+                  {sameDay(selected, today) ? " · Today" : ""}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setView("month")}
+                  className="font-body text-xs text-off-white/45 transition hover:text-cyan"
+                >
+                  Back to month
+                </button>
+              </div>
+              <div className="flex flex-1 flex-col gap-3">
+                {selectedEvents.length === 0 && (
+                  <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-off-white/15 px-5 py-16 text-center font-body text-sm text-off-white/40">
+                    No events on this day.
+                  </p>
+                )}
+                {selectedEvents.map((event) => (
+                  <EventDetailCard key={event.id} event={event} large />
+                ))}
+              </div>
+            </div>
+          )}
+
           {view === "agenda" && (
             <div className="flex flex-col gap-5 animate-[hubFadeUp_0.3s_ease-out_both]">
               {agendaGroups.length === 0 && (
@@ -515,16 +679,27 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
               )}
               {agendaGroups.map((group) => (
                 <section key={group.key}>
-                  <h3 className="mb-2 font-display text-lg tracking-wide text-off-white/75">
-                    {group.date.toLocaleDateString([], {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                    {sameDay(group.date, today) && (
-                      <span className="ml-2 font-body text-xs font-semibold text-cyan">Today</span>
-                    )}
-                  </h3>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-display text-lg tracking-wide text-off-white/75">
+                      {group.date.toLocaleDateString([], {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                      {sameDay(group.date, today) && (
+                        <span className="ml-2 font-body text-xs font-semibold text-cyan">
+                          Today
+                        </span>
+                      )}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => openFullDay(group.date)}
+                      className="font-body text-xs font-semibold text-cyan transition hover:text-off-white"
+                    >
+                      Open day
+                    </button>
+                  </div>
                   <div className="flex flex-col gap-2">
                     {group.events.map((event) => (
                       <EventDetailCard key={event.id} event={event} />
@@ -550,11 +725,20 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
                 day: "numeric",
               })}
             </h3>
-            <p className="font-body text-xs text-off-white/40">
-              {selectedEvents.length === 0
-                ? "Open day"
-                : `${selectedEvents.length} event${selectedEvents.length === 1 ? "" : "s"}`}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="font-body text-xs text-off-white/40">
+                {selectedEvents.length === 0
+                  ? "No events"
+                  : `${selectedEvents.length} event${selectedEvents.length === 1 ? "" : "s"}`}
+              </p>
+              <button
+                type="button"
+                onClick={() => openFullDay()}
+                className="rounded-lg border border-cyan/35 bg-cyan/10 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/20"
+              >
+                Open full day
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             {selectedEvents.length === 0 && (

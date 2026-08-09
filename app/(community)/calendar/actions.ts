@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { canViewEvent } from "@/lib/calendar";
+import { canViewEvent, listEventCreatableGroups } from "@/lib/calendar";
 import { getUserGroupIds } from "@/lib/groups";
 import {
   availabilitySlotSchema,
   bookingNotesSchema,
+  calendarEventSchema,
   parseDateTime,
 } from "@/lib/validations/calendar";
 
@@ -23,9 +24,71 @@ async function requireActiveUser() {
   return dbUser;
 }
 
-function revalidateCalendar() {
+function revalidateCalendar(eventId?: string) {
   revalidatePath("/calendar");
   revalidatePath("/admin/calendar");
+  if (eventId) revalidatePath(`/calendar/events/${eventId}`);
+}
+
+/** Members of groups with canCreateEvents (or hub admins) may schedule group events. */
+export async function createGroupCalendarEvent(
+  formData: FormData
+): Promise<{ error: string | null; eventId?: string }> {
+  const user = await requireActiveUser();
+  const creatable = await listEventCreatableGroups(user.id, user.role);
+  if (creatable.length === 0) {
+    return { error: "Your groups aren’t allowed to create calendar events yet." };
+  }
+
+  const parsed = calendarEventSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description") || "",
+    kind: formData.get("kind") || "EVENT",
+    visibility: "GROUP",
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt") || "",
+    location: formData.get("location") || "",
+    groupId: formData.get("groupId") || "",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid event" };
+  }
+  if (parsed.data.kind === "WEBINAR") {
+    return { error: "Webinars are created under Admin → Webinars." };
+  }
+
+  const allowedIds = new Set(creatable.map((g) => g.id));
+  if (!parsed.data.groupId || !allowedIds.has(parsed.data.groupId)) {
+    return { error: "Pick a group you’re allowed to schedule for." };
+  }
+
+  let startsAt: Date;
+  let endsAt: Date | null = null;
+  try {
+    startsAt = parseDateTime(parsed.data.startsAt, "start time");
+    endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time") : null;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Invalid times" };
+  }
+  if (endsAt && endsAt <= startsAt) return { error: "End time must be after start time" };
+
+  const event = await prisma.calendarEvent.create({
+    data: {
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      kind: parsed.data.kind,
+      visibility: "GROUP",
+      startsAt,
+      endsAt,
+      location: parsed.data.location || null,
+      groupId: parsed.data.groupId,
+      createdById: user.id,
+    },
+    select: { id: true },
+  });
+
+  revalidateCalendar(event.id);
+  return { error: null, eventId: event.id };
 }
 
 /** Staff availability — managed from Account for now (not the public calendar). */
@@ -211,7 +274,7 @@ export async function rsvpCalendarEvent(
     }),
   ]);
 
-  revalidateCalendar();
+  revalidateCalendar(eventId);
   return { error: null };
 }
 

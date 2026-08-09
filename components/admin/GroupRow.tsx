@@ -13,6 +13,7 @@ type Group = {
   imageUrl: string | null;
   grantsTikTaskAccess: boolean;
   showInList: boolean;
+  canCreateEvents: boolean;
   isHome: boolean;
   joinMode: "INVITE_ONLY" | "APPLY" | "CLOSED";
   memberCount: number;
@@ -99,6 +100,15 @@ export default function GroupRow({ group }: { group: Group }) {
             Show in group listings and the space switcher
           </label>
         )}
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="canCreateEvents"
+            defaultChecked={group.canCreateEvents}
+            className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+          />
+          Members can create events on the hub calendar
+        </label>
         <div className="flex items-center gap-3">
           <button
             type="submit"
@@ -151,6 +161,7 @@ export default function GroupRow({ group }: { group: Group }) {
             {" \u00b7 "}
             TikTask {group.grantsTikTaskAccess ? "allowed" : "blocked"}
             {!group.isHome && !group.showInList ? " · not in listings" : ""}
+            {group.canCreateEvents ? " · can create events" : ""}
           </p>
         </div>
       </div>

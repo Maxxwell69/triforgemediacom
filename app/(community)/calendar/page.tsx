@@ -1,10 +1,13 @@
 import { requireProfile } from "@/lib/session";
 import {
   addDays,
+  listCalendarFilterGroups,
+  listEventCreatableGroups,
   listVisibleCalendarEvents,
   startOfDay,
 } from "@/lib/calendar";
 import EventsCalendar from "@/components/calendar/EventsCalendar";
+import CreateGroupEventForm from "@/components/calendar/CreateGroupEventForm";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +21,13 @@ const LEGEND = [
 export default async function CalendarPage() {
   const { user } = await requireProfile();
 
-  // Show a wide window so month navigation has data loaded.
   const from = startOfDay(addDays(new Date(), -45));
   const to = addDays(from, 120);
-  const events = await listVisibleCalendarEvents(user.id, user.role, from, to);
+  const [events, filterGroups, creatableGroups] = await Promise.all([
+    listVisibleCalendarEvents(user.id, user.role, from, to),
+    listCalendarFilterGroups(user.id, user.role),
+    listEventCreatableGroups(user.id, user.role),
+  ]);
 
   return (
     <main className="relative flex-1 overflow-hidden px-4 py-10 sm:px-6">
@@ -37,23 +43,38 @@ export default async function CalendarPage() {
               HUB <span className="text-gradient">CALENDAR</span>
             </h1>
             <p className="mt-2 max-w-xl font-body text-off-white/60">
-              Hub meetings, live windows, and webinars — switch Month, Week, or Agenda.
+              Hub and group events — open a day, click an event for details, filter by space.
             </p>
           </div>
-          <ul className="flex flex-wrap gap-1.5">
-            {LEGEND.map((item) => (
-              <li
-                key={item.label}
-                className={`rounded-md border px-2 py-0.5 font-body text-[11px] font-semibold ${item.className}`}
-              >
-                {item.label}
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <ul className="flex flex-wrap gap-1.5">
+              {LEGEND.map((item) => (
+                <li
+                  key={item.label}
+                  className={`rounded-md border px-2 py-0.5 font-body text-[11px] font-semibold ${item.className}`}
+                >
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+            <CreateGroupEventForm
+              groups={creatableGroups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                color: g.color,
+              }))}
+            />
+          </div>
         </div>
 
         <div className="mt-8">
           <EventsCalendar
+            filterGroups={filterGroups.map((g) => ({
+              id: g.id,
+              name: g.name,
+              color: g.color,
+              isHome: g.isHome,
+            }))}
             events={events.map((e) => ({
               id: e.id,
               title: e.title,
@@ -64,6 +85,9 @@ export default async function CalendarPage() {
               description: e.description,
               webinarId: e.webinarId,
               hostLabel: e.createdBy.name || e.createdBy.email,
+              groupId: e.groupId,
+              groupName: e.group?.name ?? null,
+              groupColor: e.group?.color ?? null,
             }))}
           />
         </div>
