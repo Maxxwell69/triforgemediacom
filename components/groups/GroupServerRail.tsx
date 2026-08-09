@@ -18,7 +18,7 @@ function UnreadPill({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
     <span
-      className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#070707]"
+      className="pointer-events-none absolute -bottom-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#070707]"
       aria-label={`${count} unread message${count === 1 ? "" : "s"}`}
     >
       {count > 99 ? "99+" : count}
@@ -92,48 +92,50 @@ export default function GroupServerRail({
                 }`}
                 aria-hidden
               />
-              <button
-                type="button"
-                title={space.name}
-                aria-label={
-                  unreadCount > 0
-                    ? `${space.name}, ${unreadCount} unread`
-                    : space.name
-                }
-                aria-current={active ? "true" : undefined}
-                disabled={pending}
-                onClick={() => {
-                  if (active) return;
-                  startTransition(async () => {
-                    await setActiveGroupAction(space.id);
-                    router.refresh();
-                  });
-                }}
-                className={`relative h-12 w-12 overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
-                  active
-                    ? "rounded-2xl shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
-                    : "rounded-[1.5rem] hover:rounded-2xl"
-                } ${pending ? "opacity-60" : ""}`}
-                style={
-                  space.imageUrl
-                    ? undefined
-                    : { backgroundColor: space.color || "#FD4802" }
-                }
-              >
-                {space.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={space.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center font-display text-lg tracking-wide text-off-white">
-                    {space.name.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
+              <div className="relative h-12 w-12 shrink-0">
+                <button
+                  type="button"
+                  title={space.name}
+                  aria-label={
+                    unreadCount > 0
+                      ? `${space.name}, ${unreadCount} unread`
+                      : space.name
+                  }
+                  aria-current={active ? "true" : undefined}
+                  disabled={pending}
+                  onClick={() => {
+                    if (active) return;
+                    startTransition(async () => {
+                      await setActiveGroupAction(space.id);
+                      router.refresh();
+                    });
+                  }}
+                  className={`h-full w-full overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+                    active
+                      ? "rounded-2xl shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
+                      : "rounded-[1.5rem] hover:rounded-2xl"
+                  } ${pending ? "opacity-60" : ""}`}
+                  style={
+                    space.imageUrl
+                      ? undefined
+                      : { backgroundColor: space.color || "#FD4802" }
+                  }
+                >
+                  {space.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={space.imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center font-display text-lg tracking-wide text-off-white">
+                      {space.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </button>
                 <UnreadPill count={unreadCount} />
-              </button>
+              </div>
 
               {/* Hover label (Discord-style) */}
               <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-charcoal px-3 py-1.5 font-body text-sm font-semibold text-off-white shadow-lg ring-1 ring-off-white/15 group-hover:block">

@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.81",
+    date: "August 9, 2026",
+    title: "Group unread badge overlay",
+    summary:
+      "Unread counts on the group rail sit on top of the icon again instead of getting clipped inside the circle.",
+    items: [
+      {
+        kind: "fix",
+        text: "Group notification pills use an overlay layer above the space icon",
+      },
+    ],
+  },
+  {
     version: "2.80",
     date: "August 9, 2026",
     title: "Day view, event pages & group calendars",
