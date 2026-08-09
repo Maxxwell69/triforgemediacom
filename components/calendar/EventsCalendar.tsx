@@ -181,8 +181,11 @@ export default function EventsCalendar({ events }: { events: CalendarEventItem[]
       list.push(event);
       map.set(key, list);
     }
-    for (const list of map.values()) {
-      list.sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+    for (const list of Array.from(map.values())) {
+      list.sort(
+        (a: CalendarEventItem, b: CalendarEventItem) =>
+          +new Date(a.startsAt) - +new Date(b.startsAt)
+      );
     }
     return map;
   }, [events]);
