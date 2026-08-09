@@ -151,101 +151,109 @@ export default async function AppShell({ children }: { children: React.ReactNode
 
   const sidebar = (
     <>
-      <div className="mb-6 px-2 md:block">
+      <div className="mb-4 px-2 md:block">
         <Logo height={22} href="/home" />
       </div>
 
-      <div className="mb-4 flex flex-col gap-0.5">
-        <Link
-          href="/groups"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Groups
-        </Link>
-        <Link
-          href="/home"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/live"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
-        >
-          Live
-        </Link>
-        {showMyProjects && (
-          <Link
-            href="/apps/projects"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Projects
-          </Link>
-        )}
-        <Link
-          href="/calendar"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Calendar
-        </Link>
-        <Link
-          href="/members"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Members
-        </Link>
-        <Link
-          href="/rewards"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Rewards
-        </Link>
-        <Link
-          href="/learn"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Learn
-        </Link>
-        <Link
-          href="/webinars"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Webinars
-        </Link>
-        <HubBugNavLink initialCount={hubBugUnread} />
-        <Link
-          href="/account"
-          className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-        >
-          Account
-        </Link>
-        {tikTaskAccess && (
-          <Link
-            href="/apps/tiktask"
-            className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"
-          >
-            TikTask
-          </Link>
-        )}
+      {/* Active group + channels sit above the hub menu */}
+      <div className="mb-4">
+        <ChannelSidebar
+          space={
+            activeSpace
+              ? {
+                  id: activeSpace.id,
+                  name: activeSpace.name,
+                  color: activeSpace.color,
+                  imageUrl: activeSpace.imageUrl,
+                }
+              : null
+          }
+          channels={channels.map((c) => ({
+            id: c.id,
+            name: c.name,
+            unreadCount: unreadCounts[c.id] ?? 0,
+          }))}
+        />
       </div>
 
-      <ChannelSidebar
-        space={
-          activeSpace
-            ? {
-                id: activeSpace.id,
-                name: activeSpace.name,
-                color: activeSpace.color,
-                imageUrl: activeSpace.imageUrl,
-              }
-            : null
-        }
-        channels={channels.map((c) => ({
-          id: c.id,
-          name: c.name,
-          unreadCount: unreadCounts[c.id] ?? 0,
-        }))}
-      />
+      <div className="mb-4 border-t border-off-white/10 pt-4">
+        <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">
+          Menu
+        </p>
+        <div className="flex flex-col gap-0.5">
+          <Link
+            href="/groups"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Groups
+          </Link>
+          <Link
+            href="/home"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/live"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
+          >
+            Live
+          </Link>
+          {showMyProjects && (
+            <Link
+              href="/apps/projects"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Projects
+            </Link>
+          )}
+          <Link
+            href="/calendar"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Calendar
+          </Link>
+          <Link
+            href="/members"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Members
+          </Link>
+          <Link
+            href="/rewards"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Rewards
+          </Link>
+          <Link
+            href="/learn"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Learn
+          </Link>
+          <Link
+            href="/webinars"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Webinars
+          </Link>
+          <HubBugNavLink initialCount={hubBugUnread} />
+          <Link
+            href="/account"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Account
+          </Link>
+          {tikTaskAccess && (
+            <Link
+              href="/apps/tiktask"
+              className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"
+            >
+              TikTask
+            </Link>
+          )}
+        </div>
+      </div>
 
       <div className="mt-auto flex flex-col gap-3 border-t border-off-white/10 pt-4">
         {isAdmin && (

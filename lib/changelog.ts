@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.85",
+    date: "August 9, 2026",
+    title: "Channels above hub menu",
+    summary:
+      "The active group and its channels now sit at the top of the sidebar; hub menu links move below.",
+    items: [
+      {
+        kind: "improve",
+        text: "Sidebar order: space + channels first, then Groups/Dashboard/Account menu",
+      },
+    ],
+  },
+  {
     version: "2.84",
     date: "August 9, 2026",
     title: "Restore left group rail + default Home",
