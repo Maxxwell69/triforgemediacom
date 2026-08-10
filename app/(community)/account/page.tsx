@@ -1,6 +1,7 @@
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotal } from "@/lib/points";
 import { hasTikTaskAccess } from "@/lib/groups";
+import { hasPersonalTasksAccess } from "@/lib/personalTasks";
 import { isAdminRole } from "@/lib/rbac";
 import AccountFeatureLink from "@/components/account/AccountFeatureLink";
 import AccountPageShell from "@/components/account/AccountPageShell";
@@ -8,9 +9,10 @@ import AccountPageShell from "@/components/account/AccountPageShell";
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
   const isStaff = isAdminRole(user.role);
-  const [points, tikTaskAccess] = await Promise.all([
+  const [points, tikTaskAccess, personalTasksAccess] = await Promise.all([
     getUserPointsTotal(user.id),
     hasTikTaskAccess(user.id),
+    hasPersonalTasksAccess(user.id),
   ]);
 
   return (
@@ -46,6 +48,14 @@ export default async function AccountPage() {
             href="/apps/tiktask"
             title="TikTask"
             description="Your daily creator tasks, streak, and XP."
+            accent="cyan"
+          />
+        )}
+        {personalTasksAccess && (
+          <AccountFeatureLink
+            href="/apps/tasks"
+            title="My Tasks"
+            description="Private to-dos you assign only to yourself."
             accent="cyan"
           />
         )}

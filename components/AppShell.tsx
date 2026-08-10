@@ -9,6 +9,7 @@ import {
   getUserGroupIds,
   hasTikTaskAccess,
 } from "@/lib/groups";
+import { hasPersonalTasksAccess } from "@/lib/personalTasks";
 import { isAdminRole } from "@/lib/rbac";
 import { touchPresence } from "@/lib/presence";
 import Logo from "@/components/Logo";
@@ -40,6 +41,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     xpAgg,
     userGroupIds,
     tikTaskAccess,
+    personalTasksAccess,
     tiktokConnection,
     tiktokStats,
     hubBugUnread,
@@ -54,6 +56,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
     getUserGroupIds(user.id),
     hasTikTaskAccess(user.id),
+    hasPersonalTasksAccess(user.id),
     prisma.tikTokConnection.findUnique({
       where: { userId: user.id },
       select: { displayName: true, avatarUrl: true },
@@ -205,6 +208,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
             >
               Projects
+            </Link>
+          )}
+          {personalTasksAccess && (
+            <Link
+              href="/apps/tasks"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              My Tasks
             </Link>
           )}
           <Link

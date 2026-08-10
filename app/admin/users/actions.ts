@@ -122,6 +122,20 @@ export async function setUserEffect(userId: string, effect: boolean) {
   revalidatePath(`/members/${userId}`);
 }
 
+/** Admin toggle: member can use private personal tasks (self-assigned only). */
+export async function setPersonalTasksEnabled(userId: string, enabled: boolean) {
+  await requireAdmin();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { personalTasksEnabled: enabled },
+  });
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/apps/tasks");
+  revalidatePath("/account");
+}
+
 export async function toggleUserGroup(userId: string, groupId: string, isMember: boolean) {
   await requireAdmin();
 

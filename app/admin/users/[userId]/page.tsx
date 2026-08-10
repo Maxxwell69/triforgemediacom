@@ -13,6 +13,7 @@ import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
+import PersonalTasksToggle from "@/components/admin/PersonalTasksToggle";
 import StartDmButton from "@/components/admin/StartDmButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
@@ -240,6 +241,7 @@ export default async function AdminUserDetailPage({
           )}
           <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
           <EffectCheckbox userId={user.id} effect={user.effect} />
+          <PersonalTasksToggle userId={user.id} enabled={user.personalTasksEnabled} />
           {canDm && !isSelf && user.status === "ACTIVE" && (
             <StartDmButton userId={user.id} userName={displayName} />
           )}

@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.87",
+    date: "August 10, 2026",
+    title: "Personal Tasks (admin-gated)",
+    summary:
+      "Admins can enable a private My Tasks list per member — self-assigned to-dos only, separate from TikTask and Projects.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Users: Personal Tasks toggle unlocks /apps/tasks for that member",
+      },
+      {
+        kind: "feature",
+        text: "Members create, start, complete, and delete private tasks assigned only to themselves",
+      },
+    ],
+  },
+  {
     version: "2.86",
     date: "August 10, 2026",
     title: "Group switcher sticks",

@@ -77,6 +77,8 @@ model User {
   hiddenFromDirectory Boolean @default(false) // excludes this account from /members (e.g. shared/figurehead admin logins)
   /// Admin-only flag: when true, CN group/tag text renders green instead of orange.
   effect          Boolean  @default(false)
+  /// Admin toggle: member can use the personal task list (self-assigned only).
+  personalTasksEnabled Boolean @default(false)
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
   lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)
@@ -136,6 +138,7 @@ model User {
   calendarBookingsHosted     CalendarBooking[]      @relation("CalendarBookingHost")
   bookingPage                BookingPage?
   appointmentsHosted         Appointment[]          @relation("AppointmentHost")
+  personalTasks              PersonalTask[]
 }
 
 // ---------- Application / invite flow ----------
@@ -1288,6 +1291,32 @@ model ProjectTask {
 
   @@index([projectId, status])
   @@index([assigneeId])
+}
+
+// ---------- Personal tasks (member self-management; admin-gated) ----------
+
+enum PersonalTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+/// Private to-do items a member creates and assigns only to themselves.
+model PersonalTask {
+  id          String             @id @default(cuid())
+  userId      String
+  title       String
+  notes       String?
+  status      PersonalTaskStatus @default(TODO)
+  dueAt       DateTime?
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, sortOrder])
 }
 
 // ---------- Calendar / availability / booking ----------
