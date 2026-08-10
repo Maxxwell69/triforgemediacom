@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.86",
+    date: "August 10, 2026",
+    title: "Group switcher sticks",
+    summary:
+      "Switching spaces no longer snaps back to the previous group when you were viewing a channel.",
+    items: [
+      {
+        kind: "fix",
+        text: "Group rail navigates to the new space instead of refreshing the old channel (which was rewriting the active-group cookie)",
+      },
+    ],
+  },
+  {
     version: "2.85",
     date: "August 9, 2026",
     title: "Channels above hub menu",

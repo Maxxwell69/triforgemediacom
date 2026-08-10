@@ -106,8 +106,11 @@ export default function GroupServerRail({
                   onClick={() => {
                     if (active) return;
                     startTransition(async () => {
-                      await setActiveGroupAction(space.id);
-                      router.refresh();
+                      const result = await setActiveGroupAction(space.id);
+                      if (result.error) return;
+                      // Leave any open channel from the previous space so
+                      // SyncActiveGroup on that page can't write the cookie back.
+                      router.push(`/groups/${space.id}`);
                     });
                   }}
                   className={`h-full w-full overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${

@@ -37,18 +37,3 @@ export function filterChannelsForActiveGroup<T extends ChannelWithGroups>(
     return false;
   });
 }
-
-/** Best group to sync when opening a channel. */
-export function inferGroupIdForChannel(
-  channelGroups: { id: string; isHome: boolean }[],
-  currentActiveId: string | null,
-  homeGroupId: string | null
-): string | null {
-  if (channelGroups.length === 0) return homeGroupId;
-  if (currentActiveId && channelGroups.some((g) => g.id === currentActiveId)) {
-    return currentActiveId;
-  }
-  const nonHome = channelGroups.find((g) => !g.isHome);
-  if (nonHome) return nonHome.id;
-  return channelGroups[0]?.id ?? homeGroupId;
-}
