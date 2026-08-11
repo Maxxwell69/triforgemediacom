@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
+  deleteBroadcastDraftAction,
   generateDraftAction,
   previewBroadcastAudienceAction,
+  saveBroadcastDraftAction,
   sendBroadcastAction,
 } from "@/app/admin/broadcast/actions";
 import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
@@ -11,6 +14,20 @@ import BroadcastSpamScorePanel from "@/components/admin/BroadcastSpamScorePanel"
 
 type Tag = { id: string; name: string };
 type Group = { id: string; name: string };
+
+export type BroadcastDraftItem = {
+  id: string;
+  subject: string;
+  bodyText: string;
+  audienceType: "ALL_MEMBERS" | "TAG" | "GROUP" | "SINGLE_USER" | "NETWORK_TRACK";
+  audienceLabel: string;
+  audienceTagId: string | null;
+  audienceGroupId: string | null;
+  audienceTrack: string | null;
+  audienceEmail: string | null;
+  updatedAt: string | Date;
+  createdByName: string;
+};
 
 type AudiencePreview = {
   label: string;
@@ -27,10 +44,12 @@ const PREVIEW_EMAIL_CAP = 200;
 export default function BroadcastComposer({
   tags,
   groups,
+  drafts,
   aiConfigured,
 }: {
   tags: Tag[];
   groups: Group[];
+  drafts: BroadcastDraftItem[];
   aiConfigured: boolean;
 }) {
   const [topic, setTopic] = useState("");
@@ -43,9 +62,13 @@ export default function BroadcastComposer({
   const [groupId, setGroupId] = useState(groups[0]?.id ?? "");
   const [track, setTrack] = useState<"CN" | "MN">("CN");
   const [email, setEmail] = useState("");
+  const [draftId, setDraftId] = useState<string | null>(null);
 
+  const router = useRouter();
   const [generating, startGenerating] = useTransition();
   const [sending, startSending] = useTransition();
+  const [savingDraft, startSavingDraft] = useTransition();
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [preview, setPreview] = useState<AudiencePreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -121,6 +144,33 @@ export default function BroadcastComposer({
     };
   }, [audienceInput]);
 
+  function loadDraft(draft: BroadcastDraftItem) {
+    setError(null);
+    setSuccessMsg(null);
+    setDraftId(draft.id);
+    setSubject(draft.subject);
+    setBodyText(draft.bodyText);
+    setAudienceType(draft.audienceType);
+    if (draft.audienceType === "TAG" && draft.audienceTagId) setTagId(draft.audienceTagId);
+    if (draft.audienceType === "GROUP" && draft.audienceGroupId) {
+      setGroupId(draft.audienceGroupId);
+    }
+    if (draft.audienceType === "NETWORK_TRACK" && (draft.audienceTrack === "CN" || draft.audienceTrack === "MN")) {
+      setTrack(draft.audienceTrack);
+    }
+    if (draft.audienceType === "SINGLE_USER") setEmail(draft.audienceEmail || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function clearComposer() {
+    setDraftId(null);
+    setSubject("");
+    setBodyText("");
+    setTopic("");
+    setAudienceType("ALL_MEMBERS");
+    setEmail("");
+  }
+
   function handleGenerate() {
     setError(null);
     setSuccessMsg(null);
@@ -132,6 +182,21 @@ export default function BroadcastComposer({
       }
       setSubject(result.subject);
       setBodyText(result.bodyText);
+    });
+  }
+
+  function handleSaveDraft(formData: FormData) {
+    setError(null);
+    setSuccessMsg(null);
+    startSavingDraft(async () => {
+      const result = await saveBroadcastDraftAction(formData);
+      if (result.error !== null) {
+        setError(result.error);
+        return;
+      }
+      setDraftId(result.draftId);
+      setSuccessMsg("Draft saved — any admin can open and send it.");
+      router.refresh();
     });
   }
 
@@ -173,9 +238,7 @@ export default function BroadcastComposer({
         `Sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}.`,
       ];
       if (result.skippedUnsubscribed > 0) {
-        parts.push(
-          `Skipped ${result.skippedUnsubscribed} unsubscribed.`
-        );
+        parts.push(`Skipped ${result.skippedUnsubscribed} unsubscribed.`);
       }
       if (result.failed > 0) {
         parts.push(
@@ -189,277 +252,380 @@ export default function BroadcastComposer({
         );
       }
       setSuccessMsg(parts.join(" "));
-      setSubject("");
-      setBodyText("");
-      setTopic("");
+      clearComposer();
+      router.refresh();
     });
+  }
+
+  async function handleDeleteDraft(id: string) {
+    if (!confirm("Delete this draft? This can't be undone.")) return;
+    setDeletingDraftId(id);
+    setError(null);
+    try {
+      const result = await deleteBroadcastDraftAction(id);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if (draftId === id) clearComposer();
+      setSuccessMsg("Draft deleted.");
+      router.refresh();
+    } finally {
+      setDeletingDraftId(null);
+    }
   }
 
   const shownEmails = preview?.emails.slice(0, PREVIEW_EMAIL_CAP) ?? [];
   const hiddenEmailCount = preview ? Math.max(0, preview.count - shownEmails.length) : 0;
 
   return (
-    <div className="glass flex flex-col gap-6 rounded-2xl p-6">
-      <div>
-        <h2 className="font-display text-xl tracking-wide text-off-white/80">
-          1. Write or generate
-        </h2>
-        {!aiConfigured && (
-          <p className="mt-1 font-body text-xs text-orange/80">
-            AI drafting isn&apos;t configured yet &mdash; add OPENAI_API_KEY to enable the
-            Generate button. You can still write the email by hand below.
+    <div className="flex flex-col gap-6">
+      {drafts.length > 0 && (
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-display text-xl tracking-wide text-off-white/80">
+            Shared drafts
+          </h2>
+          <p className="mt-1 font-body text-xs text-off-white/45">
+            Any admin can open a draft, edit it, and send.
           </p>
-        )}
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <textarea
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            rows={2}
-            placeholder="Rough topic or bullet points, e.g. &quot;announce the new webinars feature, first one is Thursday&quot;"
-            className={`${fieldClass} flex-1`}
-          />
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={generating || !aiConfigured || topic.trim().length < 5}
-            className="shrink-0 self-start rounded-lg border border-cyan/50 px-5 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {generating ? "Generating..." : "✨ Generate with AI"}
-          </button>
-        </div>
-      </div>
-
-      <form action={handleSend} className="flex flex-col gap-4">
-        <div>
-          <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
-            2. Review &amp; edit
-          </h2>
-          <input
-            name="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-            placeholder="Subject line"
-            className={fieldClass}
-          />
-          <textarea
-            name="bodyText"
-            value={bodyText}
-            onChange={(e) => setBodyText(e.target.value)}
-            required
-            rows={8}
-            placeholder="Email body — separate paragraphs with a blank line"
-            className={`${fieldClass} mt-2`}
-          />
-          {(subject.trim() || bodyText.trim()) && (
-            <div className="mt-3">
-              <BroadcastSpamScorePanel score={spamScore} />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
-            3. Choose audience
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                { value: "ALL_MEMBERS", label: "All members" },
-                { value: "NETWORK_TRACK", label: "CN / MN track" },
-                { value: "TAG", label: "By tag" },
-                { value: "GROUP", label: "By group" },
-                { value: "SINGLE_USER", label: "Single user" },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setAudienceType(opt.value)}
-                className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
-                  audienceType === opt.value
-                    ? "border-orange bg-orange text-off-white"
-                    : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="mt-3 flex flex-col gap-2">
+            {drafts.map((draft) => {
+              const active = draftId === draft.id;
+              return (
+                <div
+                  key={draft.id}
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
+                    active
+                      ? "border-cyan/40 bg-cyan/10"
+                      : "border-off-white/10 bg-off-white/[0.03]"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-body font-semibold text-off-white">
+                      {draft.subject || "(untitled)"}
+                    </p>
+                    <p className="mt-0.5 font-body text-xs text-off-white/45">
+                      {draft.audienceLabel} · updated{" "}
+                      {new Date(draft.updatedAt).toLocaleString([], {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}{" "}
+                      · by {draft.createdByName}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => loadDraft(draft)}
+                      className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                    >
+                      {active ? "Editing" : "Open"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteDraft(draft.id)}
+                      disabled={deletingDraftId === draft.id}
+                      className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/50 transition hover:border-orange/40 hover:text-orange disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <input type="hidden" name="audienceType" value={audienceType} />
+        </div>
+      )}
 
-          {audienceType === "NETWORK_TRACK" && (
-            <div className="mt-3 flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    { value: "CN", label: "Creator Network (CN)" },
-                    { value: "MN", label: "Media Network (MN)" },
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setTrack(opt.value)}
-                    className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
-                      track === opt.value
-                        ? opt.value === "CN"
-                          ? "border-orange bg-orange/20 text-orange"
-                          : "border-cyan bg-cyan/20 text-cyan"
-                        : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <input type="hidden" name="track" value={track} />
-              <p className="font-body text-xs text-off-white/40">
-                Matches CN/MN tag, group membership, or application track — including invited
-                members who haven&apos;t signed up yet. Unsubscribed members are skipped.
-              </p>
-            </div>
-          )}
-
-          {audienceType === "TAG" && (
-            <select
-              name="tagId"
-              value={tagId}
-              onChange={(e) => setTagId(e.target.value)}
-              className={`${fieldClass} mt-3 sm:w-64`}
+      <div className="glass flex flex-col gap-6 rounded-2xl p-6">
+        {draftId && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan/25 bg-cyan/5 px-3 py-2">
+            <p className="font-body text-xs text-cyan">
+              Editing shared draft — save to update, or send when ready.
+            </p>
+            <button
+              type="button"
+              onClick={clearComposer}
+              className="font-body text-xs text-off-white/50 transition hover:text-off-white"
             >
-              {tags.length === 0 && <option value="">No tags yet</option>}
-              {tags.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          )}
+              Start new instead
+            </button>
+          </div>
+        )}
 
-          {audienceType === "GROUP" && (
-            <select
-              name="groupId"
-              value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              className={`${fieldClass} mt-3 sm:w-64`}
-            >
-              {groups.length === 0 && <option value="">No groups yet</option>}
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+        <div>
+          <h2 className="font-display text-xl tracking-wide text-off-white/80">
+            1. Write or generate
+          </h2>
+          {!aiConfigured && (
+            <p className="mt-1 font-body text-xs text-orange/80">
+              AI drafting isn&apos;t configured yet &mdash; add OPENAI_API_KEY to enable the
+              Generate button. You can still write the email by hand below.
+            </p>
           )}
-
-          {audienceType === "SINGLE_USER" && (
-            <input
-              name="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="member@example.com"
-              className={`${fieldClass} mt-3 sm:w-64`}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <textarea
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              rows={2}
+              placeholder="Rough topic or bullet points, e.g. &quot;announce the new webinars feature, first one is Thursday&quot;"
+              className={`${fieldClass} flex-1`}
             />
-          )}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={generating || !aiConfigured || topic.trim().length < 5}
+              className="shrink-0 self-start rounded-lg border border-cyan/50 px-5 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {generating ? "Generating..." : "✨ Generate with AI"}
+            </button>
+          </div>
+        </div>
 
-          <div className="mt-4 rounded-xl border border-off-white/10 bg-off-white/[0.03] p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/40">
-                Active emails this will send to
-              </p>
-              {previewLoading && (
-                <p className="font-body text-xs text-off-white/40">Loading preview…</p>
+        <form className="flex flex-col gap-4">
+          <input type="hidden" name="draftId" value={draftId ?? ""} />
+          <div>
+            <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
+              2. Review &amp; edit
+            </h2>
+            <input
+              name="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+              placeholder="Subject line"
+              className={fieldClass}
+            />
+            <textarea
+              name="bodyText"
+              value={bodyText}
+              onChange={(e) => setBodyText(e.target.value)}
+              rows={8}
+              placeholder="Email body — separate paragraphs with a blank line"
+              className={`${fieldClass} mt-2`}
+            />
+            {(subject.trim() || bodyText.trim()) && (
+              <div className="mt-3">
+                <BroadcastSpamScorePanel score={spamScore} />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
+              3. Choose audience
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { value: "ALL_MEMBERS", label: "All members" },
+                  { value: "NETWORK_TRACK", label: "CN / MN track" },
+                  { value: "TAG", label: "By tag" },
+                  { value: "GROUP", label: "By group" },
+                  { value: "SINGLE_USER", label: "Single user" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setAudienceType(opt.value)}
+                  className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
+                    audienceType === opt.value
+                      ? "border-orange bg-orange text-off-white"
+                      : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <input type="hidden" name="audienceType" value={audienceType} />
+
+            {audienceType === "NETWORK_TRACK" && (
+              <div className="mt-3 flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { value: "CN", label: "Creator Network (CN)" },
+                      { value: "MN", label: "Media Network (MN)" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setTrack(opt.value)}
+                      className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
+                        track === opt.value
+                          ? opt.value === "CN"
+                            ? "border-orange bg-orange/20 text-orange"
+                            : "border-cyan bg-cyan/20 text-cyan"
+                          : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" name="track" value={track} />
+                <p className="font-body text-xs text-off-white/40">
+                  Matches CN/MN tag, group membership, or application track — including invited
+                  members who haven&apos;t signed up yet. Unsubscribed members are skipped.
+                </p>
+              </div>
+            )}
+
+            {audienceType === "TAG" && (
+              <select
+                name="tagId"
+                value={tagId}
+                onChange={(e) => setTagId(e.target.value)}
+                className={`${fieldClass} mt-3 sm:w-64`}
+              >
+                {tags.length === 0 && <option value="">No tags yet</option>}
+                {tags.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {audienceType === "GROUP" && (
+              <select
+                name="groupId"
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                className={`${fieldClass} mt-3 sm:w-64`}
+              >
+                {groups.length === 0 && <option value="">No groups yet</option>}
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {audienceType === "SINGLE_USER" && (
+              <input
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="member@example.com"
+                className={`${fieldClass} mt-3 sm:w-64`}
+              />
+            )}
+
+            <div className="mt-4 rounded-xl border border-off-white/10 bg-off-white/[0.03] p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/40">
+                  Active emails this will send to
+                </p>
+                {previewLoading && (
+                  <p className="font-body text-xs text-off-white/40">Loading preview…</p>
+                )}
+              </div>
+
+              {audienceType === "SINGLE_USER" && !audienceInput && (
+                <p className="mt-2 font-body text-sm text-off-white/45">
+                  Enter a member email to preview.
+                </p>
+              )}
+
+              {previewError && !previewLoading && (
+                <p className="mt-2 font-body text-sm text-orange">{previewError}</p>
+              )}
+
+              {preview && !previewLoading && (
+                <>
+                  <p className="mt-2 font-body text-sm text-off-white/80">
+                    <span className="font-semibold text-cyan">{preview.count}</span>
+                    {" "}
+                    recipient{preview.count === 1 ? "" : "s"}
+                    <span className="text-off-white/40"> · {preview.label}</span>
+                    {preview.skippedUnsubscribed > 0 && (
+                      <span className="text-off-white/40">
+                        {" "}
+                        · {preview.skippedUnsubscribed} unsubscribed skipped
+                      </span>
+                    )}
+                  </p>
+                  {preview.count === 0 ? (
+                    <p className="mt-2 font-body text-sm text-orange/80">
+                      {preview.skippedUnsubscribed > 0
+                        ? "Everyone in that audience has unsubscribed from announcement emails."
+                        : "No recipients match that audience."}
+                    </p>
+                  ) : (
+                    <ul className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-off-white/10 bg-charcoal/40 px-3 py-2 font-body text-xs text-off-white/70">
+                      {shownEmails.map((addr) => (
+                        <li
+                          key={addr}
+                          className="border-b border-off-white/5 py-1.5 last:border-b-0"
+                        >
+                          {addr}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {hiddenEmailCount > 0 && (
+                    <p className="mt-2 font-body text-xs text-off-white/40">
+                      Showing first {PREVIEW_EMAIL_CAP} of {preview.count}. Full list will still
+                      receive the send.
+                    </p>
+                  )}
+                </>
               )}
             </div>
-
-            {audienceType === "SINGLE_USER" && !audienceInput && (
-              <p className="mt-2 font-body text-sm text-off-white/45">
-                Enter a member email to preview.
-              </p>
-            )}
-
-            {previewError && !previewLoading && (
-              <p className="mt-2 font-body text-sm text-orange">{previewError}</p>
-            )}
-
-            {preview && !previewLoading && (
-              <>
-                <p className="mt-2 font-body text-sm text-off-white/80">
-                  <span className="font-semibold text-cyan">{preview.count}</span>
-                  {" "}
-                  recipient{preview.count === 1 ? "" : "s"}
-                  <span className="text-off-white/40"> · {preview.label}</span>
-                  {preview.skippedUnsubscribed > 0 && (
-                    <span className="text-off-white/40">
-                      {" "}
-                      · {preview.skippedUnsubscribed} unsubscribed skipped
-                    </span>
-                  )}
-                </p>
-                {preview.count === 0 ? (
-                  <p className="mt-2 font-body text-sm text-orange/80">
-                    {preview.skippedUnsubscribed > 0
-                      ? "Everyone in that audience has unsubscribed from announcement emails."
-                      : "No recipients match that audience."}
-                  </p>
-                ) : (
-                  <ul className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-off-white/10 bg-charcoal/40 px-3 py-2 font-body text-xs text-off-white/70">
-                    {shownEmails.map((addr) => (
-                      <li
-                        key={addr}
-                        className="border-b border-off-white/5 py-1.5 last:border-b-0"
-                      >
-                        {addr}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {hiddenEmailCount > 0 && (
-                  <p className="mt-2 font-body text-xs text-off-white/40">
-                    Showing first {PREVIEW_EMAIL_CAP} of {preview.count}. Full list will still
-                    receive the send.
-                  </p>
-                )}
-              </>
-            )}
           </div>
-        </div>
 
-        {error && (
-          <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
-            {error}
-          </p>
-        )}
-        {successMsg && (
-          <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
-            {successMsg}
-          </p>
-        )}
+          {error && (
+            <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+              {error}
+            </p>
+          )}
+          {successMsg && (
+            <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
+              {successMsg}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={
-            sending ||
-            !subject.trim() ||
-            !bodyText.trim() ||
-            !spamScore.canSend ||
-            previewLoading ||
-            !preview ||
-            preview.count === 0
-          }
-          className="self-start rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {sending
-            ? "Sending..."
-            : !spamScore.canSend && (subject.trim() || bodyText.trim())
-              ? "Fix deliverability to send"
-              : preview && preview.count > 0
-                ? `Send to ${preview.count} recipient${preview.count === 1 ? "" : "s"}`
-                : "Send broadcast"}
-        </button>
-      </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              formAction={handleSend}
+              disabled={
+                sending ||
+                savingDraft ||
+                !subject.trim() ||
+                !bodyText.trim() ||
+                !spamScore.canSend ||
+                previewLoading ||
+                !preview ||
+                preview.count === 0
+              }
+              className="rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sending
+                ? "Sending..."
+                : !spamScore.canSend && (subject.trim() || bodyText.trim())
+                  ? "Fix deliverability to send"
+                  : preview && preview.count > 0
+                    ? `Send to ${preview.count} recipient${preview.count === 1 ? "" : "s"}`
+                    : "Send broadcast"}
+            </button>
+            <button
+              type="submit"
+              formAction={handleSaveDraft}
+              disabled={sending || savingDraft || !subject.trim() || !audienceInput}
+              className="rounded-lg border border-off-white/25 px-6 py-3 font-body font-semibold text-off-white/80 transition hover:border-cyan/40 hover:text-cyan disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingDraft ? "Saving…" : draftId ? "Update draft" : "Save as draft"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

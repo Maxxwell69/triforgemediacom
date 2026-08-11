@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { BroadcastAudienceType } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
@@ -11,6 +12,7 @@ import {
   broadcastAudienceSchema,
   broadcastContentSchema,
   broadcastDraftSchema,
+  saveBroadcastDraftSchema,
 } from "@/lib/validations/broadcast";
 import { resolveNetworkTrackEmails, type NetworkTrack } from "@/lib/mnCn";
 
@@ -159,6 +161,47 @@ async function resolveAudience(audience: Audience): Promise<AudienceResolve> {
   return { ...filtered, label: `Single user: ${audience.email}` };
 }
 
+function parseAudienceFromFormData(formData: FormData): unknown {
+  const audienceType = String(formData.get("audienceType"));
+  if (audienceType === "TAG") {
+    return { audienceType: "TAG" as const, tagId: String(formData.get("tagId") || "") };
+  }
+  if (audienceType === "GROUP") {
+    return { audienceType: "GROUP" as const, groupId: String(formData.get("groupId") || "") };
+  }
+  if (audienceType === "SINGLE_USER") {
+    return { audienceType: "SINGLE_USER" as const, email: String(formData.get("email") || "") };
+  }
+  if (audienceType === "NETWORK_TRACK") {
+    return {
+      audienceType: "NETWORK_TRACK" as const,
+      track: String(formData.get("track") || "") as NetworkTrack,
+    };
+  }
+  return { audienceType: "ALL_MEMBERS" as const };
+}
+
+function audienceTargetFields(audience: Audience): {
+  audienceType: BroadcastAudienceType;
+  audienceTagId: string | null;
+  audienceGroupId: string | null;
+  audienceTrack: string | null;
+  audienceEmail: string | null;
+} {
+  return {
+    audienceType: audience.audienceType,
+    audienceTagId: audience.audienceType === "TAG" ? audience.tagId : null,
+    audienceGroupId: audience.audienceType === "GROUP" ? audience.groupId : null,
+    audienceTrack: audience.audienceType === "NETWORK_TRACK" ? audience.track : null,
+    audienceEmail: audience.audienceType === "SINGLE_USER" ? audience.email.toLowerCase() : null,
+  };
+}
+
+async function audienceLabelOnly(audience: Audience): Promise<string> {
+  const resolved = await resolveAudience(audience);
+  return resolved.label;
+}
+
 export type PreviewBroadcastAudienceResult =
   | {
       label: string;
@@ -202,6 +245,91 @@ export async function previewBroadcastAudienceAction(input: unknown): Promise<Pr
   };
 }
 
+export type SaveBroadcastDraftResult =
+  | { draftId: string; error: null }
+  | { draftId: null; error: string };
+
+export async function saveBroadcastDraftAction(formData: FormData): Promise<SaveBroadcastDraftResult> {
+  const session = await requireAdmin();
+
+  const content = saveBroadcastDraftSchema.safeParse({
+    draftId: formData.get("draftId") || null,
+    subject: formData.get("subject"),
+    bodyText: formData.get("bodyText") ?? "",
+  });
+  if (!content.success) {
+    return {
+      draftId: null,
+      error: content.error.issues[0]?.message || "Invalid draft",
+    };
+  }
+
+  const audienceParsed = broadcastAudienceSchema.safeParse(parseAudienceFromFormData(formData));
+  if (!audienceParsed.success) {
+    return {
+      draftId: null,
+      error: audienceParsed.error.issues[0]?.message || "Choose a valid audience before saving",
+    };
+  }
+
+  const targets = audienceTargetFields(audienceParsed.data);
+  const label = await audienceLabelOnly(audienceParsed.data);
+  const draftId = content.data.draftId || null;
+
+  if (draftId) {
+    const existing = await prisma.broadcast.findUnique({ where: { id: draftId } });
+    if (!existing || existing.status !== "DRAFT") {
+      return { draftId: null, error: "Draft not found (it may have already been sent)." };
+    }
+    await prisma.broadcast.update({
+      where: { id: draftId },
+      data: {
+        subject: content.data.subject,
+        bodyText: content.data.bodyText,
+        bodyHtml: "",
+        audienceLabel: label,
+        ...targets,
+      },
+    });
+    revalidatePath("/admin/broadcast");
+    return { draftId, error: null };
+  }
+
+  const created = await prisma.broadcast.create({
+    data: {
+      subject: content.data.subject,
+      bodyText: content.data.bodyText,
+      bodyHtml: "",
+      audienceLabel: label,
+      status: "DRAFT",
+      createdById: session.user.id,
+      recipientCount: 0,
+      sentAt: null,
+      sentById: null,
+      ...targets,
+    },
+  });
+
+  revalidatePath("/admin/broadcast");
+  return { draftId: created.id, error: null };
+}
+
+export type DeleteBroadcastDraftResult = { error: string | null };
+
+export async function deleteBroadcastDraftAction(draftId: string): Promise<DeleteBroadcastDraftResult> {
+  await requireAdmin();
+  if (!draftId) return { error: "Draft id required" };
+
+  const existing = await prisma.broadcast.findUnique({ where: { id: draftId } });
+  if (!existing || existing.status !== "DRAFT") {
+    return { error: "Draft not found" };
+  }
+
+  await prisma.broadcast.delete({ where: { id: draftId } });
+  revalidatePath("/admin/broadcast");
+  return { error: null };
+}
+
 export type SendBroadcastResult =
   | {
       sent: number;
@@ -223,12 +351,13 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
 
   const recentBroadcast = await prisma.broadcast.findFirst({
     where: {
+      status: "SENT",
       sentById: session.user.id,
       sentAt: { gt: new Date(Date.now() - BROADCAST_COOLDOWN_MS) },
     },
     orderBy: { sentAt: "desc" },
   });
-  if (recentBroadcast) {
+  if (recentBroadcast?.sentAt) {
     const secondsLeft = Math.ceil(
       (BROADCAST_COOLDOWN_MS - (Date.now() - recentBroadcast.sentAt.getTime())) / 1000
     );
@@ -271,22 +400,7 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     };
   }
 
-  const audienceType = String(formData.get("audienceType"));
-  const audienceInput =
-    audienceType === "TAG"
-      ? { audienceType: "TAG" as const, tagId: String(formData.get("tagId") || "") }
-      : audienceType === "GROUP"
-        ? { audienceType: "GROUP" as const, groupId: String(formData.get("groupId") || "") }
-        : audienceType === "SINGLE_USER"
-          ? { audienceType: "SINGLE_USER" as const, email: String(formData.get("email") || "") }
-          : audienceType === "NETWORK_TRACK"
-            ? {
-                audienceType: "NETWORK_TRACK" as const,
-                track: String(formData.get("track") || "") as NetworkTrack,
-              }
-            : { audienceType: "ALL_MEMBERS" as const };
-
-  const audienceParsed = broadcastAudienceSchema.safeParse(audienceInput);
+  const audienceParsed = broadcastAudienceSchema.safeParse(parseAudienceFromFormData(formData));
   if (!audienceParsed.success) {
     return {
       sent: null,
@@ -295,6 +409,22 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
       skippedUnsubscribed: null,
       error: audienceParsed.error.issues[0]?.message || "Invalid audience",
     };
+  }
+
+  const draftIdRaw = String(formData.get("draftId") || "").trim();
+  let existingDraftId: string | null = null;
+  if (draftIdRaw) {
+    const draft = await prisma.broadcast.findUnique({ where: { id: draftIdRaw } });
+    if (!draft || draft.status !== "DRAFT") {
+      return {
+        sent: null,
+        failed: null,
+        failedEmails: null,
+        skippedUnsubscribed: null,
+        error: "Draft not found (it may have already been sent by another admin).",
+      };
+    }
+    existingDraftId = draft.id;
   }
 
   const { recipients, label, skippedUnsubscribed } = await resolveAudience(audienceParsed.data);
@@ -316,6 +446,8 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     .map((p) => p.trim())
     .filter(Boolean);
   const bodyHtml = paragraphsToHtml(paragraphs);
+  const bodyText = content.data.bodyHtml;
+  const targets = audienceTargetFields(audienceParsed.data);
 
   const batchPrefix = `hub-broadcast/${session.user.id}/${Date.now()}`;
   const { sent, failed } = await sendBroadcastEmails(
@@ -338,16 +470,38 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     };
   }
 
-  await prisma.broadcast.create({
-    data: {
-      subject: content.data.subject,
-      bodyHtml,
-      audienceType: audienceParsed.data.audienceType,
-      audienceLabel: label,
-      recipientCount: sent,
-      sentById: session.user.id,
-    },
-  });
+  const sentAt = new Date();
+  if (existingDraftId) {
+    await prisma.broadcast.update({
+      where: { id: existingDraftId },
+      data: {
+        subject: content.data.subject,
+        bodyText,
+        bodyHtml,
+        audienceLabel: label,
+        recipientCount: sent,
+        status: "SENT",
+        sentById: session.user.id,
+        sentAt,
+        ...targets,
+      },
+    });
+  } else {
+    await prisma.broadcast.create({
+      data: {
+        subject: content.data.subject,
+        bodyText,
+        bodyHtml,
+        audienceLabel: label,
+        recipientCount: sent,
+        status: "SENT",
+        createdById: session.user.id,
+        sentById: session.user.id,
+        sentAt,
+        ...targets,
+      },
+    });
+  }
 
   revalidatePath("/admin/broadcast");
   return {

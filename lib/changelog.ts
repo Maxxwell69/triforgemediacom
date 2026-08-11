@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.90",
+    date: "August 11, 2026",
+    title: "Shared broadcast drafts",
+    summary:
+      "Admins can save broadcast emails as drafts — any other admin can open, edit, preview recipients, and send.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Broadcasts: Save as draft / Update draft, with a shared drafts list for the whole admin team",
+      },
+      {
+        kind: "improve",
+        text: "Sending a draft converts it to a sent record (who sent + when) instead of leaving a stale draft behind",
+      },
+    ],
+  },
+  {
     version: "2.89",
     date: "August 11, 2026",
     title: "Broadcast audience email preview",

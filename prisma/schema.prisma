@@ -110,7 +110,8 @@ model User {
   tiktokStatsSnapshot        TikTokStatsSnapshot?
   tags                       UserTag[]
   passwordResetTokens        PasswordResetToken[]
-  broadcastsSent             Broadcast[]
+  broadcastsCreated          Broadcast[]            @relation("BroadcastCreatedBy")
+  broadcastsSent             Broadcast[]            @relation("BroadcastSentBy")
   ghlImport                  GhlImport?
   dmParticipations           DirectConversationParticipant[]
   directMessages             DirectMessage[]
@@ -598,17 +599,36 @@ enum BroadcastAudienceType {
   NETWORK_TRACK
 }
 
-model Broadcast {
-  id            String                @id @default(cuid())
-  subject       String
-  bodyHtml      String
-  audienceType  BroadcastAudienceType
-  audienceLabel String // human-readable snapshot, e.g. "Tag: Gamer" — survives the tag/group being renamed or deleted later
-  recipientCount Int
-  sentById      String
-  sentAt        DateTime              @default(now())
+enum BroadcastStatus {
+  DRAFT
+  SENT
+}
 
-  sentBy User @relation(fields: [sentById], references: [id])
+model Broadcast {
+  id              String                @id @default(cuid())
+  subject         String
+  /// Plain text body used while drafting (paragraphs separated by blank lines).
+  bodyText        String                @default("")
+  /// Final HTML after send (empty while still a draft).
+  bodyHtml        String                @default("")
+  audienceType    BroadcastAudienceType
+  audienceLabel   String // human-readable snapshot, e.g. "Tag: Gamer"
+  audienceTagId   String?
+  audienceGroupId String?
+  audienceTrack   String? // "CN" | "MN"
+  audienceEmail   String?
+  recipientCount  Int                   @default(0)
+  status          BroadcastStatus       @default(SENT)
+  createdById     String
+  sentById        String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  sentAt          DateTime?
+
+  createdBy User  @relation("BroadcastCreatedBy", fields: [createdById], references: [id])
+  sentBy    User? @relation("BroadcastSentBy", fields: [sentById], references: [id])
+
+  @@index([status, updatedAt])
 }
 
 // ---------- Editable system email templates ----------

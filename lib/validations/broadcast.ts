@@ -22,3 +22,10 @@ export const broadcastContentSchema = z.object({
   subject: z.string().trim().min(3, "Subject is required").max(150),
   bodyHtml: z.string().trim().min(1, "Email body can't be empty"),
 });
+
+/** Persist a shared draft — body may be empty while still composing. */
+export const saveBroadcastDraftSchema = z.object({
+  draftId: z.string().min(1).optional().nullable(),
+  subject: z.string().trim().min(1, "Subject is required").max(150),
+  bodyText: z.string().max(50_000).default(""),
+});

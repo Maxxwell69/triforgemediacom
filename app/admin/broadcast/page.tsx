@@ -10,15 +10,36 @@ export default async function AdminBroadcastPage() {
   // memberships were written — so By tag / By group / CN track all agree.
   await backfillNetworkMemberships();
 
-  const [tags, groups, recentBroadcasts] = await Promise.all([
+  const [tags, groups, drafts, recentBroadcasts] = await Promise.all([
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.broadcast.findMany({
+      where: { status: "DRAFT" },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+      include: { createdBy: { select: { name: true, email: true } } },
+    }),
+    prisma.broadcast.findMany({
+      where: { status: "SENT" },
       orderBy: { sentAt: "desc" },
       take: 20,
       include: { sentBy: { select: { name: true, email: true } } },
     }),
   ]);
+
+  const draftItems = drafts.map((d) => ({
+    id: d.id,
+    subject: d.subject,
+    bodyText: d.bodyText,
+    audienceType: d.audienceType,
+    audienceLabel: d.audienceLabel,
+    audienceTagId: d.audienceTagId,
+    audienceGroupId: d.audienceGroupId,
+    audienceTrack: d.audienceTrack,
+    audienceEmail: d.audienceEmail,
+    updatedAt: d.updatedAt,
+    createdByName: d.createdBy.name || d.createdBy.email,
+  }));
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -27,11 +48,16 @@ export default async function AdminBroadcastPage() {
       </h1>
       <p className="mt-2 font-body text-off-white/60">
         Send a one-off announcement email to the whole community, CN or MN track, a tag, a
-        group, or a single member. Type a rough topic and let AI draft it, or write it yourself.
+        group, or a single member. Save a draft for any admin to finish and send later.
       </p>
 
       <div className="mt-8">
-        <BroadcastComposer tags={tags} groups={groups} aiConfigured={isAiEmailConfigured()} />
+        <BroadcastComposer
+          tags={tags}
+          groups={groups}
+          drafts={draftItems}
+          aiConfigured={isAiEmailConfigured()}
+        />
       </div>
 
       <div className="mt-10">
@@ -45,7 +71,8 @@ export default async function AdminBroadcastPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-body font-semibold text-off-white">{b.subject}</p>
                   <p className="font-body text-xs text-off-white/40">
-                    {b.sentAt.toLocaleDateString()} &middot; {b.sentBy.name || b.sentBy.email}
+                    {b.sentAt ? b.sentAt.toLocaleDateString() : "—"} &middot;{" "}
+                    {b.sentBy?.name || b.sentBy?.email || "Admin"}
                   </p>
                 </div>
                 <p className="mt-1 font-body text-xs text-off-white/50">
