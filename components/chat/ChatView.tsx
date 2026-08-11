@@ -32,6 +32,7 @@ type ChatMessage = {
   id: string;
   content: string;
   createdAt: string | Date;
+  editedAt?: string | Date | null;
   user: ChatUser;
   reactions: ReactionSummary[];
   replyToId?: string | null;
@@ -77,11 +78,16 @@ export default function ChatView({
   const [mentionResults, setMentionResults] = useState<MentionCandidate[]>([]);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
+  const editsAfterRef = useRef<string>(new Date().toISOString());
   const mentionFetchRef = useRef(0);
   const latestMessageId = messages[messages.length - 1]?.id ?? null;
 
@@ -99,13 +105,54 @@ export default function ChatView({
     seenIds.current = new Set(initialMessages.map((m) => m.id));
     setMutedUntil(initialMutedUntil);
     setReplyingTo(null);
+    setEditingId(null);
+    setEditDraft("");
+    editsAfterRef.current = new Date().toISOString();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel.id]);
 
+  function applyMessageUpdate(updated: ChatMessage) {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === updated.id) {
+          return {
+            ...m,
+            content: updated.content,
+            editedAt: updated.editedAt ?? m.editedAt,
+            reactions: updated.reactions ?? m.reactions,
+            replyTo: updated.replyTo !== undefined ? updated.replyTo : m.replyTo,
+          };
+        }
+        if (m.replyTo?.id === updated.id) {
+          return {
+            ...m,
+            replyTo: { ...m.replyTo, content: updated.content },
+          };
+        }
+        return m;
+      })
+    );
+  }
+
   function startReply(message: ChatMessage) {
     setReplyingTo(message);
+    setEditingId(null);
     setOpenMenuFor(null);
     requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function startEdit(message: ChatMessage) {
+    setEditingId(message.id);
+    setEditDraft(message.content);
+    setReplyingTo(null);
+    setOpenMenuFor(null);
+    setError(null);
+    requestAnimationFrame(() => editInputRef.current?.focus());
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditDraft("");
   }
 
   function scrollToMessage(messageId: string) {
@@ -150,18 +197,49 @@ export default function ChatView({
     const interval = setInterval(async () => {
       const latest = messages[messages.length - 1];
       const after = latest ? new Date(latest.createdAt).toISOString() : undefined;
-      const url = `/api/channels/${channel.id}/messages${after ? `?after=${encodeURIComponent(after)}` : ""}`;
+      const editsAfter = editsAfterRef.current;
+      const params = new URLSearchParams();
+      if (after) params.set("after", after);
+      params.set("editsAfter", editsAfter);
+      const url = `/api/channels/${channel.id}/messages?${params.toString()}`;
       try {
         const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
         setMutedUntil(data.mutedUntil ?? null);
+        editsAfterRef.current = new Date().toISOString();
         const fresh: ChatMessage[] = (data.messages || []).filter(
           (m: ChatMessage) => !seenIds.current.has(m.id)
         );
         if (fresh.length > 0) {
           fresh.forEach((m) => seenIds.current.add(m.id));
           setMessages((prev) => [...prev, ...fresh]);
+        }
+        const edited: ChatMessage[] = data.editedMessages || [];
+        if (edited.length > 0) {
+          setMessages((prev) => {
+            const byId = new Map(edited.map((m) => [m.id, m]));
+            return prev.map((m) => {
+              const upd = byId.get(m.id);
+              let next = m;
+              if (upd) {
+                next = {
+                  ...m,
+                  content: upd.content,
+                  editedAt: upd.editedAt ?? m.editedAt,
+                  reactions: upd.reactions ?? m.reactions,
+                };
+              }
+              const replyUpd = next.replyTo ? byId.get(next.replyTo.id) : null;
+              if (replyUpd && next.replyTo) {
+                next = {
+                  ...next,
+                  replyTo: { ...next.replyTo, content: replyUpd.content },
+                };
+              }
+              return next;
+            });
+          });
         }
       } catch {
         // Polling is best-effort; ignore transient network errors.
@@ -303,10 +381,53 @@ export default function ChatView({
         method: "DELETE",
       });
       if (res.ok) {
+        if (editingId === message.id) cancelEdit();
         setMessages((prev) => prev.filter((m) => m.id !== message.id));
       }
     } finally {
       setModerationBusy(null);
+    }
+  }
+
+  async function handleSaveEdit(messageId: string) {
+    const content = editDraft.trim();
+    if (!content) {
+      setError("Message can't be empty");
+      return;
+    }
+
+    setEditSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/channels/${channel.id}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to edit message");
+        return;
+      }
+      applyMessageUpdate({
+        ...data.message,
+        reactions: data.message.reactions || [],
+      });
+      cancelEdit();
+    } catch {
+      setError("Failed to edit message");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  function onEditKeyDown(e: KeyboardEvent<HTMLInputElement>, messageId: string) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEdit();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      void handleSaveEdit(messageId);
     }
   }
 
@@ -379,6 +500,8 @@ export default function ChatView({
           {messages.map((message) => {
             const isAuthor = message.user.id === currentUserId;
             const canDelete = isAuthor || isModerator;
+            const canEdit = isAuthor && !viewerIsMuted;
+            const isEditing = editingId === message.id;
             const canModerateAuthor =
               isModerator && !isAuthor && canBeModerationTarget(message.user.role);
             const authorMuted = isMuted({ mutedUntil: toMutedUntilDate(message.user.mutedUntil) });
@@ -457,75 +580,130 @@ export default function ChatView({
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                      {message.editedAt ? (
+                        <span className="ml-1 text-off-white/25" title="Edited">
+                          (edited)
+                        </span>
+                      ) : null}
                     </span>
 
-                    <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
-                      {!viewerIsMuted && (
-                        <button
-                          type="button"
-                          onClick={() => startReply(message)}
-                          title="Reply"
-                          className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan"
-                        >
-                          Reply
-                        </button>
-                      )}
-                      {canModerateAuthor && (
-                        <div className="relative">
+                    {!isEditing && (
+                      <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                        {!viewerIsMuted && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setOpenMenuFor(openMenuFor === message.id ? null : message.id)
-                            }
-                            disabled={moderationBusy === message.user.id}
-                            className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan disabled:opacity-40"
+                            onClick={() => startReply(message)}
+                            title="Reply"
+                            className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan"
                           >
-                            Moderate
+                            Reply
                           </button>
-                          {openMenuFor === message.id && (
-                            <div className="glass absolute right-0 z-10 mt-1 flex w-36 flex-col gap-1 rounded-lg p-2">
-                              {authorMuted ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUnmute(message.user.id)}
-                                  className="rounded px-2 py-1 text-left font-body text-xs text-cyan transition hover:bg-cyan/10"
-                                >
-                                  Unmute
-                                </button>
-                              ) : (
-                                MUTE_DURATION_PRESETS_MINUTES.map((minutes) => (
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(message)}
+                            title="Edit message"
+                            className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canModerateAuthor && (
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenMenuFor(openMenuFor === message.id ? null : message.id)
+                              }
+                              disabled={moderationBusy === message.user.id}
+                              className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-cyan/40 hover:text-cyan disabled:opacity-40"
+                            >
+                              Moderate
+                            </button>
+                            {openMenuFor === message.id && (
+                              <div className="glass absolute right-0 z-10 mt-1 flex w-36 flex-col gap-1 rounded-lg p-2">
+                                {authorMuted ? (
                                   <button
-                                    key={minutes}
                                     type="button"
-                                    onClick={() => handleMute(message.user.id, minutes)}
-                                    className="rounded px-2 py-1 text-left font-body text-xs text-off-white/70 transition hover:bg-orange/10 hover:text-orange"
+                                    onClick={() => handleUnmute(message.user.id)}
+                                    className="rounded px-2 py-1 text-left font-body text-xs text-cyan transition hover:bg-cyan/10"
                                   >
-                                    Mute {MUTE_DURATION_LABELS[minutes]}
+                                    Unmute
                                   </button>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {canDelete && (
+                                ) : (
+                                  MUTE_DURATION_PRESETS_MINUTES.map((minutes) => (
+                                    <button
+                                      key={minutes}
+                                      type="button"
+                                      onClick={() => handleMute(message.user.id, minutes)}
+                                      className="rounded px-2 py-1 text-left font-body text-xs text-off-white/70 transition hover:bg-orange/10 hover:text-orange"
+                                    >
+                                      Mute {MUTE_DURATION_LABELS[minutes]}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(message)}
+                            disabled={moderationBusy === message.id}
+                            title="Delete message"
+                            className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-orange/40 hover:text-orange disabled:opacity-40"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="mt-1 flex flex-col gap-2">
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onKeyDown={(e) => onEditKeyDown(e, message.id)}
+                        maxLength={2000}
+                        disabled={editSaving}
+                        className="w-full rounded-lg border border-cyan/40 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60 disabled:opacity-50"
+                      />
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => handleDelete(message)}
-                          disabled={moderationBusy === message.id}
-                          title="Delete message"
-                          className="rounded border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50 transition hover:border-orange/40 hover:text-orange disabled:opacity-40"
+                          onClick={() => void handleSaveEdit(message.id)}
+                          disabled={editSaving || !editDraft.trim()}
+                          className="rounded-lg bg-cyan px-3 py-1.5 font-body text-xs font-semibold text-charcoal transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          Delete
+                          {editSaving ? "Saving…" : "Save"}
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={editSaving}
+                          className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/60 transition hover:border-off-white/30 hover:text-off-white disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <span className="font-body text-[10px] text-off-white/30">
+                          Enter to save · Esc to cancel
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <MessageContent content={message.content} />
-                  <MessageReactions
-                    reactions={message.reactions || []}
-                    onToggle={(emoji) => toggleReaction(message.id, emoji)}
-                  />
+                  ) : (
+                    <MessageContent content={message.content} />
+                  )}
+                  {!isEditing && (
+                    <MessageReactions
+                      reactions={message.reactions || []}
+                      onToggle={(emoji) => toggleReaction(message.id, emoji)}
+                    />
+                  )}
                 </div>
               </div>
             );

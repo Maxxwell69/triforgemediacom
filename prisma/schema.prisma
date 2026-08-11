@@ -375,6 +375,8 @@ model Message {
   userId    String
   content   String
   createdAt DateTime @default(now())
+  /// Set when the author edits the message content (null = never edited).
+  editedAt  DateTime?
   /// Discord-style reply pointer (not a full thread). Null if original was deleted.
   replyToId String?
 

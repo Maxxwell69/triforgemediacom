@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.88",
+    date: "August 11, 2026",
+    title: "Edit your chat messages",
+    summary:
+      "Channel authors can fix typos in their own posts — edits sync to everyone in the channel and show an (edited) mark.",
+    items: [
+      {
+        kind: "feature",
+        text: "Hover a message you sent → Edit, then Save (Enter) or Cancel (Esc)",
+      },
+      {
+        kind: "improve",
+        text: "Edited messages stay in place with an (edited) label; other members pick up changes on the next poll",
+      },
+    ],
+  },
+  {
     version: "2.87",
     date: "August 10, 2026",
     title: "Personal Tasks (admin-gated)",

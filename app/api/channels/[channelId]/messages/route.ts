@@ -31,6 +31,7 @@ function mapMessage(
     userId: string;
     content: string;
     createdAt: Date;
+    editedAt: Date | null;
     replyToId: string | null;
     user: Parameters<typeof toChatAuthor>[0];
     reactions: { emoji: string; userId: string }[];
@@ -79,8 +80,9 @@ export async function GET(
   }
 
   const after = req.nextUrl.searchParams.get("after");
+  const editsAfter = req.nextUrl.searchParams.get("editsAfter");
 
-  const [messages, viewer] = await Promise.all([
+  const [messages, editedRows, viewer] = await Promise.all([
     prisma.message.findMany({
       where: {
         channelId: channel.id,
@@ -90,6 +92,17 @@ export async function GET(
       orderBy: { createdAt: after ? "asc" : "desc" },
       take: after ? 100 : 50,
     }),
+    editsAfter
+      ? prisma.message.findMany({
+          where: {
+            channelId: channel.id,
+            editedAt: { gt: new Date(editsAfter) },
+          },
+          include: messageInclude,
+          orderBy: { editedAt: "asc" },
+          take: 100,
+        })
+      : Promise.resolve([]),
     prisma.user.findUnique({ where: { id: result.user.id }, select: { mutedUntil: true } }),
   ]);
 
@@ -98,8 +111,13 @@ export async function GET(
 
   const ordered = after ? messages : [...messages].reverse();
   const payload = ordered.map((message) => mapMessage(message, result.user.id));
+  const editedMessages = editedRows.map((message) => mapMessage(message, result.user.id));
 
-  return NextResponse.json({ messages: payload, mutedUntil: viewer?.mutedUntil ?? null });
+  return NextResponse.json({
+    messages: payload,
+    editedMessages,
+    mutedUntil: viewer?.mutedUntil ?? null,
+  });
 }
 
 export async function POST(
