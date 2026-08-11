@@ -159,6 +159,49 @@ async function resolveAudience(audience: Audience): Promise<AudienceResolve> {
   return { ...filtered, label: `Single user: ${audience.email}` };
 }
 
+export type PreviewBroadcastAudienceResult =
+  | {
+      label: string;
+      count: number;
+      emails: string[];
+      skippedUnsubscribed: number;
+      error: null;
+    }
+  | {
+      label: null;
+      count: null;
+      emails: null;
+      skippedUnsubscribed: null;
+      error: string;
+    };
+
+/** Admin-only: resolve the same recipient list send will use, for preview. */
+export async function previewBroadcastAudienceAction(input: unknown): Promise<PreviewBroadcastAudienceResult> {
+  await requireAdmin();
+
+  const parsed = broadcastAudienceSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      label: null,
+      count: null,
+      emails: null,
+      skippedUnsubscribed: null,
+      error: parsed.error.issues[0]?.message || "Invalid audience",
+    };
+  }
+
+  const { recipients, label, skippedUnsubscribed } = await resolveAudience(parsed.data);
+  const emails = recipients.map((r) => r.email).sort((a, b) => a.localeCompare(b));
+
+  return {
+    label,
+    count: emails.length,
+    emails,
+    skippedUnsubscribed,
+    error: null,
+  };
+}
+
 export type SendBroadcastResult =
   | {
       sent: number;

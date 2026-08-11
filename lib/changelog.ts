@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.89",
+    date: "August 11, 2026",
+    title: "Broadcast audience email preview",
+    summary:
+      "Before sending an admin broadcast, see the exact active emails that will receive it for the chosen audience.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Broadcasts shows a live recipient count and email list when you pick All / CN·MN / tag / group / single user",
+      },
+      {
+        kind: "improve",
+        text: "Send button reflects the previewed recipient count; unsubscribed members are listed as skipped",
+      },
+    ],
+  },
+  {
     version: "2.88",
     date: "August 11, 2026",
     title: "Edit your chat messages",

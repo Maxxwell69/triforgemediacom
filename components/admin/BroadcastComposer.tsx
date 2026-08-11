@@ -1,15 +1,28 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { generateDraftAction, sendBroadcastAction } from "@/app/admin/broadcast/actions";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  generateDraftAction,
+  previewBroadcastAudienceAction,
+  sendBroadcastAction,
+} from "@/app/admin/broadcast/actions";
 import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
 import BroadcastSpamScorePanel from "@/components/admin/BroadcastSpamScorePanel";
 
 type Tag = { id: string; name: string };
 type Group = { id: string; name: string };
 
+type AudiencePreview = {
+  label: string;
+  count: number;
+  emails: string[];
+  skippedUnsubscribed: number;
+};
+
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
+
+const PREVIEW_EMAIL_CAP = 200;
 
 export default function BroadcastComposer({
   tags,
@@ -33,6 +46,9 @@ export default function BroadcastComposer({
 
   const [generating, startGenerating] = useTransition();
   const [sending, startSending] = useTransition();
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [preview, setPreview] = useState<AudiencePreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -40,6 +56,70 @@ export default function BroadcastComposer({
     () => scoreBroadcastContent(subject, bodyText),
     [subject, bodyText]
   );
+
+  const audienceInput = useMemo(() => {
+    if (audienceType === "TAG") {
+      if (!tagId) return null;
+      return { audienceType: "TAG" as const, tagId };
+    }
+    if (audienceType === "GROUP") {
+      if (!groupId) return null;
+      return { audienceType: "GROUP" as const, groupId };
+    }
+    if (audienceType === "SINGLE_USER") {
+      const trimmed = email.trim();
+      if (!trimmed || !trimmed.includes("@")) return null;
+      return { audienceType: "SINGLE_USER" as const, email: trimmed };
+    }
+    if (audienceType === "NETWORK_TRACK") {
+      return { audienceType: "NETWORK_TRACK" as const, track };
+    }
+    return { audienceType: "ALL_MEMBERS" as const };
+  }, [audienceType, tagId, groupId, track, email]);
+
+  useEffect(() => {
+    if (!audienceInput) {
+      setPreview(null);
+      setPreviewError(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    const handle = window.setTimeout(async () => {
+      try {
+        const result = await previewBroadcastAudienceAction(audienceInput);
+        if (cancelled) return;
+        if (result.error !== null) {
+          setPreview(null);
+          setPreviewError(result.error);
+          return;
+        }
+        setPreview({
+          label: result.label,
+          count: result.count,
+          emails: result.emails,
+          skippedUnsubscribed: result.skippedUnsubscribed,
+        });
+        setPreviewError(null);
+      } catch {
+        if (!cancelled) {
+          setPreview(null);
+          setPreviewError("Couldn't load audience preview.");
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [audienceInput]);
 
   function handleGenerate() {
     setError(null);
@@ -66,20 +146,22 @@ export default function BroadcastComposer({
       return;
     }
 
-    const audienceLabel =
-      audienceType === "ALL_MEMBERS"
-        ? "all members (active + invited)"
-        : audienceType === "TAG"
-          ? `everyone tagged "${tags.find((t) => t.id === tagId)?.name}"`
-          : audienceType === "GROUP"
-            ? `everyone in "${groups.find((g) => g.id === groupId)?.name}"`
-            : audienceType === "NETWORK_TRACK"
-              ? track === "CN"
-                ? "everyone on the Creator Network (CN) track"
-                : "everyone on the Media Network (MN) track"
-              : `${email}`;
+    const countLabel =
+      preview && !previewLoading
+        ? `${preview.count} recipient${preview.count === 1 ? "" : "s"} (${preview.label})`
+        : audienceType === "ALL_MEMBERS"
+          ? "all members (active + invited)"
+          : audienceType === "TAG"
+            ? `everyone tagged "${tags.find((t) => t.id === tagId)?.name}"`
+            : audienceType === "GROUP"
+              ? `everyone in "${groups.find((g) => g.id === groupId)?.name}"`
+              : audienceType === "NETWORK_TRACK"
+                ? track === "CN"
+                  ? "everyone on the Creator Network (CN) track"
+                  : "everyone on the Media Network (MN) track"
+                : `${email}`;
 
-    if (!confirm(`Send this email to ${audienceLabel}? This can't be undone.`)) return;
+    if (!confirm(`Send this email to ${countLabel}? This can't be undone.`)) return;
 
     startSending(async () => {
       const result = await sendBroadcastAction(formData);
@@ -112,6 +194,9 @@ export default function BroadcastComposer({
       setTopic("");
     });
   }
+
+  const shownEmails = preview?.emails.slice(0, PREVIEW_EMAIL_CAP) ?? [];
+  const hiddenEmailCount = preview ? Math.max(0, preview.count - shownEmails.length) : 0;
 
   return (
     <div className="glass flex flex-col gap-6 rounded-2xl p-6">
@@ -278,6 +363,68 @@ export default function BroadcastComposer({
               className={`${fieldClass} mt-3 sm:w-64`}
             />
           )}
+
+          <div className="mt-4 rounded-xl border border-off-white/10 bg-off-white/[0.03] p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-off-white/40">
+                Active emails this will send to
+              </p>
+              {previewLoading && (
+                <p className="font-body text-xs text-off-white/40">Loading preview…</p>
+              )}
+            </div>
+
+            {audienceType === "SINGLE_USER" && !audienceInput && (
+              <p className="mt-2 font-body text-sm text-off-white/45">
+                Enter a member email to preview.
+              </p>
+            )}
+
+            {previewError && !previewLoading && (
+              <p className="mt-2 font-body text-sm text-orange">{previewError}</p>
+            )}
+
+            {preview && !previewLoading && (
+              <>
+                <p className="mt-2 font-body text-sm text-off-white/80">
+                  <span className="font-semibold text-cyan">{preview.count}</span>
+                  {" "}
+                  recipient{preview.count === 1 ? "" : "s"}
+                  <span className="text-off-white/40"> · {preview.label}</span>
+                  {preview.skippedUnsubscribed > 0 && (
+                    <span className="text-off-white/40">
+                      {" "}
+                      · {preview.skippedUnsubscribed} unsubscribed skipped
+                    </span>
+                  )}
+                </p>
+                {preview.count === 0 ? (
+                  <p className="mt-2 font-body text-sm text-orange/80">
+                    {preview.skippedUnsubscribed > 0
+                      ? "Everyone in that audience has unsubscribed from announcement emails."
+                      : "No recipients match that audience."}
+                  </p>
+                ) : (
+                  <ul className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-off-white/10 bg-charcoal/40 px-3 py-2 font-body text-xs text-off-white/70">
+                    {shownEmails.map((addr) => (
+                      <li
+                        key={addr}
+                        className="border-b border-off-white/5 py-1.5 last:border-b-0"
+                      >
+                        {addr}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {hiddenEmailCount > 0 && (
+                  <p className="mt-2 font-body text-xs text-off-white/40">
+                    Showing first {PREVIEW_EMAIL_CAP} of {preview.count}. Full list will still
+                    receive the send.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -294,7 +441,13 @@ export default function BroadcastComposer({
         <button
           type="submit"
           disabled={
-            sending || !subject.trim() || !bodyText.trim() || !spamScore.canSend
+            sending ||
+            !subject.trim() ||
+            !bodyText.trim() ||
+            !spamScore.canSend ||
+            previewLoading ||
+            !preview ||
+            preview.count === 0
           }
           className="self-start rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -302,7 +455,9 @@ export default function BroadcastComposer({
             ? "Sending..."
             : !spamScore.canSend && (subject.trim() || bodyText.trim())
               ? "Fix deliverability to send"
-              : "Send broadcast"}
+              : preview && preview.count > 0
+                ? `Send to ${preview.count} recipient${preview.count === 1 ? "" : "s"}`
+                : "Send broadcast"}
         </button>
       </form>
     </div>
