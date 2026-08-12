@@ -49,7 +49,25 @@ export async function completeOnboarding(
   if (twitchUrl) socialLinks.twitch = twitchUrl;
   if (youtubeUrl) socialLinks.youtube = youtubeUrl;
 
+  // Seed hub username from TikTok @handle when missing so chat never falls
+  // through to the generic "Member" label for new creators.
+  let usernameFromTikTok: string | null = null;
+  if (tiktokUrl) {
+    const fromUrl = tiktokUrl.match(/tiktok\.com\/@([\w.-]+)/i);
+    const bare = (fromUrl?.[1] || tiktokUrl.replace(/^@/, "").trim()).toLowerCase();
+    if (/^[\w.-]{2,64}$/.test(bare)) usernameFromTikTok = bare;
+  }
+
   const existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
+
+  let usernameToSet: string | null = null;
+  if (!existingProfile?.username && usernameFromTikTok) {
+    const taken = await prisma.profile.findFirst({
+      where: { username: usernameFromTikTok, NOT: { userId: user.id } },
+      select: { userId: true },
+    });
+    if (!taken) usernameToSet = usernameFromTikTok;
+  }
 
   await prisma.profile.upsert({
     where: { userId: user.id },
@@ -61,6 +79,7 @@ export async function completeOnboarding(
       country: country || null,
       socialLinks,
       pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
+      ...(usernameToSet ? { username: usernameToSet } : {}),
     },
     create: {
       userId: user.id,
@@ -71,6 +90,7 @@ export async function completeOnboarding(
       country: country || null,
       socialLinks,
       pinnedTiktokVideoUrl: pinnedTiktokVideoUrl || null,
+      username: usernameToSet,
     },
   });
 

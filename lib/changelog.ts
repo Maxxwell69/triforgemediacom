@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.93",
+    date: "August 12, 2026",
+    title: "Chat names no longer stuck on Member",
+    summary:
+      "Channel chat falls back to a member’s account name when TikTok and hub username are missing — so people stop showing up as “Member”.",
+    items: [
+      {
+        kind: "fix",
+        text: "Chat display name: TikTok → hub username → account name → Member",
+      },
+      {
+        kind: "improve",
+        text: "Onboarding seeds hub username from the TikTok @handle when available",
+      },
+    ],
+  },
+  {
     version: "2.92",
     date: "August 11, 2026",
     title: "Fix chat image build",

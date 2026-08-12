@@ -49,12 +49,14 @@ export function getMemberDisplayName(member: MemberLike): string {
 
 /**
  * Name shown in channel / DM / webinar chat.
- * Prefer TikTok identity; fall back to hub username (never real/legal name).
+ * Prefer TikTok identity, then hub username, then account name.
+ * "Member" only when none of those exist.
  */
 export function getChatDisplayName(member: MemberLike): string {
   return (
     getTikTokUsername(member) ||
     member.profile?.username?.trim() ||
+    member.name?.trim() ||
     "Member"
   );
 }
