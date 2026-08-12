@@ -5,12 +5,18 @@ export const replyToInclude = {
   select: {
     id: true,
     content: true,
+    imageUrl: true,
     user: { select: chatAuthorSelect },
   },
 } as const;
 
-export function truncateReplyPreview(content: string, max = 120): string {
+export function truncateReplyPreview(
+  content: string,
+  max = 120,
+  opts?: { hasImage?: boolean }
+): string {
   const oneLine = content.replace(/\s+/g, " ").trim();
+  if (!oneLine) return opts?.hasImage ? "Image" : "";
   if (oneLine.length <= max) return oneLine;
   return `${oneLine.slice(0, max - 1)}…`;
 }

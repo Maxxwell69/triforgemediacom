@@ -11,6 +11,7 @@ const ALLOWED_FOLDERS = new Set([
   "reward-images",
   "host-avatars",
   "group-images",
+  "chat-attachments",
 ]);
 
 export async function POST(request: NextRequest) {
@@ -28,6 +29,10 @@ export async function POST(request: NextRequest) {
   }
   if (typeof folder !== "string" || !ALLOWED_FOLDERS.has(folder)) {
     return NextResponse.json({ error: "Invalid upload folder" }, { status: 400 });
+  }
+  // Chat images are ADMIN-only (not mods).
+  if (folder === "chat-attachments" && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Only admins can upload chat images" }, { status: 403 });
   }
 
   try {

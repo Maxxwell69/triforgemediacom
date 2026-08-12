@@ -10,6 +10,7 @@ import { chatAuthorSelect } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import { markChannelRead } from "@/lib/channelReads";
 import { replyToInclude } from "@/lib/chatReplies";
+import { isR2PublicUrl } from "@/lib/r2";
 
 async function getAccessibleChannel(channelId: string, userId: string, userRole: UserRole) {
   const [channel, userGroupIds] = await Promise.all([
@@ -30,6 +31,7 @@ function mapMessage(
     channelId: string;
     userId: string;
     content: string;
+    imageUrl: string | null;
     createdAt: Date;
     editedAt: Date | null;
     replyToId: string | null;
@@ -38,6 +40,7 @@ function mapMessage(
     replyTo: {
       id: string;
       content: string;
+      imageUrl: string | null;
       user: Parameters<typeof toChatAuthor>[0];
     } | null;
   },
@@ -52,6 +55,7 @@ function mapMessage(
       ? {
           id: replyTo.id,
           content: replyTo.content,
+          imageUrl: replyTo.imageUrl,
           user: toChatAuthor(replyTo.user),
         }
       : null,
@@ -164,6 +168,19 @@ export async function POST(
     );
   }
 
+  let imageUrl: string | null = parsed.data.imageUrl?.trim() || null;
+  if (imageUrl) {
+    if (result.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only admins can post images in chat" },
+        { status: 403 }
+      );
+    }
+    if (!isR2PublicUrl(imageUrl) || !imageUrl.includes("/chat-attachments/")) {
+      return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
+    }
+  }
+
   const replyToId: string | null = parsed.data.replyToId ?? null;
   if (replyToId) {
     const parent = await prisma.message.findFirst({
@@ -182,7 +199,8 @@ export async function POST(
     data: {
       channelId: channel.id,
       userId: result.user.id,
-      content: parsed.data.content,
+      content: parsed.data.content?.trim() || "",
+      imageUrl,
       replyToId,
     },
     include: messageInclude,

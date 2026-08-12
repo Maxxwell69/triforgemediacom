@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.91",
+    date: "August 11, 2026",
+    title: "Admin chat images",
+    summary:
+      "Admins can attach images in channel chat — members can view them, but only admins can post them.",
+    items: [
+      {
+        kind: "feature",
+        text: "Channel composer Image button for ADMIN accounts (JPG/PNG/WEBP/GIF via R2)",
+      },
+      {
+        kind: "improve",
+        text: "Image-only posts and caption + image posts render inline; click opens full size",
+      },
+    ],
+  },
+  {
     version: "2.90",
     date: "August 11, 2026",
     title: "Shared broadcast drafts",

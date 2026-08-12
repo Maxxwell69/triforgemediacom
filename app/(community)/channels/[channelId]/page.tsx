@@ -50,6 +50,7 @@ export default async function ChannelPage({
         ? {
             id: replyTo.id,
             content: replyTo.content,
+            imageUrl: replyTo.imageUrl,
             user: toChatAuthor(replyTo.user),
           }
         : null,

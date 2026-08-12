@@ -374,7 +374,9 @@ model Message {
   id        String   @id @default(cuid())
   channelId String
   userId    String
-  content   String
+  content   String   @default("")
+  /// Admin-only chat image (R2 public URL under chat-attachments/).
+  imageUrl  String?
   createdAt DateTime @default(now())
   /// Set when the author edits the message content (null = never edited).
   editedAt  DateTime?

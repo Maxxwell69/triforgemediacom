@@ -11,6 +11,7 @@ import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { truncateReplyPreview } from "@/lib/chatReplies";
 import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
+import { ALLOWED_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -25,12 +26,14 @@ type ChatUser = {
 type ReplyPreview = {
   id: string;
   content: string;
+  imageUrl?: string | null;
   user: ChatUser;
 };
 
 type ChatMessage = {
   id: string;
   content: string;
+  imageUrl?: string | null;
   createdAt: string | Date;
   editedAt?: string | Date | null;
   user: ChatUser;
@@ -81,11 +84,15 @@ export default function ChatView({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const canPostImages = currentUserRole === "ADMIN";
   const seenIds = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
   const editsAfterRef = useRef<string>(new Date().toISOString());
   const mentionFetchRef = useRef(0);
@@ -107,6 +114,7 @@ export default function ChatView({
     setReplyingTo(null);
     setEditingId(null);
     setEditDraft("");
+    setPendingImageUrl(null);
     editsAfterRef.current = new Date().toISOString();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel.id]);
@@ -333,6 +341,40 @@ export default function ChatView({
     }
   }
 
+  async function handleImagePick(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !canPostImages) return;
+
+    if (!(ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)) {
+      setError("Use a JPG, PNG, WEBP, or GIF image.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`Image must be under ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB.`);
+      return;
+    }
+
+    setImageUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("folder", "chat-attachments");
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Image upload failed");
+        return;
+      }
+      setPendingImageUrl(data.url);
+    } catch {
+      setError("Image upload failed");
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (mentionQuery && mentionResults.length > 0) {
@@ -340,7 +382,7 @@ export default function ChatView({
       return;
     }
     const content = draft.trim();
-    if (!content) return;
+    if (!content && !pendingImageUrl) return;
 
     setSending(true);
     setError(null);
@@ -351,6 +393,7 @@ export default function ChatView({
         body: JSON.stringify({
           content,
           replyToId: replyingTo?.id ?? null,
+          imageUrl: pendingImageUrl,
         }),
       });
       const data = await res.json();
@@ -364,6 +407,7 @@ export default function ChatView({
         setMessages((prev) => [...prev, { ...data.message, reactions: data.message.reactions || [] }]);
       }
       setDraft("");
+      setPendingImageUrl(null);
       setMentionQuery(null);
       setReplyingTo(null);
     } catch {
@@ -391,7 +435,8 @@ export default function ChatView({
 
   async function handleSaveEdit(messageId: string) {
     const content = editDraft.trim();
-    if (!content) {
+    const original = messages.find((m) => m.id === messageId);
+    if (!content && !original?.imageUrl) {
       setError("Message can't be empty");
       return;
     }
@@ -540,7 +585,9 @@ export default function ChatView({
                           {reply.user.name || "Unknown"}
                         </span>
                         <span className="mx-1 text-off-white/25">·</span>
-                        {truncateReplyPreview(reply.content)}
+                        {truncateReplyPreview(reply.content, 120, {
+                          hasImage: Boolean(reply.imageUrl),
+                        })}
                       </span>
                     </button>
                   )}
@@ -663,6 +710,14 @@ export default function ChatView({
                   </div>
                   {isEditing ? (
                     <div className="mt-1 flex flex-col gap-2">
+                      {message.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={message.imageUrl}
+                          alt="Chat attachment"
+                          className="max-h-48 max-w-full rounded-xl border border-off-white/10 object-contain"
+                        />
+                      ) : null}
                       <input
                         ref={editInputRef}
                         type="text"
@@ -671,17 +726,18 @@ export default function ChatView({
                         onKeyDown={(e) => onEditKeyDown(e, message.id)}
                         maxLength={2000}
                         disabled={editSaving}
+                        placeholder={message.imageUrl ? "Caption (optional)" : undefined}
                         className="w-full rounded-lg border border-cyan/40 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60 disabled:opacity-50"
                       />
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => void handleSaveEdit(message.id)}
-                          disabled={editSaving || !editDraft.trim()}
+                          disabled={
+                            editSaving || (!editDraft.trim() && !message.imageUrl)
+                          }
                           className="rounded-lg bg-cyan px-3 py-1.5 font-body text-xs font-semibold text-charcoal transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {editSaving ? "Saving…" : "Save"}
-                        </button>
                         <button
                           type="button"
                           onClick={cancelEdit}
@@ -696,7 +752,7 @@ export default function ChatView({
                       </div>
                     </div>
                   ) : (
-                    <MessageContent content={message.content} />
+                    <MessageContent content={message.content} imageUrl={message.imageUrl} />
                   )}
                   {!isEditing && (
                     <MessageReactions
@@ -731,7 +787,9 @@ export default function ChatView({
                 Replying to {replyingTo.user.name || "Unknown"}
               </p>
               <p className="truncate font-body text-xs text-off-white/50">
-                {truncateReplyPreview(replyingTo.content)}
+                {truncateReplyPreview(replyingTo.content, 120, {
+                  hasImage: Boolean(replyingTo.imageUrl),
+                })}
               </p>
             </div>
             <button
@@ -742,6 +800,26 @@ export default function ChatView({
             >
               ✕
             </button>
+          </div>
+        )}
+        {pendingImageUrl && !viewerIsMuted && (
+          <div className="mb-2 flex items-start gap-3 rounded-lg border border-off-white/15 bg-off-white/[0.03] p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingImageUrl}
+              alt="Attachment preview"
+              className="h-16 w-16 rounded-md object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-body text-xs text-off-white/60">Image ready to send</p>
+              <button
+                type="button"
+                onClick={() => setPendingImageUrl(null)}
+                className="mt-1 font-body text-xs text-orange transition hover:underline"
+              >
+                Remove
+              </button>
+            </div>
           </div>
         )}
         {mentionQuery && mentionResults.length > 0 && (
@@ -778,16 +856,43 @@ export default function ChatView({
                 ? "You're muted"
                 : replyingTo
                   ? `Reply to ${replyingTo.user.name || "message"}…`
-                  : `Message #${channel.name} — type @ to mention`
+                  : canPostImages
+                    ? `Message #${channel.name} — type @ to mention, or attach an image`
+                    : `Message #${channel.name} — type @ to mention`
             }
             maxLength={2000}
             disabled={viewerIsMuted}
             className="flex-1 rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60 disabled:cursor-not-allowed disabled:opacity-50"
           />
+          {canPostImages && (
+            <>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept={ALLOWED_IMAGE_MIME_TYPES.join(",")}
+                className="hidden"
+                onChange={handleImagePick}
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={viewerIsMuted || imageUploading || sending}
+                title="Attach image"
+                className="rounded-lg border border-off-white/15 px-3 py-2.5 font-body text-sm text-off-white/70 transition hover:border-cyan/40 hover:text-cyan disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {imageUploading ? "…" : "Image"}
+              </button>
+            </>
+          )}
           <EmojiPickerButton disabled={viewerIsMuted} onPick={insertAtCaret} />
           <button
             type="submit"
-            disabled={sending || !draft.trim() || viewerIsMuted}
+            disabled={
+              sending ||
+              imageUploading ||
+              viewerIsMuted ||
+              (!draft.trim() && !pendingImageUrl)
+            }
             className="rounded-lg bg-orange px-6 py-2.5 font-body font-semibold text-off-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send

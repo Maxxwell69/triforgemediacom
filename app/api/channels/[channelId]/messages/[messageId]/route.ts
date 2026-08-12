@@ -71,6 +71,10 @@ export async function PATCH(
     );
   }
 
+  if (!parsed.data.content && !existing.imageUrl) {
+    return NextResponse.json({ error: "Message can't be empty" }, { status: 400 });
+  }
+
   if (parsed.data.content === existing.content) {
     const unchanged = await prisma.message.findUnique({
       where: { id: existing.id },
@@ -89,6 +93,7 @@ export async function PATCH(
           ? {
               id: replyTo.id,
               content: replyTo.content,
+              imageUrl: replyTo.imageUrl,
               user: toChatAuthor(replyTo.user),
             }
           : null,
@@ -115,6 +120,7 @@ export async function PATCH(
         ? {
             id: replyTo.id,
             content: replyTo.content,
+            imageUrl: replyTo.imageUrl,
             user: toChatAuthor(replyTo.user),
           }
         : null,
