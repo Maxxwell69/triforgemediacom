@@ -10,10 +10,22 @@ const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
 export default async function AdminDashboardPage() {
-  const [pendingCount, userCount, liveCount, announcement] = await Promise.all([
+  const [pendingCount, userCount, liveCount, networkCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
     prisma.tikTokStatsSnapshot.count({ where: liveNotStaleWhere() }),
+    prisma.user.count({
+      where: {
+        status: "ACTIVE",
+        hiddenFromDirectory: false,
+        OR: [
+          { tags: { some: { tag: { name: { equals: "CN", mode: "insensitive" } } } } },
+          { tags: { some: { tag: { name: { equals: "MN", mode: "insensitive" } } } } },
+          { groupMemberships: { some: { group: { name: { equals: "CN", mode: "insensitive" } } } } },
+          { groupMemberships: { some: { group: { name: { equals: "MN", mode: "insensitive" } } } } },
+        ],
+      },
+    }),
     prisma.announcement.findUnique({ where: { id: "global" } }),
   ]);
 
@@ -26,7 +38,7 @@ export default async function AdminDashboardPage() {
         Jump into any admin area — sections match the nav dropdowns above.
       </p>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/applications"
           className="glass rounded-2xl p-6 transition hover:border-cyan/40"
@@ -40,6 +52,13 @@ export default async function AdminDashboardPage() {
         >
           <p className="font-body text-sm text-off-white/50">Active members</p>
           <p className="mt-2 font-display text-4xl">{userCount}</p>
+        </Link>
+        <Link
+          href="/admin/network"
+          className="glass rounded-2xl p-6 transition hover:border-cyan/40"
+        >
+          <p className="font-body text-sm text-off-white/50">Network creators</p>
+          <p className="mt-2 font-display text-4xl text-cyan">{networkCount}</p>
         </Link>
         <Link
           href="/live"

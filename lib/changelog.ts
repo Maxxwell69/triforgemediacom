@@ -116,6 +116,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.94",
+    date: "August 12, 2026",
+    title: "Network Creator dashboard",
+    summary:
+      "Admins get a Network Creators dashboard with headcounts, TikTok reach, who’s live, Diamond Rush league, and hub engagement for CN, MN, or both.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Network dashboard: creator counts, follower buckets, live roster, league classes, TikTask/XP/streaks, chat & webinar activity",
+      },
+      {
+        kind: "improve",
+        text: "Admin home shows Network creators shortcut tile; clear notes where diamond earnings / live history aren’t stored yet",
+      },
+    ],
+  },
+  {
     version: "2.93",
     date: "August 12, 2026",
     title: "Chat names no longer stuck on Member",

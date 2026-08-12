@@ -22,6 +22,11 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     description: "Members, applicants, and imports",
     links: [
       {
+        href: "/admin/network",
+        label: "Network dashboard",
+        description: "Creator counts, reach, live, league, hub engagement",
+      },
+      {
         href: "/admin/users",
         label: "Users",
         description: "Roles, bans, TikTok links, groups & tags",
