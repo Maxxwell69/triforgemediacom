@@ -168,7 +168,7 @@ export async function POST(
     );
   }
 
-  let imageUrl: string | null = parsed.data.imageUrl?.trim() || null;
+  const imageUrl: string | null = parsed.data.imageUrl?.trim() || null;
   if (imageUrl) {
     if (result.user.role !== "ADMIN") {
       return NextResponse.json(

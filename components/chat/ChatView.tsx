@@ -738,6 +738,8 @@ export default function ChatView({
                           }
                           className="rounded-lg bg-cyan px-3 py-1.5 font-body text-xs font-semibold text-charcoal transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                         >
+                          {editSaving ? "Saving…" : "Save"}
+                        </button>
                         <button
                           type="button"
                           onClick={cancelEdit}

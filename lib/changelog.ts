@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.92",
+    date: "August 11, 2026",
+    title: "Fix chat image build",
+    summary:
+      "Restores a broken edit-message Save button that was failing Railway builds for admin chat images.",
+    items: [
+      {
+        kind: "fix",
+        text: "ChatView syntax error no longer blocks staging/production deploys",
+      },
+    ],
+  },
+  {
     version: "2.91",
     date: "August 11, 2026",
     title: "Admin chat images",
