@@ -156,3 +156,17 @@ Also add a matching entry at the top of `lib/changelog.ts` (and update
 - **Schema**: Prisma doesn't auto-generate down-migrations. For a bad migration, write a
   new forward migration that undoes the change rather than trying to rewrite history that
   may already be applied in production.
+
+## Backups (Obtainable Hub dry-run)
+
+Before any Prisma migrate that could touch Railway Postgres:
+
+1. **Dashboard snapshots** (fastest revert of a volume):
+   - Production **Postgres** (`postgres-volume`)
+   - Staging **Postgres-AZt4** (`postgres-volume-S2Zx`)
+   - **Redis** (`redis-volume`) optional
+2. **File dump** (off-platform copy): `npm run db:backup` writes `backups/hub-*.sql` (gitignored).
+   Dumping production requires `ALLOW_PROD_DB_OPS=yes` plus `PROD_DB_HOST` set (same tripwire as `guard:db`).
+   Needs `pg_dump` on your PATH. If it is missing, the Railway snapshot is enough.
+
+Do **not** run `FLUSHALL` on the shared Redis. The dry-run branch does not migrate schema and does not `CREATE DATABASE`.

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
@@ -57,6 +57,26 @@ export async function requireAdminPage() {
   const user = await getFreshSessionUser();
   if (!user || !isAdminRole(user.role)) {
     redirect("/login");
+  }
+  return user;
+}
+
+/**
+ * TriForge staff only (Obtainable Hub control plane).
+ * If SUPERADMIN_EMAILS is unset, the route 404s so Hub 0 is unchanged.
+ */
+export async function requireSuperAdminPage() {
+  const allow = (process.env.SUPERADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (allow.length === 0) {
+    notFound();
+  }
+  const user = await requireAdminPage();
+  const email = (user.email || "").toLowerCase();
+  if (!allow.includes(email)) {
+    notFound();
   }
   return user;
 }

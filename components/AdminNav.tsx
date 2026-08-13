@@ -7,9 +7,14 @@ import {
   ADMIN_NAV_SECTIONS,
   isAdminLinkActive,
   isAdminSectionActive,
+  type AdminNavSection,
 } from "@/lib/adminNav";
 
-export default function AdminNav() {
+export default function AdminNav({
+  sections = ADMIN_NAV_SECTIONS,
+}: {
+  sections?: AdminNavSection[];
+}) {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -53,7 +58,7 @@ export default function AdminNav() {
         Dashboard
       </Link>
 
-      {ADMIN_NAV_SECTIONS.map((section) => {
+      {sections.map((section) => {
         const sectionActive = isAdminSectionActive(pathname, section);
         const open = openId === section.id;
 

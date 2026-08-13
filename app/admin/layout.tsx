@@ -2,9 +2,12 @@ import Logo from "@/components/Logo";
 import AdminNav from "@/components/AdminNav";
 import SignOutButton from "@/components/SignOutButton";
 import { requireAdminPage } from "@/lib/session";
+import { ADMIN_NAV_SECTIONS, filterAdminNavSections } from "@/lib/adminNav";
+import { hubHas } from "@/lib/hub/modules";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminPage();
+  const sections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
 
   return (
     <div className="min-h-screen">
@@ -14,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SignOutButton />
         </div>
         <div className="mt-3">
-          <AdminNav />
+          <AdminNav sections={sections} />
         </div>
       </header>
       {children}

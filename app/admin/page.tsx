@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ADMIN_NAV_SECTIONS } from "@/lib/adminNav";
+import { ADMIN_NAV_SECTIONS, filterAdminNavSections } from "@/lib/adminNav";
+import { hubHas } from "@/lib/hub/modules";
 import { liveNotStaleWhere } from "@/lib/tiktokLive";
 import { setAnnouncement, clearAnnouncement } from "./actions";
 
@@ -10,6 +11,10 @@ const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
 export default async function AdminDashboardPage() {
+  const showTiktok = hubHas("tiktokInsights");
+  const showApplications = hubHas("applications");
+  const navSections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
+
   const [pendingCount, userCount, liveCount, networkCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
@@ -37,15 +42,24 @@ export default async function AdminDashboardPage() {
       <p className="mt-2 font-body text-off-white/60">
         Jump into any admin area — sections match the nav dropdowns above.
       </p>
+      {process.env.SUPERADMIN_EMAILS?.trim() ? (
+        <p className="mt-3 font-body text-sm">
+          <Link href="/superadmin" className="text-cyan hover:underline">
+            Super-admin catalog (dry run)
+          </Link>
+        </p>
+      ) : null}
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="/admin/applications"
-          className="glass rounded-2xl p-6 transition hover:border-cyan/40"
-        >
-          <p className="font-body text-sm text-off-white/50">Pending applicants</p>
-          <p className="mt-2 font-display text-4xl text-gradient">{pendingCount}</p>
-        </Link>
+        {showApplications && (
+          <Link
+            href="/admin/applications"
+            className="glass rounded-2xl p-6 transition hover:border-cyan/40"
+          >
+            <p className="font-body text-sm text-off-white/50">Pending applicants</p>
+            <p className="mt-2 font-display text-4xl text-gradient">{pendingCount}</p>
+          </Link>
+        )}
         <Link
           href="/admin/users"
           className="glass rounded-2xl p-6 transition hover:border-cyan/40"
@@ -53,20 +67,24 @@ export default async function AdminDashboardPage() {
           <p className="font-body text-sm text-off-white/50">Active members</p>
           <p className="mt-2 font-display text-4xl">{userCount}</p>
         </Link>
-        <Link
-          href="/admin/network"
-          className="glass rounded-2xl p-6 transition hover:border-cyan/40"
-        >
-          <p className="font-body text-sm text-off-white/50">Network creators</p>
-          <p className="mt-2 font-display text-4xl text-cyan">{networkCount}</p>
-        </Link>
-        <Link
-          href="/live"
-          className="glass rounded-2xl p-6 transition hover:border-orange/40"
-        >
-          <p className="font-body text-sm text-off-white/50">Live on TikTok</p>
-          <p className="mt-2 font-display text-4xl text-orange">{liveCount}</p>
-        </Link>
+        {showTiktok && (
+          <Link
+            href="/admin/network"
+            className="glass rounded-2xl p-6 transition hover:border-cyan/40"
+          >
+            <p className="font-body text-sm text-off-white/50">Network creators</p>
+            <p className="mt-2 font-display text-4xl text-cyan">{networkCount}</p>
+          </Link>
+        )}
+        {showTiktok && (
+          <Link
+            href="/live"
+            className="glass rounded-2xl p-6 transition hover:border-orange/40"
+          >
+            <p className="font-body text-sm text-off-white/50">Live on TikTok</p>
+            <p className="mt-2 font-display text-4xl text-orange">{liveCount}</p>
+          </Link>
+        )}
       </div>
 
       <section className="mt-12">
@@ -74,7 +92,7 @@ export default async function AdminDashboardPage() {
           Admin areas
         </h2>
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {ADMIN_NAV_SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <div key={section.id} className="glass rounded-2xl p-5">
               <h3 className="font-display text-lg tracking-wide text-off-white">
                 {section.label}

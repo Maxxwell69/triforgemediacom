@@ -29,6 +29,7 @@ import {
   filterChannelsForActiveGroup,
   resolveActiveGroupId,
 } from "@/lib/activeGroup";
+import { hubHas } from "@/lib/hub/modules";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
@@ -196,13 +197,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
           >
             Dashboard
           </Link>
-          <Link
-            href="/live"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
-          >
-            Live
-          </Link>
-          {showMyProjects && (
+          {hubHas("tiktokInsights") && (
+            <Link
+              href="/live"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
+            >
+              Live
+            </Link>
+          )}
+          {showMyProjects && hubHas("projects") && (
             <Link
               href="/apps/projects"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -210,7 +213,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Projects
             </Link>
           )}
-          {personalTasksAccess && (
+          {personalTasksAccess && hubHas("personalTasks") && (
             <Link
               href="/apps/tasks"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -218,44 +221,54 @@ export default async function AppShell({ children }: { children: React.ReactNode
               My Tasks
             </Link>
           )}
-          <Link
-            href="/calendar"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Calendar
-          </Link>
+          {hubHas("calendar") && (
+            <Link
+              href="/calendar"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Calendar
+            </Link>
+          )}
           <Link
             href="/members"
             className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
           >
             Members
           </Link>
-          <Link
-            href="/rewards"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Rewards
-          </Link>
-          <Link
-            href="/learn"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Learn
-          </Link>
-          <Link
-            href="/webinars"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Webinars
-          </Link>
-          <HubBugNavLink initialCount={hubBugUnread} />
+          {hubHas("rewards") && (
+            <Link
+              href="/rewards"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Rewards
+            </Link>
+          )}
+          {hubHas("learning") && (
+            <Link
+              href="/learn"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Learn
+            </Link>
+          )}
+          {hubHas("webinars") && (
+            <Link
+              href="/webinars"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Webinars
+            </Link>
+          )}
+          {hubHas("hubBug") && (
+            <HubBugNavLink initialCount={hubBugUnread} />
+          )}
           <Link
             href="/account"
             className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
           >
             Account
           </Link>
-          {tikTaskAccess && (
+          {tikTaskAccess && hubHas("tiktask") && (
             <Link
               href="/apps/tiktask"
               className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"

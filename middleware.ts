@@ -8,9 +8,10 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isStaffRoute =
+    pathname.startsWith("/admin") || pathname.startsWith("/superadmin");
 
-  if (isAdminRoute) {
+  if (isStaffRoute) {
     const role = req.auth?.user?.role;
     const isAllowed = role === "ADMIN" || role === "MOD";
     if (!req.auth || !isAllowed) {
@@ -22,5 +23,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/superadmin/:path*"],
 };
