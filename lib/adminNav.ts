@@ -129,8 +129,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     id: "webinars",
     label: "Live & events",
-    description: "Webinars and hub events",
+    description: "Who's live, webinars, and hub events",
     links: [
+      {
+        href: "/live",
+        label: "Live page",
+        description: "See who's live on TikTok right now",
+      },
       {
         href: "/admin/webinars",
         label: "Webinars",

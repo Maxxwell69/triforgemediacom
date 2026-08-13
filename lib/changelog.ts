@@ -116,6 +116,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.95",
+    date: "August 13, 2026",
+    title: "Live page in admin nav",
+    summary:
+      "Admins can open the community Live page from Live & events in the admin menu.",
+    items: [
+      {
+        kind: "improve",
+        text: "Admin → Live & events now includes a link to /live (who’s live on TikTok)",
+      },
+    ],
+  },
+  {
     version: "2.94",
     date: "August 12, 2026",
     title: "Network Creator dashboard",
