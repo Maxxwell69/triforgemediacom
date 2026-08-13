@@ -1,23 +1,49 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { ALL_SKU_IDS, isHubSkuId } from "./catalog";
+
+/** Cookie set from /superadmin — this browser only. Does not change production. */
+export const DRY_RUN_ENABLED_COOKIE = "tf_hub_dry_run_enabled";
+
+function parseSkuList(raw: string | undefined | null): Set<string> {
+  const ids = new Set<string>();
+  if (!raw?.trim()) return ids;
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (id && isHubSkuId(id)) ids.add(id);
+  }
+  return ids;
+}
+
+function hiddenFromEnabled(enabled: Set<string>): Set<string> {
+  const hidden = new Set<string>();
+  for (const id of ALL_SKU_IDS) {
+    if (id === "core") continue;
+    if (!enabled.has(id)) hidden.add(id);
+  }
+  return hidden;
+}
+
+function hiddenFromEnv(): Set<string> {
+  return parseSkuList(process.env.HUB_DRY_RUN_HIDE);
+}
 
 /**
  * Dry-run module gate.
- *
- * Default: every SKU is on (flagship Hub 0 looks identical to today).
- * Staging can hide SKUs with HUB_DRY_RUN_HIDE=tiktokInsights,ghlImport
- * (comma-separated catalog ids). Never set this on production.
+ * 1. Super-admin preview cookie (this browser) if set
+ * 2. Else HUB_DRY_RUN_HIDE env
+ * 3. Else everything on (flagship default)
  */
 export function getHiddenSkuIds(): Set<string> {
-  const raw = process.env.HUB_DRY_RUN_HIDE?.trim();
-  if (!raw) return new Set();
-
-  const hidden = new Set<string>();
-  for (const part of raw.split(",")) {
-    const id = part.trim();
-    if (id && isHubSkuId(id)) hidden.add(id);
+  try {
+    const cookie = cookies().get(DRY_RUN_ENABLED_COOKIE)?.value;
+    if (cookie != null && cookie !== "") {
+      return hiddenFromEnabled(parseSkuList(cookie));
+    }
+  } catch {
+    // No request context (scripts) — fall through to env.
   }
-  return hidden;
+  return hiddenFromEnv();
 }
 
 export function getEnabledSkuIds(): Set<string> {
@@ -25,7 +51,6 @@ export function getEnabledSkuIds(): Set<string> {
   return new Set(ALL_SKU_IDS.filter((id) => !hidden.has(id)));
 }
 
-/** Core is always enabled. Optional/flagship SKUs can be hidden in dry-run. */
 export function hubHas(sku: string): boolean {
   if (sku === "core") return true;
   return !getHiddenSkuIds().has(sku);
