@@ -16,15 +16,15 @@ export default async function AdminProgressionModulePage({
   params: { moduleId: string };
 }) {
   requireProgressionModule();
-  const [module, categories] = await Promise.all([
+  const [learnModule, categories] = await Promise.all([
     prisma.progressionLearningModule.findUnique({
       where: { id: params.moduleId },
       include: { quiz: { include: { questions: { orderBy: { sortOrder: "asc" } } } } },
     }),
     prisma.progressionCategory.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
-  if (!module) notFound();
-  const questions = module.quiz?.questions ?? [];
+  if (!learnModule) notFound();
+  const questions = learnModule.quiz?.questions ?? [];
   const slots = Math.max(questions.length + 1, 3);
 
   return (
@@ -32,21 +32,21 @@ export default async function AdminProgressionModulePage({
       <Link href="/admin/progression/learn" className="font-body text-sm text-off-white/50 hover:text-cyan">
         ← Modules
       </Link>
-      <h1 className="mt-4 font-display text-4xl tracking-wide">{module.title}</h1>
+      <h1 className="mt-4 font-display text-4xl tracking-wide">{learnModule.title}</h1>
       <form action={updateLearningModule} className="glass mt-6 flex flex-col gap-3 rounded-2xl p-6">
-        <input type="hidden" name="id" value={module.id} />
-        <select name="categoryId" defaultValue={module.categoryId} className={fieldClass}>
+        <input type="hidden" name="id" value={learnModule.id} />
+        <select name="categoryId" defaultValue={learnModule.categoryId} className={fieldClass}>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <input name="title" defaultValue={module.title} required className={fieldClass} />
-        <textarea name="description" defaultValue={module.description ?? ""} rows={2} className={fieldClass} />
-        <textarea name="content" defaultValue={module.content ?? ""} rows={5} className={fieldClass} />
-        <input name="videoUrl" defaultValue={module.videoUrl ?? ""} className={fieldClass} />
-        <input name="linkUrl" defaultValue={module.linkUrl ?? ""} className={fieldClass} />
-        <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={module.imageUrl} />
-        <select name="status" defaultValue={module.status} className={fieldClass}>
+        <input name="title" defaultValue={learnModule.title} required className={fieldClass} />
+        <textarea name="description" defaultValue={learnModule.description ?? ""} rows={2} className={fieldClass} />
+        <textarea name="content" defaultValue={learnModule.content ?? ""} rows={5} className={fieldClass} />
+        <input name="videoUrl" defaultValue={learnModule.videoUrl ?? ""} className={fieldClass} />
+        <input name="linkUrl" defaultValue={learnModule.linkUrl ?? ""} className={fieldClass} />
+        <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={learnModule.imageUrl} />
+        <select name="status" defaultValue={learnModule.status} className={fieldClass}>
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
           <option value="ARCHIVED">Archived</option>
@@ -58,14 +58,14 @@ export default async function AdminProgressionModulePage({
 
       <form action={saveQuiz} className="glass mt-8 flex flex-col gap-4 rounded-2xl p-6">
         <h2 className="font-display text-xl text-off-white/80">Quiz</h2>
-        <input type="hidden" name="moduleId" value={module.id} />
+        <input type="hidden" name="moduleId" value={learnModule.id} />
         <input type="hidden" name="questionCount" value={slots} />
         <input
           name="passThreshold"
           type="number"
           min={1}
           max={100}
-          defaultValue={module.quiz?.passThreshold ?? 70}
+          defaultValue={learnModule.quiz?.passThreshold ?? 70}
           className={fieldClass}
         />
         {Array.from({ length: slots }).map((_, i) => {

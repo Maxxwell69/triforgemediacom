@@ -87,14 +87,14 @@ export async function completeMission(userId: string, missionId: string) {
 }
 
 export async function completeLearningModule(userId: string, moduleId: string) {
-  const module = await prisma.progressionLearningModule.findUnique({
+  const learnModule = await prisma.progressionLearningModule.findUnique({
     where: { id: moduleId },
     include: { quiz: true },
   });
-  if (!module || module.status !== "ACTIVE") throw new Error("Module is not available");
-  if (module.quiz) {
+  if (!learnModule || learnModule.status !== "ACTIVE") throw new Error("Module is not available");
+  if (learnModule.quiz) {
     const passed = await prisma.progressionQuizAttempt.findFirst({
-      where: { userId, quizId: module.quiz.id, passed: true },
+      where: { userId, quizId: learnModule.quiz.id, passed: true },
     });
     if (!passed) throw new Error("Pass the quiz first");
   }

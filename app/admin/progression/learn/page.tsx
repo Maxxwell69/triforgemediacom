@@ -52,16 +52,16 @@ export default async function AdminProgressionLearnPage() {
         </form>
       )}
       <div className="mt-6 flex flex-col gap-2">
-        {modules.map((module) => (
-          <div key={module.id} className="glass flex items-center justify-between gap-3 rounded-xl p-4">
-            <Link href={`/admin/progression/learn/${module.id}`} className="min-w-0 flex-1">
-              <p className="font-body text-sm text-off-white">{module.title}</p>
+        {modules.map((learnModule) => (
+          <div key={learnModule.id} className="glass flex items-center justify-between gap-3 rounded-xl p-4">
+            <Link href={`/admin/progression/learn/${learnModule.id}`} className="min-w-0 flex-1">
+              <p className="font-body text-sm text-off-white">{learnModule.title}</p>
               <p className="font-body text-xs text-off-white/40">
-                {module.category.name} · {module.status}
-                {module.quiz ? " · quiz" : ""}
+                {learnModule.category.name} · {learnModule.status}
+                {learnModule.quiz ? " · quiz" : ""}
               </p>
             </Link>
-            <ProgressionRowTools id={module.id} kind="module" />
+            <ProgressionRowTools id={learnModule.id} kind="module" />
           </div>
         ))}
       </div>

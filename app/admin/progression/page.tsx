@@ -81,10 +81,10 @@ export default async function AdminProgressionPage() {
             {moduleByCompletions.length === 0 ? (
               <li className="font-body text-sm text-off-white/40">No active modules</li>
             ) : (
-              moduleByCompletions.map((module) => (
-                <li key={module.id} className="flex justify-between font-body text-sm text-off-white/70">
-                  <span>{module.title}</span>
-                  <span>{module._count.completions}</span>
+              moduleByCompletions.map((learnModule) => (
+                <li key={learnModule.id} className="flex justify-between font-body text-sm text-off-white/70">
+                  <span>{learnModule.title}</span>
+                  <span>{learnModule._count.completions}</span>
                 </li>
               ))
             )}

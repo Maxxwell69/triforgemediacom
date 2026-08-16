@@ -109,11 +109,11 @@ export default async function ProgressPage() {
                       </li>
                     );
                   })}
-                  {category.modules.map((module) => (
-                    <li key={module.id}>
-                      <Link href={`/progress/learn/${module.id}`} className="font-body text-sm text-cyan hover:underline">
-                        {doneModules.has(module.id) ? "✓ " : ""}
-                        {module.title}
+                  {category.modules.map((learnModule) => (
+                    <li key={learnModule.id}>
+                      <Link href={`/progress/learn/${learnModule.id}`} className="font-body text-sm text-cyan hover:underline">
+                        {doneModules.has(learnModule.id) ? "✓ " : ""}
+                        {learnModule.title}
                       </Link>
                     </li>
                   ))}

@@ -10,17 +10,17 @@ export const dynamic = "force-dynamic";
 export default async function ProgressLearnPage({ params }: { params: { moduleId: string } }) {
   requireProgressionModule();
   const { user } = await requireProfile();
-  const module = await prisma.progressionLearningModule.findUnique({
+  const learnModule = await prisma.progressionLearningModule.findUnique({
     where: { id: params.moduleId },
     include: { quiz: { include: { questions: { orderBy: { sortOrder: "asc" } } } }, category: true },
   });
-  if (!module || module.status !== "ACTIVE") notFound();
+  if (!learnModule || learnModule.status !== "ACTIVE") notFound();
   const done = await prisma.progressionModuleCompletion.findUnique({
-    where: { userId_moduleId: { userId: user.id, moduleId: module.id } },
+    where: { userId_moduleId: { userId: user.id, moduleId: learnModule.id } },
   });
-  const lastAttempt = module.quiz
+  const lastAttempt = learnModule.quiz
     ? await prisma.progressionQuizAttempt.findFirst({
-        where: { userId: user.id, quizId: module.quiz.id },
+        where: { userId: user.id, quizId: learnModule.quiz.id },
         orderBy: { createdAt: "desc" },
       })
     : null;
@@ -31,37 +31,37 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
         <Link href="/progress" className="font-body text-sm text-off-white/50 hover:text-cyan">
           ← Progress
         </Link>
-        <h1 className="mt-4 font-display text-4xl tracking-wide">{module.title}</h1>
-        <p className="mt-1 font-body text-xs text-off-white/40">{module.category.name}</p>
-        {module.description ? (
-          <p className="mt-4 font-body text-sm text-off-white/65">{module.description}</p>
+        <h1 className="mt-4 font-display text-4xl tracking-wide">{learnModule.title}</h1>
+        <p className="mt-1 font-body text-xs text-off-white/40">{learnModule.category.name}</p>
+        {learnModule.description ? (
+          <p className="mt-4 font-body text-sm text-off-white/65">{learnModule.description}</p>
         ) : null}
-        {module.content ? (
+        {learnModule.content ? (
           <div className="glass mt-6 whitespace-pre-wrap rounded-2xl p-6 font-body text-sm text-off-white/75">
-            {module.content}
+            {learnModule.content}
           </div>
         ) : null}
-        {module.videoUrl ? (
+        {learnModule.videoUrl ? (
           <p className="mt-4">
-            <a href={module.videoUrl} className="font-body text-sm text-cyan hover:underline" target="_blank" rel="noreferrer">
+            <a href={learnModule.videoUrl} className="font-body text-sm text-cyan hover:underline" target="_blank" rel="noreferrer">
               Watch video
             </a>
           </p>
         ) : null}
-        {module.linkUrl ? (
+        {learnModule.linkUrl ? (
           <p className="mt-2">
-            <a href={module.linkUrl} className="font-body text-sm text-cyan hover:underline" target="_blank" rel="noreferrer">
+            <a href={learnModule.linkUrl} className="font-body text-sm text-cyan hover:underline" target="_blank" rel="noreferrer">
               Open resource
             </a>
           </p>
         ) : null}
 
-        {module.quiz && module.quiz.questions.length > 0 ? (
+        {learnModule.quiz && learnModule.quiz.questions.length > 0 ? (
           <form action={submitMyQuiz} className="glass mt-8 flex flex-col gap-4 rounded-2xl p-6">
-            <h2 className="font-display text-xl text-off-white/80">Quiz · pass {module.quiz.passThreshold}%</h2>
-            <input type="hidden" name="quizId" value={module.quiz.id} />
-            <input type="hidden" name="questionCount" value={module.quiz.questions.length} />
-            {module.quiz.questions.map((question, i) => {
+            <h2 className="font-display text-xl text-off-white/80">Quiz · pass {learnModule.quiz.passThreshold}%</h2>
+            <input type="hidden" name="quizId" value={learnModule.quiz.id} />
+            <input type="hidden" name="questionCount" value={learnModule.quiz.questions.length} />
+            {learnModule.quiz.questions.map((question, i) => {
               const options = Array.isArray(question.options) ? (question.options as string[]) : [];
               return (
                 <fieldset key={question.id}>
@@ -90,7 +90,7 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
           <form
             action={async () => {
               "use server";
-              await completeMyModule(module.id);
+              await completeMyModule(learnModule.id);
             }}
             className="mt-8"
           >
