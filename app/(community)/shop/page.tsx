@@ -24,9 +24,16 @@ export default async function ShopPage() {
           HUB <span className="text-gradient">SHOP</span>
         </h1>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-body text-off-white/60">
-            Official merch and digital downloads for the network.
-          </p>
+          <div>
+            <p className="font-body text-off-white/60">
+              {settings.tagline || "Official merch and digital downloads for the network."}
+            </p>
+            {settings.supportEmail ? (
+              <p className="mt-1 font-body text-xs text-off-white/40">
+                Shop help: {settings.supportEmail}
+              </p>
+            ) : null}
+          </div>
           <div className="flex gap-3 font-body text-sm">
             <Link href="/shop/orders" className="text-off-white/50 transition hover:text-cyan">
               Orders

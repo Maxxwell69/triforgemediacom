@@ -225,19 +225,51 @@ export async function deleteVariant(variantId: string) {
 
 export async function updateShopSettings(formData: FormData) {
   await requireShopAdmin();
-  await getOrCreateShopSettings();
+  const existing = await getOrCreateShopSettings();
   const parsed = shopSettingsSchema.safeParse({
     name: formData.get("name"),
+    tagline: formData.get("tagline"),
+    supportEmail: formData.get("supportEmail"),
     currency: formData.get("currency"),
     isPublished: formData.get("isPublished") === "on",
+    shippingCountries: formData.get("shippingCountries"),
+    stripePublishableKey: formData.get("stripePublishableKey"),
+    stripeSecretKey: formData.get("stripeSecretKey"),
+    stripeWebhookSecret: formData.get("stripeWebhookSecret"),
+    shopifyShopDomain: formData.get("shopifyShopDomain"),
+    printifyShopId: formData.get("printifyShopId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid settings");
   }
 
+  const shipping = parsed.data.shippingCountries
+    ? parsed.data.shippingCountries
+        .split(/[\s,]+/)
+        .map((code) => code.trim().toUpperCase())
+        .filter((code) => /^[A-Z]{2}$/.test(code))
+        .join(",")
+    : existing.shippingCountries;
+
   await prisma.shopSettings.update({
     where: { id: "default" },
-    data: parsed.data,
+    data: {
+      name: parsed.data.name,
+      tagline: parsed.data.tagline || null,
+      supportEmail: parsed.data.supportEmail || null,
+      currency: parsed.data.currency,
+      isPublished: parsed.data.isPublished,
+      shippingCountries: shipping || "US,CA,GB,AU",
+      shopifyShopDomain: parsed.data.shopifyShopDomain || null,
+      printifyShopId: parsed.data.printifyShopId || null,
+      ...(parsed.data.stripePublishableKey
+        ? { stripePublishableKey: parsed.data.stripePublishableKey }
+        : {}),
+      ...(parsed.data.stripeSecretKey ? { stripeSecretKey: parsed.data.stripeSecretKey } : {}),
+      ...(parsed.data.stripeWebhookSecret
+        ? { stripeWebhookSecret: parsed.data.stripeWebhookSecret }
+        : {}),
+    },
   });
   revalidateShop();
 }

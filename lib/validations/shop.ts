@@ -21,10 +21,45 @@ export const shopVariantSchema = z.object({
 
 export const shopSettingsSchema = z.object({
   name: z.string().trim().min(2, "Shop name must be at least 2 characters").max(80),
+  tagline: z.string().trim().max(200).optional().or(z.literal("")),
+  supportEmail: z
+    .string()
+    .trim()
+    .email("Enter a valid support email")
+    .max(200)
+    .optional()
+    .or(z.literal("")),
   currency: z
     .string()
     .trim()
     .regex(/^[A-Za-z]{3}$/, "Use a 3-letter currency code (e.g. usd)")
     .transform((value) => value.toLowerCase()),
   isPublished: z.boolean(),
+  shippingCountries: z.string().trim().max(200).optional().or(z.literal("")),
+  stripePublishableKey: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => !value || value.startsWith("pk_"), "Publishable key should start with pk_"),
+  stripeSecretKey: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (value) => !value || value.startsWith("sk_") || value.startsWith("rk_"),
+      "Secret key should start with sk_ or rk_"
+    ),
+  stripeWebhookSecret: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => !value || value.startsWith("whsec_"), "Webhook secret should start with whsec_"),
+  shopifyShopDomain: z.string().trim().max(120).optional().or(z.literal("")),
+  printifyShopId: z.string().trim().max(80).optional().or(z.literal("")),
 });

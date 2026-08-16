@@ -123,6 +123,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "2.98",
+    date: "August 16, 2026",
+    title: "Shop setup and Stripe connect",
+    summary:
+      "Admins can paste Stripe keys, copy the webhook URL, and finish storefront setup from Shop settings.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Shop settings: Stripe keys, webhook endpoint, shipping countries, support email, tagline",
+      },
+      {
+        kind: "improve",
+        text: "Go-live checklist for Stripe, file storage, published catalog, and active products",
+      },
+    ],
+  },
+  {
     version: "2.97",
     date: "August 15, 2026",
     title: "Shop checkout and downloads",

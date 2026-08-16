@@ -1,18 +1,25 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { hubHas } from "@/lib/hub/modules";
 import { getOrCreateShopSettings } from "@/lib/shop/settings";
-import { appUrl, checkoutIntegrationId, getStripe, isStripeConfigured } from "@/lib/shop/stripe";
+import {
+  appUrl,
+  checkoutIntegrationId,
+  getStripe,
+  isStripeConfigured,
+  parseShippingCountries,
+} from "@/lib/shop/stripe";
 
 export async function startShopCheckout(formData: FormData) {
   if (!hubHas("shop")) {
     throw new Error("Shop is not available");
   }
   const { user } = await requireProfile();
-  if (!isStripeConfigured()) {
+  if (!(await isStripeConfigured())) {
     throw new Error("Checkout is not configured yet");
   }
 
@@ -44,7 +51,7 @@ export async function startShopCheckout(formData: FormData) {
   }
 
   const subtotalCents = variant.priceCents * quantity;
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   let customerId = (
     await prisma.user.findUnique({
@@ -110,7 +117,11 @@ export async function startShopCheckout(formData: FormData) {
     success_url: `${appUrl()}/shop/orders?paid=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/shop/${variant.product.slug}`,
     ...(variant.product.kind === "PHYSICAL"
-      ? { shipping_address_collection: { allowed_countries: ["US", "CA", "GB", "AU"] } }
+      ? {
+          shipping_address_collection: {
+            allowed_countries: parseShippingCountries(settings.shippingCountries) as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[],
+          },
+        }
       : {}),
   });
 
@@ -127,9 +138,9 @@ export async function startShopCheckout(formData: FormData) {
 }
 
 export async function syncPaidCheckout(sessionId: string) {
-  if (!hubHas("shop") || !isStripeConfigured() || !sessionId) return;
+  if (!hubHas("shop") || !(await isStripeConfigured()) || !sessionId) return;
   const { user } = await requireProfile();
-  const stripe = getStripe();
+  const stripe = await getStripe();
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   if (session.metadata?.userId !== user.id) return;
   const { fulfillCheckoutSession } = await import("@/lib/shop/fulfill");

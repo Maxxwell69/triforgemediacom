@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/shop/stripe";
+import { getShopStripeConfig, getStripe } from "@/lib/shop/stripe";
 import { fulfillCheckoutSession, markCheckoutFailed } from "@/lib/shop/fulfill";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
+  const config = await getShopStripeConfig();
+  if (!config.webhookSecret) {
     return NextResponse.json({ error: "Webhook is not configured" }, { status: 503 });
   }
 
@@ -17,11 +17,11 @@ export async function POST(req: Request) {
   }
 
   const raw = await req.text();
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(raw, signature, secret);
+    event = stripe.webhooks.constructEvent(raw, signature, config.webhookSecret);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }

@@ -66,7 +66,7 @@ export default async function ShopProductPage({ params }: { params: { slug: stri
             <ShopBuyForm
               kind={product.kind}
               currency={settings.currency}
-              checkoutReady={isStripeConfigured()}
+              checkoutReady={await isStripeConfigured()}
               digitalReady={product.kind === "PHYSICAL" || product.files.length > 0}
               variants={product.variants.map((variant) => ({
                 id: variant.id,

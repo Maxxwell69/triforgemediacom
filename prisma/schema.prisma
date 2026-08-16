@@ -1562,8 +1562,15 @@ enum ShopOrderStatus {
 model ShopSettings {
   id                String   @id @default("default")
   name              String   @default("TriForge Shop")
+  tagline           String?
+  supportEmail      String?
   currency          String   @default("usd")
   isPublished       Boolean  @default(false)
+  /// Comma-separated ISO country codes for physical Stripe Checkout shipping.
+  shippingCountries String   @default("US,CA,GB,AU")
+  stripePublishableKey String?
+  stripeSecretKey      String?
+  stripeWebhookSecret  String?
   shopifyShopDomain String?
   printifyShopId    String?
   createdAt         DateTime @default(now())
