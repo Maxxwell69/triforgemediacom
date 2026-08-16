@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
 import ProgressionAdminNav from "@/components/admin/ProgressionAdminNav";
+import { populateOfficialLadder } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,14 @@ export default async function AdminProgressionPage() {
         certs here, then test on /progress.
       </p>
       <ProgressionAdminNav />
+      <form action={populateOfficialLadder} className="glass mt-6 rounded-2xl p-5">
+        <p className="font-body text-sm text-off-white/70">
+          Load the official TriForge ladder (categories, levels, track picks, module shells, certs, badges, starter skills). Safe to re-run — it updates by name.
+        </p>
+        <button type="submit" className="mt-3 rounded-lg bg-orange px-5 py-2 font-body text-sm font-semibold text-off-white">
+          Load official content
+        </button>
+      </form>
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="glass rounded-2xl p-4">

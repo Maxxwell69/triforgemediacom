@@ -12,7 +12,10 @@ const fieldClass =
 
 export default async function AdminProgressionCategoriesPage() {
   requireProgressionModule();
-  const categories = await prisma.progressionCategory.findMany({ orderBy: { sortOrder: "asc" } });
+  const [categories, levels] = await Promise.all([
+    prisma.progressionCategory.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.progressionLevel.findMany({ orderBy: { sortOrder: "asc" } }),
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -25,6 +28,14 @@ export default async function AdminProgressionCategoriesPage() {
         <input name="name" required placeholder="e.g. Live Hosting" className={fieldClass} />
         <textarea name="description" rows={2} className={fieldClass} />
         <ImageUploadField name="imageUrl" folder="progression-images" label="Image" />
+        <select name="unlockAtLevelId" defaultValue="" className={fieldClass}>
+          <option value="">Available from the start</option>
+          {levels.map((level) => (
+            <option key={level.id} value={level.id}>
+              Unlocks at {level.name}
+            </option>
+          ))}
+        </select>
         <select name="status" defaultValue="DRAFT" className={fieldClass}>
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
@@ -40,6 +51,14 @@ export default async function AdminProgressionCategoriesPage() {
             <input name="name" defaultValue={category.name} required className={fieldClass} />
             <textarea name="description" defaultValue={category.description ?? ""} rows={2} className={fieldClass} />
             <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={category.imageUrl} />
+            <select name="unlockAtLevelId" defaultValue={category.unlockAtLevelId ?? ""} className={fieldClass}>
+              <option value="">Available from the start</option>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>
+                  Unlocks at {level.name}
+                </option>
+              ))}
+            </select>
             <select name="status" defaultValue={category.status} className={fieldClass}>
               <option value="DRAFT">Draft</option>
               <option value="ACTIVE">Active</option>

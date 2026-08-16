@@ -15,6 +15,7 @@ export default async function ProgressPage() {
   const doneModules = new Set(progress.moduleCompletions.map((c) => c.moduleId));
   const heldSkills = new Set(progress.skillsHeld.map((s) => s.skillId));
   const heldBadges = new Set(progress.badgesHeld.map((b) => b.badgeId));
+  const currentSort = progress.profile?.currentLevel?.sortOrder ?? -1;
 
   const missionBlocks = await Promise.all(
     progress.categories.flatMap((category) =>
@@ -83,11 +84,16 @@ export default async function ProgressPage() {
         <section className="mt-10">
           <h2 className="font-display text-2xl text-off-white/80">Tracks</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {progress.categories.map((category) => (
-              <div key={category.id} className="glass rounded-2xl p-5">
+            {progress.categories.map((category) => {
+              const locked =
+                !!category.unlockAtLevel && currentSort < category.unlockAtLevel.sortOrder;
+              return (
+              <div key={category.id} className={`glass rounded-2xl p-5 ${locked ? "opacity-50" : ""}`}>
                 <p className="font-body font-semibold text-off-white">{category.name}</p>
                 <p className="font-body text-xs text-cyan">
-                  {progress.xpByCategory[category.id] ?? 0} category XP
+                  {locked
+                    ? `Locked · unlocks at ${category.unlockAtLevel?.name}`
+                    : `${progress.xpByCategory[category.id] ?? 0} category XP`}
                 </p>
                 <ul className="mt-3 flex flex-col gap-2">
                   {category.missions.map((mission) => {
@@ -99,6 +105,8 @@ export default async function ProgressPage() {
                         </span>
                         {doneMissions.has(mission.id) && mission.recurrence === "ONE_TIME" ? (
                           <span className="font-body text-xs text-cyan">Done</span>
+                        ) : locked ? (
+                          <span className="font-body text-xs text-off-white/40">Locked</span>
                         ) : (
                           <CompleteMissionButton
                             missionId={mission.id}
@@ -111,10 +119,14 @@ export default async function ProgressPage() {
                   })}
                   {category.modules.map((learnModule) => (
                     <li key={learnModule.id}>
-                      <Link href={`/progress/learn/${learnModule.id}`} className="font-body text-sm text-cyan hover:underline">
-                        {doneModules.has(learnModule.id) ? "✓ " : ""}
-                        {learnModule.title}
-                      </Link>
+                      {locked ? (
+                        <span className="font-body text-sm text-off-white/40">{learnModule.title}</span>
+                      ) : (
+                        <Link href={`/progress/learn/${learnModule.id}`} className="font-body text-sm text-cyan hover:underline">
+                          {doneModules.has(learnModule.id) ? "✓ " : ""}
+                          {learnModule.title}
+                        </Link>
+                      )}
                     </li>
                   ))}
                   {category.certifications.map((cert) => {
@@ -127,7 +139,8 @@ export default async function ProgressPage() {
                   })}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

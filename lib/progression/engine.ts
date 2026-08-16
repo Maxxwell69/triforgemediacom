@@ -47,9 +47,26 @@ function periodStart(recurrence: "DAILY" | "WEEKLY"): Date {
   return start;
 }
 
+export async function categoryUnlockMessage(userId: string, categoryId: string): Promise<string | null> {
+  const category = await prisma.progressionCategory.findUnique({
+    where: { id: categoryId },
+    include: { unlockAtLevel: true },
+  });
+  if (!category?.unlockAtLevel) return null;
+  const profile = await prisma.progressionProfile.findUnique({
+    where: { userId },
+    include: { currentLevel: true },
+  });
+  const currentSort = profile?.currentLevel?.sortOrder ?? -1;
+  if (currentSort >= category.unlockAtLevel.sortOrder) return null;
+  return `Unlocks at ${category.unlockAtLevel.name}`;
+}
+
 export async function canCompleteMission(userId: string, missionId: string): Promise<string | null> {
   const mission = await prisma.progressionMission.findUnique({ where: { id: missionId } });
   if (!mission || mission.status !== "ACTIVE") return "Mission is not available";
+  const locked = await categoryUnlockMessage(userId, mission.categoryId);
+  if (locked) return locked;
   if (mission.recurrence === "REPEATABLE") return null;
 
   const last = await prisma.progressionMissionCompletion.findFirst({
@@ -92,6 +109,8 @@ export async function completeLearningModule(userId: string, moduleId: string) {
     include: { quiz: true },
   });
   if (!learnModule || learnModule.status !== "ACTIVE") throw new Error("Module is not available");
+  const locked = await categoryUnlockMessage(userId, learnModule.categoryId);
+  if (locked) throw new Error(locked);
   if (learnModule.quiz) {
     const passed = await prisma.progressionQuizAttempt.findFirst({
       where: { userId, quizId: learnModule.quiz.id, passed: true },
@@ -109,9 +128,11 @@ export async function completeLearningModule(userId: string, moduleId: string) {
 export async function submitProgressionQuiz(userId: string, quizId: string, answers: number[]) {
   const quiz = await prisma.progressionQuiz.findUnique({
     where: { id: quizId },
-    include: { questions: { orderBy: { sortOrder: "asc" } } },
+    include: { questions: { orderBy: { sortOrder: "asc" } }, module: true },
   });
   if (!quiz) throw new Error("Quiz not found");
+  const locked = await categoryUnlockMessage(userId, quiz.module.categoryId);
+  if (locked) throw new Error(locked);
   if (quiz.questions.length === 0) throw new Error("Quiz has no questions");
 
   let correct = 0;
@@ -186,6 +207,7 @@ async function evaluateCertifications(userId: string) {
           awardedAt: new Date(),
         });
         await grantProgressionBadges(userId, "CERTIFICATION", cert.id);
+        await grantProgressionBadges(userId, "CERTIFICATION", tier.id);
       } else if (current.tierId !== tier.id) {
         const currentTier = cert.tiers.find((t) => t.id === current.tierId);
         if ((currentTier?.sortOrder ?? -1) < tier.sortOrder) {
@@ -193,6 +215,7 @@ async function evaluateCertifications(userId: string) {
             where: { userId_certificationId: { userId, certificationId: cert.id } },
             data: { tierId: tier.id },
           });
+          await grantProgressionBadges(userId, "CERTIFICATION", tier.id);
         }
       }
     }
@@ -203,7 +226,10 @@ async function evaluateSkills(userId: string) {
   const skills = await prisma.progressionSkill.findMany({ where: { status: "ACTIVE" } });
   const profile = await prisma.progressionProfile.findUnique({ where: { userId } });
   const xpRows = await prisma.progressionCategoryXp.findMany({ where: { userId } });
-  const held = await prisma.progressionCertificationHeld.findMany({ where: { userId } });
+  const held = await prisma.progressionCertificationHeld.findMany({
+    where: { userId },
+    include: { tier: true },
+  });
   const totalXp = xpRows.reduce((sum, row) => sum + row.amount, 0);
 
   for (const skill of skills) {
@@ -226,7 +252,18 @@ async function evaluateSkills(userId: string) {
         : totalXp;
       ok = amount >= (skill.xpRequired ?? 0);
     } else if (skill.unlockKind === "CERTIFICATION") {
-      ok = !!skill.certificationId && held.some((row) => row.certificationId === skill.certificationId);
+      const row = held.find((item) => item.certificationId === skill.certificationId);
+      if (!row) {
+        ok = false;
+      } else if (skill.certTierId) {
+        const needed = await prisma.progressionCertTier.findUnique({
+          where: { id: skill.certTierId },
+          select: { sortOrder: true },
+        });
+        ok = row.tier.sortOrder >= (needed?.sortOrder ?? 0);
+      } else {
+        ok = true;
+      }
     }
     if (!ok) continue;
     const created = await prisma.progressionSkillUnlock.upsert({
@@ -242,7 +279,10 @@ async function evaluateLevel(userId: string) {
   const levels = await prisma.progressionLevel.findMany({
     where: { status: "ACTIVE" },
     orderBy: { sortOrder: "asc" },
-    include: { milestones: true, certRequirements: true },
+    include: {
+      milestones: true,
+      certRequirements: { include: { tier: true } },
+    },
   });
   const totalXp = await totalProgressionXp(userId);
   const completions = await prisma.progressionMissionCompletion.findMany({
@@ -252,15 +292,25 @@ async function evaluateLevel(userId: string) {
   const doneMissions = new Set(completions.map((row) => row.missionId));
   const certs = await prisma.progressionCertificationHeld.findMany({
     where: { userId },
-    select: { certificationId: true },
+    include: { tier: true },
   });
-  const heldCerts = new Set(certs.map((row) => row.certificationId));
+  const heldByCert = new Map(certs.map((row) => [row.certificationId, row]));
 
   let currentId: string | null = null;
   for (const level of levels) {
     const xpOk = totalXp >= level.xpRequired;
-    const milestonesOk = level.milestones.every((m) => doneMissions.has(m.missionId));
-    const certsOk = level.certRequirements.every((c) => heldCerts.has(c.certificationId));
+    const milestonesOk =
+      level.milestones.length === 0
+        ? true
+        : level.milestoneMode === "ANY"
+          ? level.milestones.some((m) => doneMissions.has(m.missionId))
+          : level.milestones.every((m) => doneMissions.has(m.missionId));
+    const certsOk = level.certRequirements.every((req) => {
+      const held = heldByCert.get(req.certificationId);
+      if (!held) return false;
+      if (!req.tier) return true;
+      return held.tier.sortOrder >= req.tier.sortOrder;
+    });
     if (xpOk && milestonesOk && certsOk) {
       currentId = level.id;
     } else {
@@ -294,6 +344,7 @@ export async function loadCreatorProgress(userId: string) {
         where: { status: "ACTIVE" },
         orderBy: { sortOrder: "asc" },
         include: {
+          unlockAtLevel: true,
           missions: { where: { status: "ACTIVE" }, orderBy: { sortOrder: "asc" } },
           modules: { where: { status: "ACTIVE" }, orderBy: { sortOrder: "asc" }, include: { quiz: true } },
           certifications: {

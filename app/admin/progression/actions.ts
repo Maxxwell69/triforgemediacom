@@ -53,6 +53,7 @@ export async function createCategory(formData: FormData) {
       description: data.description || null,
       imageUrl: data.imageUrl || null,
       status: data.status ?? "DRAFT",
+      unlockAtLevelId: String(formData.get("unlockAtLevelId") || "") || null,
       sortOrder: (last._max.sortOrder ?? -1) + 1,
     },
   });
@@ -70,6 +71,7 @@ export async function updateCategory(formData: FormData) {
       description: data.description || null,
       imageUrl: data.imageUrl || null,
       status: data.status ?? "DRAFT",
+      unlockAtLevelId: String(formData.get("unlockAtLevelId") || "") || null,
     },
   });
   revalidateProgression();
@@ -86,6 +88,7 @@ export async function createLevel(formData: FormData) {
       imageUrl: data.imageUrl || null,
       status: data.status ?? "DRAFT",
       xpRequired: intField(formData, "xpRequired"),
+      milestoneMode: formData.get("milestoneMode") === "ANY" ? "ANY" : "ALL",
       sortOrder: (last._max.sortOrder ?? -1) + 1,
     },
   });
@@ -104,6 +107,7 @@ export async function updateLevel(formData: FormData) {
       imageUrl: data.imageUrl || null,
       status: data.status ?? "DRAFT",
       xpRequired: intField(formData, "xpRequired"),
+      milestoneMode: formData.get("milestoneMode") === "ANY" ? "ANY" : "ALL",
     },
   });
   revalidateProgression();
@@ -123,13 +127,13 @@ export async function setLevelMilestone(levelId: string, missionId: string, on: 
   revalidateProgression();
 }
 
-export async function setLevelCertReq(levelId: string, certificationId: string, on: boolean) {
+export async function setLevelCertReq(levelId: string, certificationId: string, tierId: string | null) {
   await requireProgressionAdmin();
-  if (on) {
+  if (tierId) {
     await prisma.progressionLevelCertReq.upsert({
       where: { levelId_certificationId: { levelId, certificationId } },
-      create: { levelId, certificationId },
-      update: {},
+      create: { levelId, certificationId, tierId },
+      update: { tierId },
     });
   } else {
     await prisma.progressionLevelCertReq.deleteMany({ where: { levelId, certificationId } });
@@ -345,6 +349,7 @@ export async function createSkill(formData: FormData) {
       levelId: String(formData.get("levelId") || "") || null,
       categoryId: String(formData.get("categoryId") || "") || null,
       certificationId: String(formData.get("certificationId") || "") || null,
+      certTierId: String(formData.get("certTierId") || "") || null,
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
       sortOrder: (last._max.sortOrder ?? -1) + 1,
     },
@@ -371,6 +376,7 @@ export async function updateSkill(formData: FormData) {
       levelId: String(formData.get("levelId") || "") || null,
       categoryId: String(formData.get("categoryId") || "") || null,
       certificationId: String(formData.get("certificationId") || "") || null,
+      certTierId: String(formData.get("certTierId") || "") || null,
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
     },
   });
@@ -587,6 +593,7 @@ export async function grantCertification(userId: string, certificationId: string
     update: { tierId, reviewedById: session.user.id },
   });
   await grantProgressionBadges(userId, "CERTIFICATION", certificationId);
+  await grantProgressionBadges(userId, "CERTIFICATION", tierId);
   await evaluateProgression(userId);
   revalidatePath(`/admin/progression/people/${userId}`);
   revalidatePath("/progress");
@@ -602,6 +609,13 @@ export async function grantSkill(userId: string, skillId: string) {
   await grantProgressionBadges(userId, "SKILL", skillId);
   await evaluateProgression(userId);
   revalidatePath(`/admin/progression/people/${userId}`);
+}
+
+export async function populateOfficialLadder() {
+  await requireProgressionAdmin();
+  const { populateOfficialProgression } = await import("@/lib/progression/populate");
+  await populateOfficialProgression();
+  revalidateProgression();
 }
 
 export async function grantBadge(userId: string, badgeId: string) {

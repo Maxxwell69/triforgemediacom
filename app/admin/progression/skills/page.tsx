@@ -16,7 +16,10 @@ export default async function AdminProgressionSkillsPage() {
     prisma.progressionSkill.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.progressionLevel.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.progressionCategory.findMany({ orderBy: { sortOrder: "asc" } }),
-    prisma.progressionCertification.findMany({ orderBy: { name: "asc" } }),
+    prisma.progressionCertification.findMany({
+      include: { tiers: { orderBy: { sortOrder: "asc" } } },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   function attachFields(skill?: (typeof skills)[number]) {
@@ -45,6 +48,16 @@ export default async function AdminProgressionSkillsPage() {
           {certs.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
+        </select>
+        <select name="certTierId" defaultValue={skill?.certTierId ?? ""} className={fieldClass}>
+          <option value="">Cert tier (optional — this tier or higher)</option>
+          {certs.flatMap((cert) =>
+            cert.tiers.map((tier) => (
+              <option key={tier.id} value={tier.id}>
+                {cert.name} — {tier.name}
+              </option>
+            ))
+          )}
         </select>
         <input name="xpRequired" type="number" min={0} defaultValue={skill?.xpRequired ?? ""} placeholder="XP required (optional)" className={fieldClass} />
       </>

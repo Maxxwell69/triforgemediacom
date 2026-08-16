@@ -1747,16 +1747,23 @@ enum ProgressionBadgeTrigger {
   STANDALONE
 }
 
-model ProgressionCategory {
-  id          String             @id @default(cuid())
-  name        String
-  description String?
-  imageUrl    String?
-  sortOrder   Int                @default(0)
-  status      ProgressionStatus  @default(DRAFT)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+enum ProgressionMilestoneMode {
+  ALL
+  ANY
+}
 
+model ProgressionCategory {
+  id               String             @id @default(cuid())
+  name             String
+  description      String?
+  imageUrl         String?
+  sortOrder        Int                @default(0)
+  status           ProgressionStatus  @default(DRAFT)
+  unlockAtLevelId  String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  unlockAtLevel   ProgressionLevel?             @relation("CategoryUnlockLevel", fields: [unlockAtLevelId], references: [id], onDelete: SetNull)
   missions        ProgressionMission[]
   modules         ProgressionLearningModule[]
   certifications  ProgressionCertification[]
@@ -1765,20 +1772,22 @@ model ProgressionCategory {
 }
 
 model ProgressionLevel {
-  id          String            @id @default(cuid())
-  name        String
-  description String?
-  imageUrl    String?
-  sortOrder   Int               @default(0)
-  xpRequired  Int               @default(0)
-  status      ProgressionStatus @default(DRAFT)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id             String                   @id @default(cuid())
+  name           String
+  description    String?
+  imageUrl       String?
+  sortOrder      Int                      @default(0)
+  xpRequired     Int                      @default(0)
+  milestoneMode  ProgressionMilestoneMode @default(ALL)
+  status         ProgressionStatus        @default(DRAFT)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
   milestones          ProgressionLevelMilestone[]
   certRequirements    ProgressionLevelCertReq[]
   skills              ProgressionSkill[]
   profiles            ProgressionProfile[]
+  unlocksCategories   ProgressionCategory[]       @relation("CategoryUnlockLevel")
 }
 
 model ProgressionLevelMilestone {
@@ -1793,12 +1802,14 @@ model ProgressionLevelMilestone {
 }
 
 model ProgressionLevelCertReq {
-  id              String @id @default(cuid())
+  id              String  @id @default(cuid())
   levelId         String
   certificationId String
+  tierId          String?
 
   level          ProgressionLevel          @relation(fields: [levelId], references: [id], onDelete: Cascade)
   certification  ProgressionCertification  @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  tier           ProgressionCertTier?      @relation(fields: [tierId], references: [id], onDelete: SetNull)
 
   @@unique([levelId, certificationId])
 }
@@ -1896,6 +1907,8 @@ model ProgressionCertTier {
 
   certification ProgressionCertification      @relation(fields: [certificationId], references: [id], onDelete: Cascade)
   held          ProgressionCertificationHeld[]
+  levelReqs     ProgressionLevelCertReq[]
+  skillGates    ProgressionSkill[]
 
   @@index([certificationId, sortOrder])
 }
@@ -1911,6 +1924,7 @@ model ProgressionSkill {
   levelId         String?
   categoryId      String?
   certificationId String?
+  certTierId      String?
   xpRequired      Int?
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt
@@ -1918,6 +1932,7 @@ model ProgressionSkill {
   level          ProgressionLevel?          @relation(fields: [levelId], references: [id], onDelete: SetNull)
   category       ProgressionCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   certification  ProgressionCertification?  @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  certTier       ProgressionCertTier?       @relation(fields: [certTierId], references: [id], onDelete: SetNull)
   unlocks        ProgressionSkillUnlock[]
 }
 

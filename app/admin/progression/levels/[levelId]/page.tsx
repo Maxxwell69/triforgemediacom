@@ -29,12 +29,13 @@ export default async function AdminProgressionLevelDetailPage({
     }),
     prisma.progressionCertification.findMany({
       where: { status: { not: "ARCHIVED" } },
+      include: { tiers: { orderBy: { sortOrder: "asc" } } },
       orderBy: { name: "asc" },
     }),
   ]);
   if (!level) notFound();
   const milestoneIds = new Set(level.milestones.map((m) => m.missionId));
-  const certIds = new Set(level.certRequirements.map((c) => c.certificationId));
+  const certReqById = new Map(level.certRequirements.map((req) => [req.certificationId, req]));
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -48,6 +49,10 @@ export default async function AdminProgressionLevelDetailPage({
         <textarea name="description" defaultValue={level.description ?? ""} rows={3} className={fieldClass} />
         <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={level.imageUrl} />
         <input name="xpRequired" type="number" min={0} defaultValue={level.xpRequired} className={fieldClass} />
+        <select name="milestoneMode" defaultValue={level.milestoneMode} className={fieldClass}>
+          <option value="ALL">All milestone missions required</option>
+          <option value="ANY">Any one milestone mission</option>
+        </select>
         <select name="status" defaultValue={level.status} className={fieldClass}>
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
@@ -74,12 +79,31 @@ export default async function AdminProgressionLevelDetailPage({
         <h2 className="font-display text-2xl text-off-white/80">Required certifications</h2>
         <div className="mt-3 flex flex-col gap-2">
           {certs.map((cert) => (
-            <ProgressionToggle
+            <form
               key={cert.id}
-              checked={certIds.has(cert.id)}
-              label={cert.name}
-              onToggle={(on) => setLevelCertReq(level.id, cert.id, on)}
-            />
+              action={async (formData) => {
+                "use server";
+                await setLevelCertReq(level.id, cert.id, String(formData.get("tierId") || "") || null);
+              }}
+              className="glass flex items-center gap-3 rounded-xl p-3"
+            >
+              <span className="min-w-0 flex-1 font-body text-sm text-off-white/80">{cert.name}</span>
+              <select
+                name="tierId"
+                defaultValue={certReqById.get(cert.id)?.tierId ?? ""}
+                className={fieldClass}
+              >
+                <option value="">Not required</option>
+                {cert.tiers.map((tier) => (
+                  <option key={tier.id} value={tier.id}>
+                    {tier.name}+
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan">
+                Save
+              </button>
+            </form>
           ))}
         </div>
       </section>

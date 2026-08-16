@@ -123,12 +123,33 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "Creator Progression",
     tagline: "Editable ladder & missions",
     description:
-      "Admin-built levels, mission categories, learning modules, certifications, skills, and badges — with a creator progress tree. Content is data, not hardcoded tracks.",
+      "Admin-built levels, mission categories, learning modules, certifications, skills, and badges — with a creator progress tree. Official TriForge ladder content ships as editable data.",
     since: "2.99",
   },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.00",
+    date: "August 16, 2026",
+    title: "Official creator ladder",
+    summary:
+      "The Progression module is now populated with TriForge categories, levels, specialization tracks, certs, badges, and starter skills. Quiz questions come next.",
+    items: [
+      {
+        kind: "program",
+        text: "Official ladder: Recruit → Legend, 8 categories, 7 specialization tracks, 14 learning module shells",
+      },
+      {
+        kind: "feature",
+        text: "Admin can load or refresh official content from Progression overview (safe to re-run)",
+      },
+      {
+        kind: "feature",
+        text: "Level gates can require a cert tier, any-one milestone (track pick), and category unlocks at a level",
+      },
+    ],
+  },
   {
     version: "2.99",
     date: "August 16, 2026",

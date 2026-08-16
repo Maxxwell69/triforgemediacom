@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { completeMyModule, submitMyQuiz } from "../../actions";
+import { categoryUnlockMessage, ensureProgressionProfile, evaluateProgression } from "@/lib/progression/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,9 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
     include: { quiz: { include: { questions: { orderBy: { sortOrder: "asc" } } } }, category: true },
   });
   if (!learnModule || learnModule.status !== "ACTIVE") notFound();
+  await ensureProgressionProfile(user.id);
+  await evaluateProgression(user.id);
+  const locked = await categoryUnlockMessage(user.id, learnModule.categoryId);
   const done = await prisma.progressionModuleCompletion.findUnique({
     where: { userId_moduleId: { userId: user.id, moduleId: learnModule.id } },
   });
@@ -33,6 +37,9 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
         </Link>
         <h1 className="mt-4 font-display text-4xl tracking-wide">{learnModule.title}</h1>
         <p className="mt-1 font-body text-xs text-off-white/40">{learnModule.category.name}</p>
+        {locked ? (
+          <p className="mt-4 font-body text-sm text-orange">{locked}</p>
+        ) : null}
         {learnModule.description ? (
           <p className="mt-4 font-body text-sm text-off-white/65">{learnModule.description}</p>
         ) : null}
@@ -56,7 +63,7 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
           </p>
         ) : null}
 
-        {learnModule.quiz && learnModule.quiz.questions.length > 0 ? (
+        {locked ? null : learnModule.quiz && learnModule.quiz.questions.length > 0 ? (
           <form action={submitMyQuiz} className="glass mt-8 flex flex-col gap-4 rounded-2xl p-6">
             <h2 className="font-display text-xl text-off-white/80">Quiz · pass {learnModule.quiz.passThreshold}%</h2>
             <input type="hidden" name="quizId" value={learnModule.quiz.id} />
