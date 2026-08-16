@@ -195,6 +195,31 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    id: "shop",
+    label: "Shop",
+    description: "Merch catalog and orders",
+    links: [
+      {
+        href: "/admin/shop",
+        label: "Products",
+        description: "Create and edit shop products",
+        sku: "shop",
+      },
+      {
+        href: "/admin/shop/orders",
+        label: "Orders",
+        description: "Paid orders (Stripe checkout comes next)",
+        sku: "shop",
+      },
+      {
+        href: "/admin/shop/settings",
+        label: "Shop settings",
+        description: "Name, currency, publish, and future connections",
+        sku: "shop",
+      },
+    ],
+  },
+  {
     id: "site",
     label: "Site",
     description: "Public updates and company social",

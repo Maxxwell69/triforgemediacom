@@ -12,6 +12,7 @@ const ALLOWED_FOLDERS = new Set([
   "host-avatars",
   "group-images",
   "chat-attachments",
+  "shop-images",
 ]);
 
 export async function POST(request: NextRequest) {

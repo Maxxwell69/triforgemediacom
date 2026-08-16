@@ -140,6 +140,7 @@ model User {
   bookingPage                BookingPage?
   appointmentsHosted         Appointment[]          @relation("AppointmentHost")
   personalTasks              PersonalTask[]
+  shopOrders                 ShopOrder[]
 }
 
 // ---------- Application / invite flow ----------
@@ -1524,4 +1525,130 @@ model Appointment {
   @@index([hostUserId, startsAt])
   @@index([bookingPageId, startsAt])
   @@index([bookerEmail])
+}
+
+// ---------- Shop (Hub 0 catalog; Shopify / Printify / Stripe plug in later) ----------
+
+enum ShopProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ShopProductSource {
+  NATIVE
+  SHOPIFY
+  PRINTIFY
+}
+
+enum ShopOrderStatus {
+  PENDING
+  PAID
+  FULFILLING
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+/// Singleton per hub database (`id = "default"`). Tokens stay in env for Hub 0.
+model ShopSettings {
+  id                String   @id @default("default")
+  name              String   @default("TriForge Shop")
+  currency          String   @default("usd")
+  isPublished       Boolean  @default(false)
+  shopifyShopDomain String?
+  printifyShopId    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ShopProduct {
+  id          String            @id @default(cuid())
+  title       String
+  slug        String            @unique
+  description String?
+  status      ShopProductStatus @default(DRAFT)
+  source      ShopProductSource @default(NATIVE)
+  externalId  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  images     ShopProductImage[]
+  variants   ShopVariant[]
+  orderItems ShopOrderItem[]
+
+  @@index([status])
+  @@index([source, externalId])
+}
+
+model ShopProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, order])
+}
+
+model ShopVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  title      String   @default("Default")
+  sku        String?
+  priceCents Int
+  inventory  Int?
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product    ShopProduct     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems ShopOrderItem[]
+
+  @@index([productId])
+}
+
+model ShopOrder {
+  id                      String          @id @default(cuid())
+  userId                  String
+  status                  ShopOrderStatus @default(PENDING)
+  currency                String          @default("usd")
+  subtotalCents           Int             @default(0)
+  totalCents              Int             @default(0)
+  shippingName            String?
+  shippingLine1           String?
+  shippingLine2           String?
+  shippingCity            String?
+  shippingRegion          String?
+  shippingPostal          String?
+  shippingCountry         String?
+  stripeCheckoutSessionId String?         @unique
+  stripePaymentIntentId   String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ShopOrderItem[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model ShopOrderItem {
+  id             String @id @default(cuid())
+  orderId        String
+  productId      String
+  variantId      String
+  title          String
+  variantTitle   String
+  quantity       Int
+  unitPriceCents Int
+
+  order   ShopOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product ShopProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant ShopVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
 }

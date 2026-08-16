@@ -13,7 +13,8 @@ type UploadFolder =
   | "lesson-thumbnails"
   | "reward-images"
   | "host-avatars"
-  | "group-images";
+  | "group-images"
+  | "shop-images";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -35,6 +36,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "group-images": {
     dimensions: "512\u00D7512px (1:1)",
     hint: "Shows as the group icon in lists and the space switcher \u2014 square crops best.",
+  },
+  "shop-images": {
+    dimensions: "1200\u00D71200px (1:1)",
+    hint: "Shows on the shop grid and product page \u2014 square product shots crop best.",
   },
 };
 

@@ -235,6 +235,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
           >
             Members
           </Link>
+          {hubHas("shop") && (
+            <Link
+              href="/shop"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Shop
+            </Link>
+          )}
           {hubHas("rewards") && (
             <Link
               href="/rewards"

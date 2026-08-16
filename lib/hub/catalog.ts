@@ -72,6 +72,12 @@ export const FLAGSHIP_SKUS: HubSku[] = [
     label: "CN / MN tracks",
     description: "Creator Network and Media Network apply routing",
   },
+  {
+    id: "shop",
+    kind: "flagship",
+    label: "Shop",
+    description: "Hub merch catalog (moves to optional when client hubs can buy ecommerce)",
+  },
 ];
 
 export const ALL_SKUS: HubSku[] = [...CORE_SKUS, ...OPTIONAL_SKUS, ...FLAGSHIP_SKUS];

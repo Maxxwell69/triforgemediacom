@@ -112,9 +112,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Applications, GHL import, users, groups, tags, courses, webinars, email templates, broadcasts, and moderation — in one place.",
     since: "1.0",
   },
+  {
+    name: "Hub Shop",
+    tagline: "Merch catalog",
+    description:
+      "Admin-managed product catalog on the hub. Members browse /shop. Shopify import, Printify fulfillment, and Stripe Checkout are next.",
+    since: "2.96",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.96",
+    date: "August 15, 2026",
+    title: "Hub Shop catalog",
+    summary:
+      "Admins can build a merch catalog; members browse /shop. Checkout, Shopify import, and Printify attach in later passes.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Shop: products, variants, images, publish, and an orders list ready for Stripe",
+      },
+      {
+        kind: "feature",
+        text: "Member /shop catalog and product pages (checkout disabled until Stripe is wired)",
+      },
+      {
+        kind: "improve",
+        text: "Shop is a flagship hub module so it can move to an optional SKU for client hubs later",
+      },
+    ],
+  },
   {
     version: "2.95",
     date: "August 13, 2026",

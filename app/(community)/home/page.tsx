@@ -6,6 +6,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { getOrGenerateTodayTasks } from "@/lib/tiktask";
 import DashboardCard from "@/components/DashboardCard";
 import CompanySocialPanel from "@/components/CompanySocialPanel";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,16 @@ export default async function HomePage() {
             description="Join live sessions with the TriForge team."
             accent="orange"
           />
+
+          {hubHas("shop") && (
+            <DashboardCard
+              href="/shop"
+              icon="🛍️"
+              title="Shop"
+              description="Browse official merch. Checkout is coming next."
+              accent="orange"
+            />
+          )}
 
           <DashboardCard
             href="/rewards"
