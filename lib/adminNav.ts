@@ -195,6 +195,55 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    id: "progression",
+    label: "Progression",
+    description: "Creator ladder, missions, and certs",
+    links: [
+      {
+        href: "/admin/progression",
+        label: "Overview",
+        description: "Progression module dashboard",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/levels",
+        label: "Levels",
+        description: "Ladder, XP, milestones",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/categories",
+        label: "Categories",
+        description: "Mission tracks",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/missions",
+        label: "Missions",
+        description: "Category missions and XP",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/learn",
+        label: "Learn",
+        description: "Modules and quizzes",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/certs",
+        label: "Certs",
+        description: "Certifications and tiers",
+        sku: "progression",
+      },
+      {
+        href: "/admin/progression/people",
+        label: "Creator trees",
+        description: "Per-member progress and grants",
+        sku: "progression",
+      },
+    ],
+  },
+  {
     id: "shop",
     label: "Shop",
     description: "Merch catalog and orders",

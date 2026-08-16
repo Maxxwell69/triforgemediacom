@@ -14,7 +14,8 @@ type UploadFolder =
   | "reward-images"
   | "host-avatars"
   | "group-images"
-  | "shop-images";
+  | "shop-images"
+  | "progression-images";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -40,6 +41,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "shop-images": {
     dimensions: "1200\u00D71200px (1:1)",
     hint: "Shows on the shop grid and product page \u2014 square product shots crop best.",
+  },
+  "progression-images": {
+    dimensions: "512\u00D7512px (1:1)",
+    hint: "Shows on the progression tree, missions, and badges \u2014 square crops best.",
   },
 };
 

@@ -119,9 +119,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Admin-managed catalog with Stripe Checkout, physical orders, and private digital downloads. Subscriptions, Shopify import, and Printify are next.",
     since: "2.96",
   },
+  {
+    name: "Creator Progression",
+    tagline: "Editable ladder & missions",
+    description:
+      "Admin-built levels, mission categories, learning modules, certifications, skills, and badges — with a creator progress tree. Content is data, not hardcoded tracks.",
+    since: "2.99",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.99",
+    date: "August 16, 2026",
+    title: "Creator Progression module",
+    summary:
+      "Admins can build a creator ladder from levels, missions, learning modules, certs, skills, and badges. Members track it on /progress.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Progression: CRUD for categories, levels, missions, learn modules/quizzes, certs, skills, badges",
+      },
+      {
+        kind: "feature",
+        text: "Member /progress tree with XP, locked levels, mission complete, quizzes, and earned badges",
+      },
+      {
+        kind: "feature",
+        text: "Admin per-creator tree with manual cert / skill / badge grants",
+      },
+    ],
+  },
   {
     version: "2.98",
     date: "August 16, 2026",

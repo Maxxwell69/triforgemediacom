@@ -144,6 +144,15 @@ model User {
   shopDownloadGrants         ShopDownloadGrant[]
   /// Stripe Customer id for hub shop checkout (one-time now; subscriptions later).
   stripeCustomerId           String?   @unique
+  progressionProfile         ProgressionProfile?
+  progressionCategoryXp      ProgressionCategoryXp[]
+  progressionMissionCompletions ProgressionMissionCompletion[]
+  progressionModuleCompletions ProgressionModuleCompletion[]
+  progressionQuizAttempts    ProgressionQuizAttempt[]
+  progressionCertsHeld       ProgressionCertificationHeld[]
+  progressionSkillsUnlocked  ProgressionSkillUnlock[]
+  progressionBadges          ProgressionBadgeGrant[]
+  progressionCertReviews     ProgressionCertificationHeld[] @relation("ProgressionCertReviewer")
 }
 
 // ---------- Application / invite flow ----------
@@ -1700,4 +1709,331 @@ model ShopOrderItem {
   variant ShopVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
+}
+
+// ---------- Creator Progression (admin-editable ladder — no hardcoded tracks) ----------
+
+enum ProgressionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProgressionRecurrence {
+  ONE_TIME
+  REPEATABLE
+  DAILY
+  WEEKLY
+}
+
+enum ProgressionUnlockKind {
+  QUIZ_PASSED
+  CATEGORY_XP
+  ADMIN_REVIEW
+}
+
+enum ProgressionSkillUnlockKind {
+  MANUAL
+  LEVEL
+  CATEGORY_XP
+  CERTIFICATION
+}
+
+enum ProgressionBadgeTrigger {
+  LEVEL
+  MISSION
+  CERTIFICATION
+  SKILL
+  STANDALONE
+}
+
+model ProgressionCategory {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int                @default(0)
+  status      ProgressionStatus  @default(DRAFT)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  missions        ProgressionMission[]
+  modules         ProgressionLearningModule[]
+  certifications  ProgressionCertification[]
+  skills          ProgressionSkill[]
+  categoryXp      ProgressionCategoryXp[]
+}
+
+model ProgressionLevel {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int               @default(0)
+  xpRequired  Int               @default(0)
+  status      ProgressionStatus @default(DRAFT)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  milestones          ProgressionLevelMilestone[]
+  certRequirements    ProgressionLevelCertReq[]
+  skills              ProgressionSkill[]
+  profiles            ProgressionProfile[]
+}
+
+model ProgressionLevelMilestone {
+  id        String @id @default(cuid())
+  levelId   String
+  missionId String
+
+  level   ProgressionLevel   @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  mission ProgressionMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([levelId, missionId])
+}
+
+model ProgressionLevelCertReq {
+  id              String @id @default(cuid())
+  levelId         String
+  certificationId String
+
+  level          ProgressionLevel          @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  certification  ProgressionCertification  @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+
+  @@unique([levelId, certificationId])
+}
+
+model ProgressionMission {
+  id          String                 @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  imageUrl    String?
+  xpValue     Int                    @default(0)
+  recurrence  ProgressionRecurrence  @default(ONE_TIME)
+  sortOrder   Int                    @default(0)
+  status      ProgressionStatus      @default(DRAFT)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  category    ProgressionCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  milestones  ProgressionLevelMilestone[]
+  completions ProgressionMissionCompletion[]
+}
+
+model ProgressionLearningModule {
+  id          String            @id @default(cuid())
+  categoryId  String
+  title       String
+  description String?
+  content     String?
+  videoUrl    String?
+  linkUrl     String?
+  imageUrl    String?
+  sortOrder   Int               @default(0)
+  status      ProgressionStatus @default(DRAFT)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  category    ProgressionCategory            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  quiz        ProgressionQuiz?
+  completions ProgressionModuleCompletion[]
+}
+
+model ProgressionQuiz {
+  id              String @id @default(cuid())
+  moduleId        String @unique
+  passThreshold   Int    @default(70)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  module    ProgressionLearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions ProgressionQuizQuestion[]
+  attempts  ProgressionQuizAttempt[]
+}
+
+model ProgressionQuizQuestion {
+  id           String @id @default(cuid())
+  quizId       String
+  prompt       String
+  options      Json
+  correctIndex Int
+  sortOrder    Int    @default(0)
+
+  quiz ProgressionQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, sortOrder])
+}
+
+model ProgressionCertification {
+  id          String            @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int               @default(0)
+  status      ProgressionStatus @default(DRAFT)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  category         ProgressionCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tiers            ProgressionCertTier[]
+  levelReqs        ProgressionLevelCertReq[]
+  skills           ProgressionSkill[]
+  held             ProgressionCertificationHeld[]
+}
+
+model ProgressionCertTier {
+  id          String @id @default(cuid())
+  certificationId String
+  name        String
+  description String?
+  sortOrder   Int    @default(0)
+  unlockKind  ProgressionUnlockKind @default(CATEGORY_XP)
+  xpRequired  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  certification ProgressionCertification      @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  held          ProgressionCertificationHeld[]
+
+  @@index([certificationId, sortOrder])
+}
+
+model ProgressionSkill {
+  id              String                    @id @default(cuid())
+  name            String
+  description     String?
+  imageUrl        String?
+  sortOrder       Int                       @default(0)
+  status          ProgressionStatus         @default(DRAFT)
+  unlockKind      ProgressionSkillUnlockKind @default(MANUAL)
+  levelId         String?
+  categoryId      String?
+  certificationId String?
+  xpRequired      Int?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  level          ProgressionLevel?          @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  category       ProgressionCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  certification  ProgressionCertification?  @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  unlocks        ProgressionSkillUnlock[]
+}
+
+model ProgressionBadge {
+  id          String                   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  trigger     ProgressionBadgeTrigger  @default(STANDALONE)
+  triggerId   String?
+  status      ProgressionStatus        @default(DRAFT)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  grants ProgressionBadgeGrant[]
+}
+
+model ProgressionProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  currentLevelId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentLevel ProgressionLevel?  @relation(fields: [currentLevelId], references: [id], onDelete: SetNull)
+}
+
+model ProgressionCategoryXp {
+  id         String @id @default(cuid())
+  userId     String
+  categoryId String
+  amount     Int    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ProgressionCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+}
+
+model ProgressionMissionCompletion {
+  id         String   @id @default(cuid())
+  userId     String
+  missionId  String
+  xpAwarded  Int
+  completedAt DateTime @default(now())
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission ProgressionMission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, missionId])
+}
+
+model ProgressionModuleCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  moduleId    String
+  completedAt DateTime @default(now())
+
+  user   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module ProgressionLearningModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+}
+
+model ProgressionQuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  quizId    String
+  score     Int
+  passed    Boolean
+  createdAt DateTime @default(now())
+
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz ProgressionQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId])
+}
+
+model ProgressionCertificationHeld {
+  id              String   @id @default(cuid())
+  userId          String
+  certificationId String
+  tierId          String
+  reviewedById    String?
+  awardedAt       DateTime @default(now())
+
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certification ProgressionCertification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  tier          ProgressionCertTier      @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  reviewedBy    User?                    @relation("ProgressionCertReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, certificationId])
+}
+
+model ProgressionSkillUnlock {
+  id         String   @id @default(cuid())
+  userId     String
+  skillId    String
+  unlockedAt DateTime @default(now())
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill ProgressionSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model ProgressionBadgeGrant {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge ProgressionBadge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
 }

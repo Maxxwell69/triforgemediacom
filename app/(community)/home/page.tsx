@@ -109,6 +109,16 @@ export default async function HomePage() {
             accent="orange"
           />
 
+          {hubHas("progression") && (
+            <DashboardCard
+              href="/progress"
+              icon="🛤️"
+              title="Progression"
+              description="Your creator ladder, missions, certs, and badges."
+              accent="cyan"
+            />
+          )}
+
           {hubHas("shop") && (
             <DashboardCard
               href="/shop"
