@@ -60,6 +60,7 @@ export function parseOptionalInventory(raw: FormDataEntryValue | null): number |
 const publishedInclude = {
   images: { orderBy: { order: "asc" as const } },
   variants: { orderBy: { createdAt: "asc" as const } },
+  files: { select: { id: true } },
 };
 
 export async function listPublishedProducts() {
@@ -82,7 +83,7 @@ export async function listAdminProducts() {
     include: {
       images: { orderBy: { order: "asc" }, take: 1 },
       variants: { orderBy: { createdAt: "asc" } },
-      _count: { select: { variants: true, images: true } },
+      _count: { select: { variants: true, images: true, files: true } },
     },
     orderBy: { createdAt: "desc" },
   });

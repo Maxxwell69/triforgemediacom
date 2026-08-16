@@ -114,7 +114,7 @@ export default async function HomePage() {
               href="/shop"
               icon="🛍️"
               title="Shop"
-              description="Browse official merch. Checkout is coming next."
+              description="Merch and digital downloads — pay on the hub."
               accent="orange"
             />
           )}

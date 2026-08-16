@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireShopModule } from "@/lib/shop/catalog";
 import { getOrCreateShopSettings } from "@/lib/shop/settings";
 import { updateShopSettings } from "../actions";
+import { isStripeConfigured } from "@/lib/shop/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,11 @@ const fieldClass =
 function ConnectionRow({
   label,
   hint,
+  status,
 }: {
   label: string;
   hint: string;
+  status: "live" | "next";
 }) {
   return (
     <div className="flex items-start justify-between gap-4 rounded-xl border border-off-white/10 bg-off-white/[0.03] px-4 py-3">
@@ -21,8 +24,12 @@ function ConnectionRow({
         <p className="font-body text-sm text-off-white">{label}</p>
         <p className="mt-0.5 font-body text-xs text-off-white/40">{hint}</p>
       </div>
-      <span className="shrink-0 rounded-full bg-off-white/10 px-2 py-0.5 font-body text-[11px] uppercase tracking-wide text-off-white/40">
-        Next pass
+      <span
+        className={`shrink-0 rounded-full px-2 py-0.5 font-body text-[11px] uppercase tracking-wide ${
+          status === "live" ? "bg-cyan/15 text-cyan" : "bg-off-white/10 text-off-white/40"
+        }`}
+      >
+        {status === "live" ? "Live" : "Next pass"}
       </span>
     </div>
   );
@@ -76,20 +83,32 @@ export default async function AdminShopSettingsPage() {
       <section className="mt-10">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Connections</h2>
         <p className="mt-1 font-body text-xs text-off-white/40">
-          Wired in later passes. Schema already has source + external IDs reserved.
+          Stripe keys live in env. Recurring subscriptions are the next shop pass.
         </p>
         <div className="mt-4 flex flex-col gap-2">
           <ConnectionRow
+            label="Stripe Checkout"
+            hint={
+              isStripeConfigured()
+                ? "One-time payments are live. Point a webhook at /api/shop/stripe/webhook."
+                : "Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET on this environment."
+            }
+            status={isStripeConfigured() ? "live" : "next"}
+          />
+          <ConnectionRow
+            label="Subscriptions"
+            hint="Recurring shop access (digital stays unlocked while the sub is active)."
+            status="next"
+          />
+          <ConnectionRow
             label="Shopify import"
             hint="Pull products from a connected Shopify store into this catalog."
+            status="next"
           />
           <ConnectionRow
             label="Printify"
             hint="Attach print-on-demand products and fulfill after Stripe payment."
-          />
-          <ConnectionRow
-            label="Stripe Checkout"
-            hint="Members pay on the hub. Shopify/Printify stay catalog + fulfillment."
+            status="next"
           />
         </div>
       </section>

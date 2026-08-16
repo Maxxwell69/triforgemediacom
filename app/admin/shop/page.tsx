@@ -46,7 +46,7 @@ export default async function AdminShopPage() {
           className={fieldClass}
         />
         <ImageUploadField name="imageUrl" folder="shop-images" label="Image" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <input
             name="price"
             type="number"
@@ -56,6 +56,10 @@ export default async function AdminShopPage() {
             placeholder="Price (USD)"
             className={fieldClass}
           />
+          <select name="kind" defaultValue="PHYSICAL" className={fieldClass}>
+            <option value="PHYSICAL">Physical</option>
+            <option value="DIGITAL">Digital download</option>
+          </select>
           <select name="status" defaultValue="DRAFT" className={fieldClass}>
             <option value="DRAFT">Draft</option>
             <option value="ACTIVE">Active</option>

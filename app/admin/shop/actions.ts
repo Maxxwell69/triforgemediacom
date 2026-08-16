@@ -48,6 +48,7 @@ function parseProductForm(formData: FormData) {
     description: formData.get("description"),
     imageUrl: formData.get("imageUrl"),
     status: formData.get("status") || undefined,
+    kind: formData.get("kind") || undefined,
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid product");
@@ -68,6 +69,7 @@ export async function createProduct(formData: FormData) {
       slug,
       description: data.description || null,
       status,
+      kind: data.kind === "DIGITAL" ? "DIGITAL" : "PHYSICAL",
       variants: {
         create: { title: "Default", priceCents },
       },
@@ -102,6 +104,7 @@ export async function updateProduct(formData: FormData) {
       slug,
       description: data.description || null,
       status,
+      kind: data.kind === "DIGITAL" ? "DIGITAL" : "PHYSICAL",
     },
   });
 
@@ -237,4 +240,48 @@ export async function updateShopSettings(formData: FormData) {
     data: parsed.data,
   });
   revalidateShop();
+}
+
+export async function addProductFile(productId: string, file: {
+  r2Key: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}) {
+  await requireShopAdmin();
+  if (!file.r2Key.startsWith("shop-files/")) {
+    throw new Error("Invalid file key");
+  }
+  await prisma.shopProductFile.create({
+    data: {
+      productId,
+      r2Key: file.r2Key,
+      fileName: file.fileName,
+      contentType: file.contentType,
+      sizeBytes: file.sizeBytes,
+    },
+  });
+  const product = await prisma.shopProduct.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+  revalidateShop(productId, product?.slug);
+}
+
+export async function removeProductFile(fileId: string) {
+  await requireShopAdmin();
+  const file = await prisma.shopProductFile.delete({
+    where: { id: fileId },
+    select: { productId: true, product: { select: { slug: true } } },
+  });
+  revalidateShop(file.productId, file.product.slug);
+}
+
+export async function markOrderFulfilled(orderId: string) {
+  await requireShopAdmin();
+  await prisma.shopOrder.update({
+    where: { id: orderId },
+    data: { status: "FULFILLED" },
+  });
+  revalidatePath("/admin/shop/orders");
 }

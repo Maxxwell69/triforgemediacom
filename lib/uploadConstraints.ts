@@ -31,3 +31,34 @@ export const ALLOWED_VIDEO_EXTENSIONS: Record<string, string> = {
   "video/webm": "webm",
   "video/quicktime": "mov",
 };
+
+/** Paid digital shop files (private R2 keys, signed download). */
+export const MAX_SHOP_FILE_BYTES = 25 * 1024 * 1024; // 25MB
+
+export const ALLOWED_SHOP_FILE_MIME_TYPES = [
+  "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/epub+zip",
+  "text/plain",
+  "audio/mpeg",
+  "audio/wav",
+  "video/mp4",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export const ALLOWED_SHOP_FILE_EXTENSIONS: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/zip": "zip",
+  "application/x-zip-compressed": "zip",
+  "application/epub+zip": "epub",
+  "text/plain": "txt",
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "video/mp4": "mp4",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};

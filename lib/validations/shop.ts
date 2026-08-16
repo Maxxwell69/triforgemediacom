@@ -11,6 +11,7 @@ export const shopProductSchema = z.object({
   description: z.string().trim().max(4000).optional().or(z.literal("")),
   imageUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  kind: z.enum(["PHYSICAL", "DIGITAL"]).optional(),
 });
 
 export const shopVariantSchema = z.object({

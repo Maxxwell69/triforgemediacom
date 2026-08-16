@@ -7,6 +7,8 @@ import {
   requireShopModule,
 } from "@/lib/shop/catalog";
 import { getOrCreateShopSettings } from "@/lib/shop/settings";
+import { isStripeConfigured } from "@/lib/shop/stripe";
+import ShopBuyForm from "@/components/shop/ShopBuyForm";
 
 export const dynamic = "force-dynamic";
 
@@ -57,36 +59,26 @@ export default async function ShopProductPage({ params }: { params: { slug: stri
               </p>
             ) : null}
 
-            {product.variants.length > 1 ? (
-              <div className="mt-6">
-                <p className="font-body text-xs uppercase tracking-wide text-off-white/40">
-                  Options
-                </p>
-                <ul className="mt-2 flex flex-col gap-2">
-                  {product.variants.map((variant) => (
-                    <li
-                      key={variant.id}
-                      className="flex items-center justify-between rounded-xl border border-off-white/10 px-4 py-2 font-body text-sm"
-                    >
-                      <span className="text-off-white">{variant.title}</span>
-                      <span className="text-cyan">
-                        {formatPriceCents(variant.priceCents, settings.currency)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+            <p className="mt-2 font-body text-xs uppercase tracking-wide text-off-white/40">
+              {product.kind === "DIGITAL" ? "Digital download" : "Physical"}
+            </p>
 
-            <button
-              type="button"
-              disabled
-              className="mt-8 w-full cursor-not-allowed rounded-lg bg-orange/40 px-6 py-3 font-body font-semibold text-off-white/70"
-            >
-              Checkout coming soon
-            </button>
+            <ShopBuyForm
+              kind={product.kind}
+              currency={settings.currency}
+              checkoutReady={isStripeConfigured()}
+              digitalReady={product.kind === "PHYSICAL" || product.files.length > 0}
+              variants={product.variants.map((variant) => ({
+                id: variant.id,
+                title: variant.title,
+                priceCents: variant.priceCents,
+                inventory: variant.inventory,
+              }))}
+            />
             <p className="mt-2 font-body text-xs text-off-white/35">
-              Stripe Checkout will take payment on the hub. You can browse for now.
+              {product.kind === "DIGITAL"
+                ? "After payment, files appear under Shop → Downloads."
+                : "Shipping address is collected on Stripe Checkout."}
             </p>
           </div>
         </div>

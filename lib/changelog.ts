@@ -116,12 +116,33 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "Hub Shop",
     tagline: "Merch catalog",
     description:
-      "Admin-managed product catalog on the hub. Members browse /shop. Shopify import, Printify fulfillment, and Stripe Checkout are next.",
+      "Admin-managed catalog with Stripe Checkout, physical orders, and private digital downloads. Subscriptions, Shopify import, and Printify are next.",
     since: "2.96",
   },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "2.97",
+    date: "August 15, 2026",
+    title: "Shop checkout and downloads",
+    summary:
+      "Members can buy physical or digital products on the hub via Stripe Checkout. Paid files unlock under Shop → Downloads.",
+    items: [
+      {
+        kind: "feature",
+        text: "Stripe Checkout for one-time shop purchases, with webhook + success-page fulfillment",
+      },
+      {
+        kind: "feature",
+        text: "Digital products: private R2 files and signed download links after payment",
+      },
+      {
+        kind: "improve",
+        text: "Admin orders can mark physical shipments fulfilled; subscriptions stay a follow-up",
+      },
+    ],
+  },
   {
     version: "2.96",
     date: "August 15, 2026",

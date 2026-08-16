@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireShopModule, formatPriceCents } from "@/lib/shop/catalog";
+import ShopFulfillButton from "@/components/admin/ShopFulfillButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function AdminShopOrdersPage() {
         SHOP <span className="text-gradient">ORDERS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Ready for Stripe Checkout. Members cannot place orders until checkout is wired.
+        Paid digital orders fulfill automatically. Mark physical shipments fulfilled here.
       </p>
 
       {orders.length === 0 ? (
@@ -52,6 +53,7 @@ export default async function AdminShopOrdersPage() {
                 <th className="px-3 py-2">Items</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Ship</th>
               </tr>
             </thead>
             <tbody>
@@ -73,6 +75,11 @@ export default async function AdminShopOrdersPage() {
                     >
                       {order.status}
                     </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    {order.status === "FULFILLING" || order.status === "PAID" ? (
+                      <ShopFulfillButton orderId={order.id} />
+                    ) : null}
                   </td>
                 </tr>
               ))}

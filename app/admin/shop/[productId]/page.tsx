@@ -7,6 +7,8 @@ import ImageUploadField from "@/components/ImageUploadField";
 import ShopImageRemoveButton from "@/components/admin/ShopImageRemoveButton";
 import ShopVariantRow from "@/components/admin/ShopVariantRow";
 import ShopArchiveButton from "@/components/admin/ShopArchiveButton";
+import ShopFileUpload from "@/components/admin/ShopFileUpload";
+import ShopFileRemoveButton from "@/components/admin/ShopFileRemoveButton";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function AdminShopProductPage({
     include: {
       images: { orderBy: { order: "asc" } },
       variants: { orderBy: { createdAt: "asc" } },
+      files: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!product) notFound();
@@ -54,6 +57,10 @@ export default async function AdminShopProductPage({
           rows={4}
           className={fieldClass}
         />
+        <select name="kind" defaultValue={product.kind} className={fieldClass}>
+          <option value="PHYSICAL">Physical</option>
+          <option value="DIGITAL">Digital download</option>
+        </select>
         <select name="status" defaultValue={product.status} className={fieldClass}>
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
@@ -91,6 +98,29 @@ export default async function AdminShopProductPage({
           </button>
         </form>
       </section>
+
+      {product.kind === "DIGITAL" ? (
+        <section className="mt-10">
+          <h2 className="font-display text-2xl tracking-wide text-off-white/80">Download files</h2>
+          <p className="mt-1 font-body text-xs text-off-white/40">
+            Buyers get these after Stripe payment. Files stay private.
+          </p>
+          <ul className="mt-4 flex flex-col gap-2">
+            {product.files.map((file) => (
+              <li
+                key={file.id}
+                className="glass flex items-center justify-between gap-3 rounded-xl px-4 py-3 font-body text-sm"
+              >
+                <span className="text-off-white">{file.fileName}</span>
+                <ShopFileRemoveButton fileId={file.id} />
+              </li>
+            ))}
+          </ul>
+          <div className="glass mt-4 rounded-2xl p-6">
+            <ShopFileUpload productId={product.id} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-10">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Variants</h2>

@@ -1,9 +1,11 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import {
   ALLOWED_IMAGE_EXTENSIONS,
+  ALLOWED_SHOP_FILE_EXTENSIONS,
   ALLOWED_VIDEO_EXTENSIONS,
+  MAX_SHOP_FILE_BYTES,
   MAX_UPLOAD_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
 } from "@/lib/uploadConstraints";
@@ -202,4 +204,59 @@ export async function createPresignedVideoUpload(opts: {
     publicUrl: `${publicUrl}/${key}`,
     key,
   };
+}
+
+function safeDownloadName(fileName: string): string {
+  const cleaned = fileName.replace(/[^\w.\- ()[\]]+/g, "_").slice(0, 120);
+  return cleaned || "download";
+}
+
+/** Private shop file — do not return a public CDN URL. */
+export async function uploadPrivateShopFile(file: {
+  buffer: Buffer;
+  type: string;
+  size: number;
+  fileName: string;
+}): Promise<{ key: string; fileName: string; contentType: string; sizeBytes: number }> {
+  const extension = ALLOWED_SHOP_FILE_EXTENSIONS[file.type];
+  if (!extension) {
+    throw new Error("Unsupported file type for digital products.");
+  }
+  if (file.size <= 0 || file.size > MAX_SHOP_FILE_BYTES) {
+    throw new Error("File is too large. Max size is 25MB.");
+  }
+
+  const { bucketName } = getBucketConfig();
+  const client = getR2Client();
+  const key = `shop-files/${randomUUID()}.${extension}`;
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.type,
+    })
+  );
+
+  return {
+    key,
+    fileName: safeDownloadName(file.fileName),
+    contentType: file.type,
+    sizeBytes: file.size,
+  };
+}
+
+export async function createSignedShopDownloadUrl(key: string, fileName: string): Promise<string> {
+  if (!key.startsWith("shop-files/")) {
+    throw new Error("Invalid download key");
+  }
+  const { bucketName } = getBucketConfig();
+  const client = getR2Client();
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${safeDownloadName(fileName)}"`,
+  });
+  return getSignedUrl(client, command, { expiresIn: 120 });
 }

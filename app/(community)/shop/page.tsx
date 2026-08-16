@@ -23,9 +23,19 @@ export default async function ShopPage() {
         <h1 className="font-display text-5xl tracking-wide">
           HUB <span className="text-gradient">SHOP</span>
         </h1>
-        <p className="mt-2 font-body text-off-white/60">
-          Official merch for the network. Checkout is coming next — browse the catalog now.
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-body text-off-white/60">
+            Official merch and digital downloads for the network.
+          </p>
+          <div className="flex gap-3 font-body text-sm">
+            <Link href="/shop/orders" className="text-off-white/50 transition hover:text-cyan">
+              Orders
+            </Link>
+            <Link href="/shop/downloads" className="text-off-white/50 transition hover:text-cyan">
+              Downloads
+            </Link>
+          </div>
+        </div>
 
         {!settings.isPublished ? (
           <p className="glass mt-8 rounded-2xl p-8 text-center font-body text-off-white/50">
@@ -61,6 +71,9 @@ export default async function ShopPage() {
                     )}
                   </div>
                   <p className="font-body font-semibold text-off-white">{product.title}</p>
+                  <p className="font-body text-[11px] uppercase tracking-wide text-off-white/40">
+                    {product.kind === "DIGITAL" ? "Digital" : "Physical"}
+                  </p>
                   {product.description ? (
                     <p className="line-clamp-2 font-body text-sm text-off-white/50">
                       {product.description}

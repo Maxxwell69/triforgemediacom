@@ -141,6 +141,9 @@ model User {
   appointmentsHosted         Appointment[]          @relation("AppointmentHost")
   personalTasks              PersonalTask[]
   shopOrders                 ShopOrder[]
+  shopDownloadGrants         ShopDownloadGrant[]
+  /// Stripe Customer id for hub shop checkout (one-time now; subscriptions later).
+  stripeCustomerId           String?   @unique
 }
 
 // ---------- Application / invite flow ----------
@@ -1541,6 +1544,11 @@ enum ShopProductSource {
   PRINTIFY
 }
 
+enum ShopProductKind {
+  PHYSICAL
+  DIGITAL
+}
+
 enum ShopOrderStatus {
   PENDING
   PAID
@@ -1568,17 +1576,50 @@ model ShopProduct {
   slug        String            @unique
   description String?
   status      ShopProductStatus @default(DRAFT)
+  kind        ShopProductKind   @default(PHYSICAL)
   source      ShopProductSource @default(NATIVE)
   externalId  String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  images     ShopProductImage[]
-  variants   ShopVariant[]
-  orderItems ShopOrderItem[]
+  images         ShopProductImage[]
+  variants       ShopVariant[]
+  files          ShopProductFile[]
+  orderItems     ShopOrderItem[]
+  downloadGrants ShopDownloadGrant[]
 
   @@index([status])
   @@index([source, externalId])
+}
+
+/// Paid digital file. Served via short-lived signed URLs, not the public CDN.
+model ShopProductFile {
+  id          String   @id @default(cuid())
+  productId   String
+  r2Key       String
+  fileName    String
+  contentType String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  product ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ShopDownloadGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  orderId   String
+  createdAt DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   ShopOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId, orderId])
+  @@index([userId])
 }
 
 model ShopProductImage {
@@ -1629,8 +1670,9 @@ model ShopOrder {
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
 
-  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items ShopOrderItem[]
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          ShopOrderItem[]
+  downloadGrants ShopDownloadGrant[]
 
   @@index([userId, createdAt])
   @@index([status])
