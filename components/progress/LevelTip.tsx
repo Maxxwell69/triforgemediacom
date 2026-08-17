@@ -11,6 +11,7 @@ function tone(current: boolean, reached: boolean) {
 export default function LevelTip({
   title,
   description,
+  items,
   xpRequired,
   current,
   reached,
@@ -20,6 +21,7 @@ export default function LevelTip({
 }: {
   title: string;
   description?: string | null;
+  items?: readonly string[];
   xpRequired?: number | null;
   current: boolean;
   reached: boolean;
@@ -51,6 +53,16 @@ export default function LevelTip({
         <p className="font-body text-xs font-semibold uppercase tracking-wide text-orange">{title}</p>
         {xp ? <p className="mt-0.5 font-body text-[11px] text-off-white/55">{xp}</p> : null}
         {description ? <p className="mt-1 font-body text-xs leading-relaxed text-off-white/80">{description}</p> : null}
+        {items && items.length > 0 ? (
+          <ul className="mt-2 flex flex-col gap-1">
+            {items.map((item) => (
+              <li key={item} className="font-body text-[11px] text-off-white/70">
+                <span className="mr-1.5 text-orange">•</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </div>
   );

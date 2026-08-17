@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.10",
+    date: "August 17, 2026",
+    title: "Specialty hover glow and focus areas",
+    summary:
+      "Hover a specialization on Your Progress to light it up and see what that track covers.",
+    items: [
+      {
+        kind: "improve",
+        text: "Specialization icons glow on hover with a tooltip — description plus focus areas like polls, co-streams, or live selling",
+      },
+    ],
+  },
+  {
     version: "3.09",
     date: "August 17, 2026",
     title: "Progress ladder hover glow and cleanup",

@@ -127,9 +127,14 @@ export default function ProgressionChart({
               const locked = !specialty.unlocked;
               const taken = !!specialty.chosenTrack && !track.chosen;
               return (
-                <div
+                <LevelTip
                   key={track.name}
-                  className={`flex flex-col items-center text-center ${locked || taken ? "opacity-40" : ""}`}
+                  title={track.name}
+                  description={track.description}
+                  items={track.focuses}
+                  current={track.chosen}
+                  reached={!locked && !taken}
+                  className="flex flex-col items-center rounded-2xl px-1 py-2 text-center"
                 >
                   <span
                     className={`flex h-14 w-14 items-center justify-center rounded-full border-2 border-orange ${
@@ -148,7 +153,7 @@ export default function ProgressionChart({
                       <ChooseSpecialtyButton missionId={track.missionId} compact />
                     ) : null}
                   </div>
-                </div>
+                </LevelTip>
               );
             })}
           </div>
