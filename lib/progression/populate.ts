@@ -12,7 +12,7 @@ const CATEGORIES: { name: string; description: string; unlockAt?: string }[] = [
   { name: "Monetization", description: "Gifts received, shop sales, sponsor reads", unlockAt: "Regular" },
   {
     name: "Skill Mastery",
-    description: "Specialization-track tasks. Pick a track on the way to Rising Star, then complete that track’s deep-dive.",
+    description: "Specialization-track tasks. Pick a track at Rising Star, then complete that track’s deep-dive.",
   },
   {
     name: "Community Building",
@@ -46,9 +46,7 @@ const LEVELS: {
   {
     name: "Rising Star",
     xpRequired: 1500,
-    description: "Pick one specialization track. Growth and Content Creation Trainee required.",
-    milestoneMode: "ANY",
-    milestones: TRACKS.map((track) => `Specialize: ${track}`),
+    description: "Specialization unlocked. Growth and Content Creation Trainee required — then pick one of the seven tracks.",
     certs: [
       { category: "Growth", tier: "Trainee" },
       { category: "Content Creation", tier: "Trainee" },
@@ -376,7 +374,7 @@ export async function populateOfficialProgression() {
       await upsertMission(
         skillMasteryId,
         name,
-        `Choose the ${track} specialization. Completing any one track pick unlocks Rising Star (with the other Rising Star requirements).`,
+        `Choose the ${track} specialization. Unlocks at Rising Star. One pick carries through Regular → Legend.`,
         50,
         index
       )
@@ -521,12 +519,17 @@ export async function populateOfficialProgression() {
   };
 }
 
-/** Seeds the official ladder when specialty tracks are missing (empty production DB). */
+/** Seeds or realigns the official ladder (specialty pick is at Rising Star, not a Rising Star gate). */
 export async function ensureOfficialProgression() {
   const existing = await prisma.progressionMission.findFirst({
     where: { name: { startsWith: "Specialize: " }, status: "ACTIVE" },
     select: { id: true },
   });
-  if (existing) return;
+  const rising = await prisma.progressionLevel.findFirst({
+    where: { name: "Rising Star" },
+    include: { milestones: { include: { mission: { select: { name: true } } } } },
+  });
+  const risingHasPick = rising?.milestones.some((row) => row.mission.name.startsWith("Specialize: "));
+  if (existing && !risingHasPick) return;
   await populateOfficialProgression();
 }

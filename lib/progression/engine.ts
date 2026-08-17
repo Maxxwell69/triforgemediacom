@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
-import { isSpecializeMissionName, trackNameFromMission } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL } from "@/lib/progression/tracks";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -99,17 +99,10 @@ async function getChosenSpecialty(userId: string) {
 }
 
 async function specialtyUnlockLevel() {
-  const levels = await prisma.progressionLevel.findMany({
-    where: { status: "ACTIVE" },
+  return prisma.progressionLevel.findFirst({
+    where: { status: "ACTIVE", name: SPECIALTY_UNLOCK_LEVEL },
     orderBy: { sortOrder: "asc" },
-    include: { milestones: { include: { mission: { select: { name: true } } } } },
   });
-  const pickLevel = levels.find((level) =>
-    level.milestones.some((row) => isSpecializeMissionName(row.mission.name))
-  );
-  if (!pickLevel) return null;
-  const previous = levels.filter((level) => level.sortOrder < pickLevel.sortOrder).at(-1);
-  return previous ?? pickLevel;
 }
 
 export async function chooseSpecialty(userId: string, missionId: string) {
@@ -488,14 +481,9 @@ export async function loadCreatorProgress(userId: string) {
   );
   const doneMissionIds = new Set(missionsDone.map((row) => row.missionId));
   const chosenMission = specializeMissions.find((mission) => doneMissionIds.has(mission.id));
-  const pickLevel = levels.find((level) =>
-    level.milestones.some((row) => specializeMissions.some((mission) => mission.id === row.missionId))
-  );
-  const unlockLevel = pickLevel
-    ? levels.filter((level) => level.sortOrder < pickLevel.sortOrder).at(-1) ?? pickLevel
-    : null;
+  const unlockLevel = levels.find((level) => level.name === SPECIALTY_UNLOCK_LEVEL) ?? null;
   const currentSort = profile?.currentLevel?.sortOrder ?? -1;
-  const specialtyUnlocked = !unlockLevel || currentSort >= unlockLevel.sortOrder;
+  const specialtyUnlocked = !!unlockLevel && currentSort >= unlockLevel.sortOrder;
 
   return {
     profile,

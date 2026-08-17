@@ -2,9 +2,9 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engine";
-import { isSpecializeMissionName, isSpecialtyDeepDiveTitle, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, isSpecialtyDeepDiveTitle } from "@/lib/progression/tracks";
 import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
-import ChooseSpecialtyButton from "@/components/progress/ChooseSpecialtyButton";
+import ProgressionChart from "@/components/progress/ProgressionChart";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,6 @@ export default async function ProgressPage() {
   requireProgressionModule();
   const { user } = await requireProfile();
   const progress = await loadCreatorProgress(user.id);
-  const currentIndex = progress.levels.findIndex((l) => l.id === progress.profile?.currentLevelId);
   const doneMissions = new Set(progress.missionCompletions.map((c) => c.missionId));
   const doneModules = new Set(progress.moduleCompletions.map((c) => c.moduleId));
   const heldSkills = new Set(progress.skillsHeld.map((s) => s.skillId));
@@ -40,99 +39,11 @@ export default async function ProgressPage() {
           {user.role === "RECRUIT" ? " · Recruit membership — this is where the ladder starts" : ""}
         </p>
 
-        <section className="mt-8">
-          <h2 className="font-display text-2xl text-off-white/80">Level path</h2>
-          <div className="relative mt-4 flex flex-col gap-3 pl-4 before:absolute before:bottom-4 before:left-[7px] before:top-4 before:w-px before:bg-off-white/15">
-            {progress.levels.length === 0 ? (
-              <p className="glass rounded-2xl p-6 font-body text-off-white/45">
-                No active levels yet. Admins add them under Progression.
-              </p>
-            ) : (
-              progress.levels.map((level, index) => {
-                const unlocked = currentIndex >= index;
-                const current = level.id === progress.profile?.currentLevelId;
-                return (
-                  <div
-                    key={level.id}
-                    className={`relative glass rounded-2xl p-5 ${unlocked ? "" : "opacity-50"}`}
-                  >
-                    <span
-                      className={`absolute -left-[21px] top-6 h-3 w-3 rounded-full ${
-                        current ? "bg-orange" : unlocked ? "bg-cyan" : "bg-off-white/25"
-                      }`}
-                    />
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-body font-semibold text-off-white">{level.name}</p>
-                        <p className="font-body text-xs text-off-white/40">
-                          {level.xpRequired} XP
-                          {level.milestones.length ? ` · ${level.milestones.length} milestone(s)` : ""}
-                          {level.certRequirements.length ? ` · ${level.certRequirements.length} cert(s)` : ""}
-                        </p>
-                      </div>
-                      <span className="font-body text-xs uppercase tracking-wide text-cyan">
-                        {current ? "Current" : unlocked ? "Reached" : "Locked"}
-                      </span>
-                    </div>
-                    {level.description ? (
-                      <p className="mt-2 font-body text-sm text-off-white/55">{level.description}</p>
-                    ) : null}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        <section className="mt-10">
-          <h2 className="font-display text-2xl text-off-white/80">Specialty</h2>
-          <p className="mt-2 font-body text-sm text-off-white/55">
-            {progress.specialty.chosenTrack
-              ? `Your track: ${progress.specialty.chosenTrack}. Skill Mastery follows this specialty.`
-              : progress.specialty.unlocked
-                ? "Pick one track. You need any one of these to reach Rising Star."
-                : `Unlocks at ${progress.specialty.unlocksAt || "Newcomer"} — then pick Engagement Host, Gamer, Community Builder, and the rest.`}
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {progress.specialty.options.length === 0 ? (
-              <p className="glass rounded-2xl p-5 font-body text-sm text-off-white/45 sm:col-span-2 lg:col-span-3">
-                Specialty tracks are not loaded yet. An admin can load official content under Progression.
-              </p>
-            ) : (
-              progress.specialty.options.map((option) => {
-                const meta = SPECIALTY_TRACKS.find((track) => track.name === option.track);
-                const locked = !progress.specialty.unlocked;
-                const taken = !!progress.specialty.chosenTrack && !option.chosen;
-                return (
-                  <div
-                    key={option.missionId}
-                    className={`glass rounded-2xl p-5 ${locked || taken ? "opacity-50" : ""} ${
-                      option.chosen ? "border border-cyan/40" : ""
-                    }`}
-                  >
-                    <p className="font-body font-semibold text-off-white">{option.track}</p>
-                    {meta ? (
-                      <p className="mt-1 font-body text-xs text-off-white/50">{meta.description}</p>
-                    ) : null}
-                    <div className="mt-3">
-                      {option.chosen ? (
-                        <span className="font-body text-xs uppercase tracking-wide text-cyan">Chosen</span>
-                      ) : locked ? (
-                        <span className="font-body text-xs text-off-white/40">
-                          Unlocks at {progress.specialty.unlocksAt}
-                        </span>
-                      ) : taken ? (
-                        <span className="font-body text-xs text-off-white/40">Not your track</span>
-                      ) : (
-                        <ChooseSpecialtyButton missionId={option.missionId} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
+        <ProgressionChart
+          levels={progress.levels}
+          currentLevelId={progress.profile?.currentLevelId}
+          specialty={progress.specialty}
+        />
 
         <section className="mt-10">
           <h2 className="font-display text-2xl text-off-white/80">Tracks</h2>

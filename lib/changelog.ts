@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.04",
+    date: "August 17, 2026",
+    title: "Official creator ladder chart",
+    summary:
+      "Progress now follows the TriForge chart: Live Host start, Recruit → Newcomer, Rising Star unlocks the seven specialties, then Regular through Legend on your chosen track.",
+    items: [
+      {
+        kind: "feature",
+        text: "Progress page ladder matches the official chart, including the seven specialty nodes",
+      },
+      {
+        kind: "improve",
+        text: "Specialization unlocks at Rising Star — picking a track is no longer required to reach that level",
+      },
+    ],
+  },
+  {
     version: "3.03",
     date: "August 17, 2026",
     title: "Choose a creator specialty",
