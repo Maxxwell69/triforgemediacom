@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engine";
-import { isSpecializeMissionName, isSpecialtyDeepDiveTitle } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, isSpecialtyDeepDiveTitle, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
 import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 import ProgressionChart from "@/components/progress/ProgressionChart";
 
@@ -142,12 +142,21 @@ export default async function ProgressPage() {
         <section className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="glass rounded-2xl p-5">
             <h2 className="font-display text-xl text-off-white/80">Skills</h2>
+            <p className="mt-1 font-body text-xs text-off-white/45">
+              Your specialty at Rising Star. One of seven: Engagement Host, Gamer, Shop Owner, Musician, Artist,
+              Educator, Community Builder.
+            </p>
             <ul className="mt-3 flex flex-col gap-2">
-              {progress.skills.map((skill) => (
-                <li key={skill.id} className={`font-body text-sm ${heldSkills.has(skill.id) ? "text-cyan" : "text-off-white/40"}`}>
-                  {heldSkills.has(skill.id) ? "Unlocked" : "Locked"} — {skill.name}
-                </li>
-              ))}
+              {progress.skills.map((skill) => {
+                const held = heldSkills.has(skill.id);
+                const meta = SPECIALTY_TRACKS.find((track) => track.name === skill.name);
+                return (
+                  <li key={skill.id} className={`font-body text-sm ${held ? "text-cyan" : "text-off-white/40"}`}>
+                    <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {skill.name}</span>
+                    {meta ? <span className="mt-0.5 block text-xs text-off-white/40">{meta.description}</span> : null}
+                  </li>
+                );
+              })}
               {progress.skills.length === 0 ? (
                 <li className="font-body text-sm text-off-white/40">None yet</li>
               ) : null}

@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.05",
+    date: "August 17, 2026",
+    title: "Specialty skills on the ladder",
+    summary:
+      "Skills are now the seven creator specialties — Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, Community Builder — not Early Adopter extras.",
+    items: [
+      {
+        kind: "improve",
+        text: "Progress Skills list shows the seven specialties; your pick at Rising Star unlocks that skill",
+      },
+      {
+        kind: "fix",
+        text: "Archived Early Adopter, Multi-Track, and Community Pillar so they no longer appear as the skill set",
+      },
+    ],
+  },
+  {
     version: "3.04",
     date: "August 17, 2026",
     title: "Official creator ladder chart",

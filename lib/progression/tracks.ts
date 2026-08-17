@@ -10,9 +10,13 @@ export const SPECIALTY_TRACKS = [
   { name: "Community Builder", description: "Discord, fan clubs, events, and bringing people together.", accent: "orange" },
 ] as const;
 
+export const SPECIALTY_TRACK_NAMES = SPECIALTY_TRACKS.map((track) => track.name);
+
 export const SPECIALTY_UNLOCK_LEVEL = "Rising Star";
 
-export const SPECIALTY_TRACK_NAMES = SPECIALTY_TRACKS.map((track) => track.name);
+export function isSpecialtyTrackName(name: string): boolean {
+  return (SPECIALTY_TRACK_NAMES as readonly string[]).includes(name);
+}
 
 export function isSpecializeMissionName(name: string) {
   return name.startsWith(SPECIALIZE_PREFIX);

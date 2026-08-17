@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
-import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL, isSpecialtyTrackName } from "@/lib/progression/tracks";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -306,10 +306,15 @@ async function evaluateSkills(userId: string) {
   });
   const totalXp = xpRows.reduce((sum, row) => sum + row.amount, 0);
 
+  const chosen = await getChosenSpecialty(userId);
+
   for (const skill of skills) {
     let ok = false;
-    if (skill.unlockKind === "MANUAL") continue;
-    if (skill.unlockKind === "LEVEL") {
+    if (isSpecialtyTrackName(skill.name)) {
+      ok = chosen?.track === skill.name;
+    } else if (skill.unlockKind === "MANUAL") {
+      continue;
+    } else if (skill.unlockKind === "LEVEL") {
       if (skill.levelId && profile?.currentLevelId) {
         const [needed, current] = await Promise.all([
           prisma.progressionLevel.findUnique({ where: { id: skill.levelId }, select: { sortOrder: true } }),

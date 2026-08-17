@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SPECIALTY_TRACK_NAMES, specializeMissionName } from "@/lib/progression/tracks";
+import { SPECIALTY_TRACKS, SPECIALTY_TRACK_NAMES, specializeMissionName } from "@/lib/progression/tracks";
 
 const TRACKS = SPECIALTY_TRACK_NAMES;
 
@@ -472,27 +472,19 @@ export async function populateOfficialProgression() {
     missionByName.get("Formalize as a business")!.id
   );
 
-  const community = certByCategory.get("Community Building");
-  const master = community?.tiers.find((tier) => tier.name === "Master");
-  const skills = [
-    {
-      name: "Early Adopter",
-      description: "Among the first 100 creators onboarded. Grant manually for now.",
-      unlockKind: "MANUAL" as const,
-    },
-    {
-      name: "Multi-Track",
-      description: "Holds Skill Mastery Certified across more than one track. Grant manually until multi-track is built.",
-      unlockKind: "MANUAL" as const,
-    },
-    {
-      name: "Community Pillar",
-      description: "Holds Community Building — Master.",
-      unlockKind: "CERTIFICATION" as const,
-      certificationId: community?.id,
-      certTierId: master?.id,
-    },
-  ];
+  await prisma.progressionSkill.updateMany({
+    where: { name: { in: ["Early Adopter", "Multi-Track", "Community Pillar"] } },
+    data: { status: "ARCHIVED" },
+  });
+  const skillMastery = categoryByName.get("Skill Mastery");
+  const risingStar = levelByName.get("Rising Star");
+  const skills = SPECIALTY_TRACKS.map((track) => ({
+    name: track.name,
+    description: `${track.description} Unlocks when you choose this specialty at Rising Star.`,
+    unlockKind: "MANUAL" as const,
+    categoryId: skillMastery?.id,
+    levelId: risingStar?.id,
+  }));
   for (let index = 0; index < skills.length; index += 1) {
     const skill = skills[index];
     const existing = await prisma.progressionSkill.findFirst({ where: { name: skill.name } });
@@ -501,8 +493,10 @@ export async function populateOfficialProgression() {
       sortOrder: index,
       status: "ACTIVE" as const,
       unlockKind: skill.unlockKind,
-      certificationId: skill.certificationId ?? null,
-      certTierId: skill.certTierId ?? null,
+      certificationId: null,
+      certTierId: null,
+      categoryId: skill.categoryId ?? null,
+      levelId: skill.levelId ?? null,
     };
     if (existing) {
       await prisma.progressionSkill.update({ where: { id: existing.id }, data });
@@ -530,6 +524,10 @@ export async function ensureOfficialProgression() {
     include: { milestones: { include: { mission: { select: { name: true } } } } },
   });
   const risingHasPick = rising?.milestones.some((row) => row.mission.name.startsWith("Specialize: "));
-  if (existing && !risingHasPick) return;
+  const gamerSkill = await prisma.progressionSkill.findFirst({
+    where: { name: "Gamer", status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (existing && !risingHasPick && gamerSkill) return;
   await populateOfficialProgression();
 }
