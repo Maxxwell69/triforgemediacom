@@ -117,6 +117,30 @@ export default async function ProgressPage() {
                       </li>
                     );
                   })}
+                  {progress.teachingCourses
+                    .filter((course) => course.progressionCategoryId === category.id)
+                    .map((course) => {
+                      const levelLocked =
+                        !!course.progressionLevel && currentSort < course.progressionLevel.sortOrder;
+                      return (
+                        <li key={course.id}>
+                          {locked || levelLocked ? (
+                            <span className="font-body text-sm text-off-white/40">
+                              {course.title}
+                              {levelLocked ? ` · from ${course.progressionLevel?.name}` : ""}
+                            </span>
+                          ) : (
+                            <Link
+                              href={`/learn/${course.id}`}
+                              className="font-body text-sm text-cyan hover:underline"
+                            >
+                              {course.done ? "✓ " : ""}
+                              {course.title}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
                   {category.modules.map((learnModule) => (
                     <li key={learnModule.id}>
                       {locked ? (

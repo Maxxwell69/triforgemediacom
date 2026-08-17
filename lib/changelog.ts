@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.01",
+    date: "August 17, 2026",
+    title: "Learning Center on the ladder",
+    summary:
+      "Admins can attach any Learning Center course to Creator Progression — pick a track and the level it should appear from. Completing the course counts toward that track’s Trainee cert.",
+    items: [
+      {
+        kind: "feature",
+        text: "Course edit: toggle Use in Creator Progression, choose track and starting level",
+      },
+      {
+        kind: "feature",
+        text: "Attached courses show on /progress and count when the member finishes the course or passes its quiz",
+      },
+    ],
+  },
+  {
     version: "3.00",
     date: "August 16, 2026",
     title: "Official creator ladder",

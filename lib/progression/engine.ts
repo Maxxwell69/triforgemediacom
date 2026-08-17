@@ -163,6 +163,40 @@ export async function evaluateProgression(userId: string) {
   await evaluateLevel(userId);
 }
 
+async function hasPassedCategoryTeaching(userId: string, categoryId: string): Promise<boolean> {
+  const courses = await prisma.course.findMany({
+    where: { progressionEnabled: true, isPublished: true, progressionCategoryId: categoryId },
+    select: { id: true, quiz: { select: { id: true } } },
+  });
+  for (let i = 0; i < courses.length; i += 1) {
+    const course = courses[i];
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: course.id } },
+      select: { completedAt: true },
+    });
+    if (enrollment?.completedAt) return true;
+    if (course.quiz) {
+      const passed = await prisma.quizAttempt.findFirst({
+        where: { userId, quizId: course.quiz.id, passed: true },
+        select: { id: true },
+      });
+      if (passed) return true;
+    }
+  }
+
+  const shells = await prisma.progressionLearningModule.findMany({
+    where: { categoryId, status: "ACTIVE", quiz: { isNot: null } },
+    select: { quiz: { select: { id: true } } },
+  });
+  const quizIds = shells.map((row) => row.quiz?.id).filter(Boolean) as string[];
+  if (quizIds.length === 0) return false;
+  const pass = await prisma.progressionQuizAttempt.findFirst({
+    where: { userId, quizId: { in: quizIds }, passed: true },
+    select: { id: true },
+  });
+  return !!pass;
+}
+
 async function evaluateCertifications(userId: string) {
   const certs = await prisma.progressionCertification.findMany({
     where: { status: "ACTIVE" },
@@ -180,17 +214,7 @@ async function evaluateCertifications(userId: string) {
       if (tier.unlockKind === "CATEGORY_XP") {
         ok = (xpByCategory.get(cert.categoryId) ?? 0) >= (tier.xpRequired ?? 0);
       } else if (tier.unlockKind === "QUIZ_PASSED") {
-        const modules = await prisma.progressionLearningModule.findMany({
-          where: { categoryId: cert.categoryId, status: "ACTIVE", quiz: { isNot: null } },
-          select: { quiz: { select: { id: true } } },
-        });
-        const quizIds = modules.map((m) => m.quiz?.id).filter(Boolean) as string[];
-        if (quizIds.length > 0) {
-          const pass = await prisma.progressionQuizAttempt.findFirst({
-            where: { userId, quizId: { in: quizIds }, passed: true },
-          });
-          ok = !!pass;
-        }
+        ok = await hasPassedCategoryTeaching(userId, cert.categoryId);
       }
       if (!ok) continue;
       const current = heldByCert.get(cert.id);
@@ -369,12 +393,48 @@ export async function loadCreatorProgress(userId: string) {
       }),
     ]);
 
+  const teachingCourses = await prisma.course.findMany({
+    where: { progressionEnabled: true, isPublished: true },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      title: true,
+      progressionCategoryId: true,
+      progressionLevelId: true,
+      progressionLevel: { select: { id: true, name: true, sortOrder: true } },
+      quiz: { select: { id: true } },
+    },
+  });
+  const teachingIds = teachingCourses.map((course) => course.id);
+  const [courseEnrollments, courseQuizPasses] = await Promise.all([
+    teachingIds.length
+      ? prisma.enrollment.findMany({
+          where: { userId, courseId: { in: teachingIds } },
+          select: { courseId: true, completedAt: true },
+        })
+      : Promise.resolve([]),
+    teachingIds.length
+      ? prisma.quizAttempt.findMany({
+          where: { userId, passed: true, quiz: { courseId: { in: teachingIds } } },
+          select: { quizId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const completedCourseIds = new Set(
+    courseEnrollments.filter((row) => row.completedAt).map((row) => row.courseId)
+  );
+  const passedQuizIds = new Set(courseQuizPasses.map((row) => row.quizId));
+
   return {
     profile,
     levels,
     categories,
     skills,
     badges,
+    teachingCourses: teachingCourses.map((course) => ({
+      ...course,
+      done: completedCourseIds.has(course.id) || (!!course.quiz && passedQuizIds.has(course.quiz.id)),
+    })),
     totalXp: xpRows.reduce((sum, row) => sum + row.amount, 0),
     xpByCategory: Object.fromEntries(xpRows.map((row) => [row.categoryId, row.amount])),
     missionCompletions: missionsDone,

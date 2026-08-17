@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { checkCourseCompletion, sendCourseCompletionEmails } from "@/lib/learning";
+import { hubHas } from "@/lib/hub/modules";
 import {
   assignmentSchema,
   badgeSchema,
@@ -125,10 +126,19 @@ export async function updateCourse(formData: FormData) {
       certificateEnabled,
       completionGroupId: data.completionGroupId || null,
       groups: { set: groupIds.map((gid) => ({ id: gid })) },
+      ...(formData.get("progressionForm") === "1" && hubHas("progression")
+        ? {
+            progressionEnabled: formData.get("progressionEnabled") === "on",
+            progressionCategoryId: String(formData.get("progressionCategoryId") || "") || null,
+            progressionLevelId: String(formData.get("progressionLevelId") || "") || null,
+          }
+        : {}),
     },
   });
 
   revalidateCourse(id);
+  revalidatePath("/progress");
+  revalidatePath("/admin/progression");
 }
 
 export async function setCourseGroups(courseId: string, groupIds: string[]) {
@@ -529,8 +539,11 @@ export async function reviewSubmission(
     return null;
   });
   await sendCourseCompletionEmails(submission.userId, lesson.courseId, award);
+  const { evaluateProgression } = await import("@/lib/progression/engine");
+  await evaluateProgression(submission.userId);
 
   revalidateCourse(lesson.courseId);
+  revalidatePath("/progress");
 }
 
 // ---------- Question ----------

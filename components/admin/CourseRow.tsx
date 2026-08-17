@@ -15,6 +15,7 @@ type Course = {
   lessonCount: number;
   enrollmentCount: number;
   accessGroups?: { id: string; name: string; color: string }[];
+  progressionLabel?: string | null;
 };
 
 export default function CourseRow({
@@ -73,6 +74,7 @@ export default function CourseRow({
             ) : (
               "Visible to: everyone"
             )}
+            {course.progressionLabel ? ` · Progression: ${course.progressionLabel}` : ""}
           </p>
         </div>
       </div>

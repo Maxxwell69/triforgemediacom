@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createLesson, createModule } from "../actions";
 import CourseEditForm from "@/components/admin/CourseEditForm";
+import { hubHas } from "@/lib/hub/modules";
 import LessonRow from "@/components/admin/LessonRow";
 import ModuleRow from "@/components/admin/ModuleRow";
 import BadgeManager from "@/components/admin/BadgeManager";
@@ -20,7 +21,7 @@ export default async function AdminCourseDetailPage({
 }: {
   params: { courseId: string };
 }) {
-  const [course, allGroups] = await Promise.all([
+  const [course, allGroups, progressionOptions] = await Promise.all([
     prisma.course.findUnique({
       where: { id: params.courseId },
       include: {
@@ -54,6 +55,20 @@ export default async function AdminCourseDetailPage({
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
       select: { id: true, name: true, color: true, isHome: true },
     }),
+    hubHas("progression")
+      ? Promise.all([
+          prisma.progressionCategory.findMany({
+            where: { status: { not: "ARCHIVED" } },
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, name: true },
+          }),
+          prisma.progressionLevel.findMany({
+            where: { status: { not: "ARCHIVED" } },
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, name: true },
+          }),
+        ]).then(([categories, levels]) => ({ categories, levels }))
+      : Promise.resolve(null),
   ]);
 
   if (!course) notFound();
@@ -180,8 +195,12 @@ export default async function AdminCourseDetailPage({
             completionGroupId: detail.completionGroupId,
             certificateEnabled: detail.certificateEnabled,
             accessGroupIds: detail.groups.map((g) => g.id),
+            progressionEnabled: detail.progressionEnabled,
+            progressionCategoryId: detail.progressionCategoryId,
+            progressionLevelId: detail.progressionLevelId,
           }}
           groups={allGroups}
+          progression={progressionOptions}
         />
       </section>
 

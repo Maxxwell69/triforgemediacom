@@ -39,6 +39,8 @@ export default async function CourseDetailPage({
       groups: { select: { id: true } },
       badges: { select: { id: true, name: true, icon: true } },
       quiz: { select: { id: true, title: true, passScore: true } },
+      progressionCategory: { select: { name: true } },
+      progressionLevel: { select: { name: true } },
       modules: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       },
@@ -225,6 +227,13 @@ export default async function CourseDetailPage({
         {published.description && (
           <p className="mt-2 font-body text-off-white/60">{published.description}</p>
         )}
+        {published.progressionEnabled ? (
+          <p className="mt-2 font-body text-xs text-cyan">
+            Counts toward Progression
+            {published.progressionCategory ? ` · ${published.progressionCategory.name}` : ""}
+            {published.progressionLevel ? ` · from ${published.progressionLevel.name}` : ""}
+          </p>
+        ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {published.xpReward > 0 && (
             <span className="rounded-full border border-orange/40 bg-orange/10 px-3 py-1 font-body text-xs font-semibold text-orange">

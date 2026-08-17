@@ -67,6 +67,9 @@ export async function markLessonComplete(lessonId: string) {
     return checkCourseCompletion(tx, user.id, lesson.courseId);
   });
   await sendCourseCompletionEmails(user.id, lesson.courseId, award);
+  const { evaluateProgression } = await import("@/lib/progression/engine");
+  await evaluateProgression(user.id);
+  revalidatePath("/progress");
 
   revalidateLesson(lesson.courseId, lessonId);
 }
@@ -160,6 +163,9 @@ export async function submitQuizAttempt(
     return null;
   });
   await sendCourseCompletionEmails(user.id, courseId, award);
+  const { evaluateProgression } = await import("@/lib/progression/engine");
+  await evaluateProgression(user.id);
+  revalidatePath("/progress");
 
   revalidatePath("/learn");
   revalidatePath(`/learn/${courseId}`);

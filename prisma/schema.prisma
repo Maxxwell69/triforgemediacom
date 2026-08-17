@@ -827,6 +827,10 @@ model Course {
   xpReward           Int      @default(0)
   completionGroupId  String?
   certificateEnabled Boolean  @default(false)
+  /// When on, completing this course (and passing its quiz) counts toward Creator Progression.
+  progressionEnabled     Boolean @default(false)
+  progressionCategoryId  String?
+  progressionLevelId     String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -838,6 +842,8 @@ model Course {
   quiz            Quiz?
   groups          Group[]       @relation("CourseGroups")
   completionGroup Group?        @relation("CourseCompletionGroup", fields: [completionGroupId], references: [id], onDelete: SetNull)
+  progressionCategory ProgressionCategory? @relation(fields: [progressionCategoryId], references: [id], onDelete: SetNull)
+  progressionLevel    ProgressionLevel?    @relation(fields: [progressionLevelId], references: [id], onDelete: SetNull)
 }
 
 model Module {
@@ -1769,6 +1775,7 @@ model ProgressionCategory {
   certifications  ProgressionCertification[]
   skills          ProgressionSkill[]
   categoryXp      ProgressionCategoryXp[]
+  courses         Course[]
 }
 
 model ProgressionLevel {
@@ -1788,6 +1795,7 @@ model ProgressionLevel {
   skills              ProgressionSkill[]
   profiles            ProgressionProfile[]
   unlocksCategories   ProgressionCategory[]       @relation("CategoryUnlockLevel")
+  courses             Course[]
 }
 
 model ProgressionLevelMilestone {

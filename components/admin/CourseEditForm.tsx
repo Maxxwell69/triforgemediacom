@@ -18,7 +18,12 @@ type Course = {
   completionGroupId: string | null;
   certificateEnabled: boolean;
   accessGroupIds: string[];
+  progressionEnabled: boolean;
+  progressionCategoryId: string | null;
+  progressionLevelId: string | null;
 };
+
+type ProgressionOption = { id: string; name: string };
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
@@ -26,9 +31,14 @@ const fieldClass =
 export default function CourseEditForm({
   course,
   groups,
+  progression,
 }: {
   course: Course;
   groups: Group[];
+  progression?: {
+    categories: ProgressionOption[];
+    levels: ProgressionOption[];
+  } | null;
 }) {
   const [saved, setSaved] = useState(false);
 
@@ -114,6 +124,50 @@ export default function CourseEditForm({
           Issue a certificate on completion
         </label>
       </div>
+      {progression ? (
+        <div className="rounded-xl border border-cyan/20 bg-cyan/5 p-4">
+          <input type="hidden" name="progressionForm" value="1" />
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/80">
+            <input
+              type="checkbox"
+              name="progressionEnabled"
+              defaultChecked={course.progressionEnabled}
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Use in Creator Progression
+          </label>
+          <p className="mt-1 font-body text-xs text-off-white/45">
+            Completing this course (and passing its quiz) counts as the teaching for the selected
+            track. Members see it on /progress from the chosen level.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <select
+              name="progressionCategoryId"
+              defaultValue={course.progressionCategoryId ?? ""}
+              className={fieldClass}
+            >
+              <option value="">Progression track (optional)</option>
+              {progression.categories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+            <select
+              name="progressionLevelId"
+              defaultValue={course.progressionLevelId ?? ""}
+              className={fieldClass}
+            >
+              <option value="">Show from level (optional)</option>
+              {progression.levels.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : null}
       <button
         type="submit"
         className="self-start rounded-lg bg-cyan/90 px-6 py-2 font-body text-sm font-semibold text-charcoal transition hover:brightness-110"

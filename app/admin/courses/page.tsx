@@ -16,6 +16,8 @@ export default async function AdminCoursesPage() {
       include: {
         _count: { select: { lessons: true, enrollments: true } },
         groups: { select: { id: true, name: true, color: true }, orderBy: { name: "asc" } },
+        progressionLevel: { select: { name: true } },
+        progressionCategory: { select: { name: true } },
       },
     }),
     prisma.group.findMany({
@@ -90,6 +92,11 @@ export default async function AdminCoursesPage() {
               lessonCount: course._count.lessons,
               enrollmentCount: course._count.enrollments,
               accessGroups: course.groups,
+              progressionLabel: course.progressionEnabled
+                ? [course.progressionCategory?.name, course.progressionLevel?.name]
+                    .filter(Boolean)
+                    .join(" · ") || "on"
+                : null,
             }}
             isFirst={index === 0}
             isLast={index === courses.length - 1}

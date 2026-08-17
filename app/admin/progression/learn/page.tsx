@@ -13,11 +13,19 @@ const fieldClass =
 
 export default async function AdminProgressionLearnPage() {
   requireProgressionModule();
-  const [categories, modules] = await Promise.all([
+  const [categories, modules, attachedCourses] = await Promise.all([
     prisma.progressionCategory.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.progressionLearningModule.findMany({
       include: { category: true, quiz: true },
       orderBy: { sortOrder: "asc" },
+    }),
+    prisma.course.findMany({
+      where: { progressionEnabled: true },
+      orderBy: { order: "asc" },
+      include: {
+        progressionCategory: { select: { name: true } },
+        progressionLevel: { select: { name: true } },
+      },
     }),
   ]);
 
@@ -26,7 +34,36 @@ export default async function AdminProgressionLearnPage() {
       <h1 className="font-display text-5xl tracking-wide">
         LEARNING <span className="text-gradient">MODULES</span>
       </h1>
+      <p className="mt-2 font-body text-sm text-off-white/55">
+        Prefer attaching a Learning Center course (toggle on the course edit page). Legacy shells below are optional.
+      </p>
       <ProgressionAdminNav />
+      <div className="mt-8 flex flex-col gap-2">
+        <h2 className="font-display text-xl text-off-white/80">Attached courses</h2>
+        {attachedCourses.length === 0 ? (
+          <p className="font-body text-sm text-off-white/40">
+            No courses attached yet. Open Admin → Courses, edit a course, and turn on “Use in Creator Progression”.
+          </p>
+        ) : (
+          attachedCourses.map((course) => (
+            <Link
+              key={course.id}
+              href={`/admin/courses/${course.id}`}
+              className="glass flex items-center justify-between rounded-xl p-4 hover:border-cyan/40"
+            >
+              <div>
+                <p className="font-body text-sm text-off-white">{course.title}</p>
+                <p className="font-body text-xs text-off-white/40">
+                  {course.progressionCategory?.name || "No track"}
+                  {course.progressionLevel ? ` · from ${course.progressionLevel.name}` : ""}
+                  {course.isPublished ? "" : " · draft"}
+                </p>
+              </div>
+              <span className="font-body text-xs text-cyan">Edit course</span>
+            </Link>
+          ))
+        )}
+      </div>
       {categories.length === 0 ? (
         <p className="mt-8 font-body text-off-white/50">Create a category first.</p>
       ) : (
