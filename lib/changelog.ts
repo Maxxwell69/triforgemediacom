@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.07",
+    date: "August 17, 2026",
+    title: "Progression admin delete actually works",
+    summary:
+      "Delete on Skills (and other Progression admin rows) was nested inside the Save form, so the browser ignored it. Delete now runs as its own action.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin Progression Delete / Up / Down buttons no longer get swallowed by the Save form — Early Adopter and other extras can be removed",
+      },
+    ],
+  },
+  {
     version: "3.06",
     date: "August 17, 2026",
     title: "Specialty skills actually load",
