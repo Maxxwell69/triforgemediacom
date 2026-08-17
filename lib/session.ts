@@ -62,21 +62,23 @@ export async function requireAdminPage() {
 }
 
 /**
- * TriForge staff only (Obtainable Hub control plane).
- * If SUPERADMIN_EMAILS is unset, the route 404s so Hub 0 is unchanged.
+ * Hub-maker / Obtainable Hub control plane. ADMIN only.
+ * If SUPERADMIN_EMAILS is set, the account email must also be on that list.
  */
 export async function requireSuperAdminPage() {
+  const user = await requireAdminPage();
+  if (user.role !== "ADMIN") {
+    notFound();
+  }
   const allow = (process.env.SUPERADMIN_EMAILS || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  if (allow.length === 0) {
-    notFound();
-  }
-  const user = await requireAdminPage();
-  const email = (user.email || "").toLowerCase();
-  if (!allow.includes(email)) {
-    notFound();
+  if (allow.length > 0) {
+    const email = (user.email || "").toLowerCase();
+    if (!allow.includes(email)) {
+      notFound();
+    }
   }
   return user;
 }

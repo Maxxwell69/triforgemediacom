@@ -35,6 +35,7 @@ export default async function ProgressPage() {
         </h1>
         <p className="mt-2 font-body text-off-white/60">
           {progress.profile?.currentLevel?.name || "Start the ladder"} · {progress.totalXp} XP
+          {user.role === "RECRUIT" ? " · Recruit membership — this is where the ladder starts" : ""}
         </p>
 
         <section className="mt-8">

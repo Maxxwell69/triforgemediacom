@@ -32,6 +32,7 @@ const ROLE_FILTERS = [
   { value: "MOD", label: "Mods" },
   { value: "CREATOR", label: "Creators" },
   { value: "MEMBER", label: "Members" },
+  { value: "RECRUIT", label: "Recruits" },
 ] as const;
 
 type RoleFilter = (typeof ROLE_FILTERS)[number]["value"];
@@ -41,6 +42,7 @@ const ROLE_SORT: Record<UserRole, number> = {
   MOD: 1,
   CREATOR: 2,
   MEMBER: 3,
+  RECRUIT: 4,
 };
 
 export default async function AdminUsersPage({
@@ -61,7 +63,8 @@ export default async function AdminUsersPage({
     roleParam === "ADMIN" ||
     roleParam === "MOD" ||
     roleParam === "CREATOR" ||
-    roleParam === "MEMBER"
+    roleParam === "MEMBER" ||
+    roleParam === "RECRUIT"
       ? roleParam
       : null;
   const q = (searchParams?.q || "").trim();

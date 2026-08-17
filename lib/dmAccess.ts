@@ -1,13 +1,12 @@
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isTrueAdmin } from "@/lib/rbac";
 
 export type DmAccessMode = "ADMIN" | "ADMIN_AND_MOD" | "ALLOWLIST";
 
 export const DM_ACCESS_MODES: DmAccessMode[] = ["ADMIN", "ADMIN_AND_MOD", "ALLOWLIST"];
 
-export function isTrueAdmin(role: UserRole | undefined | null): boolean {
-  return role === "ADMIN";
-}
+export { isTrueAdmin };
 
 export async function getChatSettings() {
   return prisma.chatSettings.upsert({

@@ -13,8 +13,20 @@ export default auth((req) => {
 
   if (isStaffRoute) {
     const role = req.auth?.user?.role;
+    if (!req.auth) {
+      const loginUrl = new URL("/login", req.nextUrl.origin);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (pathname.startsWith("/superadmin")) {
+      if (role !== "ADMIN") {
+        const dest = role === "MOD" ? "/admin" : "/home";
+        return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
+      }
+      return;
+    }
     const isAllowed = role === "ADMIN" || role === "MOD";
-    if (!req.auth || !isAllowed) {
+    if (!isAllowed) {
       const loginUrl = new URL("/login", req.nextUrl.origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);

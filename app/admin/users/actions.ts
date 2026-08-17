@@ -10,7 +10,7 @@ import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite"
 import { sendInviteEmail } from "@/lib/email";
 import type { UserRole } from "@prisma/client";
 
-const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER"];
+const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER", "RECRUIT"];
 
 async function requireAdmin() {
   const session = await auth();

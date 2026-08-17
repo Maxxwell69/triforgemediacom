@@ -6,7 +6,7 @@ import { ADMIN_NAV_SECTIONS, filterAdminNavSections } from "@/lib/adminNav";
 import { hubHas } from "@/lib/hub/modules";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAdminPage();
+  const user = await requireAdminPage();
   const sections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
 
   return (
@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SignOutButton />
         </div>
         <div className="mt-3">
-          <AdminNav sections={sections} />
+          <AdminNav sections={sections} showCreateHub={user.role === "ADMIN"} />
         </div>
       </header>
       {children}

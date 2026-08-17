@@ -12,15 +12,15 @@ export default async function SuperAdminHubsPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
-        Super-admin · dry run
+        Admin only · not shown to members or mods
       </p>
       <h1 className="mt-1 font-display text-5xl tracking-wide">
         CREATE <span className="text-gradient">HUB</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
         Uncheck modules, then <span className="text-off-white">Save preview</span>. Admin
-        and member menus on this staging site will hide those SKUs in this browser.
-        Provisioning (name, slug, DNS, database) is not wired yet.
+        and member menus hide those SKUs in this browser. Provisioning (name, slug, DNS,
+        database) is not wired yet.
       </p>
 
       <div className="mt-8 space-y-4 rounded-2xl border border-off-white/10 p-6">

@@ -30,12 +30,16 @@ import {
   resolveActiveGroupId,
 } from "@/lib/activeGroup";
 import { hubHas } from "@/lib/hub/modules";
+import { ensureProgressionProfile } from "@/lib/progression/engine";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
 
   await touchPresence(user.id).catch(() => {});
   await ensureUserInHomeGroup(user.id).catch(() => {});
+  if (hubHas("progression")) {
+    await ensureProgressionProfile(user.id).catch(() => {});
+  }
 
   const [
     allChannels,

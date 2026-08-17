@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ADMIN_NAV_SECTIONS, filterAdminNavSections } from "@/lib/adminNav";
 import { hubHas } from "@/lib/hub/modules";
 import { liveNotStaleWhere } from "@/lib/tiktokLive";
+import { requireAdminPage } from "@/lib/session";
 import { setAnnouncement, clearAnnouncement } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
 export default async function AdminDashboardPage() {
+  const user = await requireAdminPage();
   const showTiktok = hubHas("tiktokInsights");
   const showApplications = hubHas("applications");
   const navSections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
@@ -42,11 +44,12 @@ export default async function AdminDashboardPage() {
       <p className="mt-2 font-body text-off-white/60">
         Jump into any admin area — sections match the nav dropdowns above.
       </p>
-      {process.env.SUPERADMIN_EMAILS?.trim() ? (
-        <p className="mt-3 font-body text-sm">
+      {user.role === "ADMIN" ? (
+        <p className="mt-3 font-body text-sm text-off-white/55">
           <Link href="/superadmin" className="text-cyan hover:underline">
-            Super-admin catalog (dry run)
+            Create Hub
           </Link>
+          {" — "}admin-only SKU preview. Members and mods cannot open it.
         </p>
       ) : null}
 

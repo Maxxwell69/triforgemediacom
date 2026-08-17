@@ -1,9 +1,11 @@
 "use client";
 
 import { useTransition } from "react";
+import type { UserRole } from "@prisma/client";
 import { updateUserRole } from "@/app/admin/users/actions";
+import { ROLE_LABELS } from "@/lib/rbac";
 
-const ROLES = ["MEMBER", "CREATOR", "MOD", "ADMIN"];
+const ROLES: UserRole[] = ["RECRUIT", "MEMBER", "CREATOR", "MOD", "ADMIN"];
 
 export default function UserRoleSelect({
   userId,
@@ -30,7 +32,7 @@ export default function UserRoleSelect({
     >
       {ROLES.map((r) => (
         <option key={r} value={r}>
-          {r}
+          {ROLE_LABELS[r]}
         </option>
       ))}
     </select>

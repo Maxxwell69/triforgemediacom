@@ -12,8 +12,10 @@ import {
 
 export default function AdminNav({
   sections = ADMIN_NAV_SECTIONS,
+  showCreateHub = false,
 }: {
   sections?: AdminNavSection[];
+  showCreateHub?: boolean;
 }) {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -57,6 +59,18 @@ export default function AdminNav({
       >
         Dashboard
       </Link>
+      {showCreateHub ? (
+        <Link
+          href="/superadmin"
+          className={`rounded-lg px-3 py-1.5 transition ${
+            pathname.startsWith("/superadmin")
+              ? "bg-off-white/10 text-off-white"
+              : "text-off-white/50 hover:text-off-white/80"
+          }`}
+        >
+          Create Hub
+        </Link>
+      ) : null}
 
       {sections.map((section) => {
         const sectionActive = isAdminSectionActive(pathname, section);

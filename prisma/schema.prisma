@@ -52,6 +52,7 @@ enum UserRole {
   MOD
   CREATOR
   MEMBER
+  RECRUIT
 }
 
 enum UserStatus {
@@ -68,7 +69,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
-  role          UserRole   @default(MEMBER)
+  role          UserRole   @default(RECRUIT)
   status        UserStatus @default(PENDING_APPLICATION)
   mutedUntil    DateTime? // null = not muted; future timestamp = muted until then
   receivesAdminAlerts Boolean @default(true) // admins can opt out of notification emails (e.g. figurehead accounts)

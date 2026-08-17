@@ -1,8 +1,11 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import SignOutButton from "@/components/SignOutButton";
+import { requireSuperAdminPage } from "@/lib/session";
 
-export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  await requireSuperAdminPage();
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-off-white/10 px-4 py-3 sm:px-10 sm:py-4">

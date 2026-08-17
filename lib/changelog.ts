@@ -130,6 +130,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.02",
+    date: "August 17, 2026",
+    title: "Recruit membership & admin Hub maker",
+    summary:
+      "New accounts join as Recruits — the starting rung of Creator Progression. Create Hub stays admin-only so members never see the SKU catalog.",
+    items: [
+      {
+        kind: "feature",
+        text: "New membership role Recruit: default for new signups, same chat access as Member, shown on chat badges",
+      },
+      {
+        kind: "feature",
+        text: "Creator Progression starts at Recruit; visiting the hub creates a progress profile on the first level",
+      },
+      {
+        kind: "feature",
+        text: "Create Hub (/superadmin) is ADMIN-only — mods and members cannot open it",
+      },
+    ],
+  },
+  {
     version: "3.01",
     date: "August 17, 2026",
     title: "Learning Center on the ladder",
