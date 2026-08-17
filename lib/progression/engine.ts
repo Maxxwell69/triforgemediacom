@@ -1,6 +1,8 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { ensureOfficialProgression } from "@/lib/progression/populate";
+import { isSpecializeMissionName, trackNameFromMission } from "@/lib/progression/tracks";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -82,11 +84,66 @@ export async function canCompleteMission(userId: string, missionId: string): Pro
   return null;
 }
 
+async function getChosenSpecialty(userId: string) {
+  const completions = await prisma.progressionMissionCompletion.findMany({
+    where: { userId },
+    select: { missionId: true, mission: { select: { id: true, name: true } } },
+    orderBy: { completedAt: "asc" },
+  });
+  const chosen = completions.find((row) => isSpecializeMissionName(row.mission.name));
+  if (!chosen) return null;
+  return {
+    missionId: chosen.mission.id,
+    track: trackNameFromMission(chosen.mission.name),
+  };
+}
+
+async function specialtyUnlockLevel() {
+  const levels = await prisma.progressionLevel.findMany({
+    where: { status: "ACTIVE" },
+    orderBy: { sortOrder: "asc" },
+    include: { milestones: { include: { mission: { select: { name: true } } } } },
+  });
+  const pickLevel = levels.find((level) =>
+    level.milestones.some((row) => isSpecializeMissionName(row.mission.name))
+  );
+  if (!pickLevel) return null;
+  const previous = levels.filter((level) => level.sortOrder < pickLevel.sortOrder).at(-1);
+  return previous ?? pickLevel;
+}
+
+export async function chooseSpecialty(userId: string, missionId: string) {
+  const mission = await prisma.progressionMission.findUnique({ where: { id: missionId } });
+  if (!mission || mission.status !== "ACTIVE" || !isSpecializeMissionName(mission.name)) {
+    throw new Error("That specialty is not available");
+  }
+  const locked = await categoryUnlockMessage(userId, mission.categoryId);
+  if (locked) throw new Error(locked);
+
+  const profile = await prisma.progressionProfile.findUnique({
+    where: { userId },
+    include: { currentLevel: true },
+  });
+  const unlock = await specialtyUnlockLevel();
+  const currentSort = profile?.currentLevel?.sortOrder ?? -1;
+  if (unlock && currentSort < unlock.sortOrder) {
+    throw new Error(`Specialty unlocks at ${unlock.name}`);
+  }
+
+  await completeMission(userId, missionId);
+}
+
 export async function completeMission(userId: string, missionId: string) {
   const blocked = await canCompleteMission(userId, missionId);
   if (blocked) throw new Error(blocked);
   const mission = await prisma.progressionMission.findUnique({ where: { id: missionId } });
   if (!mission) throw new Error("Mission not found");
+  if (isSpecializeMissionName(mission.name)) {
+    const chosen = await getChosenSpecialty(userId);
+    if (chosen && chosen.missionId !== missionId) {
+      throw new Error(`You already chose ${chosen.track}`);
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.progressionMissionCompletion.create({
@@ -350,6 +407,7 @@ async function evaluateLevel(userId: string) {
 }
 
 export async function loadCreatorProgress(userId: string) {
+  await ensureOfficialProgression();
   await ensureProgressionProfile(userId);
   await evaluateProgression(userId);
 
@@ -425,6 +483,20 @@ export async function loadCreatorProgress(userId: string) {
   );
   const passedQuizIds = new Set(courseQuizPasses.map((row) => row.quizId));
 
+  const specializeMissions = categories.flatMap((category) =>
+    category.missions.filter((mission) => isSpecializeMissionName(mission.name))
+  );
+  const doneMissionIds = new Set(missionsDone.map((row) => row.missionId));
+  const chosenMission = specializeMissions.find((mission) => doneMissionIds.has(mission.id));
+  const pickLevel = levels.find((level) =>
+    level.milestones.some((row) => specializeMissions.some((mission) => mission.id === row.missionId))
+  );
+  const unlockLevel = pickLevel
+    ? levels.filter((level) => level.sortOrder < pickLevel.sortOrder).at(-1) ?? pickLevel
+    : null;
+  const currentSort = profile?.currentLevel?.sortOrder ?? -1;
+  const specialtyUnlocked = !unlockLevel || currentSort >= unlockLevel.sortOrder;
+
   return {
     profile,
     levels,
@@ -442,5 +514,15 @@ export async function loadCreatorProgress(userId: string) {
     certsHeld,
     skillsHeld,
     badgesHeld,
+    specialty: {
+      unlocked: specialtyUnlocked,
+      unlocksAt: unlockLevel?.name ?? null,
+      chosenTrack: chosenMission ? trackNameFromMission(chosenMission.name) : null,
+      options: specializeMissions.map((mission) => ({
+        missionId: mission.id,
+        track: trackNameFromMission(mission.name),
+        chosen: chosenMission?.id === mission.id,
+      })),
+    },
   };
 }

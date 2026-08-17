@@ -1,14 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { SPECIALTY_TRACK_NAMES, specializeMissionName } from "@/lib/progression/tracks";
 
-const TRACKS = [
-  "Engagement Host",
-  "Gamer",
-  "Shop Owner",
-  "Musician",
-  "Artist",
-  "Educator",
-  "Community Builder",
-] as const;
+const TRACKS = SPECIALTY_TRACK_NAMES;
 
 const CATEGORIES: { name: string; description: string; unlockAt?: string }[] = [
   { name: "Go Live", description: "Streaming consistency, scheduled stream times" },
@@ -377,7 +370,7 @@ export async function populateOfficialProgression() {
   const missionByName = new Map<string, { id: string }>();
   for (let index = 0; index < TRACKS.length; index += 1) {
     const track = TRACKS[index];
-    const name = `Specialize: ${track}`;
+    const name = specializeMissionName(track);
     missionByName.set(
       name,
       await upsertMission(
@@ -466,7 +459,7 @@ export async function populateOfficialProgression() {
     }
   }
   for (const track of TRACKS) {
-    await upsertBadge(track, `Chose the ${track} specialization.`, "MISSION", missionByName.get(`Specialize: ${track}`)!.id);
+    await upsertBadge(track, `Chose the ${track} specialization.`, "MISSION", missionByName.get(specializeMissionName(track))!.id);
   }
   await upsertBadge(
     "First Collab",
@@ -526,4 +519,14 @@ export async function populateOfficialProgression() {
     modules: MODULES.length,
     tracks: TRACKS.length,
   };
+}
+
+/** Seeds the official ladder when specialty tracks are missing (empty production DB). */
+export async function ensureOfficialProgression() {
+  const existing = await prisma.progressionMission.findFirst({
+    where: { name: { startsWith: "Specialize: " }, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (existing) return;
+  await populateOfficialProgression();
 }

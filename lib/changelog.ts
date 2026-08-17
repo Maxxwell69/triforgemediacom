@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.03",
+    date: "August 17, 2026",
+    title: "Choose a creator specialty",
+    summary:
+      "After Newcomer, creators pick one specialty — Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, or Community Builder — on the way to Rising Star.",
+    items: [
+      {
+        kind: "feature",
+        text: "Progress page Specialty section: locked until Newcomer, then choose one track",
+      },
+      {
+        kind: "improve",
+        text: "Skill Mastery shows only your chosen track’s deep-dive, not all seven specialize missions as checkboxes",
+      },
+    ],
+  },
+  {
     version: "3.02",
     date: "August 17, 2026",
     title: "Recruit membership & admin Hub maker",

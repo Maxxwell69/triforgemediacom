@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/session";
 import { hubHas } from "@/lib/hub/modules";
-import { completeLearningModule, completeMission, submitProgressionQuiz } from "@/lib/progression/engine";
+import { completeLearningModule, completeMission, chooseSpecialty, submitProgressionQuiz } from "@/lib/progression/engine";
+
+export async function chooseMySpecialty(missionId: string) {
+  if (!hubHas("progression")) throw new Error("Not available");
+  const { user } = await requireProfile();
+  await chooseSpecialty(user.id, missionId);
+  revalidatePath("/progress");
+}
 
 export async function completeMyMission(missionId: string) {
   if (!hubHas("progression")) throw new Error("Not available");
