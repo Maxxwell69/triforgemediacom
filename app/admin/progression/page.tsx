@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
+import { ensureOfficialProgression } from "@/lib/progression/populate";
 import ProgressionAdminNav from "@/components/admin/ProgressionAdminNav";
 import { populateOfficialLadder } from "./actions";
 
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminProgressionPage() {
   requireProgressionModule();
+  await ensureOfficialProgression();
   const [levels, categories, missions, modules, certs, skills, badges, profiles, levelRows, moduleRows, completions] =
     await Promise.all([
       prisma.progressionLevel.count(),

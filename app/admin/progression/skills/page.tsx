@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
+import { ensureOfficialProgression } from "@/lib/progression/populate";
 import { createSkill, updateSkill } from "../actions";
 import ProgressionAdminNav from "@/components/admin/ProgressionAdminNav";
 import ProgressionRowTools from "@/components/admin/ProgressionRowTools";
@@ -12,6 +13,7 @@ const fieldClass =
 
 export default async function AdminProgressionSkillsPage() {
   requireProgressionModule();
+  await ensureOfficialProgression();
   const [skills, levels, categories, certs] = await Promise.all([
     prisma.progressionSkill.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.progressionLevel.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -69,6 +71,10 @@ export default async function AdminProgressionSkillsPage() {
       <h1 className="font-display text-5xl tracking-wide">
         SPECIAL <span className="text-gradient">SKILLS</span>
       </h1>
+      <p className="mt-2 font-body text-sm text-off-white/55">
+        The seven creator specialties — Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, Community
+        Builder. Choosing one at Rising Star unlocks that skill.
+      </p>
       <ProgressionAdminNav />
       <form action={createSkill} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
         <input name="name" required placeholder="Skill name" className={fieldClass} />
@@ -84,10 +90,13 @@ export default async function AdminProgressionSkillsPage() {
         </button>
       </form>
       <div className="mt-6 flex flex-col gap-3">
-        {skills.map((skill) => (
+        {[...skills.filter((skill) => skill.status === "ACTIVE"), ...skills.filter((skill) => skill.status !== "ACTIVE")].map((skill) => (
           <form key={skill.id} action={updateSkill} className="glass flex flex-col gap-3 rounded-2xl p-5">
             <input type="hidden" name="id" value={skill.id} />
             <input name="name" defaultValue={skill.name} required className={fieldClass} />
+            {skill.status !== "ACTIVE" ? (
+              <p className="font-body text-xs uppercase tracking-wide text-off-white/40">{skill.status}</p>
+            ) : null}
             <textarea name="description" defaultValue={skill.description ?? ""} rows={2} className={fieldClass} />
             <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={skill.imageUrl} />
             {attachFields(skill)}

@@ -513,6 +513,35 @@ export async function populateOfficialProgression() {
   };
 }
 
+/** Always keep the seven specialty skills live and archive the old extras. */
+export async function syncSpecialtySkills() {
+  await prisma.progressionSkill.updateMany({
+    where: { name: { in: ["Early Adopter", "Multi-Track", "Community Pillar"] } },
+    data: { status: "ARCHIVED" },
+  });
+  const skillMastery = await prisma.progressionCategory.findFirst({ where: { name: "Skill Mastery" } });
+  const risingStar = await prisma.progressionLevel.findFirst({ where: { name: "Rising Star" } });
+  for (let index = 0; index < SPECIALTY_TRACKS.length; index += 1) {
+    const track = SPECIALTY_TRACKS[index];
+    const existing = await prisma.progressionSkill.findFirst({ where: { name: track.name } });
+    const data = {
+      description: `${track.description} Unlocks when you choose this specialty at Rising Star.`,
+      sortOrder: index,
+      status: "ACTIVE" as const,
+      unlockKind: "MANUAL" as const,
+      certificationId: null,
+      certTierId: null,
+      categoryId: skillMastery?.id ?? null,
+      levelId: risingStar?.id ?? null,
+    };
+    if (existing) {
+      await prisma.progressionSkill.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.progressionSkill.create({ data: { name: track.name, ...data } });
+    }
+  }
+}
+
 /** Seeds or realigns the official ladder (specialty pick is at Rising Star, not a Rising Star gate). */
 export async function ensureOfficialProgression() {
   const existing = await prisma.progressionMission.findFirst({
@@ -524,10 +553,8 @@ export async function ensureOfficialProgression() {
     include: { milestones: { include: { mission: { select: { name: true } } } } },
   });
   const risingHasPick = rising?.milestones.some((row) => row.mission.name.startsWith("Specialize: "));
-  const gamerSkill = await prisma.progressionSkill.findFirst({
-    where: { name: "Gamer", status: "ACTIVE" },
-    select: { id: true },
-  });
-  if (existing && !risingHasPick && gamerSkill) return;
-  await populateOfficialProgression();
+  if (!existing || risingHasPick) {
+    await populateOfficialProgression();
+  }
+  await syncSpecialtySkills();
 }

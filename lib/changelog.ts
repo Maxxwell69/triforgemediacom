@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.06",
+    date: "August 17, 2026",
+    title: "Specialty skills actually load",
+    summary:
+      "Opening Progress or Admin → Progression → Skills now writes the seven specialty skills into the database, so Gamer and Engagement Host show up instead of Early Adopter.",
+    items: [
+      {
+        kind: "fix",
+        text: "Sync Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, and Community Builder on every Progress and Skills admin load",
+      },
+    ],
+  },
+  {
     version: "3.05",
     date: "August 17, 2026",
     title: "Specialty skills on the ladder",

@@ -147,19 +147,16 @@ export default async function ProgressPage() {
               Educator, Community Builder.
             </p>
             <ul className="mt-3 flex flex-col gap-2">
-              {progress.skills.map((skill) => {
-                const held = heldSkills.has(skill.id);
-                const meta = SPECIALTY_TRACKS.find((track) => track.name === skill.name);
+              {SPECIALTY_TRACKS.map((track) => {
+                const skill = progress.skills.find((row) => row.name === track.name);
+                const held = skill ? heldSkills.has(skill.id) : false;
                 return (
-                  <li key={skill.id} className={`font-body text-sm ${held ? "text-cyan" : "text-off-white/40"}`}>
-                    <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {skill.name}</span>
-                    {meta ? <span className="mt-0.5 block text-xs text-off-white/40">{meta.description}</span> : null}
+                  <li key={track.name} className={`font-body text-sm ${held ? "text-cyan" : "text-off-white/40"}`}>
+                    <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {track.name}</span>
+                    <span className="mt-0.5 block text-xs text-off-white/40">{track.description}</span>
                   </li>
                 );
               })}
-              {progress.skills.length === 0 ? (
-                <li className="font-body text-sm text-off-white/40">None yet</li>
-              ) : null}
             </ul>
           </div>
           <div className="glass rounded-2xl p-5">
