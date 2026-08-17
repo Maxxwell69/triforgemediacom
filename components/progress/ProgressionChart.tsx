@@ -1,9 +1,7 @@
-import Image from "next/image";
-import Logo from "@/components/Logo";
 import ChooseSpecialtyButton from "@/components/progress/ChooseSpecialtyButton";
+import LevelTip from "@/components/progress/LevelTip";
 import {
   IconChevronUp,
-  IconForgeMark,
   IconPerson,
   IconRecruit,
   SpecialtyIcon,
@@ -34,11 +32,8 @@ const OFFICIAL_RANK: Record<string, number> = {
   Legend: 10,
 };
 
-function tone(current: boolean, reached: boolean) {
-  if (current) return "ring-2 ring-orange";
-  if (reached) return "";
-  return "opacity-45";
-}
+const LIVE_HOST_TIP =
+  "Everyone starts as a Live Host. Recruit is the first ranked step on the shared path.";
 
 export default function ProgressionChart({
   levels,
@@ -75,16 +70,17 @@ export default function ProgressionChart({
         ladder — Regular through Legend — follows the track you pick.
       </p>
 
-      <div className="mt-6 rounded-[28px] border border-off-white/10 bg-[#050505] px-4 py-8 sm:px-8">
+      <div className="mt-6 overflow-visible rounded-[28px] border border-off-white/10 bg-[#050505] px-4 py-8 sm:px-8">
         <div className="mx-auto flex max-w-xl flex-col items-center">
-          <IconForgeMark className="h-12 w-12" />
-
           {legend ? (
-            <div
-              className={`mt-5 w-full rounded-2xl bg-off-white px-5 py-6 text-center ${tone(
-                legend.id === currentLevelId,
-                currentIndex >= levels.findIndex((row) => row.id === legend.id)
-              )}`}
+            <LevelTip
+              title="Legend"
+              description={legend.description}
+              xpRequired={legend.xpRequired}
+              current={legend.id === currentLevelId}
+              reached={currentIndex >= levels.findIndex((row) => row.id === legend.id)}
+              tip="below"
+              className="rounded-2xl bg-off-white px-5 py-6 text-center"
             >
               <p className="font-display text-4xl tracking-wide text-charcoal">
                 <span className="text-orange">{OFFICIAL_RANK.Legend}</span> LEGEND
@@ -92,7 +88,7 @@ export default function ProgressionChart({
               <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.2em] text-orange">
                 Peak creator achievement
               </p>
-            </div>
+            </LevelTip>
           ) : null}
 
           <p className="mt-7 font-body text-[11px] font-semibold uppercase tracking-[0.28em] text-orange">
@@ -102,12 +98,15 @@ export default function ProgressionChart({
             {[...ranks].reverse().map((level) => {
               const index = levels.findIndex((row) => row.id === level.id);
               const number = OFFICIAL_RANK[level.name] ?? index + 1;
-              const reached = currentIndex >= index;
-              const current = level.id === currentLevelId;
               return (
-                <div
+                <LevelTip
                   key={level.id}
-                  className={`flex items-center gap-3 rounded-xl bg-off-white px-2 py-1.5 ${tone(current, reached)}`}
+                  title={level.name}
+                  description={level.description}
+                  xpRequired={level.xpRequired}
+                  current={level.id === currentLevelId}
+                  reached={currentIndex >= index}
+                  className="flex items-center gap-3 rounded-xl bg-off-white px-2 py-1.5"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange font-display text-lg text-off-white">
                     {number}
@@ -115,7 +114,7 @@ export default function ProgressionChart({
                   <p className="font-body text-sm font-semibold uppercase tracking-wide text-charcoal">
                     {level.name}
                   </p>
-                </div>
+                </LevelTip>
               );
             })}
           </div>
@@ -145,9 +144,7 @@ export default function ProgressionChart({
                   <div className="mt-2 min-h-[28px]">
                     {track.chosen ? (
                       <span className="font-body text-[10px] uppercase tracking-wide text-orange">Chosen</span>
-                    ) : locked ? (
-                      <span className="font-body text-[10px] text-off-white/35">Rising Star</span>
-                    ) : taken ? null : track.missionId ? (
+                    ) : !locked && !taken && track.missionId ? (
                       <ChooseSpecialtyButton missionId={track.missionId} compact />
                     ) : null}
                   </div>
@@ -159,11 +156,13 @@ export default function ProgressionChart({
           <div className="h-8 w-px bg-orange" aria-hidden />
 
           {rising ? (
-            <div
-              className={`w-full rounded-2xl border-2 border-orange bg-off-white px-5 py-5 text-center ${tone(
-                rising.id === currentLevelId,
-                currentIndex >= branchIndex
-              )}`}
+            <LevelTip
+              title="Rising Star"
+              description={rising.description}
+              xpRequired={rising.xpRequired}
+              current={rising.id === currentLevelId}
+              reached={currentIndex >= branchIndex}
+              className="rounded-2xl border-2 border-orange bg-off-white px-5 py-5 text-center"
             >
               <p className="font-display text-3xl tracking-wide text-charcoal">RISING STAR</p>
               <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-orange">
@@ -176,19 +175,22 @@ export default function ProgressionChart({
                     : "Pick one specialty. It stays with you through Legend."
                   : `Reach ${specialty.unlocksAt || "Rising Star"} to choose a track.`}
               </p>
-            </div>
+            </LevelTip>
           ) : null}
 
           <div className="mt-5 flex w-full max-w-sm flex-col gap-2">
             {[...early].reverse().map((level) => {
               const index = levels.findIndex((row) => row.id === level.id);
-              const reached = currentIndex >= index;
-              const current = level.id === currentLevelId;
               const Icon = level.name === "Newcomer" ? IconChevronUp : IconRecruit;
               return (
-                <div
+                <LevelTip
                   key={level.id}
-                  className={`flex items-center gap-3 rounded-xl bg-off-white px-3 py-2 ${tone(current, reached)}`}
+                  title={level.name}
+                  description={level.description}
+                  xpRequired={level.xpRequired}
+                  current={level.id === currentLevelId}
+                  reached={currentIndex >= index}
+                  className="flex items-center gap-3 rounded-xl bg-off-white px-3 py-2"
                 >
                   <span className="flex h-8 w-8 items-center justify-center text-orange">
                     <Icon className="h-5 w-5" />
@@ -196,7 +198,7 @@ export default function ProgressionChart({
                   <p className="font-body text-sm font-semibold uppercase tracking-wide text-charcoal">
                     {level.name}
                   </p>
-                </div>
+                </LevelTip>
               );
             })}
           </div>
@@ -204,36 +206,20 @@ export default function ProgressionChart({
           <span className="mt-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-orange text-orange">
             <IconPerson className="h-6 w-6" />
           </span>
-          <div className="mt-3 w-full max-w-sm rounded-2xl bg-[#111] px-6 py-4 text-center">
+          <LevelTip
+            title="Live Host"
+            description={LIVE_HOST_TIP}
+            current={currentIndex < 0}
+            reached
+            className="mt-3 max-w-sm rounded-2xl bg-[#111] px-6 py-4 text-center"
+          >
             <p className="font-display text-2xl tracking-wide text-off-white">LIVE HOST</p>
             <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-orange">
               Universal start
             </p>
-          </div>
-
-          <div className="mt-8 flex w-full flex-col items-center gap-3 border-y border-orange/70 py-5">
-            <Logo height={28} href="/home" />
-            <p className="font-display text-xl tracking-wide text-off-white">
-              CREATOR <span className="text-orange">PROGRESSION</span>
-            </p>
-          </div>
+          </LevelTip>
         </div>
       </div>
-
-      <figure className="mt-6 overflow-hidden rounded-2xl border border-off-white/10 bg-[#050505] px-4 py-5">
-        <figcaption className="mb-3 text-center font-body text-xs uppercase tracking-[0.2em] text-off-white/45">
-          Official breakdown
-        </figcaption>
-        <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
-          <Image
-            src="/progress/creator-progression-breakdown.png"
-            alt="TriForge Media creator progression breakdown: Live Host start, Recruit, Newcomer, Rising Star specialties, rank ladder to Legend"
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, 448px"
-          />
-        </div>
-      </figure>
     </section>
   );
 }

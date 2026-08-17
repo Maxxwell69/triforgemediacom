@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.09",
+    date: "August 17, 2026",
+    title: "Progress ladder hover glow and cleanup",
+    summary:
+      "Your Progress drops the extra logos and planted chart image. Hover a rank to glow it and read what that level requires.",
+    items: [
+      {
+        kind: "improve",
+        text: "Hover any Progress level for an orange glow and a tooltip with XP plus the level description",
+      },
+      {
+        kind: "fix",
+        text: "Removed the broken F mark, the Creator Progression footer, the planted breakdown image, and the extra Rising Star tags under specialties",
+      },
+    ],
+  },
+  {
     version: "3.08",
     date: "August 17, 2026",
     title: "Official progression breakdown on Your Progress",
