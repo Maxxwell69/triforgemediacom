@@ -5,6 +5,7 @@ import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engin
 import { isSpecializeMissionName, isSpecialtyDeepDiveTitle, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
 import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 import ProgressionChart from "@/components/progress/ProgressionChart";
+import { SpecialtyIcon } from "@/components/progress/ProgressionIcons";
 
 export const dynamic = "force-dynamic";
 
@@ -151,9 +152,14 @@ export default async function ProgressPage() {
                 const skill = progress.skills.find((row) => row.name === track.name);
                 const held = skill ? heldSkills.has(skill.id) : false;
                 return (
-                  <li key={track.name} className={`font-body text-sm ${held ? "text-cyan" : "text-off-white/40"}`}>
-                    <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {track.name}</span>
-                    <span className="mt-0.5 block text-xs text-off-white/40">{track.description}</span>
+                  <li key={track.name} className={`flex items-start gap-3 font-body text-sm ${held ? "text-off-white" : "text-off-white/40"}`}>
+                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${held ? "border-orange text-off-white" : "border-off-white/25 text-off-white/40"}`}>
+                      <SpecialtyIcon name={track.name} className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {track.name}</span>
+                      <span className="mt-0.5 block text-xs text-off-white/40">{track.description}</span>
+                    </span>
                   </li>
                 );
               })}

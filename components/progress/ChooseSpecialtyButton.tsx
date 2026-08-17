@@ -6,9 +6,11 @@ import { chooseMySpecialty } from "@/app/(community)/progress/actions";
 export default function ChooseSpecialtyButton({
   missionId,
   disabled,
+  compact,
 }: {
   missionId: string;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,11 @@ export default function ChooseSpecialtyButton({
             }
           });
         }}
-        className="rounded-lg bg-orange px-3 py-1.5 font-body text-xs font-semibold text-off-white disabled:cursor-not-allowed disabled:opacity-40"
+        className={
+          compact
+            ? "rounded-md bg-orange px-2 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-off-white disabled:cursor-not-allowed disabled:opacity-40"
+            : "rounded-lg bg-orange px-3 py-1.5 font-body text-xs font-semibold text-off-white disabled:cursor-not-allowed disabled:opacity-40"
+        }
       >
         {pending ? "Saving…" : "Choose"}
       </button>

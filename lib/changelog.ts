@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.08",
+    date: "August 17, 2026",
+    title: "Official progression breakdown on Your Progress",
+    summary:
+      "Your Progress now uses the official Creator Progression layout — white rank cards, orange specialty icons, and the Live Host → Legend poster flow.",
+    items: [
+      {
+        kind: "improve",
+        text: "Progress chart matches the official breakdown: Live Host start, Recruit, Newcomer, Rising Star specialties, rank ladder 4–9, and Legend",
+      },
+      {
+        kind: "feature",
+        text: "Seven specialty icons (Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, Community Builder) with Choose still on each node",
+      },
+    ],
+  },
+  {
     version: "3.07",
     date: "August 17, 2026",
     title: "Progression admin delete actually works",

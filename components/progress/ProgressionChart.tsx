@@ -1,4 +1,13 @@
+import Image from "next/image";
+import Logo from "@/components/Logo";
 import ChooseSpecialtyButton from "@/components/progress/ChooseSpecialtyButton";
+import {
+  IconChevronUp,
+  IconForgeMark,
+  IconPerson,
+  IconRecruit,
+  SpecialtyIcon,
+} from "@/components/progress/ProgressionIcons";
 import { SPECIALTY_TRACKS, SPECIALTY_UNLOCK_LEVEL } from "@/lib/progression/tracks";
 
 type Level = {
@@ -15,62 +24,20 @@ type SpecialtyOption = {
   chosen: boolean;
 };
 
-function TrackGlyph({ name, className }: { name: string; className?: string }) {
-  const common = className ?? "h-5 w-5";
-  if (name === "Gamer") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="8" width="18" height="10" rx="4" />
-        <path d="M8 13h2M9 12v2M16 12.5h.01M18 14.5h.01" />
-      </svg>
-    );
-  }
-  if (name === "Shop Owner") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M6 8h12l-1 12H7L6 8Z" />
-        <path d="M9 8V7a3 3 0 0 1 6 0v1" />
-      </svg>
-    );
-  }
-  if (name === "Musician") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M9 18V6l10-2v12" />
-        <circle cx="7" cy="18" r="2.5" />
-        <circle cx="17" cy="16" r="2.5" />
-      </svg>
-    );
-  }
-  if (name === "Artist") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 20l6-1 10-10a3 3 0 0 0-4-4L6 15l-2 5Z" />
-      </svg>
-    );
-  }
-  if (name === "Educator") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 7l8-3 8 3-8 3-8-3Z" />
-        <path d="M6 10v5c2 2 10 2 12 0v-5" />
-      </svg>
-    );
-  }
-  if (name === "Community Builder") {
-    return (
-      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <circle cx="9" cy="8" r="2.5" />
-        <circle cx="16" cy="9" r="2" />
-        <path d="M4 18c1-3 3.5-4.5 5-4.5S13 15 14 18M14 18c.5-2 2-3.5 3.5-3.5S21 16 21 18" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M5 19v-6h4v6M10 19V8h4v11M15 19v-9h4v9" />
-    </svg>
-  );
+const OFFICIAL_RANK: Record<string, number> = {
+  Regular: 4,
+  "Fan Favorite": 5,
+  "Featured Creator": 6,
+  "Top Creator": 7,
+  "Elite Creator": 8,
+  "Triforge Star": 9,
+  Legend: 10,
+};
+
+function tone(current: boolean, reached: boolean) {
+  if (current) return "ring-2 ring-orange";
+  if (reached) return "";
+  return "opacity-45";
 }
 
 export default function ProgressionChart({
@@ -93,6 +60,8 @@ export default function ProgressionChart({
   const early = levels.slice(0, branchIndex);
   const rising = levels[branchIndex];
   const advanced = levels.slice(branchIndex + 1);
+  const legend = advanced.find((level) => level.name === "Legend");
+  const ranks = advanced.filter((level) => level.name !== "Legend");
   const options = SPECIALTY_TRACKS.map((track) => {
     const option = specialty.options.find((row) => row.track === track.name);
     return { ...track, missionId: option?.missionId ?? null, chosen: option?.chosen ?? false };
@@ -100,129 +69,171 @@ export default function ProgressionChart({
 
   return (
     <section className="mt-8">
-      <h2 className="font-display text-2xl text-off-white/80">Creator ladder</h2>
+      <h2 className="font-display text-2xl text-off-white/80">Creator progression</h2>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        Live Host start → Recruit → Newcomer → Rising Star unlocks specialization → Regular through Legend on your
-        chosen track.
+        Live Host start. Recruit and Newcomer share one path. Rising Star unlocks a specialty. Then the rank
+        ladder — Regular through Legend — follows the track you pick.
       </p>
 
-      <div className="relative mt-6 overflow-hidden rounded-3xl border border-orange/25 bg-deep-blue px-4 py-8 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(253,72,2,0.12),_transparent_55%)]" />
-        <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-4">
-          {[...advanced].reverse().map((level) => {
-            const index = levels.findIndex((row) => row.id === level.id);
-            const number = index + 1;
-            const reached = currentIndex >= index;
-            const current = level.id === currentLevelId;
-            return (
-              <div
-                key={level.id}
-                className={`flex w-full items-center gap-3 rounded-full border px-4 py-2.5 ${
-                  current
-                    ? "border-orange bg-orange/15"
-                    : reached
-                      ? "border-cyan/40 bg-cyan/10"
-                      : "border-off-white/15 bg-off-white/5 opacity-50"
-                }`}
-              >
-                <span className="font-display text-lg text-orange">{number}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm font-semibold text-off-white">{level.name}</p>
-                  {level.name === "Legend" ? (
-                    <p className="font-body text-[11px] text-orange/80">Peak creator achievement</p>
-                  ) : null}
-                </div>
-                {specialty.chosenTrack ? (
-                  <span className="hidden font-body text-[11px] text-cyan sm:inline">{specialty.chosenTrack}</span>
-                ) : null}
-              </div>
-            );
-          })}
+      <div className="mt-6 rounded-[28px] border border-off-white/10 bg-[#050505] px-4 py-8 sm:px-8">
+        <div className="mx-auto flex max-w-xl flex-col items-center">
+          <IconForgeMark className="h-12 w-12" />
 
-          <div className="mt-2 grid w-full grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {legend ? (
+            <div
+              className={`mt-5 w-full rounded-2xl bg-off-white px-5 py-6 text-center ${tone(
+                legend.id === currentLevelId,
+                currentIndex >= levels.findIndex((row) => row.id === legend.id)
+              )}`}
+            >
+              <p className="font-display text-4xl tracking-wide text-charcoal">
+                <span className="text-orange">{OFFICIAL_RANK.Legend}</span> LEGEND
+              </p>
+              <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.2em] text-orange">
+                Peak creator achievement
+              </p>
+            </div>
+          ) : null}
+
+          <p className="mt-7 font-body text-[11px] font-semibold uppercase tracking-[0.28em] text-orange">
+            Rank ladder
+          </p>
+          <div className="mt-3 flex w-full flex-col gap-2">
+            {[...ranks].reverse().map((level) => {
+              const index = levels.findIndex((row) => row.id === level.id);
+              const number = OFFICIAL_RANK[level.name] ?? index + 1;
+              const reached = currentIndex >= index;
+              const current = level.id === currentLevelId;
+              return (
+                <div
+                  key={level.id}
+                  className={`flex items-center gap-3 rounded-xl bg-off-white px-2 py-1.5 ${tone(current, reached)}`}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange font-display text-lg text-off-white">
+                    {number}
+                  </span>
+                  <p className="font-body text-sm font-semibold uppercase tracking-wide text-charcoal">
+                    {level.name}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-8 font-body text-[11px] font-semibold uppercase tracking-[0.28em] text-orange">
+            Specializations
+          </p>
+          <div className="mt-4 grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">
             {options.map((track) => {
               const locked = !specialty.unlocked;
               const taken = !!specialty.chosenTrack && !track.chosen;
-              const tone = track.accent === "orange" ? "text-orange border-orange/40" : "text-cyan border-cyan/40";
               return (
                 <div
                   key={track.name}
-                  className={`flex flex-col items-center rounded-2xl border bg-off-white/[0.04] px-2 py-3 text-center ${tone} ${
-                    locked || taken ? "opacity-40" : ""
-                  } ${track.chosen ? "bg-cyan/10" : ""}`}
+                  className={`flex flex-col items-center text-center ${locked || taken ? "opacity-40" : ""}`}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-current">
-                    <TrackGlyph name={track.name} />
+                  <span
+                    className={`flex h-14 w-14 items-center justify-center rounded-full border-2 border-orange ${
+                      track.chosen ? "bg-orange text-off-white" : "bg-transparent text-off-white"
+                    }`}
+                  >
+                    <SpecialtyIcon name={track.name} className="h-7 w-7" />
                   </span>
-                  <p className="mt-2 font-body text-[11px] font-semibold leading-tight text-off-white">{track.name}</p>
+                  <p className="mt-2 font-body text-[10px] font-semibold uppercase leading-tight tracking-wide text-off-white">
+                    {track.name}
+                  </p>
                   <div className="mt-2 min-h-[28px]">
                     {track.chosen ? (
-                      <span className="font-body text-[10px] uppercase tracking-wide text-cyan">Chosen</span>
+                      <span className="font-body text-[10px] uppercase tracking-wide text-orange">Chosen</span>
                     ) : locked ? (
-                      <span className="font-body text-[10px] text-off-white/40">Rising Star</span>
-                    ) : taken ? (
-                      <span className="font-body text-[10px] text-off-white/40">—</span>
-                    ) : track.missionId ? (
-                      <ChooseSpecialtyButton missionId={track.missionId} />
-                    ) : (
-                      <span className="font-body text-[10px] text-off-white/40">Soon</span>
-                    )}
+                      <span className="font-body text-[10px] text-off-white/35">Rising Star</span>
+                    ) : taken ? null : track.missionId ? (
+                      <ChooseSpecialtyButton missionId={track.missionId} compact />
+                    ) : null}
                   </div>
                 </div>
               );
             })}
           </div>
 
+          <div className="h-8 w-px bg-orange" aria-hidden />
+
           {rising ? (
             <div
-              className={`w-full max-w-md rounded-2xl border-2 px-5 py-4 text-center ${
+              className={`w-full rounded-2xl border-2 border-orange bg-off-white px-5 py-5 text-center ${tone(
+                rising.id === currentLevelId,
                 currentIndex >= branchIndex
-                  ? "border-orange bg-orange/10 shadow-glow"
-                  : "border-orange/30 bg-off-white/5 opacity-60"
-              }`}
+              )}`}
             >
-              <p className="font-display text-2xl tracking-wide text-orange">RISING STAR</p>
-              <p className="mt-1 font-body text-xs uppercase tracking-[0.2em] text-orange/80">
+              <p className="font-display text-3xl tracking-wide text-charcoal">RISING STAR</p>
+              <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-orange">
                 Specialization unlocked
               </p>
-              <p className="mt-2 font-body text-xs text-off-white/55">
+              <p className="mt-2 font-body text-xs text-charcoal/70">
                 {specialty.unlocked
                   ? specialty.chosenTrack
                     ? `You’re on ${specialty.chosenTrack}.`
-                    : "Pick one specialty. It carries through Regular → Legend."
+                    : "Pick one specialty. It stays with you through Legend."
                   : `Reach ${specialty.unlocksAt || "Rising Star"} to choose a track.`}
               </p>
             </div>
           ) : null}
 
-          {[...early].reverse().map((level) => {
-            const index = levels.findIndex((row) => row.id === level.id);
-            const reached = currentIndex >= index;
-            const current = level.id === currentLevelId;
-            return (
-              <div
-                key={level.id}
-                className={`rounded-full border px-8 py-2 font-body text-sm font-semibold ${
-                  current
-                    ? "border-orange bg-orange/20 text-off-white"
-                    : reached
-                      ? "border-cyan/40 bg-cyan/10 text-off-white"
-                      : "border-off-white/15 text-off-white/50"
-                }`}
-              >
-                {level.name}
-              </div>
-            );
-          })}
+          <div className="mt-5 flex w-full max-w-sm flex-col gap-2">
+            {[...early].reverse().map((level) => {
+              const index = levels.findIndex((row) => row.id === level.id);
+              const reached = currentIndex >= index;
+              const current = level.id === currentLevelId;
+              const Icon = level.name === "Newcomer" ? IconChevronUp : IconRecruit;
+              return (
+                <div
+                  key={level.id}
+                  className={`flex items-center gap-3 rounded-xl bg-off-white px-3 py-2 ${tone(current, reached)}`}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center text-orange">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <p className="font-body text-sm font-semibold uppercase tracking-wide text-charcoal">
+                    {level.name}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
 
-          <div className="mt-1 rounded-2xl border-2 border-orange/70 bg-orange/10 px-8 py-4 text-center">
-            <p className="font-display text-xl tracking-wide text-orange">LIVE HOST</p>
-            <p className="mt-1 font-body text-[11px] uppercase tracking-wide text-off-white/50">
+          <span className="mt-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-orange text-orange">
+            <IconPerson className="h-6 w-6" />
+          </span>
+          <div className="mt-3 w-full max-w-sm rounded-2xl bg-[#111] px-6 py-4 text-center">
+            <p className="font-display text-2xl tracking-wide text-off-white">LIVE HOST</p>
+            <p className="mt-1 font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-orange">
               Universal start
+            </p>
+          </div>
+
+          <div className="mt-8 flex w-full flex-col items-center gap-3 border-y border-orange/70 py-5">
+            <Logo height={28} href="/home" />
+            <p className="font-display text-xl tracking-wide text-off-white">
+              CREATOR <span className="text-orange">PROGRESSION</span>
             </p>
           </div>
         </div>
       </div>
+
+      <figure className="mt-6 overflow-hidden rounded-2xl border border-off-white/10 bg-[#050505] px-4 py-5">
+        <figcaption className="mb-3 text-center font-body text-xs uppercase tracking-[0.2em] text-off-white/45">
+          Official breakdown
+        </figcaption>
+        <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
+          <Image
+            src="/progress/creator-progression-breakdown.png"
+            alt="TriForge Media creator progression breakdown: Live Host start, Recruit, Newcomer, Rising Star specialties, rank ladder to Legend"
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, 448px"
+          />
+        </div>
+      </figure>
     </section>
   );
 }
