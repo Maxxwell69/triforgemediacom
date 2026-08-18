@@ -57,7 +57,7 @@ export async function createClientHubAction(formData: FormData): Promise<{ error
     slug: String(formData.get("slug") || ""),
     email: String(formData.get("email") || ""),
   });
-  if ("error" in parsed) return parsed;
+  if (!parsed.ok) return { error: parsed.error };
 
   try {
     const hub = await prisma.clientHub.create({
@@ -90,7 +90,7 @@ export async function saveClientHubAction(formData: FormData): Promise<{ error: 
     slug: String(formData.get("slug") || ""),
     email: String(formData.get("email") || ""),
   });
-  if ("error" in parsed) return parsed;
+  if (!parsed.ok) return { error: parsed.error };
 
   try {
     await prisma.clientHub.update({

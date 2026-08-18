@@ -35,7 +35,7 @@ export default function CreateHubForm({
         event.preventDefault();
         const form = event.currentTarget;
         const data = new FormData(form);
-        for (const id of enabled) data.append("sku", id);
+        Array.from(enabled).forEach((id) => data.append("sku", id));
         setError(null);
         start(async () => {
           const result = await createClientHubAction(data);

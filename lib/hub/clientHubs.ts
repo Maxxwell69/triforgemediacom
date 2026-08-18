@@ -77,17 +77,21 @@ export function defaultClientSkuIds() {
   return ["core", ...OPTIONAL_SKUS.map((sku) => sku.id)];
 }
 
-export function validateHubInput(input: { name: string; slug: string; email: string }) {
+export function validateHubInput(
+  input: { name: string; slug: string; email: string }
+): { ok: false; error: string } | { ok: true; name: string; slug: string; email: string } {
   const name = input.name.trim();
   const slug = normalizeHubSlug(input.slug);
   const email = input.email.trim().toLowerCase();
 
-  if (name.length < 2) return { error: "Hub name needs at least 2 characters." };
-  if (slug.length < 2) return { error: "Slug needs at least 2 letters." };
-  if (RESERVED_HUB_SLUGS.has(slug)) return { error: `“${slug}” is reserved.` };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid client admin email." };
+  if (name.length < 2) return { ok: false, error: "Hub name needs at least 2 characters." };
+  if (slug.length < 2) return { ok: false, error: "Slug needs at least 2 letters." };
+  if (RESERVED_HUB_SLUGS.has(slug)) return { ok: false, error: `"${slug}" is reserved.` };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Enter a valid client admin email." };
+  }
 
-  return { name, slug, email };
+  return { ok: true, name, slug, email };
 }
 
 export function nextSetupStep(hub: {

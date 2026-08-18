@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.112",
+    date: "August 18, 2026",
+    title: "Fix Create Hub production build",
+    summary:
+      "Production image build was failing on TypeScript in Create Hub. The hub record form compiles again.",
+    items: [
+      {
+        kind: "fix",
+        text: "Create Hub save/update types and SKU checkbox iteration so next build succeeds on Railway",
+      },
+    ],
+  },
+  {
     version: "3.111",
     date: "August 18, 2026",
     title: "Versions now use three digits",
