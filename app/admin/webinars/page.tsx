@@ -98,7 +98,7 @@ export default async function AdminWebinarsPage() {
                         </span>
                       </div>
                       <p className="mt-1 font-body text-xs text-off-white/50">
-                        <LocalWhen startsAt={w.scheduledAt} /> · Host: {hostName} ·{" "}
+                        <LocalWhen startsAt={w.scheduledAt.toISOString()} /> · Host: {hostName} ·{" "}
                         {w._count.attendances} joined · {w._count.chatMessages} messages
                         {w.externalSignupEnabled
                           ? ` · ${w.externalGuests.length} outside signup${w.externalGuests.length === 1 ? "" : "s"}`

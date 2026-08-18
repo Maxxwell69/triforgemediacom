@@ -120,7 +120,10 @@ export default async function AdminEventsPage() {
                   )}
                 </p>
                 <p className="font-body text-xs text-off-white/40">
-                  <LocalWhen startsAt={event.startsAt} endsAt={event.endsAt} /> · {event.visibility}
+                  <LocalWhen
+                    startsAt={event.startsAt.toISOString()}
+                    endsAt={event.endsAt ? event.endsAt.toISOString() : null}
+                  /> · {event.visibility}
                   {event.group ? ` · ${event.group.name}` : ""}
                   {" · "}
                   {event._count.attendees} attendees

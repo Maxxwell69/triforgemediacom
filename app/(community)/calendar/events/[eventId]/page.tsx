@@ -81,7 +81,10 @@ export default async function CalendarEventPage({
             </h1>
 
             <p className="mt-3 font-body text-sm text-off-white/65">
-              <LocalWhen startsAt={event.startsAt} endsAt={event.endsAt} />
+              <LocalWhen
+                startsAt={event.startsAt.toISOString()}
+                endsAt={event.endsAt ? event.endsAt.toISOString() : null}
+              />
             </p>
             {event.location && (
               <p className="mt-1 font-body text-sm text-off-white/50">{event.location}</p>

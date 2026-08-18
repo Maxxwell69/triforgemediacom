@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.114",
+    date: "August 18, 2026",
+    title: "Fix webinar page client crash",
+    summary:
+      "Opening Webinars no longer white-screens. Times still show in your timezone after the page loads.",
+    items: [
+      {
+        kind: "fix",
+        text: "Webinar/calendar time labels no longer pass Date objects into a client component (that crashed the page)",
+      },
+    ],
+  },
+  {
     version: "3.113",
     date: "August 18, 2026",
     title: "Calendar and webinar times use your timezone",

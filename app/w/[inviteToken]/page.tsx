@@ -52,7 +52,7 @@ export default async function ExternalWebinarInvitePage({
         <div>
           <p className="font-body text-sm font-semibold text-off-white">{hostName}</p>
           <p className="font-body text-xs text-off-white/45">
-            <LocalWhen startsAt={webinar.scheduledAt} />
+            <LocalWhen startsAt={webinar.scheduledAt.toISOString()} />
             {webinar.status === "LIVE" ? " · Live now" : ""}
           </p>
         </div>

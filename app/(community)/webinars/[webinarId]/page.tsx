@@ -60,7 +60,7 @@ export default async function WebinarDetailPage({
               {webinar.title}
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              <LocalWhen startsAt={webinar.scheduledAt} /> · Hosted by{" "}
+              <LocalWhen startsAt={webinar.scheduledAt.toISOString()} /> · Hosted by{" "}
               {webinar.host.name || webinar.host.email}
             </p>
           </div>

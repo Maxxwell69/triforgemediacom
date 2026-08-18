@@ -62,7 +62,7 @@ export default async function ExternalWebinarAccessPage({
 
       <div className="glass mt-8 rounded-2xl p-6">
         <p className="font-body text-sm text-off-white/70">
-          <LocalWhen startsAt={webinar.scheduledAt} />
+          <LocalWhen startsAt={webinar.scheduledAt.toISOString()} />
         </p>
         <p className="mt-2 font-body text-xs text-off-white/45">
           Status:{" "}

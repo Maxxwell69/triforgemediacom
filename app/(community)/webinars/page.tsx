@@ -161,7 +161,7 @@ function WebinarCard({
             )}
           </div>
           <p className="mt-1 font-body text-xs text-off-white/50">
-            <LocalWhen startsAt={webinar.scheduledAt} /> · {hostName}
+            <LocalWhen startsAt={webinar.scheduledAt.toISOString()} /> · {hostName}
             {webinar._count.attendances > 0
               ? ` · ${webinar._count.attendances} joined`
               : ""}
