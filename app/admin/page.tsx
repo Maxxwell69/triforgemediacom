@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
           <Link href="/superadmin" className="text-cyan hover:underline">
             Create Hub
           </Link>
-          {" — "}admin-only SKU preview. Members and mods cannot open it.
+          {" — "}save a client hub record, then work DNS / TLS / database / invite.
         </p>
       ) : null}
 

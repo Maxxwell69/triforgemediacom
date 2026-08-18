@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.11",
+    date: "August 18, 2026",
+    title: "Create Hub saves a real hub record",
+    summary:
+      "Admins can save a client hub (name, slug, email, SKUs) and check off the next setup steps — DNS, Railway TLS, tenant database, invite.",
+    items: [
+      {
+        kind: "feature",
+        text: "Create Hub stores client hubs in Postgres instead of only a browser cookie preview",
+      },
+      {
+        kind: "feature",
+        text: "Each hub has a setup list: DNS CNAME, Railway TLS domain, tenant database, invite client admin",
+      },
+    ],
+  },
+  {
     version: "3.10",
     date: "August 17, 2026",
     title: "Specialty hover glow and focus areas",

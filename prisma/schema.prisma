@@ -148,6 +148,7 @@ model User {
   progressionProfile         ProgressionProfile?
   progressionCategoryXp      ProgressionCategoryXp[]
   progressionMissionCompletions ProgressionMissionCompletion[]
+  clientHubsCreated          ClientHub[]
   progressionModuleCompletions ProgressionModuleCompletion[]
   progressionQuizAttempts    ProgressionQuizAttempt[]
   progressionCertsHeld       ProgressionCertificationHeld[]
@@ -2060,4 +2061,25 @@ model ProgressionBadgeGrant {
   badge ProgressionBadge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
+}
+
+/// Control-plane record for a client hub. Does not provision DNS or a database yet.
+model ClientHub {
+  id                 String   @id @default(cuid())
+  name               String
+  slug               String   @unique
+  clientAdminEmail   String
+  enabledSkuIds      String[] @default([])
+  notes              String?
+  dnsCnameAt         DateTime?
+  railwayDomainAt    DateTime?
+  tenantDbAt         DateTime?
+  adminInvitedAt     DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdById        String?
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
 }
