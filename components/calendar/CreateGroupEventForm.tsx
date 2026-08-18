@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGroupCalendarEvent } from "@/app/(community)/calendar/actions";
+import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
+import { attachDeviceTimeZone } from "@/lib/timeClient";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
@@ -37,6 +39,7 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
     <form
       className="glass flex flex-col gap-3 rounded-2xl p-5"
       action={(formData) => {
+        attachDeviceTimeZone(formData, ["startsAt", "endsAt"]);
         startTransition(async () => {
           const result = await createGroupCalendarEvent(formData);
           if (result.error) {
@@ -85,6 +88,7 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="startsAt" type="datetime-local" required className={fieldClass} />
         <input name="endsAt" type="datetime-local" className={fieldClass} />
+        <DeviceTimeZoneField />
       </div>
       {error && <p className="font-body text-sm text-orange">{error}</p>}
       <button

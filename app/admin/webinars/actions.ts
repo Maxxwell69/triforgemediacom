@@ -13,6 +13,7 @@ import {
   webinarRecordingSchema,
 } from "@/lib/validations/webinar";
 import { syncCalendarEventForWebinar } from "@/lib/calendar";
+import { formTimeZone, parseZonedDateTime } from "@/lib/time";
 
 async function requireAdmin() {
   const session = await auth();
@@ -29,12 +30,8 @@ async function requireAdmin() {
   return { ...session, user: { ...session.user, role: dbUser.role, status: dbUser.status } };
 }
 
-function parseScheduledAt(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error("Invalid scheduled date");
-  }
-  return date;
+function parseScheduledAt(value: string, timeZone?: string | null) {
+  return parseZonedDateTime(value, timeZone, "scheduled date");
 }
 
 export async function createWebinarAction(formData: FormData) {
@@ -55,7 +52,12 @@ export async function createWebinarAction(formData: FormData) {
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  const scheduledAt = parseScheduledAt(parsed.data.scheduledAt);
+  let scheduledAt: Date;
+  try {
+    scheduledAt = parseScheduledAt(parsed.data.scheduledAt, formTimeZone(formData));
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid scheduled date" };
+  }
   const externalSignupEnabled = parsed.data.externalSignupEnabled;
 
   const webinar = await prisma.webinar.create({
@@ -117,7 +119,7 @@ export async function updateWebinarAction(webinarId: string, formData: FormData)
         ? { description: parsed.data.description || null }
         : {}),
       ...(parsed.data.scheduledAt
-        ? { scheduledAt: parseScheduledAt(parsed.data.scheduledAt) }
+        ? { scheduledAt: parseScheduledAt(parsed.data.scheduledAt, formTimeZone(formData)) }
         : {}),
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
       ...(parsed.data.audience ? { audience: parsed.data.audience } : {}),

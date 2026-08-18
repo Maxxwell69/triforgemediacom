@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ExternalWebinarSignupForm from "@/components/webinars/ExternalWebinarSignupForm";
 import MemberAvatar from "@/components/MemberAvatar";
+import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
 
@@ -51,13 +52,7 @@ export default async function ExternalWebinarInvitePage({
         <div>
           <p className="font-body text-sm font-semibold text-off-white">{hostName}</p>
           <p className="font-body text-xs text-off-white/45">
-            {webinar.scheduledAt.toLocaleString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
+            <LocalWhen startsAt={webinar.scheduledAt} />
             {webinar.status === "LIVE" ? " · Live now" : ""}
           </p>
         </div>

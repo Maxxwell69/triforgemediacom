@@ -3,9 +3,11 @@ import "server-only";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { minutesToLabel, type OpenSlot } from "@/lib/bookingClient";
+import { localWallTimeToUtc } from "@/lib/time";
 
 export { BOOKING_TIMEZONES, DAY_LABELS, minutesToLabel } from "@/lib/bookingClient";
 export type { OpenSlot } from "@/lib/bookingClient";
+export { getTimeZoneOffsetMs, localWallTimeToUtc } from "@/lib/time";
 
 export function bookingPageUrl(slug: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -20,50 +22,6 @@ export function suggestBookingSlug(email: string, name?: string | null): string 
       .replace(/^-|-$/g, "")
       .slice(0, 32) || "host";
   return `${base}-${randomBytes(2).toString("hex")}`;
-}
-
-/** Offset of `timeZone` at a given UTC instant (ms). */
-export function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const parts = dtf.formatToParts(date);
-  const map: Record<string, string> = {};
-  for (const p of parts) {
-    if (p.type !== "literal") map[p.type] = p.value;
-  }
-  let hour = Number(map.hour);
-  if (hour === 24) hour = 0;
-  const asUTC = Date.UTC(
-    Number(map.year),
-    Number(map.month) - 1,
-    Number(map.day),
-    hour,
-    Number(map.minute),
-    Number(map.second)
-  );
-  return asUTC - date.getTime();
-}
-
-/** Convert a wall-clock time in `timeZone` to a UTC Date. */
-export function localWallTimeToUtc(
-  timeZone: string,
-  year: number,
-  month: number,
-  day: number,
-  hour: number,
-  minute: number
-): Date {
-  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  const offset = getTimeZoneOffsetMs(utcGuess, timeZone);
-  return new Date(utcGuess.getTime() - offset);
 }
 
 export function zonedParts(date: Date, timeZone: string) {

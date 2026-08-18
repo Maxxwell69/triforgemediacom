@@ -7,6 +7,8 @@ import {
   deleteAvailabilitySlot,
 } from "@/app/(community)/calendar/actions";
 import { formatCalendarWhen } from "@/lib/calendarClient";
+import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
+import { attachDeviceTimeZone } from "@/lib/timeClient";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
@@ -37,6 +39,7 @@ export default function AdminAvailabilityPanel({ slots }: { slots: Slot[] }) {
       <form
         className="flex flex-col gap-3"
         action={(formData) => {
+          attachDeviceTimeZone(formData, ["startsAt", "endsAt"]);
           startTransition(async () => {
             const result = await createAvailabilitySlot(formData);
             setError(result.error);
@@ -52,6 +55,7 @@ export default function AdminAvailabilityPanel({ slots }: { slots: Slot[] }) {
         <input name="label" placeholder="Label (optional)" className={fieldClass} />
         <input name="startsAt" type="datetime-local" required className={fieldClass} />
         <input name="endsAt" type="datetime-local" required className={fieldClass} />
+        <DeviceTimeZoneField />
         <label className="flex items-center gap-2 font-body text-xs text-off-white/60">
           <input type="checkbox" name="isBookable" defaultChecked className="accent-orange" />
           Bookable (FREE slots)

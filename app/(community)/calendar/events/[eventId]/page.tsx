@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { canViewEvent, formatCalendarWhen } from "@/lib/calendar";
+import { canViewEvent } from "@/lib/calendar";
+import LocalWhen from "@/components/LocalWhen";
 import { getUserGroupIds } from "@/lib/groups";
 import RsvpButton from "@/components/calendar/RsvpButton";
 
@@ -80,7 +81,7 @@ export default async function CalendarEventPage({
             </h1>
 
             <p className="mt-3 font-body text-sm text-off-white/65">
-              {formatCalendarWhen(event.startsAt, event.endsAt)}
+              <LocalWhen startsAt={event.startsAt} endsAt={event.endsAt} />
             </p>
             {event.location && (
               <p className="mt-1 font-body text-sm text-off-white/50">{event.location}</p>

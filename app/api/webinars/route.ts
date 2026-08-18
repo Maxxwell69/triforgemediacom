@@ -6,6 +6,7 @@ import { getUserNetworkTrack } from "@/lib/mnCn";
 import { canViewWebinar, webinarRoomName } from "@/lib/webinars";
 import { createWebinarSchema } from "@/lib/validations/webinar";
 import { generateWebinarExternalToken } from "@/lib/webinarExternal";
+import { parseZonedDateTime } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +59,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const scheduledAt = new Date(parsed.data.scheduledAt);
-  if (Number.isNaN(scheduledAt.getTime())) {
+  const timeZone =
+    parsed.data && typeof json === "object" && json && "timeZone" in json
+      ? String((json as { timeZone?: string }).timeZone || "")
+      : "";
+  let scheduledAt: Date;
+  try {
+    scheduledAt = parseZonedDateTime(parsed.data.scheduledAt, timeZone || null, "scheduled date");
+  } catch {
     return NextResponse.json({ error: "Invalid scheduled date" }, { status: 400 });
   }
 

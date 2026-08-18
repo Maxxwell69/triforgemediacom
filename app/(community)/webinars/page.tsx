@@ -6,6 +6,7 @@ import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 import { getUserNetworkTrack } from "@/lib/mnCn";
 import { isAdminRole } from "@/lib/rbac";
 import MemberAvatar from "@/components/MemberAvatar";
+import LocalWhen from "@/components/LocalWhen";
 import type { WebinarAudience } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -160,7 +161,7 @@ function WebinarCard({
             )}
           </div>
           <p className="mt-1 font-body text-xs text-off-white/50">
-            {webinar.scheduledAt.toLocaleString()} · {hostName}
+            <LocalWhen startsAt={webinar.scheduledAt} /> · {hostName}
             {webinar._count.attendances > 0
               ? ` · ${webinar._count.attendances} joined`
               : ""}

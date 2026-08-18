@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.113",
+    date: "August 18, 2026",
+    title: "Calendar and webinar times use your timezone",
+    summary:
+      "Scheduling a webinar at 3:30 PM Eastern no longer shows as 11:30 AM. Times save in the host’s device zone and display in each viewer’s zone.",
+    items: [
+      {
+        kind: "fix",
+        text: "datetime-local webinar and calendar times were stored as UTC on Railway — they now use the submitter’s timezone",
+      },
+      {
+        kind: "improve",
+        text: "Calendar, webinar, and event pages show times in each user’s device timezone (with EST/EDT-style labels)",
+      },
+    ],
+  },
+  {
     version: "3.112",
     date: "August 18, 2026",
     title: "Fix Create Hub production build",

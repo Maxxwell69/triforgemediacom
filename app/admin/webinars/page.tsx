@@ -9,6 +9,7 @@ import AdminWebinarHostAvatar from "@/components/webinars/AdminWebinarHostAvatar
 import AdminWebinarRecordings from "@/components/webinars/AdminWebinarRecordings";
 import AdminWebinarExternalSignup from "@/components/webinars/AdminWebinarExternalSignup";
 import MemberAvatar from "@/components/MemberAvatar";
+import LocalWhen from "@/components/LocalWhen";
 import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,7 @@ export default async function AdminWebinarsPage() {
                         </span>
                       </div>
                       <p className="mt-1 font-body text-xs text-off-white/50">
-                        {w.scheduledAt.toLocaleString()} · Host: {hostName} ·{" "}
+                        <LocalWhen startsAt={w.scheduledAt} /> · Host: {hostName} ·{" "}
                         {w._count.attendances} joined · {w._count.chatMessages} messages
                         {w.externalSignupEnabled
                           ? ` · ${w.externalGuests.length} outside signup${w.externalGuests.length === 1 ? "" : "s"}`

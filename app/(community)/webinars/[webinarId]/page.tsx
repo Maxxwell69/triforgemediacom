@@ -10,6 +10,7 @@ import {
 import { getUserNetworkTrack } from "@/lib/mnCn";
 import WebinarRecordingPlayer from "@/components/webinars/WebinarRecordingPlayer";
 import MemberAvatar from "@/components/MemberAvatar";
+import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function WebinarDetailPage({
               {webinar.title}
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              {webinar.scheduledAt.toLocaleString()} · Hosted by{" "}
+              <LocalWhen startsAt={webinar.scheduledAt} /> · Hosted by{" "}
               {webinar.host.name || webinar.host.email}
             </p>
           </div>

@@ -12,6 +12,7 @@ import {
   calendarEventSchema,
   parseDateTime,
 } from "@/lib/validations/calendar";
+import { formTimeZone } from "@/lib/time";
 
 async function requireActiveUser() {
   const session = await auth();
@@ -65,8 +66,9 @@ export async function createGroupCalendarEvent(
   let startsAt: Date;
   let endsAt: Date | null = null;
   try {
-    startsAt = parseDateTime(parsed.data.startsAt, "start time");
-    endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time") : null;
+    const zone = formTimeZone(formData);
+    startsAt = parseDateTime(parsed.data.startsAt, "start time", zone);
+    endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time", zone) : null;
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Invalid times" };
   }
@@ -113,8 +115,9 @@ export async function createAvailabilitySlot(
   let startsAt: Date;
   let endsAt: Date;
   try {
-    startsAt = parseDateTime(parsed.data.startsAt, "start time");
-    endsAt = parseDateTime(parsed.data.endsAt, "end time");
+    const zone = formTimeZone(formData);
+    startsAt = parseDateTime(parsed.data.startsAt, "start time", zone);
+    endsAt = parseDateTime(parsed.data.endsAt, "end time", zone);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Invalid times" };
   }

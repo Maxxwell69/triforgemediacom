@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { calendarEventSchema, parseDateTime } from "@/lib/validations/calendar";
+import { formTimeZone } from "@/lib/time";
 
 async function requireAdmin() {
   const session = await auth();
@@ -42,8 +43,9 @@ export async function createAdminCalendarEvent(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid event");
   }
 
-  const startsAt = parseDateTime(parsed.data.startsAt, "start time");
-  const endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time") : null;
+  const zone = formTimeZone(formData);
+  const startsAt = parseDateTime(parsed.data.startsAt, "start time", zone);
+  const endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time", zone) : null;
   if (endsAt && endsAt <= startsAt) throw new Error("End time must be after start time");
 
   const visibility = parsed.data.visibility ?? "HUB";
@@ -96,8 +98,9 @@ export async function updateAdminCalendarEvent(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid event");
   }
 
-  const startsAt = parseDateTime(parsed.data.startsAt, "start time");
-  const endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time") : null;
+  const zone = formTimeZone(formData);
+  const startsAt = parseDateTime(parsed.data.startsAt, "start time", zone);
+  const endsAt = parsed.data.endsAt ? parseDateTime(parsed.data.endsAt, "end time", zone) : null;
   if (endsAt && endsAt <= startsAt) throw new Error("End time must be after start time");
 
   const visibility = parsed.data.visibility ?? "HUB";

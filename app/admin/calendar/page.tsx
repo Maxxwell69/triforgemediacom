@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { defaultCalendarWindow, formatCalendarWhen } from "@/lib/calendar";
+import { defaultCalendarWindow } from "@/lib/calendar";
 import { createAdminCalendarEvent } from "./actions";
 import DeleteCalendarEventButton from "@/components/admin/DeleteCalendarEventButton";
+import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
+import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +86,8 @@ export default async function AdminEventsPage() {
           <input name="startsAt" type="datetime-local" required className={fieldClass} />
           <input name="endsAt" type="datetime-local" className={fieldClass} />
         </div>
+        <p className="font-body text-xs text-off-white/40">Times use your device timezone.</p>
+        <DeviceTimeZoneField />
         <button
           type="submit"
           className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow"
@@ -116,7 +120,7 @@ export default async function AdminEventsPage() {
                   )}
                 </p>
                 <p className="font-body text-xs text-off-white/40">
-                  {formatCalendarWhen(event.startsAt, event.endsAt)} · {event.visibility}
+                  <LocalWhen startsAt={event.startsAt} endsAt={event.endsAt} /> · {event.visibility}
                   {event.group ? ` · ${event.group.name}` : ""}
                   {" · "}
                   {event._count.attendees} attendees

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseZonedDateTime } from "@/lib/time";
 
 export const calendarEventKindOptions = [
   "MEETING",
@@ -42,10 +43,6 @@ export const bookingNotesSchema = z.object({
   notes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
-export function parseDateTime(value: string, label = "Date"): Date {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error(`Invalid ${label}`);
-  }
-  return date;
+export function parseDateTime(value: string, label = "Date", timeZone?: string | null): Date {
+  return parseZonedDateTime(value, timeZone, label);
 }

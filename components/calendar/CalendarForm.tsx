@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatCalendarWhen } from "@/lib/calendarClient";
 import DeleteSlotButton from "@/components/calendar/DeleteSlotButton";
+import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
+import { attachDeviceTimeZone } from "@/lib/timeClient";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
@@ -32,6 +34,7 @@ export default function CalendarForm({
   const [isPending, startTransition] = useTransition();
 
   function runAction(formData: FormData) {
+    attachDeviceTimeZone(formData, ["startsAt", "endsAt"]);
     startTransition(async () => {
       const result = await action(formData);
       setError(result.error);
@@ -57,6 +60,7 @@ export default function CalendarForm({
           <input name="label" placeholder="Label (optional)" className={fieldClass} />
           <input name="startsAt" type="datetime-local" required className={fieldClass} />
           <input name="endsAt" type="datetime-local" required className={fieldClass} />
+          <DeviceTimeZoneField />
           <label className="flex items-center gap-2 font-body text-xs text-off-white/60">
             <input type="checkbox" name="isBookable" defaultChecked className="accent-orange" />
             Bookable (FREE slots only)
@@ -114,6 +118,7 @@ export default function CalendarForm({
         <input name="location" placeholder="Location / link (optional)" className={fieldClass} />
         <input name="startsAt" type="datetime-local" required className={fieldClass} />
         <input name="endsAt" type="datetime-local" className={fieldClass} />
+        <DeviceTimeZoneField />
         {error && <p className="font-body text-sm text-orange">{error}</p>}
         <button
           type="submit"

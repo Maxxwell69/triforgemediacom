@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canJoinWebinar } from "@/lib/webinars";
 import { isLiveKitConfigured } from "@/lib/livekit";
+import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
 
@@ -61,13 +62,7 @@ export default async function ExternalWebinarAccessPage({
 
       <div className="glass mt-8 rounded-2xl p-6">
         <p className="font-body text-sm text-off-white/70">
-          {webinar.scheduledAt.toLocaleString(undefined, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          })}
+          <LocalWhen startsAt={webinar.scheduledAt} />
         </p>
         <p className="mt-2 font-body text-xs text-off-white/45">
           Status:{" "}

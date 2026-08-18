@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { createWebinarAction } from "@/app/admin/webinars/actions";
 import ImageUploadField from "@/components/ImageUploadField";
+import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import { WEBINAR_AUDIENCE_OPTIONS } from "@/lib/validations/webinar";
+import { attachDeviceTimeZone } from "@/lib/timeClient";
 
 export default function CreateWebinarForm() {
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,7 @@ export default function CreateWebinarForm() {
         e.preventDefault();
         const form = e.currentTarget;
         const formData = new FormData(form);
+        attachDeviceTimeZone(formData, ["scheduledAt"]);
         setError(null);
         startTransition(async () => {
           const result = await createWebinarAction(formData);
@@ -62,6 +65,8 @@ export default function CreateWebinarForm() {
             required
             className="rounded-lg border border-off-white/15 bg-charcoal px-3 py-2 text-off-white outline-none focus:border-orange"
           />
+          <span className="text-xs text-off-white/45">Your device timezone</span>
+          <DeviceTimeZoneField />
         </label>
         <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
           Publish status
