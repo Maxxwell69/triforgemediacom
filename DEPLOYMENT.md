@@ -135,15 +135,15 @@ like unsolicited mail.
 
 ## Versioning
 
-`lib/version.ts` exports `APP_VERSION`, shown as a small `v1.7`-style badge in
+`lib/version.ts` exports `APP_VERSION`, shown as a small `v3.111`-style badge in
 the bottom-right corner on every page (`components/VersionBadge.tsx`) — a
 quick way to confirm what's actually live versus what's expected.
 
 **Bump it as part of every release merged into `master`** (not on every
 commit to a feature branch or `staging` — just when something ships to
-production). Bump the minor number for a normal batch of features/fixes
-(`1.7` → `1.8`), and consider a major bump (`1.x` → `2.0`) for a big
-milestone (e.g. finishing an MVP phase).
+production). From 3.11 onward, bump the third digit for a normal batch
+(`3.111` → `3.112`). Use a major bump (`3.x` → `4.0`) only for a big
+milestone.
 
 Also add a matching entry at the top of `lib/changelog.ts` (and update
 `PLATFORM_PROGRAMS` if you shipped a new program). That powers the public

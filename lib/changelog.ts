@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.111",
+    date: "August 18, 2026",
+    title: "Versions now use three digits",
+    summary:
+      "Ships from here on bump as 3.111, 3.112, 3.113 — one extra digit after 3.11.",
+    items: [
+      {
+        kind: "improve",
+        text: "App version and /updates now use three-digit minors (3.111+) instead of 3.11, 3.12",
+      },
+    ],
+  },
+  {
     version: "3.11",
     date: "August 18, 2026",
     title: "Create Hub saves a real hub record",

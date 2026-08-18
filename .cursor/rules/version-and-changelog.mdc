@@ -7,7 +7,7 @@ alwaysApply: true
 
 When you ship a user-facing change, bug fix, or admin feature to this repo (especially anything merged/pushed to `master` / production):
 
-1. **Bump** `APP_VERSION` in `lib/version.ts` (minor bump for a normal batch: `2.20` → `2.21`; major only for big milestones).
+1. **Bump** `APP_VERSION` in `lib/version.ts` (normal batch: `3.111` → `3.112`; major only for big milestones).
 2. **Add a release entry** at the **top** of `CHANGELOG` in `lib/changelog.ts` with:
    - matching `version`
    - `date`, `title`, `summary`
@@ -19,12 +19,12 @@ The public page is `/updates` (admin nav → Updates). The corner badge reads `A
 
 ```typescript
 // lib/version.ts
-export const APP_VERSION = "2.21";
+export const APP_VERSION = "3.112";
 
 // lib/changelog.ts — newest first
 {
-  version: "2.21",
-  date: "July 31, 2026",
+  version: "3.112",
+  date: "August 18, 2026",
   title: "Short release title",
   summary: "One sentence for partners/public.",
   items: [{ kind: "feature", text: "What shipped" }],
