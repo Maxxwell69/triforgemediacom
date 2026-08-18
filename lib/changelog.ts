@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.115",
+    date: "August 18, 2026",
+    title: "Fix webinar time label in the browser",
+    summary:
+      "Webinars no longer crash with “Invalid option” when formatting the scheduled time.",
+    items: [
+      {
+        kind: "fix",
+        text: "Time labels no longer mix dateStyle/timeStyle with timeZoneName, which Chrome rejects",
+      },
+    ],
+  },
+  {
     version: "3.114",
     date: "August 18, 2026",
     title: "Fix webinar page client crash",

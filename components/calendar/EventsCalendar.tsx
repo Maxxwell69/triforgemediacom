@@ -119,11 +119,15 @@ function dayKey(d: Date) {
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  try {
+    return new Date(iso).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  } catch {
+    return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
 }
 
 function formatTimeRange(startsAt: string, endsAt: string | null) {
