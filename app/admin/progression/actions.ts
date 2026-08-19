@@ -8,7 +8,10 @@ import { hubHas } from "@/lib/hub/modules";
 import { progressionNameSchema, progressionSettingsSchema } from "@/lib/validations/progression";
 import { evaluateProgression, grantProgressionBadges } from "@/lib/progression/engine";
 import { enrollAsRecruit } from "@/lib/progression/access";
-import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
+import {
+  getOrCreateProgressionSettings,
+  PROGRESSION_MEMBERS_LOCKED,
+} from "@/lib/progression/settings";
 
 async function requireProgressionAdmin() {
   if (!hubHas("progression")) throw new Error("Progression is not enabled");
@@ -652,7 +655,7 @@ export async function saveProgressionSettings(formData: FormData) {
   await prisma.progressionSettings.update({
     where: { id: "default" },
     data: {
-      memberVisible: parsed.data.memberVisible,
+      memberVisible: PROGRESSION_MEMBERS_LOCKED ? false : parsed.data.memberVisible,
       explainerVideoUrl: parsed.data.explainerVideoUrl || null,
       explainerHeadline: parsed.data.explainerHeadline,
       explainerBody: parsed.data.explainerBody || null,

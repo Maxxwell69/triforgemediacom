@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
-import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
+import {
+  getOrCreateProgressionSettings,
+  PROGRESSION_MEMBERS_LOCKED,
+} from "@/lib/progression/settings";
 import ProgressionAdminNav from "@/components/admin/ProgressionAdminNav";
 import { populateOfficialLadder, saveProgressionSettings } from "./actions";
 
@@ -54,21 +57,29 @@ export default async function AdminProgressionPage() {
         CREATOR <span className="text-gradient">PROGRESSION</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Admin-editable ladder. Hidden from CN and MN until you turn on member access below.
+        Admin-editable ladder. Hidden from CN and MN until training is ready.
       </p>
       <ProgressionAdminNav />
       <form action={saveProgressionSettings} className="glass mt-6 flex flex-col gap-4 rounded-2xl p-5">
         <h2 className="font-display text-xl text-off-white/80">Member access</h2>
-        <p className="font-body text-sm text-off-white/60">
-          Keep this off until training is ready. CN members are still enrolled as Recruits in the background.
-          MN members see the apply sheet on /progress once this is on.
-        </p>
+        {PROGRESSION_MEMBERS_LOCKED ? (
+          <p className="rounded-lg border border-orange/30 bg-orange/10 px-3 py-2 font-body text-sm text-off-white/80">
+            Locked to admins for now. CN and MN will not see Progress in the nav or on /progress, even if this
+            box was checked earlier. Flip this when training is ready.
+          </p>
+        ) : (
+          <p className="font-body text-sm text-off-white/60">
+            Keep this off until training is ready. CN members are still enrolled as Recruits in the background.
+            MN members see the apply sheet on /progress once this is on.
+          </p>
+        )}
         <label className="flex items-center gap-2 font-body text-sm text-off-white/80">
           <input
             type="checkbox"
             name="memberVisible"
-            defaultChecked={settings.memberVisible}
-            className="h-4 w-4 accent-orange"
+            defaultChecked={PROGRESSION_MEMBERS_LOCKED ? false : settings.memberVisible}
+            disabled={PROGRESSION_MEMBERS_LOCKED}
+            className="h-4 w-4 accent-orange disabled:opacity-50"
           />
           Show Progress to CN and MN
         </label>
