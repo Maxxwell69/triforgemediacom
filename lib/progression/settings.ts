@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 export const PROGRESSION_SETTINGS_ID = "default";
 
+/** Training is not ready — CN/MN never see Progress while this is true. */
+export const PROGRESSION_MEMBERS_LOCKED = true;
+
 export const DEFAULT_EXPLAINER_HEADLINE = "Creator Progression";
 
 export const DEFAULT_EXPLAINER_BODY =
@@ -22,6 +25,7 @@ export async function getOrCreateProgressionSettings() {
 }
 
 export async function isProgressionVisibleToMembers() {
+  if (PROGRESSION_MEMBERS_LOCKED) return false;
   const settings = await getOrCreateProgressionSettings();
   return settings.memberVisible;
 }

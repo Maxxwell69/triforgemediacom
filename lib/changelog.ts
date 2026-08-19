@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.121",
+    date: "August 19, 2026",
+    title: "Keep Progress admin-only until training is ready",
+    summary:
+      "Creator Progression stays hidden from CN and MN even if member access was turned on in Admin.",
+    items: [
+      {
+        kind: "improve",
+        text: "Progress nav and /progress stay staff-only until the member lock is lifted in code",
+      },
+    ],
+  },
+  {
     version: "3.120",
     date: "August 19, 2026",
     title: "Fix overlapping cert names on level edit",
