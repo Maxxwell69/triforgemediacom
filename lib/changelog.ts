@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.117",
+    date: "August 19, 2026",
+    title: "Current-level training under the progression chart",
+    summary:
+      "Your Progress keeps the interactive ladder, then lists the current rank, what you need next, and linked training.",
+    items: [
+      {
+        kind: "improve",
+        text: "Under the chart: current level name, requirements to reach the next rank, and links to attached courses and learning modules",
+      },
+    ],
+  },
+  {
     version: "3.116",
     date: "August 19, 2026",
     title: "Progression enroll and MN apply",

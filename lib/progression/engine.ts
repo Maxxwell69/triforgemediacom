@@ -418,7 +418,15 @@ export async function loadCreatorProgress(userId: string) {
       prisma.progressionLevel.findMany({
         where: { status: "ACTIVE" },
         orderBy: { sortOrder: "asc" },
-        include: { milestones: true, certRequirements: true },
+        include: {
+          milestones: { include: { mission: { select: { id: true, name: true } } } },
+          certRequirements: {
+            include: {
+              certification: { select: { id: true, name: true } },
+              tier: { select: { id: true, name: true, sortOrder: true } },
+            },
+          },
+        },
       }),
       prisma.progressionCategory.findMany({
         where: { status: "ACTIVE" },
