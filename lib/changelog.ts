@@ -130,6 +130,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.119",
+    date: "August 19, 2026",
+    title: "Fix admin level detail crash",
+    summary: "Opening a progression level in Admin no longer throws a server error.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin → Progression → Levels detail no longer passes event handlers from the server into client toggles",
+      },
+    ],
+  },
+  {
     version: "3.118",
     date: "August 19, 2026",
     title: "Fix Progress page production build",

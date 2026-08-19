@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
-import { setLevelCertReq, setLevelMilestone, updateLevel } from "../../actions";
+import { setLevelCertReqForm, updateLevel } from "../../actions";
 import ImageUploadField from "@/components/ImageUploadField";
-import ProgressionToggle from "@/components/admin/ProgressionToggle";
+import LevelMilestoneToggle from "@/components/admin/LevelMilestoneToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -66,11 +66,12 @@ export default async function AdminProgressionLevelDetailPage({
         <h2 className="font-display text-2xl text-off-white/80">Milestone missions</h2>
         <div className="mt-3 flex flex-col gap-2">
           {missions.map((mission) => (
-            <ProgressionToggle
+            <LevelMilestoneToggle
               key={mission.id}
+              levelId={level.id}
+              missionId={mission.id}
               checked={milestoneIds.has(mission.id)}
               label={`${mission.category.name} — ${mission.name}`}
-              onToggle={(on) => setLevelMilestone(level.id, mission.id, on)}
             />
           ))}
         </div>
@@ -81,12 +82,11 @@ export default async function AdminProgressionLevelDetailPage({
           {certs.map((cert) => (
             <form
               key={cert.id}
-              action={async (formData) => {
-                "use server";
-                await setLevelCertReq(level.id, cert.id, String(formData.get("tierId") || "") || null);
-              }}
+              action={setLevelCertReqForm}
               className="glass flex items-center gap-3 rounded-xl p-3"
             >
+              <input type="hidden" name="levelId" value={level.id} />
+              <input type="hidden" name="certificationId" value={cert.id} />
               <span className="min-w-0 flex-1 font-body text-sm text-off-white/80">{cert.name}</span>
               <select
                 name="tierId"
