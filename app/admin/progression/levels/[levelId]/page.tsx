@@ -83,7 +83,7 @@ export default async function AdminProgressionLevelDetailPage({
             <form
               key={cert.id}
               action={setLevelCertReqForm}
-              className="glass flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center"
+              className="glass flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:gap-3"
             >
               <input type="hidden" name="levelId" value={level.id} />
               <input type="hidden" name="certificationId" value={cert.id} />
@@ -102,7 +102,10 @@ export default async function AdminProgressionLevelDetailPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan">
+              <button
+                type="submit"
+                className="shrink-0 rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan"
+              >
                 Save
               </button>
             </form>
