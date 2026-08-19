@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const LINKS = [
   { href: "/admin/progression", label: "Overview" },
+  { href: "/admin/progression/applications", label: "Applications" },
   { href: "/admin/progression/categories", label: "Categories" },
   { href: "/admin/progression/levels", label: "Levels" },
   { href: "/admin/progression/missions", label: "Missions" },

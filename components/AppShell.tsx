@@ -30,7 +30,7 @@ import {
   resolveActiveGroupId,
 } from "@/lib/activeGroup";
 import { hubHas } from "@/lib/hub/modules";
-import { ensureProgressionProfile } from "@/lib/progression/engine";
+import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
@@ -38,7 +38,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   await touchPresence(user.id).catch(() => {});
   await ensureUserInHomeGroup(user.id).catch(() => {});
   if (hubHas("progression")) {
-    await ensureProgressionProfile(user.id).catch(() => {});
+    await maybeAutoEnrollProgression(user.id, user.role).catch(() => {});
   }
 
   const [
@@ -52,6 +52,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     hubBugUnread,
     assignedProjectCount,
     homeGroup,
+    showProgress,
     allGroups,
   ] = await Promise.all([
     prisma.channel.findMany({
@@ -81,6 +82,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       },
     }),
     getHomeGroup(),
+    canSeeMemberProgressNav(user.role),
     prisma.group.findMany({
       select: {
         id: true,
@@ -239,7 +241,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
           >
             Members
           </Link>
-          {hubHas("progression") && (
+          {showProgress && (
             <Link
               href="/progress"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"

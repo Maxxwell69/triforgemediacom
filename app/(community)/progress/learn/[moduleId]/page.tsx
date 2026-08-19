@@ -1,10 +1,15 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { completeMyModule, submitMyQuiz } from "../../actions";
-import { categoryUnlockMessage, ensureProgressionProfile, evaluateProgression } from "@/lib/progression/engine";
+import { categoryUnlockMessage, evaluateProgression } from "@/lib/progression/engine";
+import {
+  isProgressionEnrolled,
+  maybeAutoEnrollProgression,
+  requireMemberProgressionPage,
+} from "@/lib/progression/access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +21,9 @@ export default async function ProgressLearnPage({ params }: { params: { moduleId
     include: { quiz: { include: { questions: { orderBy: { sortOrder: "asc" } } } }, category: true },
   });
   if (!learnModule || learnModule.status !== "ACTIVE") notFound();
-  await ensureProgressionProfile(user.id);
+  await requireMemberProgressionPage(user.role);
+  await maybeAutoEnrollProgression(user.id, user.role);
+  if (!(await isProgressionEnrolled(user.id))) redirect("/progress");
   await evaluateProgression(user.id);
   const locked = await categoryUnlockMessage(user.id, learnModule.categoryId);
   const done = await prisma.progressionModuleCompletion.findUnique({

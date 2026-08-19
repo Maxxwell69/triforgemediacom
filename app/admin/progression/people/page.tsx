@@ -58,7 +58,9 @@ export default async function AdminProgressionPeoplePage({
               <p className="font-body text-xs text-off-white/40">{user.email}</p>
             </div>
             <p className="font-body text-xs text-cyan">
-              {user.progressionProfile?.currentLevel?.name || "No level yet"}
+              {user.progressionProfile?.enrolledAt
+                ? user.progressionProfile.currentLevel?.name || "Recruit"
+                : "Not enrolled"}
             </p>
           </Link>
         ))}

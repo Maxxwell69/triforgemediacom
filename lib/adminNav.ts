@@ -206,6 +206,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "progression",
       },
       {
+        href: "/admin/progression/applications",
+        label: "Applications",
+        description: "MN apply-to-start queue",
+        sku: "progression",
+      },
+      {
         href: "/admin/progression/levels",
         label: "Levels",
         description: "Ladder, XP, milestones",

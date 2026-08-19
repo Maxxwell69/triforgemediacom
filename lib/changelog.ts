@@ -130,6 +130,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.116",
+    date: "August 19, 2026",
+    title: "Progression enroll and MN apply",
+    summary:
+      "Creator Network members join the ladder as Recruits. Media Network members apply on Progress, and the system stays hidden until training is ready.",
+    items: [
+      {
+        kind: "feature",
+        text: "CN signups are enrolled in Creator Progression as Recruit; existing CN members enroll on their next hub visit",
+      },
+      {
+        kind: "feature",
+        text: "MN members see a Progress explainer (video + apply form) until an admin approves them as Recruit",
+      },
+      {
+        kind: "improve",
+        text: "Progress stays hidden from CN and MN until admins turn on member access in Admin → Progression",
+      },
+    ],
+  },
+  {
     version: "3.115",
     date: "August 18, 2026",
     title: "Fix webinar time label in the browser",

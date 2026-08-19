@@ -7,6 +7,7 @@ import { getOrGenerateTodayTasks } from "@/lib/tiktask";
 import DashboardCard from "@/components/DashboardCard";
 import CompanySocialPanel from "@/components/CompanySocialPanel";
 import { hubHas } from "@/lib/hub/modules";
+import { canSeeMemberProgressNav } from "@/lib/progression/access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function HomePage() {
   }
 
   const firstName = (user.name || user.email || "there").split(" ")[0].split("@")[0];
+  const showProgress = await canSeeMemberProgressNav(user.role);
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -109,7 +111,7 @@ export default async function HomePage() {
             accent="orange"
           />
 
-          {hubHas("progression") && (
+          {showProgress && (
             <DashboardCard
               href="/progress"
               icon="🛤️"

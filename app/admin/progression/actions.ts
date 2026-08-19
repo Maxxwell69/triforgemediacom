@@ -5,8 +5,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
-import { progressionNameSchema } from "@/lib/validations/progression";
+import { progressionNameSchema, progressionSettingsSchema } from "@/lib/validations/progression";
 import { evaluateProgression, grantProgressionBadges } from "@/lib/progression/engine";
+import { enrollAsRecruit } from "@/lib/progression/access";
+import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
 
 async function requireProgressionAdmin() {
   if (!hubHas("progression")) throw new Error("Progression is not enabled");
@@ -24,7 +26,9 @@ async function requireProgressionAdmin() {
 
 function revalidateProgression() {
   revalidatePath("/admin/progression");
+  revalidatePath("/admin/progression/applications");
   revalidatePath("/progress");
+  revalidatePath("/home");
 }
 
 function parseNamed(formData: FormData) {
@@ -625,5 +629,64 @@ export async function grantBadge(userId: string, badgeId: string) {
     create: { userId, badgeId },
     update: {},
   });
+  revalidatePath(`/admin/progression/people/${userId}`);
+}
+
+export async function saveProgressionSettings(formData: FormData) {
+  await requireProgressionAdmin();
+  const parsed = progressionSettingsSchema.safeParse({
+    memberVisible: formData.get("memberVisible") === "on",
+    explainerVideoUrl: String(formData.get("explainerVideoUrl") ?? "").trim(),
+    explainerHeadline: String(formData.get("explainerHeadline") ?? ""),
+    explainerBody: String(formData.get("explainerBody") ?? ""),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Invalid settings");
+  await getOrCreateProgressionSettings();
+  await prisma.progressionSettings.update({
+    where: { id: "default" },
+    data: {
+      memberVisible: parsed.data.memberVisible,
+      explainerVideoUrl: parsed.data.explainerVideoUrl || null,
+      explainerHeadline: parsed.data.explainerHeadline,
+      explainerBody: parsed.data.explainerBody || null,
+    },
+  });
+  revalidateProgression();
+}
+
+export async function reviewProgressionApplication(
+  applicationId: string,
+  decision: "APPROVED" | "REJECTED"
+) {
+  const session = await requireProgressionAdmin();
+  const application = await prisma.progressionApplication.findUnique({
+    where: { id: applicationId },
+  });
+  if (!application || application.status !== "PENDING") {
+    throw new Error("Application is not pending");
+  }
+  await prisma.progressionApplication.update({
+    where: { id: applicationId },
+    data: {
+      status: decision,
+      reviewedById: session.user.id,
+      reviewedAt: new Date(),
+    },
+  });
+  if (decision === "APPROVED") {
+    await enrollAsRecruit(application.userId);
+  }
+  revalidateProgression();
+  revalidatePath(`/admin/progression/people/${application.userId}`);
+}
+
+export async function enrollUserAsRecruit(userId: string) {
+  await requireProgressionAdmin();
+  await enrollAsRecruit(userId);
+  await prisma.progressionApplication.updateMany({
+    where: { userId, status: "PENDING" },
+    data: { status: "APPROVED", reviewedAt: new Date() },
+  });
+  revalidateProgression();
   revalidatePath(`/admin/progression/people/${userId}`);
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ensureUserInHomeGroup } from "@/lib/groups";
 import { signupSchema } from "@/lib/validations/signup";
+import { maybeAutoEnrollProgression } from "@/lib/progression/access";
 
 export type SignupResult = { error: string } | never;
 
@@ -66,6 +67,7 @@ export async function completeSignup(
   ]);
 
   await ensureUserInHomeGroup(application.userId);
+  await maybeAutoEnrollProgression(application.userId, application.user.role).catch(() => {});
 
   redirect("/login?welcome=1");
 }

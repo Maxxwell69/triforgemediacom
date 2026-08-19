@@ -728,6 +728,38 @@ export function buildBugFixedAdminAlert(data: BugReportAlertData): EmailContent 
   };
 }
 
+export type ProgressionApplicationAlertData = {
+  name: string;
+  email: string;
+  whyJoin: string;
+  goals: string | null;
+};
+
+export function buildProgressionApplicationAdminAlert(
+  data: ProgressionApplicationAlertData
+): EmailContent {
+  return {
+    subject: `Progression application: ${data.name}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New Creator Progression application</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">A Media Network member applied to start the progression ladder.</p>
+      ${row("Name", escapeHtml(data.name))}
+      ${row("Email", escapeHtml(data.email))}
+      ${row("Why they want in", escapeHtml(data.whyJoin).replace(/\n/g, "<br/>"))}
+      ${data.goals ? row("Goals", escapeHtml(data.goals).replace(/\n/g, "<br/>")) : ""}
+      ${button(`${SAMPLE_APP_URL}/admin/progression/applications`, "Review applications")}
+    `),
+  };
+}
+
+export async function sendProgressionApplicationAdminAlert(
+  adminEmails: string[],
+  data: ProgressionApplicationAlertData
+) {
+  const { subject, html } = buildProgressionApplicationAdminAlert(data);
+  await sendToMany(adminEmails, subject, html);
+}
+
 export async function sendBugReportedAdminAlert(
   adminEmails: string[],
   data: BugReportAlertData

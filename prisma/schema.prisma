@@ -155,6 +155,8 @@ model User {
   progressionSkillsUnlocked  ProgressionSkillUnlock[]
   progressionBadges          ProgressionBadgeGrant[]
   progressionCertReviews     ProgressionCertificationHeld[] @relation("ProgressionCertReviewer")
+  progressionApplication     ProgressionApplication?
+  progressionAppsReviewed    ProgressionApplication[] @relation("ProgressionAppReviewer")
 }
 
 // ---------- Application / invite flow ----------
@@ -1960,12 +1962,50 @@ model ProgressionBadge {
   grants ProgressionBadgeGrant[]
 }
 
+model ProgressionSettings {
+  id                  String   @id @default("default")
+  /// When false, Progress is hidden from CN and MN until training is ready.
+  memberVisible       Boolean  @default(false)
+  explainerVideoUrl   String?
+  explainerHeadline   String   @default("Creator Progression")
+  explainerBody       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+enum ProgressionApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// MN (and anyone not auto-enrolled) applies here before joining the ladder.
+model ProgressionApplication {
+  id           String                         @id @default(cuid())
+  userId       String                         @unique
+  whyJoin      String
+  goals        String?
+  status       ProgressionApplicationStatus   @default(PENDING)
+  reviewNotes  String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime                       @default(now())
+  updatedAt    DateTime                       @updatedAt
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ProgressionAppReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
 model ProgressionProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
+  id             String    @id @default(cuid())
+  userId         String    @unique
   currentLevelId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  /// Set when the member is on the ladder (CN signup or MN approved as Recruit).
+  enrolledAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentLevel ProgressionLevel?  @relation(fields: [currentLevelId], references: [id], onDelete: SetNull)

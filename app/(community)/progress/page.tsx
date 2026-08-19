@@ -3,15 +3,64 @@ import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engine";
 import { isSpecializeMissionName, isSpecialtyDeepDiveTitle, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
+import {
+  getProgressionApplication,
+  isProgressionEnrolled,
+  maybeAutoEnrollProgression,
+  requireMemberProgressionPage,
+} from "@/lib/progression/access";
+import { getOrCreateProgressionSettings, DEFAULT_EXPLAINER_BODY } from "@/lib/progression/settings";
 import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 import ProgressionChart from "@/components/progress/ProgressionChart";
 import { SpecialtyIcon } from "@/components/progress/ProgressionIcons";
+import { isAdminRole } from "@/lib/rbac";
+import ProgressAccessSheet from "@/components/progress/ProgressAccessSheet";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProgressPage() {
+export default async function ProgressPage({
+  searchParams,
+}: {
+  searchParams?: { preview?: string };
+}) {
   requireProgressionModule();
   const { user } = await requireProfile();
+  await requireMemberProgressionPage(user.role);
+  await maybeAutoEnrollProgression(user.id, user.role);
+
+  const enrolled = await isProgressionEnrolled(user.id);
+  const previewSheet = searchParams?.preview === "sheet" && isAdminRole(user.role);
+  if (!enrolled || previewSheet) {
+    const [settings, application] = await Promise.all([
+      getOrCreateProgressionSettings(),
+      getProgressionApplication(user.id),
+    ]);
+    return (
+      <main className="flex-1 px-6 py-10">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="font-display text-5xl tracking-wide">
+            YOUR <span className="text-gradient">PROGRESS</span>
+          </h1>
+          <p className="mt-2 font-body text-off-white/60">
+            {previewSheet
+              ? "Admin preview of the MN apply sheet. Members only see this when Progress is turned on and they are not a Recruit yet."
+              : "Join Creator Progression as a Recruit to unlock the ladder, missions, and training."}
+          </p>
+          <ProgressAccessSheet
+            headline={settings.explainerHeadline}
+            body={settings.explainerBody || DEFAULT_EXPLAINER_BODY}
+            videoUrl={settings.explainerVideoUrl}
+            applicationStatus={
+              application?.status === "PENDING" || application?.status === "REJECTED"
+                ? application.status
+                : null
+            }
+          />
+        </div>
+      </main>
+    );
+  }
+
   const progress = await loadCreatorProgress(user.id);
   const doneMissions = new Set(progress.missionCompletions.map((c) => c.missionId));
   const doneModules = new Set(progress.moduleCompletions.map((c) => c.moduleId));
@@ -36,8 +85,7 @@ export default async function ProgressPage() {
           YOUR <span className="text-gradient">PROGRESS</span>
         </h1>
         <p className="mt-2 font-body text-off-white/60">
-          {progress.profile?.currentLevel?.name || "Start the ladder"} · {progress.totalXp} XP
-          {user.role === "RECRUIT" ? " · Recruit membership — this is where the ladder starts" : ""}
+          {progress.profile?.currentLevel?.name || "Recruit"} · {progress.totalXp} XP
         </p>
 
         <ProgressionChart

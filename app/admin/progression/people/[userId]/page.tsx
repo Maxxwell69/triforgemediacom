@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { loadCreatorProgress } from "@/lib/progression/engine";
-import { grantBadge, grantCertification, grantSkill } from "../../actions";
+import { grantBadge, grantCertification, grantSkill, enrollUserAsRecruit } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,12 @@ export default async function AdminProgressionPersonPage({
   requireProgressionModule();
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      progressionProfile: { select: { enrolledAt: true } },
+    },
   });
   if (!user) notFound();
   const progress = await loadCreatorProgress(user.id);
@@ -35,8 +40,23 @@ export default async function AdminProgressionPersonPage({
       </Link>
       <h1 className="mt-4 font-display text-4xl tracking-wide">{user.name || user.email}</h1>
       <p className="mt-1 font-body text-sm text-off-white/50">
-        {progress.profile?.currentLevel?.name || "No level"} · {progress.totalXp} XP
+        {user.progressionProfile?.enrolledAt
+          ? `${progress.profile?.currentLevel?.name || "Recruit"} · ${progress.totalXp} XP`
+          : "Not enrolled in Creator Progression"}
       </p>
+      {!user.progressionProfile?.enrolledAt ? (
+        <form
+          action={async () => {
+            "use server";
+            await enrollUserAsRecruit(user.id);
+          }}
+          className="mt-4"
+        >
+          <button type="submit" className="rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white">
+            Enroll as Recruit
+          </button>
+        </form>
+      ) : null}
 
       <section className="glass mt-8 rounded-2xl p-6">
         <h2 className="font-display text-xl text-off-white/80">Grant certification</h2>
