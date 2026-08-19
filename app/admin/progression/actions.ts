@@ -131,6 +131,13 @@ export async function setLevelMilestone(levelId: string, missionId: string, on: 
   revalidateProgression();
 }
 
+export async function setLevelCertReqForm(formData: FormData) {
+  const levelId = String(formData.get("levelId") || "");
+  const certificationId = String(formData.get("certificationId") || "");
+  const tierId = String(formData.get("tierId") || "") || null;
+  await setLevelCertReq(levelId, certificationId, tierId);
+}
+
 export async function setLevelCertReq(levelId: string, certificationId: string, tierId: string | null) {
   await requireProgressionAdmin();
   if (tierId) {
