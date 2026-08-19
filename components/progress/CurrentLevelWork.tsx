@@ -24,7 +24,7 @@ export default function CurrentLevelWork({
   requirements: { id: string; label: string; done: boolean }[];
   training: TrainingLink[];
 }) {
-  const xpLeft = xpNeed == null ? null : Math.max(0, xpNeed - xpHave);
+  const remainingXp = Math.max(0, (xpNeed ?? 0) - xpHave);
 
   return (
     <section className="glass mt-8 rounded-2xl p-6">
@@ -44,13 +44,13 @@ export default function CurrentLevelWork({
 
       {nextName && xpNeed != null ? (
         <p className="mt-2 font-body text-sm text-off-white/70">
-          {xpLeft === 0 ? (
+          {remainingXp === 0 ? (
             <>
               {xpHave.toLocaleString()} / {xpNeed.toLocaleString()} XP
             </>
           ) : (
             <>
-              {xpLeft.toLocaleString()} XP to go
+              {remainingXp.toLocaleString()} XP to go
               <span className="text-off-white/40">
                 {" "}
                 · {xpHave.toLocaleString()} / {xpNeed.toLocaleString()}

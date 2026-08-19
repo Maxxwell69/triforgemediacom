@@ -130,6 +130,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.118",
+    date: "August 19, 2026",
+    title: "Fix Progress page production build",
+    summary: "Staging deploy of the current-level training panel now builds.",
+    items: [
+      {
+        kind: "fix",
+        text: "Current-level XP remaining no longer fails TypeScript during the Railway image build",
+      },
+    ],
+  },
+  {
     version: "3.117",
     date: "August 19, 2026",
     title: "Current-level training under the progression chart",
