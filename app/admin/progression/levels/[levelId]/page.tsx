@@ -83,15 +83,17 @@ export default async function AdminProgressionLevelDetailPage({
             <form
               key={cert.id}
               action={setLevelCertReqForm}
-              className="glass flex items-center gap-3 rounded-xl p-3"
+              className="glass flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center"
             >
               <input type="hidden" name="levelId" value={level.id} />
               <input type="hidden" name="certificationId" value={cert.id} />
-              <span className="min-w-0 flex-1 font-body text-sm text-off-white/80">{cert.name}</span>
+              <span className="w-full shrink-0 font-body text-sm text-off-white/80 sm:w-44">
+                {cert.name}
+              </span>
               <select
                 name="tierId"
                 defaultValue={certReqById.get(cert.id)?.tierId ?? ""}
-                className={fieldClass}
+                className="min-w-0 flex-1 rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60"
               >
                 <option value="">Not required</option>
                 {cert.tiers.map((tier) => (

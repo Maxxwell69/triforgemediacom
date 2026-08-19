@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.120",
+    date: "August 19, 2026",
+    title: "Fix overlapping cert names on level edit",
+    summary:
+      "Required certifications on a progression level no longer stack the cert name on top of the dropdown.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin level cert rows keep the name beside the tier dropdown instead of overlaying it",
+      },
+    ],
+  },
+  {
     version: "3.119",
     date: "August 19, 2026",
     title: "Fix admin level detail crash",
