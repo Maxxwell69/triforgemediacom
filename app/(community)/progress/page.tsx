@@ -13,6 +13,7 @@ import { getOrCreateProgressionSettings, DEFAULT_EXPLAINER_BODY } from "@/lib/pr
 import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 import ProgressionChart from "@/components/progress/ProgressionChart";
 import { SpecialtyIcon } from "@/components/progress/ProgressionIcons";
+import CurrentLevelWork from "@/components/progress/CurrentLevelWork";
 import { isAdminRole } from "@/lib/rbac";
 import ProgressAccessSheet from "@/components/progress/ProgressAccessSheet";
 
@@ -67,6 +68,63 @@ export default async function ProgressPage({
   const heldSkills = new Set(progress.skillsHeld.map((s) => s.skillId));
   const heldBadges = new Set(progress.badgesHeld.map((b) => b.badgeId));
   const currentSort = progress.profile?.currentLevel?.sortOrder ?? -1;
+  const currentLevel =
+    progress.levels.find((level) => level.id === progress.profile?.currentLevelId) ??
+    progress.levels[0] ??
+    null;
+  const nextLevel = currentLevel
+    ? progress.levels.find((level) => level.sortOrder > currentLevel.sortOrder) ?? null
+    : null;
+  const heldCertById = new Map(progress.certsHeld.map((row) => [row.certificationId, row]));
+  const firstLevelId = progress.levels[0]?.id ?? null;
+
+  const levelRequirements = (nextLevel ?? currentLevel)?.certRequirements.map((req) => {
+    const held = heldCertById.get(req.certificationId);
+    const done = req.tier
+      ? !!held && held.tier.sortOrder >= req.tier.sortOrder
+      : !!held;
+    const label = req.tier
+      ? `${req.certification.name} · ${req.tier.name}`
+      : req.certification.name;
+    return { id: req.id, label, done };
+  }) ?? [];
+  const milestoneRequirements = (nextLevel ?? currentLevel)?.milestones.map((row) => ({
+    id: row.id,
+    label: row.mission.name,
+    done: doneMissions.has(row.missionId),
+  })) ?? [];
+
+  const attachedLevelIds = new Set(
+    [currentLevel?.id, nextLevel?.id].filter((id): id is string => !!id)
+  );
+  const training = [
+    ...progress.teachingCourses
+      .filter((course) => course.progressionLevelId && attachedLevelIds.has(course.progressionLevelId))
+      .map((course) => ({
+        id: course.id,
+        title: course.title,
+        href: `/learn/${course.id}`,
+        done: course.done,
+      })),
+    ...progress.categories.flatMap((category) => {
+      const unlockId = category.unlockAtLevel?.id ?? null;
+      const attachedHere =
+        (unlockId && attachedLevelIds.has(unlockId)) ||
+        (!unlockId && currentLevel?.id === firstLevelId);
+      if (!attachedHere) return [];
+      return category.modules
+        .filter((learnModule) => {
+          if (!learnModule.title.startsWith("Skill Mastery Deep-Dive")) return true;
+          return isSpecialtyDeepDiveTitle(learnModule.title, progress.specialty.chosenTrack);
+        })
+        .map((learnModule) => ({
+          id: learnModule.id,
+          title: learnModule.title,
+          href: `/progress/learn/${learnModule.id}`,
+          done: doneModules.has(learnModule.id),
+        }));
+    }),
+  ];
 
   const missionBlocks = await Promise.all(
     progress.categories.flatMap((category) =>
@@ -93,6 +151,18 @@ export default async function ProgressPage({
           currentLevelId={progress.profile?.currentLevelId}
           specialty={progress.specialty}
         />
+
+        {currentLevel ? (
+          <CurrentLevelWork
+            currentName={currentLevel.name}
+            currentDescription={currentLevel.description}
+            nextName={nextLevel?.name ?? null}
+            xpHave={progress.totalXp}
+            xpNeed={nextLevel?.xpRequired ?? null}
+            requirements={[...milestoneRequirements, ...levelRequirements]}
+            training={training}
+          />
+        ) : null}
 
         <section className="mt-10">
           <h2 className="font-display text-2xl text-off-white/80">Tracks</h2>
