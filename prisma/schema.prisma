@@ -1798,6 +1798,7 @@ model ProgressionLevel {
   certRequirements    ProgressionLevelCertReq[]
   skills              ProgressionSkill[]
   profiles            ProgressionProfile[]
+  adminPlacedProfiles ProgressionProfile[]        @relation("AdminPlacedLevel")
   unlocksCategories   ProgressionCategory[]       @relation("CategoryUnlockLevel")
   courses             Course[]
 }
@@ -1999,16 +2000,19 @@ model ProgressionApplication {
 }
 
 model ProgressionProfile {
-  id             String    @id @default(cuid())
-  userId         String    @unique
-  currentLevelId String?
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  currentLevelId     String?
+  /// Admin placement floor — auto-eval will not drop them below this rank.
+  adminPlacedLevelId String?
   /// Set when the member is on the ladder (CN signup or MN approved as Recruit).
-  enrolledAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  enrolledAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentLevel ProgressionLevel?  @relation(fields: [currentLevelId], references: [id], onDelete: SetNull)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentLevel     ProgressionLevel?  @relation(fields: [currentLevelId], references: [id], onDelete: SetNull)
+  adminPlacedLevel ProgressionLevel?  @relation("AdminPlacedLevel", fields: [adminPlacedLevelId], references: [id], onDelete: SetNull)
 }
 
 model ProgressionCategoryXp {

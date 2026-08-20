@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.122",
+    date: "August 20, 2026",
+    title: "Admin can place anyone on a progression level",
+    summary:
+      "Staff can search any member and set their Creator Progression rank from Admin → Progression → People.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Progression → People now lets you put any user on any level, even before they earn the XP or certs",
+      },
+    ],
+  },
+  {
     version: "3.121",
     date: "August 19, 2026",
     title: "Keep Progress admin-only until training is ready",

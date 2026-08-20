@@ -700,3 +700,56 @@ export async function enrollUserAsRecruit(userId: string) {
   revalidateProgression();
   revalidatePath(`/admin/progression/people/${userId}`);
 }
+
+export async function setUserProgressionLevel(formData: FormData) {
+  await requireProgressionAdmin();
+  const userId = String(formData.get("userId") || "");
+  const levelId = String(formData.get("levelId") || "");
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!user) throw new Error("User not found");
+  const level = await prisma.progressionLevel.findFirst({
+    where: { id: levelId, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (!level) throw new Error("Level not found");
+
+  const existing = await prisma.progressionProfile.findUnique({
+    where: { userId },
+    select: { enrolledAt: true },
+  });
+  await prisma.progressionProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      enrolledAt: new Date(),
+      currentLevelId: level.id,
+      adminPlacedLevelId: level.id,
+    },
+    update: {
+      enrolledAt: existing?.enrolledAt ?? new Date(),
+      currentLevelId: level.id,
+      adminPlacedLevelId: level.id,
+    },
+  });
+  await prisma.progressionApplication.updateMany({
+    where: { userId, status: "PENDING" },
+    data: { status: "APPROVED", reviewedAt: new Date() },
+  });
+  await evaluateProgression(userId);
+  revalidateProgression();
+  revalidatePath(`/admin/progression/people/${userId}`);
+}
+
+export async function clearUserProgressionPlacement(formData: FormData) {
+  await requireProgressionAdmin();
+  const userId = String(formData.get("userId") || "");
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!user) throw new Error("User not found");
+  await prisma.progressionProfile.updateMany({
+    where: { userId },
+    data: { adminPlacedLevelId: null },
+  });
+  await evaluateProgression(userId);
+  revalidateProgression();
+  revalidatePath(`/admin/progression/people/${userId}`);
+}
