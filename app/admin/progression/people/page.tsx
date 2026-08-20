@@ -15,7 +15,6 @@ export default async function AdminProgressionPeoplePage({
   const users = await prisma.user.findMany({
     where: {
       status: "ACTIVE",
-      hiddenFromDirectory: false,
       ...(q
         ? {
             OR: [
@@ -25,7 +24,7 @@ export default async function AdminProgressionPeoplePage({
           }
         : {}),
     },
-    take: 40,
+    take: 60,
     orderBy: { name: "asc" },
     include: {
       progressionProfile: { include: { currentLevel: true } },
@@ -38,7 +37,10 @@ export default async function AdminProgressionPeoplePage({
         CREATOR <span className="text-gradient">TREES</span>
       </h1>
       <ProgressionAdminNav />
-      <form className="mt-8">
+      <p className="mt-4 font-body text-sm text-off-white/55">
+        Search any member, then open them to enroll or set their progression level.
+      </p>
+      <form className="mt-4">
         <input
           name="q"
           defaultValue={q}

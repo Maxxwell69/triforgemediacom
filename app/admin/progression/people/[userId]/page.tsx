@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { loadCreatorProgress } from "@/lib/progression/engine";
-import { grantBadge, grantCertification, grantSkill, enrollUserAsRecruit } from "../../actions";
+import { grantBadge, grantCertification, grantSkill, enrollUserAsRecruit, setUserProgressionLevel, clearUserProgressionPlacement } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +40,53 @@ export default async function AdminProgressionPersonPage({
       </Link>
       <h1 className="mt-4 font-display text-4xl tracking-wide">{user.name || user.email}</h1>
       <p className="mt-1 font-body text-sm text-off-white/50">
-        {user.progressionProfile?.enrolledAt
+        {user.progressionProfile?.enrolledAt || progress.profile?.enrolledAt
           ? `${progress.profile?.currentLevel?.name || "Recruit"} · ${progress.totalXp} XP`
           : "Not enrolled in Creator Progression"}
+        {progress.profile?.adminPlacedLevel
+          ? ` · placed at ${progress.profile.adminPlacedLevel.name}`
+          : ""}
       </p>
-      {!user.progressionProfile?.enrolledAt ? (
+      <section className="glass mt-6 rounded-2xl p-6">
+        <h2 className="font-display text-xl text-off-white/80">Set level</h2>
+        <p className="mt-1 font-body text-sm text-off-white/55">
+          Place this member on any rank. They stay at that rank even without the XP or certs, and can still
+          climb higher automatically.
+        </p>
+        <form action={setUserProgressionLevel} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input type="hidden" name="userId" value={user.id} />
+          <select
+            name="levelId"
+            required
+            defaultValue={progress.profile?.currentLevel?.id || ""}
+            className={fieldClass}
+          >
+            <option value="" disabled>
+              Choose a level
+            </option>
+            {progress.levels.map((level) => (
+              <option key={level.id} value={level.id}>
+                {level.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="shrink-0 rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white"
+          >
+            Set level
+          </button>
+        </form>
+        {progress.profile?.adminPlacedLevelId ? (
+          <form action={clearUserProgressionPlacement} className="mt-3">
+            <input type="hidden" name="userId" value={user.id} />
+            <button type="submit" className="font-body text-xs text-off-white/50 underline hover:text-cyan">
+              Clear placement and use earned rank only
+            </button>
+          </form>
+        ) : null}
+      </section>
+      {!user.progressionProfile?.enrolledAt && !progress.profile?.enrolledAt ? (
         <form
           action={async () => {
             "use server";
@@ -52,7 +94,7 @@ export default async function AdminProgressionPersonPage({
           }}
           className="mt-4"
         >
-          <button type="submit" className="rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white">
+          <button type="submit" className="rounded-lg border border-cyan/40 px-4 py-2 font-body text-sm text-cyan">
             Enroll as Recruit
           </button>
         </form>

@@ -397,6 +397,18 @@ async function evaluateLevel(userId: string) {
     }
   }
 
+  const profile = await prisma.progressionProfile.findUnique({
+    where: { userId },
+    select: { adminPlacedLevelId: true },
+  });
+  if (profile?.adminPlacedLevelId) {
+    const earnedIndex = levels.findIndex((level) => level.id === currentId);
+    const placedIndex = levels.findIndex((level) => level.id === profile.adminPlacedLevelId);
+    if (placedIndex >= 0 && placedIndex > earnedIndex) {
+      currentId = profile.adminPlacedLevelId;
+    }
+  }
+
   await prisma.progressionProfile.update({
     where: { userId },
     data: { currentLevelId: currentId },
@@ -413,7 +425,7 @@ export async function loadCreatorProgress(userId: string) {
     await Promise.all([
       prisma.progressionProfile.findUnique({
         where: { userId },
-        include: { currentLevel: true },
+        include: { currentLevel: true, adminPlacedLevel: true },
       }),
       prisma.progressionLevel.findMany({
         where: { status: "ACTIVE" },
