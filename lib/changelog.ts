@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.123",
+    date: "August 20, 2026",
+    title: "Set progression level from the admin user profile",
+    summary:
+      "Opening a member in Admin → Users now shows their Creator Progression rank with a Set level control.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Users → a member includes Creator Progression so staff can change their level without leaving that profile",
+      },
+    ],
+  },
+  {
     version: "3.122",
     date: "August 20, 2026",
     title: "Admin can place anyone on a progression level",
