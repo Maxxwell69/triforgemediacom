@@ -26,6 +26,7 @@ import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
+import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLevel";
 
 export const dynamic = "force-dynamic";
 
@@ -272,6 +273,8 @@ export default async function AdminUserDetailPage({
           }
         />
       </div>
+
+      <AdminUserProgressionLevel userId={user.id} />
 
       {/* Creator insights — admin view of tik.tools profile intel */}
       <section className="mt-6">

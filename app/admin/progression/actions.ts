@@ -699,6 +699,7 @@ export async function enrollUserAsRecruit(userId: string) {
   });
   revalidateProgression();
   revalidatePath(`/admin/progression/people/${userId}`);
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function setUserProgressionLevel(formData: FormData) {
@@ -738,6 +739,7 @@ export async function setUserProgressionLevel(formData: FormData) {
   await evaluateProgression(userId);
   revalidateProgression();
   revalidatePath(`/admin/progression/people/${userId}`);
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function clearUserProgressionPlacement(formData: FormData) {
@@ -752,4 +754,5 @@ export async function clearUserProgressionPlacement(formData: FormData) {
   await evaluateProgression(userId);
   revalidateProgression();
   revalidatePath(`/admin/progression/people/${userId}`);
+  revalidatePath(`/admin/users/${userId}`);
 }
