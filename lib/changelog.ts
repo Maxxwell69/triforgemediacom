@@ -130,6 +130,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.126",
+    date: "August 21, 2026",
+    title: "Fix specialty reset staging build",
+    summary: "Reset specialization now compiles so staging can deploy.",
+    items: [
+      {
+        kind: "fix",
+        text: "Specialty reset no longer uses a Map iterator that failed the production TypeScript build",
+      },
+    ],
+  },
+  {
     version: "3.125",
     date: "August 21, 2026",
     title: "Reset specialization anytime",
