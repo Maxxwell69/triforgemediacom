@@ -50,6 +50,20 @@ export function canJoinWebinar(status: WebinarStatus) {
   return status === "SCHEDULED" || status === "LIVE";
 }
 
+const PUBLIC_LIST_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Hub Webinars list (not calendar): live and past stay visible; upcoming
+ * sessions only appear once they start within 24 hours.
+ */
+export function isWebinarOnHubList(
+  webinar: Pick<Webinar, "status" | "scheduledAt">,
+  now = new Date()
+) {
+  if (webinar.status === "LIVE" || webinar.status === "ENDED") return true;
+  return webinar.scheduledAt.getTime() - now.getTime() <= PUBLIC_LIST_WINDOW_MS;
+}
+
 export type WebinarJoinMode = "host" | "watch";
 
 /** Staff can choose host vs watch-only before entering a live room. */

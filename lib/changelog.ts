@@ -130,6 +130,32 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.133",
+    date: "August 21, 2026",
+    title: "Admin can set or reset a member password",
+    summary:
+      "Staff can set a sign-in password on a user or email them a one-hour reset link from Admin → Users.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin user page: set a password or send a reset email (mods cannot change admin/mod passwords)",
+      },
+    ],
+  },
+  {
+    version: "3.132",
+    date: "August 21, 2026",
+    title: "Webinars list shows the next 24 hours",
+    summary:
+      "The hub Webinars page lists live sessions and anything starting within a day. Later dates stay on the calendar.",
+    items: [
+      {
+        kind: "improve",
+        text: "Upcoming webinars appear on Webinars only within 24 hours of start; the calendar still shows the full series",
+      },
+    ],
+  },
+  {
     version: "3.131",
     date: "August 21, 2026",
     title: "Calendar, My Tasks, and weekly webinars",
