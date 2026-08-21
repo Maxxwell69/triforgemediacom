@@ -174,7 +174,7 @@ export async function resetSpecialty(userId: string) {
     await tx.progressionMissionCompletion.deleteMany({
       where: { userId, missionId: { in: missionIds } },
     });
-    for (const [categoryId, amount] of xpByCategory) {
+    for (const [categoryId, amount] of Array.from(xpByCategory.entries())) {
       const current = await tx.progressionCategoryXp.findUnique({
         where: { userId_categoryId: { userId, categoryId } },
       });
