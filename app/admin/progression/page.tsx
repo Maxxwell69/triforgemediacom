@@ -105,7 +105,7 @@ export default async function AdminProgressionPage() {
           <input
             name="explainerVideoUrl"
             defaultValue={settings.explainerVideoUrl ?? ""}
-            placeholder="https://www.youtube.com/watch?v=…"
+            placeholder="https://youtu.be/QXh4TMdixP4"
             className="mt-1 w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60"
           />
         </label>
