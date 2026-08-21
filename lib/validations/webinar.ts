@@ -30,6 +30,16 @@ export const WEBINAR_AUDIENCE_LABELS: Record<
   ADMIN: "Admins only",
 };
 
+export const WEEKDAY_OPTIONS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+] as const;
+
 export const createWebinarSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -39,6 +49,9 @@ export const createWebinarSchema = z.object({
   hostAvatarUrl: optionalImageUrl,
   /** Outside-network signup page for people who are not hub members. */
   externalSignupEnabled: z.boolean().default(false),
+  /** When true, create one session per selected weekday for N weeks. */
+  repeatWeekly: z.boolean().default(false),
+  repeatWeeks: z.coerce.number().int().min(1).max(12).default(4),
 });
 
 export const updateWebinarSchema = z.object({

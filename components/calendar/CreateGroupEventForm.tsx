@@ -30,7 +30,7 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
         onClick={() => setOpen(true)}
         className="rounded-lg border border-orange/40 bg-orange/10 px-4 py-2 font-body text-sm font-semibold text-orange transition hover:bg-orange/15"
       >
-        + New group event
+        + New event
       </button>
     );
   }
@@ -53,7 +53,7 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-xl tracking-wide text-off-white/85">New group event</h2>
+        <h2 className="font-display text-xl tracking-wide text-off-white/85">New event</h2>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -74,6 +74,7 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
           {groups.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}
+              {g.name === "Home" ? " (everyone)" : ""}
             </option>
           ))}
         </select>

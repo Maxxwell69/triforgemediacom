@@ -19,7 +19,7 @@ export default function PersonalTasksToggle({
           ? "border-cyan/40 bg-cyan/10 text-cyan"
           : "border-off-white/15 text-off-white/70 hover:border-off-white/30"
       } ${isPending ? "opacity-60" : ""}`}
-      title="When on, this member gets a private My Tasks list (self-assigned only)"
+      title="On for everyone by default. Uncheck to hide My Tasks for this member."
     >
       <input
         type="checkbox"

@@ -50,8 +50,9 @@ export default async function AdminWebinarsPage() {
       </h1>
       <p className="mt-2 font-body text-off-white/60">
         Schedule webinars for all members, Creator Network (CN), Media Network (MN), or admins
-        only. Optionally open a secure outside signup page for people who are not in the network.
-        After a session, attach screen recordings so members can rewatch on the webinar page.
+        only. Turn on Repeat weekly to publish multiple sessions across the week. Optionally open
+        a secure outside signup page for people who are not in the network. After a session, attach
+        screen recordings so members can rewatch on the webinar page.
       </p>
 
       {!livekitReady && (
@@ -96,6 +97,11 @@ export default async function AdminWebinarsPage() {
                         <span className="rounded bg-off-white/10 px-2 py-0.5 font-body text-xs text-off-white/60">
                           {WEBINAR_AUDIENCE_LABELS[w.audience]}
                         </span>
+                        {w.seriesId && (
+                          <span className="rounded bg-cyan/15 px-2 py-0.5 font-body text-xs text-cyan">
+                            Weekly series
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 font-body text-xs text-off-white/50">
                         <LocalWhen startsAt={w.scheduledAt.toISOString()} /> · Host: {hostName} ·{" "}

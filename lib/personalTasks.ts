@@ -7,7 +7,7 @@ export async function hasPersonalTasksAccess(userId: string): Promise<boolean> {
     where: { id: userId },
     select: { personalTasksEnabled: true, status: true },
   });
-  return Boolean(user?.status === "ACTIVE" && user.personalTasksEnabled);
+  return Boolean(user?.status === "ACTIVE" && user.personalTasksEnabled !== false);
 }
 
 export async function listPersonalTasks(userId: string) {
