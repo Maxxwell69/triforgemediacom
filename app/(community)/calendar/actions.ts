@@ -62,6 +62,7 @@ export async function createGroupCalendarEvent(
   if (!parsed.data.groupId || !allowedIds.has(parsed.data.groupId)) {
     return { error: "Pick a group you’re allowed to schedule for." };
   }
+  const group = creatable.find((g) => g.id === parsed.data.groupId);
 
   let startsAt: Date;
   let endsAt: Date | null = null;
@@ -79,7 +80,7 @@ export async function createGroupCalendarEvent(
       title: parsed.data.title,
       description: parsed.data.description || null,
       kind: parsed.data.kind,
-      visibility: "GROUP",
+      visibility: group?.isHome ? "HUB" : "GROUP",
       startsAt,
       endsAt,
       location: parsed.data.location || null,

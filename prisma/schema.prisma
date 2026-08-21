@@ -78,8 +78,8 @@ model User {
   hiddenFromDirectory Boolean @default(false) // excludes this account from /members (e.g. shared/figurehead admin logins)
   /// Admin-only flag: when true, CN group/tag text renders green instead of orange.
   effect          Boolean  @default(false)
-  /// Admin toggle: member can use the personal task list (self-assigned only).
-  personalTasksEnabled Boolean @default(false)
+  /// Admin toggle: member can use the personal task list (self-assigned only). Default on for everyone.
+  personalTasksEnabled Boolean @default(true)
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
   lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)
@@ -1088,6 +1088,8 @@ model Webinar {
   externalSignupEnabled Boolean @default(false)
   /// Unguessable token for the public external signup / invite page.
   externalInviteToken   String? @unique
+  /// Shared id for weekly series instances created together. Null = one-off.
+  seriesId        String?
   startedAt       DateTime?
   endedAt         DateTime?
   createdAt       DateTime      @default(now())
@@ -1105,6 +1107,7 @@ model Webinar {
 
   @@index([status, scheduledAt])
   @@index([audience, status, scheduledAt])
+  @@index([seriesId])
 }
 
 /// Outside-network registrant for a webinar with external signup enabled.

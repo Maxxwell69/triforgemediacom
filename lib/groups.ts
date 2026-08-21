@@ -47,6 +47,7 @@ export async function ensureHomeGroup() {
       description: "Main hub space — default community channels live here.",
       color: "#FD4802",
       grantsTikTaskAccess: true,
+      canCreateEvents: true,
       isHome: true,
       joinMode: "CLOSED",
     },

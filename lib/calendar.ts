@@ -196,20 +196,25 @@ export function formatCalendarWhen(startsAt: Date, endsAt: Date | null) {
 export async function listEventCreatableGroups(userId: string, userRole: UserRole) {
   if (isAdminRole(userRole)) {
     return prisma.group.findMany({
-      where: { canCreateEvents: true },
+      where: { OR: [{ canCreateEvents: true }, { isHome: true }] },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
       select: { id: true, name: true, color: true, isHome: true },
     });
   }
 
   const memberships = await prisma.groupMember.findMany({
-    where: { userId, group: { canCreateEvents: true } },
+    where: {
+      userId,
+      group: { OR: [{ canCreateEvents: true }, { isHome: true }] },
+    },
     include: {
       group: { select: { id: true, name: true, color: true, isHome: true } },
     },
     orderBy: { addedAt: "asc" },
   });
-  return memberships.map((m) => m.group);
+  const groups = memberships.map((m) => m.group);
+  groups.sort((a, b) => Number(b.isHome) - Number(a.isHome) || a.name.localeCompare(b.name));
+  return groups;
 }
 
 /** Filter chips: Hub + listable groups the user can see. */

@@ -130,6 +130,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.131",
+    date: "August 21, 2026",
+    title: "Calendar, My Tasks, and weekly webinars",
+    summary:
+      "Every member can use Calendar and My Tasks. Admins can schedule a weekly webinar series so sessions show throughout the week.",
+    items: [
+      {
+        kind: "feature",
+        text: "My Tasks is on for all members (admins can still hide it per person)",
+      },
+      {
+        kind: "feature",
+        text: "Everyone can post hub calendar events; Home events are visible to the whole hub",
+      },
+      {
+        kind: "feature",
+        text: "Admin → Webinars: Repeat weekly to create multiple sessions across chosen days",
+      },
+    ],
+  },
+  {
     version: "3.130",
     date: "August 21, 2026",
     title: "Learn tab lists courses by level",

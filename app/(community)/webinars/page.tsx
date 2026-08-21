@@ -35,8 +35,14 @@ export default async function WebinarsPage() {
   );
 
   const live = visible.filter((w) => w.status === "LIVE");
-  const upcoming = visible.filter((w) => w.status === "SCHEDULED" || w.status === "DRAFT");
-  const past = visible.filter((w) => w.status === "ENDED");
+  const upcoming = visible
+    .filter((w) => w.status === "SCHEDULED" || w.status === "DRAFT")
+    .slice()
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  const past = visible
+    .filter((w) => w.status === "ENDED")
+    .slice()
+    .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -115,6 +121,7 @@ function WebinarCard({
     scheduledAt: Date;
     status: string;
     audience: WebinarAudience;
+    seriesId: string | null;
     hostAvatarUrl: string | null;
     host: { name: string | null; email: string };
     _count: { attendances: number; recordings: number };
@@ -152,6 +159,11 @@ function WebinarCard({
             {showAudience && webinar.audience !== "ALL" && (
               <span className="rounded bg-off-white/10 px-2 py-0.5 font-body text-xs text-off-white/60">
                 {WEBINAR_AUDIENCE_LABELS[webinar.audience]}
+              </span>
+            )}
+            {webinar.seriesId && (
+              <span className="rounded bg-cyan/15 px-2 py-0.5 font-body text-xs text-cyan">
+                Weekly series
               </span>
             )}
             {hasRecording && (

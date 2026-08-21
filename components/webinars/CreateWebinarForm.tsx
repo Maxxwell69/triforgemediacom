@@ -4,13 +4,15 @@ import { useState, useTransition } from "react";
 import { createWebinarAction } from "@/app/admin/webinars/actions";
 import ImageUploadField from "@/components/ImageUploadField";
 import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
-import { WEBINAR_AUDIENCE_OPTIONS } from "@/lib/validations/webinar";
+import { WEBINAR_AUDIENCE_OPTIONS, WEEKDAY_OPTIONS } from "@/lib/validations/webinar";
 import { attachDeviceTimeZone } from "@/lib/timeClient";
 
 export default function CreateWebinarForm() {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
 
   return (
     <form
@@ -22,12 +24,20 @@ export default function CreateWebinarForm() {
         const formData = new FormData(form);
         attachDeviceTimeZone(formData, ["scheduledAt"]);
         setError(null);
+        setSuccess(null);
         startTransition(async () => {
           const result = await createWebinarAction(formData);
           if (result.error) {
             setError(result.error);
             return;
           }
+          const count = result.count ?? 1;
+          setSuccess(
+            count > 1
+              ? `Created ${count} sessions for this week’s series.`
+              : "Webinar created."
+          );
+          setRepeatWeekly(false);
           setFormKey((k) => k + 1);
         });
       }}
@@ -81,6 +91,60 @@ export default function CreateWebinarForm() {
         </label>
       </div>
 
+      <div className="rounded-lg border border-off-white/10 bg-charcoal/60 px-3 py-3">
+        <label className="flex items-start gap-3 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="repeatWeekly"
+            checked={repeatWeekly}
+            onChange={(e) => setRepeatWeekly(e.target.checked)}
+            className="mt-1 accent-orange"
+          />
+          <span>
+            <span className="font-semibold text-off-white">Repeat weekly</span>
+            <span className="mt-0.5 block text-xs text-off-white/45">
+              Creates a separate webinar for each selected day so members see sessions throughout
+              the week.
+            </span>
+          </span>
+        </label>
+        {repeatWeekly && (
+          <div className="mt-3 flex flex-col gap-3 pl-7">
+            <div>
+              <p className="font-body text-xs text-off-white/50">Days</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {WEEKDAY_OPTIONS.map((day) => (
+                  <label
+                    key={day.value}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-off-white/15 px-2 py-1 font-body text-xs text-off-white/80"
+                  >
+                    <input
+                      type="checkbox"
+                      name="repeatDay"
+                      value={day.value}
+                      defaultChecked={day.value >= 1 && day.value <= 5}
+                      className="accent-orange"
+                    />
+                    {day.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <label className="flex max-w-[12rem] flex-col gap-1 font-body text-xs text-off-white/50">
+              For how many weeks
+              <input
+                name="repeatWeeks"
+                type="number"
+                min={1}
+                max={12}
+                defaultValue={4}
+                className="rounded-lg border border-off-white/15 bg-charcoal px-3 py-2 font-body text-sm text-off-white outline-none focus:border-orange"
+              />
+            </label>
+          </div>
+        )}
+      </div>
+
       <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
         Audience
         <select
@@ -115,13 +179,14 @@ export default function CreateWebinarForm() {
       </label>
 
       {error && <p className="font-body text-sm text-orange">{error}</p>}
+      {success && <p className="font-body text-sm text-cyan">{success}</p>}
 
       <button
         type="submit"
         disabled={pending}
         className="mt-1 w-fit rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-charcoal shadow-glow transition hover:brightness-110 disabled:opacity-60"
       >
-        {pending ? "Creating…" : "Create webinar"}
+        {pending ? "Creating…" : repeatWeekly ? "Create weekly series" : "Create webinar"}
       </button>
     </form>
   );

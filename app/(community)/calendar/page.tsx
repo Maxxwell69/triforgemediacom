@@ -43,7 +43,8 @@ export default async function CalendarPage() {
               HUB <span className="text-gradient">CALENDAR</span>
             </h1>
             <p className="mt-2 max-w-xl font-body text-off-white/60">
-              Hub and group events — open a day, click an event for details, filter by space.
+              Hub calendar for everyone — open a day, click an event for details, or post a new
+              event. Webinars show here automatically.
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:items-end">

@@ -1,6 +1,8 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import type { WebinarAudience, WebinarStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
@@ -14,6 +16,7 @@ import {
 } from "@/lib/validations/webinar";
 import { syncCalendarEventForWebinar } from "@/lib/calendar";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
+import { expandWeeklyWebinarTimes, parseRepeatWeekdays } from "@/lib/webinarRecurrence";
 
 async function requireAdmin() {
   const session = await auth();
@@ -34,6 +37,42 @@ function parseScheduledAt(value: string, timeZone?: string | null) {
   return parseZonedDateTime(value, timeZone, "scheduled date");
 }
 
+async function insertWebinar(input: {
+  title: string;
+  description: string | null;
+  scheduledAt: Date;
+  status: WebinarStatus;
+  audience: WebinarAudience;
+  hostAvatarUrl: string | null;
+  hostUserId: string;
+  externalSignupEnabled: boolean;
+  seriesId: string | null;
+}) {
+  const webinar = await prisma.webinar.create({
+    data: {
+      title: input.title,
+      description: input.description,
+      scheduledAt: input.scheduledAt,
+      status: input.status,
+      audience: input.audience,
+      hostAvatarUrl: input.hostAvatarUrl,
+      hostUserId: input.hostUserId,
+      livekitRoomName: `webinar_pending_${Date.now()}_${randomBytes(4).toString("hex")}`,
+      externalSignupEnabled: input.externalSignupEnabled,
+      externalInviteToken: input.externalSignupEnabled ? generateWebinarExternalToken() : null,
+      seriesId: input.seriesId,
+    },
+  });
+
+  const updated = await prisma.webinar.update({
+    where: { id: webinar.id },
+    data: { livekitRoomName: webinarRoomName(webinar.id) },
+  });
+
+  await syncCalendarEventForWebinar(updated);
+  return updated;
+}
+
 export async function createWebinarAction(formData: FormData) {
   const session = await requireAdmin();
 
@@ -45,6 +84,8 @@ export async function createWebinarAction(formData: FormData) {
     audience: String(formData.get("audience") || "ALL"),
     hostAvatarUrl: String(formData.get("hostAvatarUrl") || ""),
     externalSignupEnabled: formData.get("externalSignupEnabled") === "on",
+    repeatWeekly: formData.get("repeatWeekly") === "on",
+    repeatWeeks: String(formData.get("repeatWeeks") || "4"),
   };
 
   const parsed = createWebinarSchema.safeParse(raw);
@@ -52,41 +93,46 @@ export async function createWebinarAction(formData: FormData) {
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  let scheduledAt: Date;
+  const zone = formTimeZone(formData);
+  let firstAt: Date;
   try {
-    scheduledAt = parseScheduledAt(parsed.data.scheduledAt, formTimeZone(formData));
+    firstAt = parseScheduledAt(parsed.data.scheduledAt, zone);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid scheduled date" };
   }
-  const externalSignupEnabled = parsed.data.externalSignupEnabled;
 
-  const webinar = await prisma.webinar.create({
-    data: {
-      title: parsed.data.title,
-      description: parsed.data.description || null,
-      scheduledAt,
-      status: parsed.data.status,
-      audience: parsed.data.audience,
-      hostAvatarUrl: parsed.data.hostAvatarUrl || null,
-      hostUserId: session.user.id,
-      livekitRoomName: `webinar_pending_${Date.now()}`,
-      externalSignupEnabled,
-      externalInviteToken: externalSignupEnabled ? generateWebinarExternalToken() : null,
-    },
-  });
+  const times = parsed.data.repeatWeekly
+    ? expandWeeklyWebinarTimes(
+        firstAt,
+        zone || "UTC",
+        parseRepeatWeekdays(formData),
+        parsed.data.repeatWeeks
+      )
+    : [firstAt];
 
-  const updated = await prisma.webinar.update({
-    where: { id: webinar.id },
-    data: { livekitRoomName: webinarRoomName(webinar.id) },
-  });
+  const seriesId = times.length > 1 ? `wser_${randomBytes(12).toString("hex")}` : null;
+  const shared = {
+    title: parsed.data.title,
+    description: parsed.data.description || null,
+    status: parsed.data.status as WebinarStatus,
+    audience: parsed.data.audience,
+    hostAvatarUrl: parsed.data.hostAvatarUrl || null,
+    hostUserId: session.user.id,
+    externalSignupEnabled: parsed.data.externalSignupEnabled,
+    seriesId,
+  };
 
-  await syncCalendarEventForWebinar(updated);
+  let firstId = "";
+  for (let i = 0; i < times.length; i += 1) {
+    const created = await insertWebinar({ ...shared, scheduledAt: times[i] });
+    if (i === 0) firstId = created.id;
+  }
 
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath("/calendar");
   revalidatePath("/admin/calendar");
-  return { error: null, webinarId: webinar.id };
+  return { error: null, webinarId: firstId, count: times.length };
 }
 
 export async function updateWebinarAction(webinarId: string, formData: FormData) {
