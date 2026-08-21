@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.124",
+    date: "August 21, 2026",
+    title: "Progression apply video",
+    summary:
+      "The Creator Progression application sheet now plays the program explainer video.",
+    items: [
+      {
+        kind: "feature",
+        text: "MN apply / Progress explainer sheet embeds the Creator Progression program video",
+      },
+    ],
+  },
+  {
     version: "3.123",
     date: "August 20, 2026",
     title: "Set progression level from the admin user profile",
