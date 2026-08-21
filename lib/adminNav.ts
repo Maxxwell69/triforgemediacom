@@ -231,8 +231,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         href: "/admin/progression/learn",
-        label: "Courses",
-        description: "LMS courses attached to levels",
+        label: "Learn",
+        description: "Courses attached to each level",
         sku: "progression",
       },
       {

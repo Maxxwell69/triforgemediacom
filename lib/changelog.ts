@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.130",
+    date: "August 21, 2026",
+    title: "Learn tab lists courses by level",
+    summary:
+      "Admin → Progression → Learn is back, grouped so you can see which Learning Center courses sit on each rank.",
+    items: [
+      {
+        kind: "improve",
+        text: "Progression Learn tab shows every level and the LMS courses attached to it",
+      },
+    ],
+  },
+  {
     version: "3.129",
     date: "August 21, 2026",
     title: "Fix staging build after LMS cutover",

@@ -6,7 +6,7 @@ const LINKS = [
   { href: "/admin/progression/categories", label: "Categories" },
   { href: "/admin/progression/levels", label: "Levels" },
   { href: "/admin/progression/missions", label: "Missions" },
-  { href: "/admin/progression/learn", label: "Courses" },
+  { href: "/admin/progression/learn", label: "Learn" },
   { href: "/admin/progression/certs", label: "Certs" },
   { href: "/admin/progression/skills", label: "Skills" },
   { href: "/admin/progression/badges", label: "Badges" },
