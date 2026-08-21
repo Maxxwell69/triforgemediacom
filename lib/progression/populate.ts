@@ -119,22 +119,6 @@ const LEVELS: {
   },
 ];
 
-const MODULES: { title: string; category: string; passThreshold: number; questionSlots: number }[] = [
-  { title: "Streaming Basics & Consistency", category: "Go Live", passThreshold: 80, questionSlots: 10 },
-  { title: "Chat & Audience Interaction", category: "Engagement", passThreshold: 80, questionSlots: 10 },
-  { title: "Audience Growth Fundamentals", category: "Growth", passThreshold: 80, questionSlots: 10 },
-  { title: "Clips, VODs & Repurposing", category: "Content Creation", passThreshold: 80, questionSlots: 10 },
-  { title: "Collaboration & Cross-Promotion", category: "Collab", passThreshold: 80, questionSlots: 10 },
-  { title: "Monetization & Business Basics", category: "Monetization", passThreshold: 85, questionSlots: 15 },
-  { title: "Building a Community Hub", category: "Community Building", passThreshold: 80, questionSlots: 10 },
-  ...TRACKS.map((track) => ({
-    title: `Skill Mastery Deep-Dive — ${track}`,
-    category: "Skill Mastery",
-    passThreshold: 80,
-    questionSlots: 15,
-  })),
-];
-
 const CERT_XP: Record<string, number> = {
   "Go Live": 2000,
   Engagement: 2000,
@@ -236,46 +220,6 @@ async function upsertMission(
       recurrence: "ONE_TIME",
     },
   });
-}
-
-async function upsertModule(
-  categoryId: string,
-  title: string,
-  description: string,
-  sortOrder: number,
-  passThreshold: number
-) {
-  const existing = await prisma.progressionLearningModule.findFirst({ where: { title } });
-  const learnModule = existing
-    ? await prisma.progressionLearningModule.update({
-        where: { id: existing.id },
-        data: {
-          categoryId,
-          description,
-          content:
-            existing.content ||
-            "Module shell is live. Quiz questions will be added in a follow-up pass — pass threshold is already set.",
-          sortOrder,
-          status: "ACTIVE",
-        },
-      })
-    : await prisma.progressionLearningModule.create({
-        data: {
-          categoryId,
-          title,
-          description,
-          content:
-            "Module shell is live. Quiz questions will be added in a follow-up pass — pass threshold is already set.",
-          sortOrder,
-          status: "ACTIVE",
-        },
-      });
-  await prisma.progressionQuiz.upsert({
-    where: { moduleId: learnModule.id },
-    create: { moduleId: learnModule.id, passThreshold },
-    update: { passThreshold },
-  });
-  return learnModule;
 }
 
 async function upsertCertification(categoryId: string, name: string, certifiedXp: number, sortOrder: number) {

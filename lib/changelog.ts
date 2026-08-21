@@ -130,6 +130,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.129",
+    date: "August 21, 2026",
+    title: "Fix staging build after LMS cutover",
+    summary: "Unused progression lesson seed code is gone so staging can deploy.",
+    items: [
+      {
+        kind: "fix",
+        text: "Removed leftover MODULES seed helpers that failed the ESLint production build",
+      },
+    ],
+  },
+  {
     version: "3.128",
     date: "August 21, 2026",
     title: "Choose more than one specialty",
