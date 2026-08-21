@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engine";
-import { isSpecializeMissionName, isSpecialtyDeepDiveTitle, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
 import {
   getProgressionApplication,
   isProgressionEnrolled,
@@ -65,7 +65,6 @@ export default async function ProgressPage({
 
   const progress = await loadCreatorProgress(user.id);
   const doneMissions = new Set(progress.missionCompletions.map((c) => c.missionId));
-  const doneModules = new Set(progress.moduleCompletions.map((c) => c.moduleId));
   const heldSkills = new Set(progress.skillsHeld.map((s) => s.skillId));
   const heldBadges = new Set(progress.badgesHeld.map((b) => b.badgeId));
   const currentSort = progress.profile?.currentLevel?.sortOrder ?? -1;
@@ -77,7 +76,6 @@ export default async function ProgressPage({
     ? progress.levels.find((level) => level.sortOrder > currentLevel.sortOrder) ?? null
     : null;
   const heldCertById = new Map(progress.certsHeld.map((row) => [row.certificationId, row]));
-  const firstLevelId = progress.levels[0]?.id ?? null;
 
   const levelRequirements = (nextLevel ?? currentLevel)?.certRequirements.map((req) => {
     const held = heldCertById.get(req.certificationId);
@@ -98,34 +96,15 @@ export default async function ProgressPage({
   const attachedLevelIds = new Set(
     [currentLevel?.id, nextLevel?.id].filter((id): id is string => !!id)
   );
-  const training = [
-    ...progress.teachingCourses
-      .filter((course) => course.progressionLevelId && attachedLevelIds.has(course.progressionLevelId))
-      .map((course) => ({
-        id: course.id,
-        title: course.title,
-        href: `/learn/${course.id}`,
-        done: course.done,
-      })),
-    ...progress.categories.flatMap((category) => {
-      const unlockId = category.unlockAtLevel?.id ?? null;
-      const attachedHere =
-        (unlockId && attachedLevelIds.has(unlockId)) ||
-        (!unlockId && currentLevel?.id === firstLevelId);
-      if (!attachedHere) return [];
-      return category.modules
-        .filter((learnModule) => {
-          if (!learnModule.title.startsWith("Skill Mastery Deep-Dive")) return true;
-          return isSpecialtyDeepDiveTitle(learnModule.title, progress.specialty.chosenTrack);
-        })
-        .map((learnModule) => ({
-          id: learnModule.id,
-          title: learnModule.title,
-          href: `/progress/learn/${learnModule.id}`,
-          done: doneModules.has(learnModule.id),
-        }));
-    }),
-  ];
+  const training = progress.teachingCourses
+    .filter((course) => course.progressionLevelId && attachedLevelIds.has(course.progressionLevelId))
+    .map((course) => ({
+      id: course.id,
+      title: course.title,
+      href: `/learn/${course.id}`,
+      done: course.done,
+      levelName: course.progressionLevel?.name ?? null,
+    }));
 
   const missionBlocks = await Promise.all(
     progress.categories.flatMap((category) =>
@@ -164,6 +143,78 @@ export default async function ProgressPage({
             training={training}
           />
         ) : null}
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl text-off-white/80">Learning Center</h2>
+          <p className="mt-1 font-body text-sm text-off-white/50">
+            Courses from the LMS that are attached to a progression level. Open a course to train in the
+            Learning Center.
+          </p>
+          {progress.teachingCourses.length === 0 ? (
+            <p className="mt-4 font-body text-sm text-off-white/40">
+              No Learning Center courses are attached yet. In Admin → Courses, turn on “Use in Creator
+              Progression” and pick a level.
+            </p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-4">
+              {progress.levels
+                .map((level) => ({
+                  level,
+                  courses: progress.teachingCourses.filter((course) => course.progressionLevelId === level.id),
+                }))
+                .filter((group) => group.courses.length > 0)
+                .map((group) => {
+                  const locked = currentSort < group.level.sortOrder;
+                  return (
+                    <div key={group.level.id} className={`glass rounded-2xl p-5 ${locked ? "opacity-50" : ""}`}>
+                      <p className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-orange">
+                        {group.level.name}
+                      </p>
+                      <ul className="mt-3 flex flex-col gap-2">
+                        {group.courses.map((course) => (
+                          <li key={course.id}>
+                            {locked ? (
+                              <span className="font-body text-sm text-off-white/40">{course.title}</span>
+                            ) : (
+                              <Link
+                                href={`/learn/${course.id}`}
+                                className="font-body text-sm text-cyan hover:underline"
+                              >
+                                {course.done ? "✓ " : ""}
+                                {course.title}
+                              </Link>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              {progress.teachingCourses.some((course) => !course.progressionLevelId) ? (
+                <div className="glass rounded-2xl p-5">
+                  <p className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-orange">
+                    Track courses
+                  </p>
+                  <ul className="mt-3 flex flex-col gap-2">
+                    {progress.teachingCourses
+                      .filter((course) => !course.progressionLevelId)
+                      .map((course) => (
+                        <li key={course.id}>
+                          <Link
+                            href={`/learn/${course.id}`}
+                            className="font-body text-sm text-cyan hover:underline"
+                          >
+                            {course.done ? "✓ " : ""}
+                            {course.title}
+                          </Link>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </section>
 
         <section className="mt-10">
           <h2 className="font-display text-2xl text-off-white/80">Tracks</h2>
@@ -227,23 +278,6 @@ export default async function ProgressPage({
                         </li>
                       );
                     })}
-                  {category.modules
-                    .filter((learnModule) => {
-                      if (!learnModule.title.startsWith("Skill Mastery Deep-Dive")) return true;
-                      return isSpecialtyDeepDiveTitle(learnModule.title, progress.specialty.chosenTrack);
-                    })
-                    .map((learnModule) => (
-                    <li key={learnModule.id}>
-                      {locked ? (
-                        <span className="font-body text-sm text-off-white/40">{learnModule.title}</span>
-                      ) : (
-                        <Link href={`/progress/learn/${learnModule.id}`} className="font-body text-sm text-cyan hover:underline">
-                          {doneModules.has(learnModule.id) ? "✓ " : ""}
-                          {learnModule.title}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
                   {category.certifications.map((cert) => {
                     const held = progress.certsHeld.find((h) => h.certificationId === cert.id);
                     return (
@@ -263,12 +297,12 @@ export default async function ProgressPage({
           <div className="glass rounded-2xl p-5">
             <h2 className="font-display text-xl text-off-white/80">Skills</h2>
             <p className="mt-1 font-body text-xs text-off-white/45">
-              Your specialty at Rising Star. One of seven: Engagement Host, Gamer, Shop Owner, Musician, Artist,
-              Educator, Community Builder. Reset anytime and go through the pick again.
+              Specialties at Rising Star. Choose as many of the seven as you want: Engagement Host, Gamer,
+              Shop Owner, Musician, Artist, Educator, Community Builder.
             </p>
-            {progress.specialty.chosenTrack ? (
+            {progress.specialty.chosenTracks.length > 0 ? (
               <div className="mt-3">
-                <ResetSpecialtyButton currentTrack={progress.specialty.chosenTrack} />
+                <ResetSpecialtyButton currentTrack={progress.specialty.chosenTracks.join(", ")} />
               </div>
             ) : null}
             <ul className="mt-3 flex flex-col gap-2">

@@ -5,6 +5,7 @@ type TrainingLink = {
   title: string;
   href: string;
   done: boolean;
+  levelName?: string | null;
 };
 
 export default function CurrentLevelWork({
@@ -73,10 +74,11 @@ export default function CurrentLevelWork({
         </ul>
       ) : null}
 
-      <h3 className="mt-6 font-display text-lg text-off-white/80">Training</h3>
+      <h3 className="mt-6 font-display text-lg text-off-white/80">Learning Center</h3>
       {training.length === 0 ? (
         <p className="mt-2 font-body text-sm text-off-white/40">
-          No learning modules are attached to this level yet.
+          No Learning Center courses are attached to this level yet. Attach a course to the level in Admin →
+          Courses.
         </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
@@ -88,6 +90,9 @@ export default function CurrentLevelWork({
               >
                 {item.done ? "✓ " : ""}
                 {item.title}
+                {item.levelName ? (
+                  <span className="text-off-white/40"> · {item.levelName}</span>
+                ) : null}
               </Link>
             </li>
           ))}

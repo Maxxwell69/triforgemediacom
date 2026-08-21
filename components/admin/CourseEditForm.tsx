@@ -137,8 +137,8 @@ export default function CourseEditForm({
             Use in Creator Progression
           </label>
           <p className="mt-1 font-body text-xs text-off-white/45">
-            Completing this course (and passing its quiz) counts as the teaching for the selected
-            track. Members see it on /progress from the chosen level.
+            Attach this Learning Center course to a progression level. Members see it on /progress at that
+            rank, and open it in the LMS — not a separate progression lesson.
           </p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <select
@@ -158,7 +158,7 @@ export default function CourseEditForm({
               defaultValue={course.progressionLevelId ?? ""}
               className={fieldClass}
             >
-              <option value="">Show from level (optional)</option>
+              <option value="">Attach to level</option>
               {progression.levels.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
