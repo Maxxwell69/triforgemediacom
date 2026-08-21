@@ -8,7 +8,7 @@ import { getUserNetworkTrack } from "@/lib/mnCn";
 import { getAlertableAdminEmails } from "@/lib/adminAlerts";
 import { sendProgressionApplicationAdminAlert } from "@/lib/email";
 import { progressionApplySchema } from "@/lib/validations/progression";
-import { completeLearningModule, completeMission, chooseSpecialty, submitProgressionQuiz } from "@/lib/progression/engine";
+import { completeLearningModule, completeMission, chooseSpecialty, resetSpecialty, submitProgressionQuiz } from "@/lib/progression/engine";
 import {
   enrollAsRecruit,
   isProgressionEnrolled,
@@ -102,6 +102,12 @@ export async function applyToProgression(formData: FormData): Promise<{ error?: 
 export async function chooseMySpecialty(missionId: string) {
   const user = await requireProgressionMember();
   await chooseSpecialty(user.id, missionId);
+  revalidatePath("/progress");
+}
+
+export async function resetMySpecialty() {
+  const user = await requireProgressionMember();
+  await resetSpecialty(user.id);
   revalidatePath("/progress");
 }
 

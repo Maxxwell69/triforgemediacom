@@ -1,4 +1,5 @@
 import ChooseSpecialtyButton from "@/components/progress/ChooseSpecialtyButton";
+import ResetSpecialtyButton from "@/components/progress/ResetSpecialtyButton";
 import LevelTip from "@/components/progress/LevelTip";
 import {
   IconChevronUp,
@@ -157,6 +158,14 @@ export default function ProgressionChart({
               );
             })}
           </div>
+          {specialty.unlocked && specialty.chosenTrack ? (
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <ResetSpecialtyButton currentTrack={specialty.chosenTrack} />
+              <p className="font-body text-[11px] text-off-white/45">
+                Reset as many times as you want, then choose again.
+              </p>
+            </div>
+          ) : null}
 
           <div className="h-8 w-px bg-orange" aria-hidden />
 
@@ -176,8 +185,8 @@ export default function ProgressionChart({
               <p className="mt-2 font-body text-xs text-charcoal/70">
                 {specialty.unlocked
                   ? specialty.chosenTrack
-                    ? `You’re on ${specialty.chosenTrack}.`
-                    : "Pick one specialty. It stays with you through Legend."
+                    ? `You’re on ${specialty.chosenTrack}. Reset anytime to pick another.`
+                    : "Pick one specialty. You can reset and choose again as many times as you want."
                   : `Reach ${specialty.unlocksAt || "Rising Star"} to choose a track.`}
               </p>
             </LevelTip>

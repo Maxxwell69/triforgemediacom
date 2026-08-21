@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
-import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL, isSpecialtyTrackName } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL, isSpecialtyTrackName, SPECIALTY_TRACK_NAMES } from "@/lib/progression/tracks";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -124,6 +124,90 @@ export async function chooseSpecialty(userId: string, missionId: string) {
   }
 
   await completeMission(userId, missionId);
+}
+
+export async function resetSpecialty(userId: string) {
+  const missions = await prisma.progressionMission.findMany({
+    where: { name: { startsWith: "Specialize: " } },
+    select: { id: true, categoryId: true },
+  });
+  const missionIds = missions.map((mission) => mission.id);
+  if (missionIds.length === 0) return false;
+
+  const completions = await prisma.progressionMissionCompletion.findMany({
+    where: { userId, missionId: { in: missionIds } },
+    select: { missionId: true, xpAwarded: true },
+  });
+  if (completions.length === 0) return false;
+
+  const xpByCategory = new Map<string, number>();
+  for (const row of completions) {
+    const mission = missions.find((item) => item.id === row.missionId);
+    if (!mission) continue;
+    xpByCategory.set(mission.categoryId, (xpByCategory.get(mission.categoryId) ?? 0) + row.xpAwarded);
+  }
+
+  const specialtySkills = await prisma.progressionSkill.findMany({
+    where: { name: { in: [...SPECIALTY_TRACK_NAMES] } },
+    select: { id: true },
+  });
+  const skillIds = specialtySkills.map((skill) => skill.id);
+  const deepDives = await prisma.progressionLearningModule.findMany({
+    where: { title: { startsWith: "Skill Mastery Deep-Dive" } },
+    select: { id: true, quiz: { select: { id: true } } },
+  });
+  const moduleIds = deepDives.map((row) => row.id);
+  const quizIds = deepDives.map((row) => row.quiz?.id).filter((id): id is string => !!id);
+  const specialtyBadges = await prisma.progressionBadge.findMany({
+    where: {
+      OR: [
+        { trigger: "MISSION", triggerId: { in: missionIds } },
+        ...(skillIds.length > 0
+          ? [{ trigger: "SKILL" as const, triggerId: { in: skillIds } }]
+          : []),
+      ],
+    },
+    select: { id: true },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.progressionMissionCompletion.deleteMany({
+      where: { userId, missionId: { in: missionIds } },
+    });
+    for (const [categoryId, amount] of xpByCategory) {
+      const current = await tx.progressionCategoryXp.findUnique({
+        where: { userId_categoryId: { userId, categoryId } },
+      });
+      if (!current) continue;
+      await tx.progressionCategoryXp.update({
+        where: { userId_categoryId: { userId, categoryId } },
+        data: { amount: Math.max(0, current.amount - amount) },
+      });
+    }
+    if (skillIds.length > 0) {
+      await tx.progressionSkillUnlock.deleteMany({
+        where: { userId, skillId: { in: skillIds } },
+      });
+    }
+    if (specialtyBadges.length > 0) {
+      await tx.progressionBadgeGrant.deleteMany({
+        where: { userId, badgeId: { in: specialtyBadges.map((badge) => badge.id) } },
+      });
+    }
+    if (moduleIds.length > 0) {
+      await tx.progressionModuleCompletion.deleteMany({
+        where: { userId, moduleId: { in: moduleIds } },
+      });
+    }
+    if (quizIds.length > 0) {
+      await tx.progressionQuizAttempt.deleteMany({
+        where: { userId, quizId: { in: quizIds } },
+      });
+    }
+  });
+
+  await evaluateProgression(userId);
+  return true;
 }
 
 export async function completeMission(userId: string, missionId: string) {
