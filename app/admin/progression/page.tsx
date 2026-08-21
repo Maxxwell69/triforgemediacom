@@ -13,12 +13,12 @@ export const dynamic = "force-dynamic";
 export default async function AdminProgressionPage() {
   requireProgressionModule();
   await ensureOfficialProgression();
-  const [levels, categories, missions, modules, certs, skills, badges, profiles, levelRows, moduleRows, completions, settings, pendingApps] =
+  const [levels, categories, missions, attachedCourses, certs, skills, badges, profiles, levelRows, courseRows, completions, settings, pendingApps] =
     await Promise.all([
       prisma.progressionLevel.count(),
       prisma.progressionCategory.count(),
       prisma.progressionMission.count(),
-      prisma.progressionLearningModule.count(),
+      prisma.course.count({ where: { progressionEnabled: true } }),
       prisma.progressionCertification.count(),
       prisma.progressionSkill.count(),
       prisma.progressionBadge.count(),
@@ -28,22 +28,25 @@ export default async function AdminProgressionPage() {
         orderBy: { sortOrder: "asc" },
         include: { _count: { select: { profiles: true } } },
       }),
-      prisma.progressionLearningModule.findMany({
-        where: { status: "ACTIVE" },
+      prisma.course.findMany({
+        where: { progressionEnabled: true },
         orderBy: { title: "asc" },
-        include: { _count: { select: { completions: true } } },
+        include: {
+          progressionLevel: { select: { name: true } },
+          _count: { select: { enrollments: true } },
+        },
       }),
       prisma.progressionProfile.count({ where: { enrolledAt: null } }),
       getOrCreateProgressionSettings(),
       prisma.progressionApplication.count({ where: { status: "PENDING" } }),
     ]);
-  const moduleByCompletions = [...moduleRows].sort((a, b) => b._count.completions - a._count.completions);
+  const coursesByEnrollments = [...courseRows].sort((a, b) => b._count.enrollments - a._count.enrollments);
 
   const stats = [
     { label: "Levels", value: levels },
     { label: "Categories", value: categories },
     { label: "Missions", value: missions },
-    { label: "Learn modules", value: modules },
+    { label: "LMS courses", value: attachedCourses },
     { label: "Certifications", value: certs },
     { label: "Skills", value: skills },
     { label: "Badges", value: badges },
@@ -115,7 +118,7 @@ export default async function AdminProgressionPage() {
       </form>
       <form action={populateOfficialLadder} className="glass mt-6 rounded-2xl p-5">
         <p className="font-body text-sm text-off-white/70">
-          Load the official TriForge ladder (categories, levels, track picks, module shells, certs, badges, starter skills). Safe to re-run — it updates by name.
+          Load the official TriForge ladder (categories, levels, track picks, certs, badges, starter skills). Safe to re-run — it updates by name. Training is Learning Center courses attached to levels, not separate progression lessons.
         </p>
         <button type="submit" className="mt-3 rounded-lg bg-orange px-5 py-2 font-body text-sm font-semibold text-off-white">
           Load official content
@@ -146,15 +149,20 @@ export default async function AdminProgressionPage() {
           </ul>
         </section>
         <section className="glass rounded-2xl p-5">
-          <h2 className="font-display text-xl text-off-white/80">Module completions</h2>
+          <h2 className="font-display text-xl text-off-white/80">LMS courses attached</h2>
           <ul className="mt-3 flex flex-col gap-2">
-            {moduleByCompletions.length === 0 ? (
-              <li className="font-body text-sm text-off-white/40">No active modules</li>
+            {coursesByEnrollments.length === 0 ? (
+              <li className="font-body text-sm text-off-white/40">
+                None yet — attach a course to a level in Admin → Courses
+              </li>
             ) : (
-              moduleByCompletions.map((learnModule) => (
-                <li key={learnModule.id} className="flex justify-between font-body text-sm text-off-white/70">
-                  <span>{learnModule.title}</span>
-                  <span>{learnModule._count.completions}</span>
+              coursesByEnrollments.map((course) => (
+                <li key={course.id} className="flex justify-between font-body text-sm text-off-white/70">
+                  <span>
+                    {course.title}
+                    {course.progressionLevel ? ` · ${course.progressionLevel.name}` : ""}
+                  </span>
+                  <span>{course._count.enrollments}</span>
                 </li>
               ))
             )}

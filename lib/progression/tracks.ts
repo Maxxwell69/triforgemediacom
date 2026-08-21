@@ -70,3 +70,10 @@ export function isSpecialtyDeepDiveTitle(title: string, track: string | null) {
   if (!track) return false;
   return title === `Skill Mastery Deep-Dive — ${track}`;
 }
+
+export function formatSpecialtyTracks(tracks: string[]) {
+  if (tracks.length === 0) return "";
+  if (tracks.length === 1) return tracks[0];
+  if (tracks.length === 2) return `${tracks[0]} and ${tracks[1]}`;
+  return `${tracks.slice(0, -1).join(", ")}, and ${tracks[tracks.length - 1]}`;
+}

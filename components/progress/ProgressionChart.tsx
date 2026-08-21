@@ -7,7 +7,7 @@ import {
   IconRecruit,
   SpecialtyIcon,
 } from "@/components/progress/ProgressionIcons";
-import { SPECIALTY_TRACKS, SPECIALTY_UNLOCK_LEVEL } from "@/lib/progression/tracks";
+import { SPECIALTY_TRACKS, SPECIALTY_UNLOCK_LEVEL, formatSpecialtyTracks } from "@/lib/progression/tracks";
 
 type Level = {
   id: string;
@@ -47,6 +47,7 @@ export default function ProgressionChart({
     unlocked: boolean;
     unlocksAt: string | null;
     chosenTrack: string | null;
+    chosenTracks: string[];
     options: SpecialtyOption[];
   };
 }) {
@@ -67,8 +68,8 @@ export default function ProgressionChart({
     <section className="mt-8">
       <h2 className="font-display text-2xl text-off-white/80">Creator progression</h2>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        Live Host start. Recruit and Newcomer share one path. Rising Star unlocks a specialty. Then the rank
-        ladder — Regular through Legend — follows the track you pick.
+        Live Host start. Recruit and Newcomer share one path. Rising Star unlocks specialties — pick as many
+        as you want. Then the rank ladder — Regular through Legend.
       </p>
 
       <div className="mt-6 overflow-visible rounded-[28px] border border-off-white/10 bg-[#050505] px-4 py-8 sm:px-8">
@@ -126,7 +127,6 @@ export default function ProgressionChart({
           <div className="mt-4 grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">
             {options.map((track) => {
               const locked = !specialty.unlocked;
-              const taken = !!specialty.chosenTrack && !track.chosen;
               return (
                 <LevelTip
                   key={track.name}
@@ -134,7 +134,7 @@ export default function ProgressionChart({
                   description={track.description}
                   items={track.focuses}
                   current={track.chosen}
-                  reached={!locked && !taken}
+                  reached={!locked}
                   className="flex flex-col items-center rounded-2xl px-1 py-2 text-center"
                 >
                   <span
@@ -150,7 +150,7 @@ export default function ProgressionChart({
                   <div className="mt-2 min-h-[28px]">
                     {track.chosen ? (
                       <span className="font-body text-[10px] uppercase tracking-wide text-orange">Chosen</span>
-                    ) : !locked && !taken && track.missionId ? (
+                    ) : !locked && track.missionId ? (
                       <ChooseSpecialtyButton missionId={track.missionId} compact />
                     ) : null}
                   </div>
@@ -158,11 +158,11 @@ export default function ProgressionChart({
               );
             })}
           </div>
-          {specialty.unlocked && specialty.chosenTrack ? (
+          {specialty.unlocked && specialty.chosenTracks.length > 0 ? (
             <div className="mt-5 flex flex-col items-center gap-2">
-              <ResetSpecialtyButton currentTrack={specialty.chosenTrack} />
+              <ResetSpecialtyButton currentTrack={formatSpecialtyTracks(specialty.chosenTracks)} />
               <p className="font-body text-[11px] text-off-white/45">
-                Reset as many times as you want, then choose again.
+                Choose more specialties anytime, or reset to start over.
               </p>
             </div>
           ) : null}
@@ -184,9 +184,9 @@ export default function ProgressionChart({
               </p>
               <p className="mt-2 font-body text-xs text-charcoal/70">
                 {specialty.unlocked
-                  ? specialty.chosenTrack
-                    ? `You’re on ${specialty.chosenTrack}. Reset anytime to pick another.`
-                    : "Pick one specialty. You can reset and choose again as many times as you want."
+                  ? specialty.chosenTracks.length > 0
+                    ? `You’re on ${formatSpecialtyTracks(specialty.chosenTracks)}. Add more specialties anytime.`
+                    : "Pick as many specialties as you want. You can add more later or reset."
                   : `Reach ${specialty.unlocksAt || "Rising Star"} to choose a track.`}
               </p>
             </LevelTip>

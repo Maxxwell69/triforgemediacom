@@ -18,7 +18,7 @@ export default function ResetSpecialtyButton({
         disabled={pending}
         onClick={() => {
           const ok = window.confirm(
-            `Reset ${currentTrack}? You can pick a specialty again as many times as you want. This clears that track’s specialty skill and Skill Mastery deep-dive progress.`
+            `Reset ${currentTrack}? You can choose specialties again — including more than one.`
           );
           if (!ok) return;
           setError(null);
@@ -32,7 +32,7 @@ export default function ResetSpecialtyButton({
         }}
         className="rounded-lg border border-orange/50 px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-orange transition hover:bg-orange/10 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {pending ? "Resetting…" : "Reset specialization"}
+        {pending ? "Resetting…" : "Reset specializations"}
       </button>
       {error ? <p className="mt-1 font-body text-xs text-orange">{error}</p> : null}
     </div>

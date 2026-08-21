@@ -84,18 +84,18 @@ export async function canCompleteMission(userId: string, missionId: string): Pro
   return null;
 }
 
-async function getChosenSpecialty(userId: string) {
+async function getChosenSpecialties(userId: string) {
   const completions = await prisma.progressionMissionCompletion.findMany({
     where: { userId },
     select: { missionId: true, mission: { select: { id: true, name: true } } },
     orderBy: { completedAt: "asc" },
   });
-  const chosen = completions.find((row) => isSpecializeMissionName(row.mission.name));
-  if (!chosen) return null;
-  return {
-    missionId: chosen.mission.id,
-    track: trackNameFromMission(chosen.mission.name),
-  };
+  return completions
+    .filter((row) => isSpecializeMissionName(row.mission.name))
+    .map((row) => ({
+      missionId: row.mission.id,
+      track: trackNameFromMission(row.mission.name),
+    }));
 }
 
 async function specialtyUnlockLevel() {
@@ -215,12 +215,6 @@ export async function completeMission(userId: string, missionId: string) {
   if (blocked) throw new Error(blocked);
   const mission = await prisma.progressionMission.findUnique({ where: { id: missionId } });
   if (!mission) throw new Error("Mission not found");
-  if (isSpecializeMissionName(mission.name)) {
-    const chosen = await getChosenSpecialty(userId);
-    if (chosen && chosen.missionId !== missionId) {
-      throw new Error(`You already chose ${chosen.track}`);
-    }
-  }
 
   await prisma.$transaction(async (tx) => {
     await tx.progressionMissionCompletion.create({
@@ -390,12 +384,12 @@ async function evaluateSkills(userId: string) {
   });
   const totalXp = xpRows.reduce((sum, row) => sum + row.amount, 0);
 
-  const chosen = await getChosenSpecialty(userId);
+  const chosenTracks = new Set((await getChosenSpecialties(userId)).map((row) => row.track));
 
   for (const skill of skills) {
     let ok = false;
     if (isSpecialtyTrackName(skill.name)) {
-      ok = chosen?.track === skill.name;
+      ok = chosenTracks.has(skill.name);
     } else if (skill.unlockKind === "MANUAL") {
       continue;
     } else if (skill.unlockKind === "LEVEL") {
@@ -589,7 +583,8 @@ export async function loadCreatorProgress(userId: string) {
     category.missions.filter((mission) => isSpecializeMissionName(mission.name))
   );
   const doneMissionIds = new Set(missionsDone.map((row) => row.missionId));
-  const chosenMission = specializeMissions.find((mission) => doneMissionIds.has(mission.id));
+  const chosenMissions = specializeMissions.filter((mission) => doneMissionIds.has(mission.id));
+  const chosenTracks = chosenMissions.map((mission) => trackNameFromMission(mission.name));
   const unlockLevel = levels.find((level) => level.name === SPECIALTY_UNLOCK_LEVEL) ?? null;
   const currentSort = profile?.currentLevel?.sortOrder ?? -1;
   const specialtyUnlocked = !!unlockLevel && currentSort >= unlockLevel.sortOrder;
@@ -614,11 +609,12 @@ export async function loadCreatorProgress(userId: string) {
     specialty: {
       unlocked: specialtyUnlocked,
       unlocksAt: unlockLevel?.name ?? null,
-      chosenTrack: chosenMission ? trackNameFromMission(chosenMission.name) : null,
+      chosenTrack: chosenTracks[0] ?? null,
+      chosenTracks,
       options: specializeMissions.map((mission) => ({
         missionId: mission.id,
         track: trackNameFromMission(mission.name),
-        chosen: chosenMission?.id === mission.id,
+        chosen: doneMissionIds.has(mission.id),
       })),
     },
   };

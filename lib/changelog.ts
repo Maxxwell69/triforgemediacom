@@ -130,6 +130,32 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.128",
+    date: "August 21, 2026",
+    title: "Choose more than one specialty",
+    summary:
+      "Rising Star specialties are no longer one-at-a-time — creators can unlock as many tracks as they want.",
+    items: [
+      {
+        kind: "feature",
+        text: "Progress lets you Choose additional specialties without resetting, and unlocks the skill for each one you pick",
+      },
+    ],
+  },
+  {
+    version: "3.127",
+    date: "August 21, 2026",
+    title: "Progression uses Learning Center courses",
+    summary:
+      "Creator Progression no longer has a separate lesson system — it shows LMS courses attached to each level.",
+    items: [
+      {
+        kind: "improve",
+        text: "Attach a course to a progression level in Admin → Courses; Progress lists those Learning Center courses instead of the old progression modules",
+      },
+    ],
+  },
+  {
     version: "3.126",
     date: "August 21, 2026",
     title: "Fix specialty reset staging build",

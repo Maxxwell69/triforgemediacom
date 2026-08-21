@@ -394,16 +394,9 @@ export async function populateOfficialProgression() {
     );
   }
 
-  for (let index = 0; index < MODULES.length; index += 1) {
-    const learnModule = MODULES[index];
-    await upsertModule(
-      categoryByName.get(learnModule.category)!.id,
-      learnModule.title,
-      `${learnModule.questionSlots} questions · pass ${learnModule.passThreshold}%. Question copy lands in a follow-up.`,
-      index,
-      learnModule.passThreshold
-    );
-  }
+  await prisma.progressionLearningModule.updateMany({
+    data: { status: "ARCHIVED" },
+  });
 
   const certByCategory = new Map<string, { id: string; tiers: { id: string; name: string }[] }>();
   for (let index = 0; index < CATEGORIES.length; index += 1) {
@@ -508,7 +501,7 @@ export async function populateOfficialProgression() {
   return {
     categories: CATEGORIES.length,
     levels: LEVELS.length,
-    modules: MODULES.length,
+    modules: 0,
     tracks: TRACKS.length,
   };
 }

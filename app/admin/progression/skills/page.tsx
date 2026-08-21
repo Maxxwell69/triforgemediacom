@@ -73,7 +73,7 @@ export default async function AdminProgressionSkillsPage() {
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
         The seven creator specialties — Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, Community
-        Builder. Choosing one at Rising Star unlocks that skill.
+        Builder. Choosing a specialty at Rising Star unlocks that skill. Creators can choose more than one.
       </p>
       <ProgressionAdminNav />
       <form action={createSkill} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">
