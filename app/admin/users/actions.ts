@@ -1,13 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { pointsAdjustmentSchema } from "@/lib/validations/points";
 import { addMemberSchema } from "@/lib/validations/addMember";
+import { adminSetPasswordSchema } from "@/lib/validations/account";
 import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
-import { sendInviteEmail } from "@/lib/email";
+import { sendInviteEmail, sendPasswordResetEmail } from "@/lib/email";
+import { generateResetToken, resetPasswordUrl, RESET_TOKEN_TTL_MS } from "@/lib/passwordReset";
 import type { UserRole } from "@prisma/client";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER", "RECRUIT"];
@@ -120,6 +123,108 @@ export async function setUserEffect(userId: string, effect: boolean) {
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/members");
   revalidatePath(`/members/${userId}`);
+}
+
+function canManageTargetPassword(
+  actorRole: UserRole,
+  targetRole: UserRole
+): boolean {
+  if (isAdminRole(targetRole) && actorRole !== "ADMIN") return false;
+  return true;
+}
+
+export type AdminPasswordState = { error?: string; success?: string } | null;
+
+/** Admin sets a password so the member can sign in immediately. */
+export async function setUserPassword(
+  _prev: AdminPasswordState,
+  formData: FormData
+): Promise<AdminPasswordState> {
+  const session = await requireAdmin();
+
+  const parsed = adminSetPasswordSchema.safeParse({
+    userId: formData.get("userId"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { id: true, role: true, status: true },
+  });
+  if (!target) return { error: "User not found" };
+  if (!canManageTargetPassword(session.user.role, target.role)) {
+    return { error: "Only an admin can change another admin or mod password." };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      passwordHash,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      ...(target.status === "INVITED" ? { status: "ACTIVE" as const } : {}),
+    },
+  });
+  await prisma.passwordResetToken.deleteMany({
+    where: { userId: target.id, usedAt: null },
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${target.id}`);
+  return { success: "Password saved. They can sign in with it now." };
+}
+
+/** Email the member a one-hour reset link (same as forgot-password). */
+export async function sendUserPasswordReset(
+  userId: string
+): Promise<AdminPasswordState> {
+  const session = await requireAdmin();
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, role: true, status: true },
+  });
+  if (!target) return { error: "User not found" };
+  if (!canManageTargetPassword(session.user.role, target.role)) {
+    return { error: "Only an admin can reset another admin or mod password." };
+  }
+  if (target.status === "BANNED") {
+    return { error: "Unban this user before sending a reset email." };
+  }
+  if (target.status === "PENDING_APPLICATION") {
+    return { error: "Approve this application before sending a password reset." };
+  }
+
+  const token = generateResetToken();
+  await prisma.passwordResetToken.create({
+    data: {
+      userId: target.id,
+      token,
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    },
+  });
+  try {
+    await sendPasswordResetEmail(
+      target.email,
+      target.name || "there",
+      resetPasswordUrl(token)
+    );
+  } catch (err) {
+    console.error("Admin password reset email failed:", err);
+    return {
+      error: `Could not send the reset email (${
+        err instanceof Error ? err.message : "unknown error"
+      }). Set a password instead.`,
+    };
+  }
+
+  revalidatePath(`/admin/users/${target.id}`);
+  return { success: `Reset email sent to ${target.email}.` };
 }
 
 /** Admin toggle: member can use private personal tasks (self-assigned only). */

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { isAdminRole } from "@/lib/rbac";
 import { getUserNetworkTrack } from "@/lib/mnCn";
-import { canViewWebinar, webinarRoomName } from "@/lib/webinars";
+import { canViewWebinar, isWebinarOnHubList, webinarRoomName } from "@/lib/webinars";
 import { createWebinarSchema } from "@/lib/validations/webinar";
 import { generateWebinarExternalToken } from "@/lib/webinarExternal";
 import { parseZonedDateTime } from "@/lib/time";
@@ -27,8 +27,10 @@ export async function GET() {
     },
   });
 
-  const visible = webinars.filter((w) =>
-    canViewWebinar(w, auth.user.role, auth.user.id, networkTrack)
+  const visible = webinars.filter(
+    (w) =>
+      canViewWebinar(w, auth.user.role, auth.user.id, networkTrack) &&
+      (isAdminRole(auth.user.role) || isWebinarOnHubList(w))
   );
 
   return NextResponse.json({ webinars: visible });

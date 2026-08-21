@@ -27,6 +27,7 @@ import { isOnline } from "@/lib/presence";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
 import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLevel";
+import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
 
 export const dynamic = "force-dynamic";
 
@@ -273,6 +274,12 @@ export default async function AdminUserDetailPage({
           }
         />
       </div>
+
+      <AdminUserPasswordForm
+        userId={user.id}
+        hasPassword={Boolean(user.passwordHash)}
+        locked={Boolean(user.lockedUntil && user.lockedUntil.getTime() > Date.now())}
+      />
 
       <AdminUserProgressionLevel userId={user.id} />
 

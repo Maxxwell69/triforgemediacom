@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { canViewWebinar } from "@/lib/webinars";
+import { canViewWebinar, isWebinarOnHubList } from "@/lib/webinars";
 import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 import { getUserNetworkTrack } from "@/lib/mnCn";
 import { isAdminRole } from "@/lib/rbac";
@@ -30,8 +30,9 @@ export default async function WebinarsPage() {
     },
   });
 
-  const visible = webinars.filter((w) =>
-    canViewWebinar(w, user.role, user.id, networkTrack)
+  const visible = webinars.filter(
+    (w) =>
+      canViewWebinar(w, user.role, user.id, networkTrack) && isWebinarOnHubList(w)
   );
 
   const live = visible.filter((w) => w.status === "LIVE");
@@ -53,8 +54,8 @@ export default async function WebinarsPage() {
               WEBI<span className="text-gradient">NARS</span>
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              Join live sessions with the TriForge team. Watch, chat, and raise your hand to come
-              on stage.
+              Join sessions that are live or starting within 24 hours. The full schedule lives on
+              the calendar.
             </p>
           </div>
           {isAdminRole(user.role) && (
@@ -68,7 +69,13 @@ export default async function WebinarsPage() {
         </div>
 
         {visible.length === 0 ? (
-          <p className="mt-10 font-body text-off-white/50">No webinars scheduled yet. Check back soon.</p>
+          <p className="mt-10 font-body text-off-white/50">
+            Nothing starting in the next 24 hours. Check the{" "}
+            <Link href="/calendar" className="text-cyan hover:underline">
+              calendar
+            </Link>{" "}
+            for upcoming sessions.
+          </p>
         ) : (
           <div className="mt-10 flex flex-col gap-8">
             {live.length > 0 && (
