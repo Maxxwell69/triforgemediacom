@@ -14,6 +14,7 @@ import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 import ProgressionChart from "@/components/progress/ProgressionChart";
 import { SpecialtyIcon } from "@/components/progress/ProgressionIcons";
 import CurrentLevelWork from "@/components/progress/CurrentLevelWork";
+import ResetSpecialtyButton from "@/components/progress/ResetSpecialtyButton";
 import { isAdminRole } from "@/lib/rbac";
 import ProgressAccessSheet from "@/components/progress/ProgressAccessSheet";
 
@@ -263,8 +264,13 @@ export default async function ProgressPage({
             <h2 className="font-display text-xl text-off-white/80">Skills</h2>
             <p className="mt-1 font-body text-xs text-off-white/45">
               Your specialty at Rising Star. One of seven: Engagement Host, Gamer, Shop Owner, Musician, Artist,
-              Educator, Community Builder.
+              Educator, Community Builder. Reset anytime and go through the pick again.
             </p>
+            {progress.specialty.chosenTrack ? (
+              <div className="mt-3">
+                <ResetSpecialtyButton currentTrack={progress.specialty.chosenTrack} />
+              </div>
+            ) : null}
             <ul className="mt-3 flex flex-col gap-2">
               {SPECIALTY_TRACKS.map((track) => {
                 const skill = progress.skills.find((row) => row.name === track.name);

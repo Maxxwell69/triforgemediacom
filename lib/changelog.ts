@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.125",
+    date: "August 21, 2026",
+    title: "Reset specialization anytime",
+    summary:
+      "Creators can reset their Rising Star specialty and pick again as many times as they want.",
+    items: [
+      {
+        kind: "feature",
+        text: "Progress now has Reset specialization under Skills and the specialty icons — it clears the pick and that track’s deep-dive so you can go through the process again",
+      },
+    ],
+  },
+  {
     version: "3.124",
     date: "August 21, 2026",
     title: "Progression apply video",
