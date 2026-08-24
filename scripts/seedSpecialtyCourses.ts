@@ -186,7 +186,7 @@ async function main() {
   const after = await prisma.course.findMany({ select: { id: true } });
   const beforeIds = new Set(before.map((course) => course.id));
   const afterIds = new Set(after.map((course) => course.id));
-  const removed = [...beforeIds].filter((id) => !afterIds.has(id));
+  const removed = Array.from(beforeIds).filter((id) => !afterIds.has(id));
   if (removed.length > 0) {
     throw new Error(`Abort: ${removed.length} existing course(s) disappeared. This should never happen.`);
   }
