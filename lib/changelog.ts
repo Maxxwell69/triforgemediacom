@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.137",
+    date: "August 24, 2026",
+    title: "Readable written lessons",
+    summary:
+      "Written lesson text on the off-white content card is charcoal again instead of inheriting the hub’s white body color.",
+    items: [
+      {
+        kind: "fix",
+        text: "Lesson articles no longer render white-on-white — body copy is charcoal on the light canvas",
+      },
+    ],
+  },
+  {
     version: "3.136",
     date: "August 24, 2026",
     title: "Specialty learning attachments",

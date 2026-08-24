@@ -16,6 +16,19 @@ body {
   background: var(--background);
 }
 
+/* Off-white lesson card inside the dark hub. Body color is off-white;
+   unstyled lesson HTML must inherit charcoal here or it disappears.
+   Color is set on the canvas only so GoHighLevel wrapping
+   <div style="color: ..."> still cascades to children. */
+.lesson-canvas {
+  color: #0a0a0a;
+}
+
+.lesson-canvas a {
+  color: #0e1a3d;
+  text-decoration: underline;
+}
+
 /* Belt-and-suspenders for browsers that also respect direct styling on
    <option> (color-scheme above is the primary fix for the popup itself). */
 select option {
