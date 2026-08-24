@@ -9,9 +9,12 @@ export type QuestionSeed = {
 
 export type LessonSeed = {
   title: string;
+  tagline: string;
   objective: string;
   readingTime: string;
   paragraphs: string[];
+  /** Titles for method steps — one per paragraph after the intro paragraph. */
+  stepTitles: string[];
   exercise: string | null;
 };
 
@@ -31,15 +34,133 @@ function escapeHtml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
-export function lessonHtml(lesson: LessonSeed) {
-  const body = lesson.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("\n");
-  const exercise = lesson.exercise
-    ? `<h2>Exercise</h2>\n<p>${escapeHtml(lesson.exercise)}</p>`
-    : `<h2>Exercise</h2>\n<p>None — this is a knowledge lesson.</p>`;
-  return `<p><strong>Objective.</strong> ${escapeHtml(lesson.objective)}</p>
-${body}
-${exercise}
-<p><em>Written lesson · Est. reading time: ${escapeHtml(lesson.readingTime)}.</em></p>`;
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function introParagraphs(paragraphs: string[]) {
+  return paragraphs
+    .map((paragraph, i) => {
+      const margin = i === paragraphs.length - 1 ? "0px" : "0px 0px 14px";
+      return `    <p style="margin: ${margin}; font-size: 17px; color: rgb(68, 68, 68);">
+      ${escapeHtml(paragraph)}
+    </p>`;
+    })
+    .join("\n");
+}
+
+function methodSteps(titles: string[], bodies: string[]) {
+  return titles
+    .map((title, i) => {
+      const n = pad2(i + 1);
+      const isLast = i === titles.length - 1;
+      const bg = isLast ? "rgb(11, 11, 11)" : "rgb(26, 26, 26)";
+      const card = `    <div style="background: ${bg}; color: rgb(255, 255, 255); border-radius: 14px; padding: 20px 22px;">
+      <p style="margin: 0px; color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">
+        <strong>${n} · ${escapeHtml(title)}</strong>
+      </p>
+      <p style="margin: 6px 0px 0px; color: rgb(222, 222, 222);">${escapeHtml(bodies[i] ?? "")}</p>
+    </div>`;
+      if (isLast) return card;
+      return `${card}
+    <div style="text-align: center; color: rgb(244, 122, 32); font-size: 20px; padding: 8px 0px;">
+      <p style="margin: 0px;">↓</p>
+    </div>`;
+    })
+    .join("\n");
+}
+
+export function lessonHtml(lesson: LessonSeed, index: number) {
+  const intro = lesson.paragraphs.slice(0, 1);
+  const rest = lesson.paragraphs.slice(1);
+  if (rest.length !== lesson.stepTitles.length) {
+    throw new Error(
+      `Lesson "${lesson.title}" has ${rest.length} method paragraphs but ${lesson.stepTitles.length} step titles`
+    );
+  }
+
+  const n = pad2(index + 1);
+  const method =
+    rest.length > 0
+      ? `
+    <div style="margin-top: 32px; color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">
+      <p style="margin: 0px;"><strong>The Method</strong></p>
+    </div>
+${methodSteps(lesson.stepTitles, rest)}`
+      : "";
+
+  const exerciseBlock = lesson.exercise
+    ? `
+    <div style="margin-top: 32px; background: rgb(21, 21, 21); color: rgb(255, 255, 255); border-radius: 14px; padding: 24px;">
+      <div style="color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
+        <p style="margin: 0px;"><strong>Exercise</strong></p>
+      </div>
+      <p style="margin: 0px 0px 8px; font-size: 18px;">
+        Put this lesson to work before you move on.
+      </p>
+      <p style="margin: 0px; font-size: 18px;">
+        ${escapeHtml(lesson.exercise)}
+      </p>
+    </div>`
+    : `
+    <div style="margin-top: 32px; background: rgb(21, 21, 21); color: rgb(255, 255, 255); border-radius: 14px; padding: 24px;">
+      <div style="color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
+        <p style="margin: 0px;"><strong>Lock This In</strong></p>
+      </div>
+      <p style="margin: 0px 0px 8px; font-size: 18px;">
+        This is a knowledge lesson — <strong style="color: rgb(255, 255, 255);">no drill this time.</strong>
+      </p>
+      <p style="margin: 0px; font-size: 18px;">
+        Carry the idea into your next stream. <strong style="color: rgb(244, 122, 32);">That's the work.</strong>
+      </p>
+    </div>`;
+
+  return `<div style="font-family: Arial, Helvetica, sans-serif;">
+  <div style="width: 100%; background: rgb(21, 21, 21);">
+    <div style="max-width: 1050px; margin: 0px auto; padding: 20px 24px 22px;">
+      <div style="display: inline-block; color: rgb(244, 122, 32); font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">
+        <p style="margin: 0px;"><strong>Lesson ${n}</strong></p>
+      </div>
+      <h1 style="line-height: 1.15; margin: 0px 0px 8px; color: rgb(255, 255, 255); font-size: 24px; text-transform: uppercase;">
+        ${escapeHtml(lesson.title)}
+      </h1>
+      <p style="margin: 0px; max-width: 760px; color: rgb(244, 122, 32); font-size: 14px; font-weight: 700; text-transform: uppercase;">
+        <strong>${escapeHtml(lesson.tagline)}</strong>
+      </p>
+    </div>
+  </div>
+
+  <div style="max-width: 1050px; margin: 0px auto; padding: 24px 20px 0px;">
+    <div style="background: rgb(36, 36, 36); border: 1px solid rgb(59, 59, 59); border-radius: 10px; padding: 16px 18px; max-width: 700px;">
+      <div style="color: rgb(244, 122, 32); font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
+        <p style="margin: 0px;"><strong>Objective</strong></p>
+      </div>
+      <div style="color: rgb(255, 255, 255); font-size: 13px;">
+        <p style="margin: 0px;">${escapeHtml(lesson.objective)}</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width: 1050px; margin: 0px auto; padding: 40px 20px 60px;">
+${introParagraphs(intro)}
+${method}
+${exerciseBlock}
+
+    <div style="margin-top: 32px; background: rgb(21, 21, 21); color: rgb(255, 255, 255); border-radius: 16px; padding: 28px; text-align: center;">
+      <h2 style="margin: 0px 0px 6px; font-size: 26px; color: rgb(255, 255, 255); text-transform: uppercase;">
+        You've got the frame.
+      </h2>
+      <h2 style="margin: 0px 0px 18px; font-size: 26px; color: rgb(244, 122, 32); text-transform: uppercase;">
+        Now go use it.
+      </h2>
+      <p style="margin: 0px 0px 6px; color: rgb(176, 176, 176);">Written lesson · Est. reading time: ${escapeHtml(lesson.readingTime)}.</p>
+      <p style="margin: 0px 0px 20px; color: rgb(176, 176, 176);">Mark complete when you're ready, then keep moving.</p>
+      <p style="margin: 0px; font-weight: 700;">
+        <strong>Tri Forge Media · Skill Mastery</strong>
+      </p>
+    </div>
+  </div>
+</div>`;
 }
 
 export const COURSES: CourseSeed[] = [
@@ -51,6 +172,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Reading the Room",
+        tagline: "Match the room, then lead it",
         objective: "Creator can pace their own energy against what chat is actually doing in real time.",
         readingTime: "4 min",
         paragraphs: [
@@ -59,10 +181,12 @@ export const COURSES: CourseSeed[] = [
           "Escalating and de-escalating are both skills. When chat is buzzing — lots of messages, jokes landing, people hyping each other up — that's your cue to lean into it: raise your energy, call out what's happening, ride the wave. When things get chaotic or overheated, a host who can bring the temperature down without killing the mood is far more valuable than one who can only turn things up. Practice both directions, not just the exciting one.",
           "Finally, use pauses on purpose. New hosts often fill every second of dead air out of nervousness. A well-placed pause — after a big moment, before a punchline, right after asking a question — gives chat room to react and gives you room to actually read what's coming back.",
         ],
+        stepTitles: ["Read silence correctly", "Escalate and de-escalate", "Use pauses on purpose"],
         exercise: "Review a past stream VOD and mark 3 moments where the energy should have shifted but didn't.",
       },
       {
         title: "Interactive Segments That Keep People Watching",
+        tagline: "Hand chat the controls — on purpose",
         objective: "Creator can run a structured interactive segment start to finish.",
         readingTime: "4 min",
         paragraphs: [
@@ -71,10 +195,12 @@ export const COURSES: CourseSeed[] = [
           "Before you start any segment, state the rules clearly and once. \"For the next five minutes, drop your vote for X or Y and I'll go with whichever's ahead\" is enough — you don't need to over-explain, but you do need everyone to know what's happening and how it ends. Ambiguous rules are the number one reason segments feel messy.",
           "Keep segments shorter than you think they need to be. Energy peaks early and fades fast; a segment that runs long past its natural end point drains the exact energy it was meant to build. And always transition out with intention — announce the result, thank participants by name if you can, and move cleanly into what's next rather than letting it trail off.",
         ],
+        stepTitles: ["Pick the format", "State the rules once", "Keep it short and close it"],
         exercise: "Plan one interactive segment for your next stream, written out start to finish.",
       },
       {
         title: "Handling Chat Like a Pro",
+        tagline: "Stay in control when chat isn't",
         objective: "Creator can manage difficult chat moments without losing the room.",
         readingTime: "4 min",
         paragraphs: [
@@ -83,6 +209,7 @@ export const COURSES: CourseSeed[] = [
           "The tone you use matters as much as the option you pick. Visibly losing your temper, even briefly, tends to encourage more of the exact behavior you're trying to stop — it shows it landed. Staying light, even while being firm, signals that nothing about your stream is rattled by it. This isn't about faking calm; it's a skill that gets easier with repetition.",
           "After any disruption, don't just move on silently — actively bring the energy back. A quick joke, a callback to something fun from earlier, or simply re-engaging chat with a question resets the room faster than pretending nothing happened.",
         ],
+        stepTitles: ["Ignore, address, or moderate", "Watch your tone", "Reset the room"],
         exercise: null,
       },
     ],
@@ -134,6 +261,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Commentary While You Play",
+        tagline: "Talk through the game without tanking the run",
         objective: "Creator can talk through gameplay without hurting their own performance.",
         readingTime: "4 min",
         paragraphs: [
@@ -142,10 +270,12 @@ export const COURSES: CourseSeed[] = [
           "Dead time — loading screens, walking between objectives, waiting in a queue — is where new commentators either go silent or ramble. Neither is ideal. Prepare a small mental list of things you can talk about in those moments: what you're planning next, a story from a previous session, a question for chat. This turns unavoidable downtime into some of your most engaging content instead of dead air.",
           "React out loud, in the moment, even for small things. A quiet \"oh that's clean\" or an audible reaction to a close call does more for viewer connection than a highlight reel ever will, because it makes people feel like they're experiencing the moment with you rather than watching it happen to someone else. And know when to go quiet — high-intensity moments that require your full focus are allowed to be silent; forcing commentary through them often hurts both the play and the narration.",
         ],
+        stepTitles: ["Start on lower-intensity games", "Use downtime on purpose", "React out loud — and know when to go quiet"],
         exercise: "Record 5 minutes of commentary over a familiar game and self-review.",
       },
       {
         title: "Stream Layout for Gameplay",
+        tagline: "The overlay should serve the game, not cover it",
         objective: "Creator sets up an overlay that supports gameplay instead of cluttering it.",
         readingTime: "3 min",
         paragraphs: [
@@ -154,10 +284,12 @@ export const COURSES: CourseSeed[] = [
           "Alerts and notifications (follows, subs, gifts) should be visible but not disruptive. Oversized, slow, or frequently-triggering alerts pull attention away from gameplay repeatedly throughout a session, which hurts both your performance and viewer immersion. Keep them quick, clearly designed, and positioned somewhere that doesn't block active gameplay elements.",
           "Finally, consistency matters more than perfection. A layout that stays the same stream to stream helps regular viewers navigate your content instantly and makes your channel feel more professional. It's better to have a good-enough layout you keep than to redesign constantly chasing an ideal one.",
         ],
+        stepTitles: ["Place the camera around the UI", "Keep alerts quick", "Stay consistent"],
         exercise: "Audit your current overlay against the checklist covered in this lesson.",
       },
       {
         title: "Turning Gameplay Into Clips & Highlights",
+        tagline: "Catch the moment while it's happening",
         objective: "Creator can recognize and capture their own best moments.",
         readingTime: "3 min",
         paragraphs: [
@@ -165,6 +297,7 @@ export const COURSES: CourseSeed[] = [
           "There are two approaches to capturing these: clipping live, in the moment, or reviewing the full VOD afterward. Clipping live is faster and means you never lose track of what to look for later, but it requires enough attention to hit a button without breaking your commentary or gameplay flow. Reviewing after is more thorough but takes real time investment, and moments can be harder to find without a rough sense of when they happened.",
           "The practical answer for most creators starting out is a hybrid: build the habit of a quick mental (or literal) tag the moment something clip-worthy happens — even just muttering \"clip that\" out loud works as a marker — then do a lighter pass afterward to actually capture and trim it. Over time, this habit becomes automatic and the tagging gets faster.",
         ],
+        stepTitles: ["Clip live or review later", "Tag it in the moment"],
         exercise: "Clip one moment from your next session.",
       },
     ],
@@ -211,6 +344,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Presenting Product on Camera",
+        tagline: "Show it working — don't just describe it",
         objective: "Creator can show a product in a way that sells it, not just describes it.",
         readingTime: "4 min",
         paragraphs: [
@@ -219,10 +353,12 @@ export const COURSES: CourseSeed[] = [
           "Camera angle and lighting deserve more attention than most new sellers give them. A product that looks great in person can look flat or unclear on camera if it's poorly lit or shot from an angle that hides its best qualities. Take a few minutes before going live to test your product under your actual stream lighting, not just under normal room light.",
           "Pacing is the last piece. A presentation that's too fast skips past the details that actually convince people; one that's too slow loses attention entirely. A good rule of thumb: cover the product's core value in the first 30 seconds, then use the rest of the segment to go deeper for people who are already interested, while still making it easy for a new viewer who just tuned in to catch up quickly.",
         ],
+        stepTitles: ["Lead with benefits", "Light and angle", "Pace the pitch"],
         exercise: "Record a 2-minute product presentation and self-review against the lesson checklist.",
       },
       {
         title: "Running a Live Sales Flow",
+        tagline: "Hook, demo, offer, close",
         objective: "Creator can build urgency and guide viewers to purchase without sounding pushy.",
         readingTime: "4 min",
         paragraphs: [
@@ -230,10 +366,12 @@ export const COURSES: CourseSeed[] = [
           "Urgency is one of the most powerful tools in a sales flow, and also the easiest to misuse. Honest urgency — real limited stock, an actual time-boxed discount, a genuine one-time restock — drives action because it's true, and audiences can tell the difference over time between real scarcity and manufactured pressure. Fake urgency might work once, but it erodes trust with your audience fast, and trust is the thing your entire shop depends on long-term.",
           "Reading buying signals in chat helps you know when to push toward the close versus when to keep building the case. Questions about sizing, shipping, or \"does this come in—\" are strong buying signals; you can often move directly to the offer/close with someone showing that kind of interest rather than continuing a general pitch. Silence or off-topic chat, on the other hand, might mean it's worth spending more time on the demo before asking for the sale.",
         ],
+        stepTitles: ["Use honest urgency", "Read buying signals"],
         exercise: "Outline a 10-minute sales segment for your next stream.",
       },
       {
         title: "Handling Objections & Fulfilling Orders",
+        tagline: "Hesitation is a question, not a no",
         objective: "Creator can respond to hesitation live and knows what happens after the sale.",
         readingTime: "3 min",
         paragraphs: [
@@ -241,6 +379,7 @@ export const COURSES: CourseSeed[] = [
           "For price objections, connect back to value rather than defending the number — remind them what the benefit actually is, or mention any current offer, but don't get defensive. For timing objections, respect it; pressuring someone who's said they need to think tends to backfire, but making sure they know how to come back and buy later (saved cart, link in bio, restock notice) keeps the door open. For trust objections, honesty is the only real answer — share real details about shipping times, materials, or return policy rather than vague reassurance.",
           "Once a sale happens, your responsibility doesn't end at checkout. Buyers should have a clear, honest sense of what happens next: roughly when to expect shipping, how they'll be notified, and where to go if something's wrong. You don't need to manage fulfillment logistics personally, but you do need to be able to set accurate expectations live, because a buyer who feels informed is far less likely to become a frustrated one.",
         ],
+        stepTitles: ["Price, timing, and trust", "Set expectations after the sale"],
         exercise: null,
       },
     ],
@@ -282,6 +421,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Live Audio Setup",
+        tagline: "If the audio is off, nothing else matters",
         objective: "Creator has audio that sounds professional at a basic technical level.",
         readingTime: "4 min",
         paragraphs: [
@@ -291,10 +431,12 @@ export const COURSES: CourseSeed[] = [
           "Latency — the delay between when you play and when it's heard — becomes especially noticeable for musicians, since timing is part of the performance itself. Understand your setup's latency and, where possible, monitor with settings that minimize it; even small delays can throw off your own sense of timing if you're not accounting for them.",
           "Finally, build a basic troubleshooting habit: check input levels, check that the correct device is selected, and do a quick sound test before every stream. Most audio disasters are caught in thirty seconds of pre-stream checking rather than fixed mid-performance.",
         ],
+        stepTitles: ["Mic placement", "Levels and headroom", "Watch latency", "Pre-stream check"],
         exercise: "Do an audio level check using the method taught and document your settings.",
       },
       {
         title: "Performing for a Remote Audience",
+        tagline: "Generate the energy a room would give you",
         objective: "Creator can bring stage-level energy to a camera with no room to feed off.",
         readingTime: "3 min",
         paragraphs: [
@@ -302,10 +444,12 @@ export const COURSES: CourseSeed[] = [
           "The practical fix is to treat chat as your crowd, deliberately. Read reactions out loud, respond to comments between songs, and let chat's energy inform your pacing the same way a room's energy would. This does two things: it keeps you engaged with real feedback instead of performing into a void, and it makes viewers feel like active participants in the performance rather than passive listeners.",
           "Pacing a set for a screen also differs from pacing for a stage. Attention spans and viewing patterns online mean that a set built entirely around a slow build to one big climax — which can work brilliantly in a room — may lose viewers before it pays off on stream. Consider structuring sets with more frequent high points, and use chat interaction between songs as a pacing tool in itself, not just a break.",
         ],
+        stepTitles: ["Treat chat as the crowd", "Pace the set for a screen"],
         exercise: null,
       },
       {
         title: "Setlists, Requests & Rights Basics",
+        tagline: "Flexible set, clear boundaries",
         objective: "Creator can manage a set and stay within basic licensing boundaries.",
         readingTime: "4 min",
         paragraphs: [
@@ -313,6 +457,7 @@ export const COURSES: CourseSeed[] = [
           "Song requests are one of the best engagement tools available to a musician, but they need boundaries to stay manageable. Decide ahead of time how you'll handle them — a request list, a point system, certain songs reserved for certain moments — and communicate that system clearly so it doesn't turn into chaos mid-stream. It's completely fine to decline a request gracefully if it doesn't fit the set or isn't something you can perform; a quick, friendly \"not tonight, but I've got it queued for next time\" keeps goodwill intact.",
           "Rights and licensing is the part most new streaming musicians skip past, and it's worth taking seriously. In plain terms: performing a song live is different from monetizing a recording of that performance, and different platforms and licensing situations have different rules about what's allowed. This course won't make you a licensing expert, but the core habit to build is simple — before treating any cover or outside composition as fully safe to perform and monetize, understand what license or permission situation you're actually operating under, and lean toward original material or properly licensed content when in doubt.",
         ],
+        stepTitles: ["Handle requests with a system", "Know the rights basics"],
         exercise: "Build a first setlist template you can reuse.",
       },
     ],
@@ -360,6 +505,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Creating Live for an Audience",
+        tagline: "Think out loud without breaking the work",
         objective: "Creator can narrate their process without breaking creative flow.",
         readingTime: "4 min",
         paragraphs: [
@@ -368,10 +514,12 @@ export const COURSES: CourseSeed[] = [
           "Pacing a piece to fit your stream length is its own skill. Complex work that would normally take many sessions needs to be planned around what's realistic to show meaningful progress on in a single stream — whether that means choosing simpler pieces for shorter streams, working on one section of a larger piece per session, or being transparent with your audience about a piece spanning multiple streams.",
           "Balancing focus between the work and the audience is the ongoing challenge. You don't need to constantly split attention — there will be stretches where you're quiet and focused, and that's fine, even good, as it shows genuine craft. The skill is knowing when to surface back up: after finishing a section, when chat asks something, or at a natural pause point, so viewers never feel forgotten for too long.",
         ],
+        stepTitles: ["Narrate the natural pauses", "Pace the piece", "Surface back up"],
         exercise: null,
       },
       {
         title: "Managing Time & Requests",
+        tagline: "Scope it before you start it",
         objective: "Creator can scope and pace commission/request work live.",
         readingTime: "3 min",
         paragraphs: [
@@ -380,10 +528,12 @@ export const COURSES: CourseSeed[] = [
           "Saying no gracefully is a skill worth practicing deliberately. Not every request fits your current session, your skill focus, or your available time, and it's completely reasonable to decline or defer one. A simple, friendly explanation — \"that's a bit much for today's session, but I'd love to take it on next time\" — protects your time without damaging goodwill.",
           "When managing multiple requests across a single session, a visible queue or simple prioritization system (first-come, subscriber priority, whatever fits your community) keeps things fair and predictable, and reduces the mental load of juggling requests on the fly.",
         ],
+        stepTitles: ["Clarify the request", "Say no gracefully", "Use a visible queue"],
         exercise: "Write a short commission policy you can post publicly.",
       },
       {
         title: "Showcasing & Selling Your Work",
+        tagline: "The piece isn't done when the stream ends",
         objective: "Creator can turn finished pieces into a portfolio and revenue.",
         readingTime: "4 min",
         paragraphs: [
@@ -392,6 +542,7 @@ export const COURSES: CourseSeed[] = [
           "Pricing originals and prints is a common sticking point for artists moving into selling their work. There's no single formula, but a reasonable starting approach factors in time spent, materials, your current experience level, and what comparable work in your space sells for — and it's fine, even expected, for pricing to evolve as your skill and audience grow.",
           "This is also where showcasing connects directly back to the Shop and Monetization tools available through the platform — finished pieces, prints, or commission slots can become actual shop listings, turning what was created live into an ongoing revenue stream rather than a one-time stream moment.",
         ],
+        stepTitles: ["Build a simple portfolio", "Price with a starting approach", "Connect it to the shop"],
         exercise: "Post one finished piece using the presentation framework taught.",
       },
     ],
@@ -438,6 +589,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Structuring a Lesson for Live Delivery",
+        tagline: "Beginning, middle, takeaway",
         objective: "Creator can plan a lesson with a clear beginning, middle, and takeaway.",
         readingTime: "4 min",
         paragraphs: [
@@ -446,10 +598,12 @@ export const COURSES: CourseSeed[] = [
           "The middle is the actual teaching, and it's where scoping matters most. A topic that would take a semester to fully cover needs to be deliberately narrowed to fit your stream length — pick the most useful slice of a large topic rather than attempting a shallow pass over everything. It's better to teach one thing well than five things thinly.",
           "The takeaway closes the loop. Before you wrap up, explicitly restate the one thing you most want viewers to walk away with — write this single sentence out before you even start planning the lesson, since it should shape everything that comes before it, not just summarize it afterward.",
         ],
+        stepTitles: ["Set expectations", "Scope the middle", "Write the takeaway first"],
         exercise: "Outline your next lesson using the 3-part structure.",
       },
       {
         title: "Making Complex Topics Watchable",
+        tagline: "Hard topics fail on delivery, not difficulty",
         objective: "Creator can teach a hard topic without losing the audience.",
         readingTime: "4 min",
         paragraphs: [
@@ -458,10 +612,12 @@ export const COURSES: CourseSeed[] = [
           "Pacing matters as much as the explanation itself. Resist the urge to cover everything you know about a topic; instead, deliver one idea, pause, let it land, then build the next idea on top of it. Viewers absorb layered information far better than a continuous stream of facts delivered at full speed.",
           "Checking for understanding doesn't require a formal quiz mid-stream — that often feels awkward and puts people on the spot. Instead, watch chat for questions or confusion signals, and periodically ask a simple, low-pressure check-in like \"does that make sense so far?\" which invites feedback without demanding it.",
         ],
+        stepTitles: ["Analogies and visuals", "One idea, then a pause", "Check for understanding"],
         exercise: null,
       },
       {
         title: "Answering Questions Without Losing the Thread",
+        tagline: "Stay on the thread without ignoring chat",
         objective: "Creator can handle live Q&A without derailing the lesson.",
         readingTime: "3 min",
         paragraphs: [
@@ -469,6 +625,7 @@ export const COURSES: CourseSeed[] = [
           "The skill within this technique is quickly distinguishing quick answers from deeper detours. A clarifying question that takes ten seconds to answer can usually just be answered in the moment without disrupting flow. A question that would require several minutes of explanation, or that jumps ahead of where the lesson currently is, is a strong candidate for the parking lot instead.",
           "Closing a Q&A segment cleanly matters just as much as running it well. Rather than letting questions trail off until the stream just ends, give a clear signal — \"let's take two more questions\" — and wrap with a short summary of what was covered, so the session ends on a structured note rather than fading out.",
         ],
+        stepTitles: ["Quick answers vs parking lot", "Close the Q&A cleanly"],
         exercise: "Practice the parking lot technique on your next stream.",
       },
     ],
@@ -515,6 +672,7 @@ export const COURSES: CourseSeed[] = [
     lessons: [
       {
         title: "Designing Your Community Space",
+        tagline: "Structure that still works at 2,000 members",
         objective: "Creator can structure a hub space that scales as it grows.",
         readingTime: "4 min",
         paragraphs: [
@@ -523,10 +681,12 @@ export const COURSES: CourseSeed[] = [
           "Roles and permissions don't need to be complicated early on, but having even a basic framework — a way to recognize active members, a way to manage moderation, a way to distinguish access levels if relevant — makes it far easier to layer in more structure later without a disruptive overhaul.",
           "Design for both new and long-time members simultaneously. A space built purely around insider jokes and long-running conversations can feel unwelcoming to newcomers, while a space that only ever addresses first-timers can feel stale to your most loyal members. A dedicated space for newcomers alongside spaces for deeper community conversation lets both groups feel served.",
         ],
+        stepTitles: ["Clear sections", "Roles that can grow", "Serve new and loyal members"],
         exercise: "Sketch out a structure for your own hub space.",
       },
       {
         title: "Onboarding New Members",
+        tagline: "The first 24 hours decide if they stay",
         objective: "Creator designs a first-24-hours experience that keeps people around.",
         readingTime: "3 min",
         paragraphs: [
@@ -535,10 +695,12 @@ export const COURSES: CourseSeed[] = [
           "A simple welcome flow doesn't need to be elaborate. Even a short automated or templated greeting that points to a couple of key spaces (where to introduce yourself, where the main conversation happens) dramatically reduces the disorientation a brand-new member feels in their first few minutes.",
           "Reducing drop-off in that first day is really about giving people an easy, low-pressure way to take one small action — react to something, answer a simple prompt, introduce themselves — because a member who's taken even one small action is far more likely to come back than one who only observed silently.",
         ],
+        stepTitles: ["What they see first", "A simple welcome flow", "One small first action"],
         exercise: "Write a welcome message template for new members.",
       },
       {
         title: "Keeping the Community Healthy",
+        tagline: "Handle conflict early, reward the good",
         objective: "Creator can manage conflict and recognize contributors without heavy tools.",
         readingTime: "4 min",
         paragraphs: [
@@ -547,6 +709,7 @@ export const COURSES: CourseSeed[] = [
           "De-escalating conflict early relies on the same instincts covered in handling difficult chat moments live — staying calm, not taking sides publicly and immediately, and giving people a way to disengage without losing face. Communities that model calm conflict resolution tend to develop that same tone among their members over time.",
           "Recognition matters just as much as moderation, and it's often under-used. Informal systems — public shoutouts, a special role, simply naming and thanking active contributors — cost little effort but meaningfully increase how invested your most engaged members feel. A community that only ever hears from its owner when something goes wrong will feel very different from one that also hears from its owner when something goes right.",
         ],
+        stepTitles: ["Intervene early", "De-escalate", "Recognize contributors"],
         exercise: "Identify 2 ways to recognize active members this week.",
       },
     ],
