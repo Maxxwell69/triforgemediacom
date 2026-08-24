@@ -130,6 +130,32 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.135",
+    date: "August 24, 2026",
+    title: "Single CN / MN profile badge",
+    summary:
+      "Member profiles and the directory no longer show a duplicate CN or MN pill when someone is in both the group and the tag.",
+    items: [
+      {
+        kind: "fix",
+        text: "CN and MN badges render once on member cards and profiles even when both the group and tag are assigned",
+      },
+    ],
+  },
+  {
+    version: "3.134",
+    date: "August 22, 2026",
+    title: "Admins can delete a lesson",
+    summary:
+      "Staff can remove a lesson from a course in Admin → Courses, or from the lesson page itself.",
+    items: [
+      {
+        kind: "feature",
+        text: "Delete a lesson from the course editor or the lesson page — progress and assignments go with it",
+      },
+    ],
+  },
+  {
     version: "3.133",
     date: "August 21, 2026",
     title: "Admin can set or reset a member password",

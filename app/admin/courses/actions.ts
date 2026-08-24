@@ -360,10 +360,26 @@ export async function updateLesson(formData: FormData) {
   revalidateCourse(courseId);
 }
 
-export async function deleteLesson(lessonId: string, courseId: string) {
-  await requireAdmin();
-  await prisma.lesson.delete({ where: { id: lessonId } });
-  revalidateCourse(courseId);
+export async function deleteLesson(
+  lessonId: string,
+  courseId: string
+): Promise<{ error?: string }> {
+  try {
+    await requireAdmin();
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, courseId },
+      select: { id: true },
+    });
+    if (!lesson) return { error: "Lesson not found on this course." };
+
+    await prisma.lesson.delete({ where: { id: lessonId } });
+    revalidateCourse(courseId);
+    revalidatePath(`/learn/${courseId}/lessons/${lessonId}`);
+    return {};
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not delete lesson.";
+    return { error: message };
+  }
 }
 
 export async function moveLessonOrder(

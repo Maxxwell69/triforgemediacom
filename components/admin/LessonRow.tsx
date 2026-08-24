@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteLesson, moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
+import { moveLessonOrder, updateLesson } from "@/app/admin/courses/actions";
 import { toDatetimeLocalValue } from "@/lib/validations/course";
 import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import ImageUploadField from "@/components/ImageUploadField";
+import DeleteLessonButton from "./DeleteLessonButton";
 import AssignmentSection from "./AssignmentSection";
 
 type ModuleOption = { id: string; title: string };
@@ -126,8 +127,8 @@ export default function LessonRow({
             </div>
           )}
         </div>
-        {!editing && (
-          <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          {!editing && (
             <button
               type="button"
               onClick={() => setEditing(true)}
@@ -135,19 +136,9 @@ export default function LessonRow({
             >
               Edit
             </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => {
-                if (!confirm(`Delete lesson "${lesson.title}"? This can't be undone.`)) return;
-                startTransition(() => deleteLesson(lesson.id, courseId));
-              }}
-              className="rounded-lg border border-orange/40 px-3 py-1 font-body text-xs font-semibold text-orange transition hover:bg-orange/10 disabled:opacity-40"
-            >
-              Delete
-            </button>
-          </div>
-        )}
+          )}
+          <DeleteLessonButton lessonId={lesson.id} courseId={courseId} title={lesson.title} />
+        </div>
       </div>
 
       {editing && (

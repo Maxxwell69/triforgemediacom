@@ -23,6 +23,19 @@ export function networkBadgeColor(
 }
 
 /**
+ * CN/MN (and any other mirrored group+tag) are stored twice so filters work,
+ * but member profiles should only show one pill. Keep the group; drop tags
+ * whose name already matches a group.
+ */
+export function tagsNotShownAsGroups<T extends { name: string }>(
+  groups: { name: string }[],
+  tags: T[]
+): T[] {
+  const groupNames = new Set(groups.map((g) => g.name.trim().toUpperCase()));
+  return tags.filter((t) => !groupNames.has(t.name.trim().toUpperCase()));
+}
+
+/**
  * Media Network (MN) = creators who already have an agency representing them
  * for live hosting (or outside US/Canada). Creator Network (CN) = TriForge's
  * Forge Creator Network pathway (US/CA, no agency).
