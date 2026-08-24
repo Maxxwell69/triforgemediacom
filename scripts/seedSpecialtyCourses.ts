@@ -57,7 +57,7 @@ async function upsertCourse(
     const lessonData = {
       title: lesson.title,
       order: i,
-      content: lessonHtml(lesson),
+      content: lessonHtml(lesson, i),
       videoUrl: null,
     };
     if (found) {

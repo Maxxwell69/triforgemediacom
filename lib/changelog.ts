@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.138",
+    date: "August 24, 2026",
+    title: "Templated specialty lessons",
+    summary:
+      "Skill Mastery specialty lessons now use the Tri Forge lesson template — dark header, objective callout, method steps, and a close — with the same teaching copy.",
+    items: [
+      {
+        kind: "improve",
+        text: "Rewrote all 21 specialty-course lessons into the shared e-learning template",
+      },
+    ],
+  },
+  {
     version: "3.137",
     date: "August 24, 2026",
     title: "Readable written lessons",

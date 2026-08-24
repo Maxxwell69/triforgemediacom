@@ -210,7 +210,7 @@ export default function LessonRow({
             </div>
             {showPreview ? (
               <div
-                className={`lesson-canvas min-h-[6rem] overflow-hidden rounded-lg border border-off-white/15 bg-off-white px-4 py-4 ${LESSON_CONTENT_CLASSES}`}
+                className={`lesson-canvas min-h-[6rem] overflow-hidden rounded-lg border border-off-white/15 bg-off-white ${LESSON_CONTENT_CLASSES}`}
                 dangerouslySetInnerHTML={{
                   // Admin-only preview — full sanitize/color-fix runs on the
                   // server lesson page (lib/sanitizeHtml.ts). Do not import that
