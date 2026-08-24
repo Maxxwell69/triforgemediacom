@@ -6,6 +6,7 @@ type TrainingLink = {
   href: string;
   done: boolean;
   levelName?: string | null;
+  specialtyName?: string | null;
 };
 
 export default function CurrentLevelWork({
@@ -92,6 +93,9 @@ export default function CurrentLevelWork({
                 {item.title}
                 {item.levelName ? (
                   <span className="text-off-white/40"> · {item.levelName}</span>
+                ) : null}
+                {item.specialtyName ? (
+                  <span className="text-off-white/40"> · {item.specialtyName}</span>
                 ) : null}
               </Link>
             </li>

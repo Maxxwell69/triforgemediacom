@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { checkCourseCompletion, sendCourseCompletionEmails } from "@/lib/learning";
 import { hubHas } from "@/lib/hub/modules";
+import { parseProgressionSpecialty } from "@/lib/progression/tracks";
 import {
   assignmentSchema,
   badgeSchema,
@@ -41,6 +42,9 @@ function revalidateCourse(courseId: string) {
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/learn");
   revalidatePath(`/learn/${courseId}`);
+  revalidatePath("/progress");
+  revalidatePath("/admin/progression");
+  revalidatePath("/admin/progression/learn");
 }
 
 // ---------- Course ----------
@@ -131,6 +135,7 @@ export async function updateCourse(formData: FormData) {
             progressionEnabled: formData.get("progressionEnabled") === "on",
             progressionCategoryId: String(formData.get("progressionCategoryId") || "") || null,
             progressionLevelId: String(formData.get("progressionLevelId") || "") || null,
+            progressionSpecialty: parseProgressionSpecialty(formData.get("progressionSpecialty")),
           }
         : {}),
     },

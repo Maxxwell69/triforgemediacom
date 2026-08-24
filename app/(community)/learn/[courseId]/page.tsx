@@ -232,6 +232,7 @@ export default async function CourseDetailPage({
             Counts toward Progression
             {published.progressionCategory ? ` · ${published.progressionCategory.name}` : ""}
             {published.progressionLevel ? ` · from ${published.progressionLevel.name}` : ""}
+            {published.progressionSpecialty ? ` · ${published.progressionSpecialty}` : ""}
           </p>
         ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-2">

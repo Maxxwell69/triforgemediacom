@@ -8,6 +8,7 @@ import { hubHas } from "@/lib/hub/modules";
 import { progressionNameSchema, progressionSettingsSchema } from "@/lib/validations/progression";
 import { evaluateProgression, grantProgressionBadges } from "@/lib/progression/engine";
 import { enrollAsRecruit } from "@/lib/progression/access";
+import { parseProgressionSpecialty } from "@/lib/progression/tracks";
 import {
   getOrCreateProgressionSettings,
   PROGRESSION_MEMBERS_LOCKED,
@@ -30,6 +31,9 @@ async function requireProgressionAdmin() {
 function revalidateProgression() {
   revalidatePath("/admin/progression");
   revalidatePath("/admin/progression/applications");
+  revalidatePath("/admin/progression/learn");
+  revalidatePath("/admin/progression/levels");
+  revalidatePath("/admin/courses");
   revalidatePath("/progress");
   revalidatePath("/home");
 }
@@ -117,6 +121,151 @@ export async function updateLevel(formData: FormData) {
       milestoneMode: formData.get("milestoneMode") === "ANY" ? "ANY" : "ALL",
     },
   });
+  revalidateProgression();
+}
+
+function stillProgressionAttached(course: {
+  progressionLevelId: string | null;
+  progressionCategoryId: string | null;
+  progressionSpecialty: string | null;
+}) {
+  return !!(course.progressionLevelId || course.progressionCategoryId || course.progressionSpecialty);
+}
+
+export async function attachCourseToLevel(formData: FormData) {
+  await requireProgressionAdmin();
+  const courseId = String(formData.get("courseId") || "");
+  const levelId = String(formData.get("levelId") || "");
+  const specialty = parseProgressionSpecialty(formData.get("specialty"));
+  const [course, level] = await Promise.all([
+    prisma.course.findUnique({ where: { id: courseId }, select: { id: true } }),
+    prisma.progressionLevel.findUnique({ where: { id: levelId }, select: { id: true } }),
+  ]);
+  if (!course || !level) throw new Error("Course or level not found");
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      progressionEnabled: true,
+      progressionLevelId: levelId,
+      ...(formData.has("specialty") ? { progressionSpecialty: specialty } : {}),
+    },
+  });
+  revalidatePath(`/admin/progression/levels/${levelId}`);
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidateProgression();
+}
+
+export async function detachCourseFromLevel(formData: FormData) {
+  await requireProgressionAdmin();
+  const courseId = String(formData.get("courseId") || "");
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      id: true,
+      progressionLevelId: true,
+      progressionCategoryId: true,
+      progressionSpecialty: true,
+    },
+  });
+  if (!course) throw new Error("Course not found");
+  const levelId = course.progressionLevelId;
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      progressionLevelId: null,
+      progressionEnabled: stillProgressionAttached({
+        ...course,
+        progressionLevelId: null,
+      }),
+    },
+  });
+  if (levelId) revalidatePath(`/admin/progression/levels/${levelId}`);
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidateProgression();
+}
+
+export async function attachCourseToSpecialty(formData: FormData) {
+  await requireProgressionAdmin();
+  const courseId = String(formData.get("courseId") || "");
+  const specialty = parseProgressionSpecialty(formData.get("specialty"));
+  const levelId = String(formData.get("levelId") || "") || null;
+  if (!specialty) throw new Error("Pick a specialty");
+  const course = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true } });
+  if (!course) throw new Error("Course not found");
+  if (levelId) {
+    const level = await prisma.progressionLevel.findUnique({
+      where: { id: levelId },
+      select: { id: true },
+    });
+    if (!level) throw new Error("Level not found");
+  }
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      progressionEnabled: true,
+      progressionSpecialty: specialty,
+      ...(levelId ? { progressionLevelId: levelId } : {}),
+    },
+  });
+  revalidatePath(`/admin/courses/${courseId}`);
+  if (levelId) revalidatePath(`/admin/progression/levels/${levelId}`);
+  revalidateProgression();
+}
+
+export async function setCourseProgressionSpecialty(formData: FormData) {
+  await requireProgressionAdmin();
+  const courseId = String(formData.get("courseId") || "");
+  const specialty = parseProgressionSpecialty(formData.get("specialty"));
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      id: true,
+      progressionLevelId: true,
+      progressionCategoryId: true,
+      progressionSpecialty: true,
+    },
+  });
+  if (!course) throw new Error("Course not found");
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      progressionSpecialty: specialty,
+      progressionEnabled:
+        stillProgressionAttached({ ...course, progressionSpecialty: specialty }) ||
+        course.progressionLevelId != null,
+    },
+  });
+  if (course.progressionLevelId) {
+    revalidatePath(`/admin/progression/levels/${course.progressionLevelId}`);
+  }
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidateProgression();
+}
+
+export async function detachCourseFromSpecialty(formData: FormData) {
+  await requireProgressionAdmin();
+  const courseId = String(formData.get("courseId") || "");
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      id: true,
+      progressionLevelId: true,
+      progressionCategoryId: true,
+      progressionSpecialty: true,
+    },
+  });
+  if (!course) throw new Error("Course not found");
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      progressionSpecialty: null,
+      progressionEnabled: stillProgressionAttached({ ...course, progressionSpecialty: null }),
+    },
+  });
+  if (course.progressionLevelId) {
+    revalidatePath(`/admin/progression/levels/${course.progressionLevelId}`);
+  }
+  revalidatePath(`/admin/courses/${courseId}`);
   revalidateProgression();
 }
 

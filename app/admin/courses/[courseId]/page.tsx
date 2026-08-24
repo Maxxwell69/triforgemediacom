@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createLesson, createModule } from "../actions";
 import CourseEditForm from "@/components/admin/CourseEditForm";
 import { hubHas } from "@/lib/hub/modules";
+import { SPECIALTY_TRACK_NAMES } from "@/lib/progression/tracks";
 import LessonRow from "@/components/admin/LessonRow";
 import ModuleRow from "@/components/admin/ModuleRow";
 import BadgeManager from "@/components/admin/BadgeManager";
@@ -67,7 +68,11 @@ export default async function AdminCourseDetailPage({
             orderBy: { sortOrder: "asc" },
             select: { id: true, name: true },
           }),
-        ]).then(([categories, levels]) => ({ categories, levels }))
+        ]).then(([categories, levels]) => ({
+          categories,
+          levels,
+          specialties: [...SPECIALTY_TRACK_NAMES],
+        }))
       : Promise.resolve(null),
   ]);
 
@@ -198,6 +203,7 @@ export default async function AdminCourseDetailPage({
             progressionEnabled: detail.progressionEnabled,
             progressionCategoryId: detail.progressionCategoryId,
             progressionLevelId: detail.progressionLevelId,
+            progressionSpecialty: detail.progressionSpecialty,
           }}
           groups={allGroups}
           progression={progressionOptions}

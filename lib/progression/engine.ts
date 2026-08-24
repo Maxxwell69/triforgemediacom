@@ -555,6 +555,7 @@ export async function loadCreatorProgress(userId: string) {
       title: true,
       progressionCategoryId: true,
       progressionLevelId: true,
+      progressionSpecialty: true,
       progressionLevel: { select: { id: true, name: true, sortOrder: true } },
       quiz: { select: { id: true } },
     },

@@ -835,6 +835,8 @@ model Course {
   progressionEnabled     Boolean @default(false)
   progressionCategoryId  String?
   progressionLevelId     String?
+  /// Specialty track name (e.g. "Gamer"). Shown to members who chose that specialization.
+  progressionSpecialty   String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -848,6 +850,8 @@ model Course {
   completionGroup Group?        @relation("CourseCompletionGroup", fields: [completionGroupId], references: [id], onDelete: SetNull)
   progressionCategory ProgressionCategory? @relation(fields: [progressionCategoryId], references: [id], onDelete: SetNull)
   progressionLevel    ProgressionLevel?    @relation(fields: [progressionLevelId], references: [id], onDelete: SetNull)
+
+  @@index([progressionSpecialty])
 }
 
 model Module {
