@@ -8,7 +8,7 @@ import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { isExpiredSignedAvatarUrl } from "@/lib/tiktokAvatar";
 import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
-import { networkBadgeColor } from "@/lib/mnCn";
+import { networkBadgeColor, tagsNotShownAsGroups } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { isAdminRole } from "@/lib/rbac";
 import ShareButton from "@/components/ShareButton";
@@ -88,7 +88,10 @@ export default async function MemberProfilePage({
   const initial = getMemberInitial(member);
   const online = isOnline(member.lastSeenAt);
   const groups = member.groupMemberships.map((m) => m.group);
-  const tags = member.tags.map((ut) => ut.tag);
+  const tags = tagsNotShownAsGroups(
+    groups,
+    member.tags.map((ut) => ut.tag)
+  );
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
   const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
   const tiktokUrl = socialLinks.tiktok || null;

@@ -270,7 +270,8 @@ export default async function AdminCourseDetailPage({
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Lessons</h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
           Ordered content the member works through. Each lesson can have video, audio, an HTML
-          embed, text, drip scheduling, and an optional assignment.
+          embed, text, drip scheduling, and an optional assignment. Use Delete on a row to remove
+          that lesson.
         </p>
 
         <div className="mt-4 flex flex-col gap-6">

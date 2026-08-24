@@ -13,6 +13,7 @@ import { LESSON_CONTENT_CLASSES } from "@/lib/lessonContentClasses";
 import LessonCompleteButton from "@/components/LessonCompleteButton";
 import AssignmentSubmissionForm from "@/components/AssignmentSubmissionForm";
 import DraftPreviewBanner from "@/components/learn/DraftPreviewBanner";
+import DeleteLessonButton from "@/components/admin/DeleteLessonButton";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,23 @@ export default async function LessonPage({
           <p className="mt-4 font-body text-xs font-semibold uppercase tracking-wide text-cyan/70">
             Lesson {currentIndex + 1} of {sequence.length}
           </p>
+        )}
+
+        {isAdminRole(user.role) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              href={`/admin/courses/${lesson.courseId}`}
+              className="rounded-lg border border-off-white/15 px-3 py-1 font-body text-xs text-off-white/70 transition hover:border-cyan/40 hover:text-cyan"
+            >
+              Edit in admin
+            </Link>
+            <DeleteLessonButton
+              lessonId={lesson.id}
+              courseId={lesson.courseId}
+              title={lesson.title}
+              redirectTo={`/admin/courses/${lesson.courseId}`}
+            />
+          </div>
         )}
 
         {lesson.thumbnailUrl ? (

@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { getUserPointsTotals } from "@/lib/points";
-import { backfillNetworkMemberships, networkBadgeColor } from "@/lib/mnCn";
+import { backfillNetworkMemberships, networkBadgeColor, tagsNotShownAsGroups } from "@/lib/mnCn";
 import { ensureLiveTag, LIVE_STALE_MS } from "@/lib/tiktokLive";
 import { parseTikTokUniqueId } from "@/lib/tiktools";
 import { PLATFORM_LABELS } from "@/lib/platforms";
@@ -155,7 +155,10 @@ export default async function MembersPage({
             const avatarUrl = getMemberAvatarUrl(member);
             const initial = getMemberInitial(member);
             const groups = member.groupMemberships.map((m) => m.group);
-            const tags = member.tags.map((ut) => ut.tag);
+            const tags = tagsNotShownAsGroups(
+              groups,
+              member.tags.map((ut) => ut.tag)
+            );
             const platform = member.profile?.platform;
             const online = isOnline(member.lastSeenAt);
             const snap = member.tiktokStatsSnapshot;
