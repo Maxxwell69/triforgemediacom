@@ -93,7 +93,7 @@ export default async function AdminCoursesPage() {
               enrollmentCount: course._count.enrollments,
               accessGroups: course.groups,
               progressionLabel: course.progressionEnabled
-                ? [course.progressionCategory?.name, course.progressionLevel?.name]
+                ? [course.progressionCategory?.name, course.progressionLevel?.name, course.progressionSpecialty]
                     .filter(Boolean)
                     .join(" · ") || "on"
                 : null,

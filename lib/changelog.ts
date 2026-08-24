@@ -130,6 +130,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.136",
+    date: "August 24, 2026",
+    title: "Specialty learning attachments",
+    summary:
+      "Learning Center courses can attach to a progression level, a specialization, or both — members see those courses under the specialty skill after they pick that track.",
+    items: [
+      {
+        kind: "feature",
+        text: "Attach LMS courses on a level page, optionally limited to a specialty like Gamer or Shop Owner",
+      },
+      {
+        kind: "feature",
+        text: "Admin → Progression → Learn groups courses by rank and by the seven specializations",
+      },
+      {
+        kind: "feature",
+        text: "After a creator picks a specialty, its attached Learning Center courses show under that skill on /progress",
+      },
+    ],
+  },
+  {
     version: "3.135",
     date: "August 24, 2026",
     title: "Single CN / MN profile badge",

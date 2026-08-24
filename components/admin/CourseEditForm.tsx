@@ -21,6 +21,7 @@ type Course = {
   progressionEnabled: boolean;
   progressionCategoryId: string | null;
   progressionLevelId: string | null;
+  progressionSpecialty: string | null;
 };
 
 type ProgressionOption = { id: string; name: string };
@@ -38,6 +39,7 @@ export default function CourseEditForm({
   progression?: {
     categories: ProgressionOption[];
     levels: ProgressionOption[];
+    specialties: string[];
   } | null;
 }) {
   const [saved, setSaved] = useState(false);
@@ -137,10 +139,10 @@ export default function CourseEditForm({
             Use in Creator Progression
           </label>
           <p className="mt-1 font-body text-xs text-off-white/45">
-            Attach this Learning Center course to a progression level. Members see it on /progress at that
-            rank, and open it in the LMS — not a separate progression lesson.
+            Attach this Learning Center course to a progression level, a specialization, or both. Members
+            see it on /progress at that rank, and specialty courses unlock after they pick that track.
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <select
               name="progressionCategoryId"
               defaultValue={course.progressionCategoryId ?? ""}
@@ -162,6 +164,18 @@ export default function CourseEditForm({
               {progression.levels.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
+                </option>
+              ))}
+            </select>
+            <select
+              name="progressionSpecialty"
+              defaultValue={course.progressionSpecialty ?? ""}
+              className={fieldClass}
+            >
+              <option value="">Attach to specialty</option>
+              {progression.specialties.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
             </select>

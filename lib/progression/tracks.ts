@@ -53,6 +53,23 @@ export function isSpecialtyTrackName(name: string): boolean {
   return (SPECIALTY_TRACK_NAMES as readonly string[]).includes(name);
 }
 
+/** Accept a form value and return a canonical specialty name, or null. */
+export function parseProgressionSpecialty(raw: unknown): string | null {
+  const name = String(raw ?? "").trim();
+  if (!name) return null;
+  const match = SPECIALTY_TRACK_NAMES.find((track) => track.toLowerCase() === name.toLowerCase());
+  return match ?? null;
+}
+
+/** Level-only courses are for everyone at that rank. Specialty courses wait until the track is chosen. */
+export function courseMatchesSpecialty(
+  courseSpecialty: string | null | undefined,
+  chosenTracks: string[]
+) {
+  if (!courseSpecialty) return true;
+  return chosenTracks.includes(courseSpecialty);
+}
+
 export function isSpecializeMissionName(name: string) {
   return name.startsWith(SPECIALIZE_PREFIX);
 }

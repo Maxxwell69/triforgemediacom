@@ -153,7 +153,7 @@ export default async function AdminProgressionPage() {
           <ul className="mt-3 flex flex-col gap-2">
             {coursesByEnrollments.length === 0 ? (
               <li className="font-body text-sm text-off-white/40">
-                None yet — attach a course to a level in Admin → Courses
+                None yet — attach a course to a level or specialty in Admin → Progression → Learn
               </li>
             ) : (
               coursesByEnrollments.map((course) => (
@@ -161,6 +161,7 @@ export default async function AdminProgressionPage() {
                   <span>
                     {course.title}
                     {course.progressionLevel ? ` · ${course.progressionLevel.name}` : ""}
+                    {course.progressionSpecialty ? ` · ${course.progressionSpecialty}` : ""}
                   </span>
                   <span>{course._count.enrollments}</span>
                 </li>

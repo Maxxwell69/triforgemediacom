@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/session";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { canCompleteMission, loadCreatorProgress } from "@/lib/progression/engine";
-import { isSpecializeMissionName, SPECIALTY_TRACKS } from "@/lib/progression/tracks";
+import { isSpecializeMissionName, SPECIALTY_TRACKS, courseMatchesSpecialty } from "@/lib/progression/tracks";
 import {
   getProgressionApplication,
   isProgressionEnrolled,
@@ -97,13 +97,19 @@ export default async function ProgressPage({
     [currentLevel?.id, nextLevel?.id].filter((id): id is string => !!id)
   );
   const training = progress.teachingCourses
-    .filter((course) => course.progressionLevelId && attachedLevelIds.has(course.progressionLevelId))
+    .filter(
+      (course) =>
+        course.progressionLevelId &&
+        attachedLevelIds.has(course.progressionLevelId) &&
+        courseMatchesSpecialty(course.progressionSpecialty, progress.specialty.chosenTracks)
+    )
     .map((course) => ({
       id: course.id,
       title: course.title,
       href: `/learn/${course.id}`,
       done: course.done,
       levelName: course.progressionLevel?.name ?? null,
+      specialtyName: course.progressionSpecialty,
     }));
 
   const missionBlocks = await Promise.all(
@@ -147,20 +153,22 @@ export default async function ProgressPage({
         <section className="mt-10">
           <h2 className="font-display text-2xl text-off-white/80">Learning Center</h2>
           <p className="mt-1 font-body text-sm text-off-white/50">
-            Courses from the LMS that are attached to a progression level. Open a course to train in the
-            Learning Center.
+            Courses from the LMS that are attached to a progression level. Courses attached to a
+            specialty show under Skills after you pick that track.
           </p>
           {progress.teachingCourses.length === 0 ? (
             <p className="mt-4 font-body text-sm text-off-white/40">
-              No Learning Center courses are attached yet. In Admin → Courses, turn on “Use in Creator
-              Progression” and pick a level.
+              No Learning Center courses are attached yet. In Admin → Courses or Admin → Progression →
+              Learn, attach a course to a level or a specialty.
             </p>
           ) : (
             <div className="mt-4 flex flex-col gap-4">
               {progress.levels
                 .map((level) => ({
                   level,
-                  courses: progress.teachingCourses.filter((course) => course.progressionLevelId === level.id),
+                  courses: progress.teachingCourses.filter(
+                    (course) => course.progressionLevelId === level.id && !course.progressionSpecialty
+                  ),
                 }))
                 .filter((group) => group.courses.length > 0)
                 .map((group) => {
@@ -190,14 +198,16 @@ export default async function ProgressPage({
                     </div>
                   );
                 })}
-              {progress.teachingCourses.some((course) => !course.progressionLevelId) ? (
+              {progress.teachingCourses.some(
+                (course) => !course.progressionLevelId && !course.progressionSpecialty
+              ) ? (
                 <div className="glass rounded-2xl p-5">
                   <p className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-orange">
                     Track courses
                   </p>
                   <ul className="mt-3 flex flex-col gap-2">
                     {progress.teachingCourses
-                      .filter((course) => !course.progressionLevelId)
+                      .filter((course) => !course.progressionLevelId && !course.progressionSpecialty)
                       .map((course) => (
                         <li key={course.id}>
                           <Link
@@ -255,7 +265,11 @@ export default async function ProgressPage({
                     );
                   })}
                   {progress.teachingCourses
-                    .filter((course) => course.progressionCategoryId === category.id)
+                    .filter(
+                      (course) =>
+                        course.progressionCategoryId === category.id &&
+                        courseMatchesSpecialty(course.progressionSpecialty, progress.specialty.chosenTracks)
+                    )
                     .map((course) => {
                       const levelLocked =
                         !!course.progressionLevel && currentSort < course.progressionLevel.sortOrder;
@@ -297,27 +311,61 @@ export default async function ProgressPage({
           <div className="glass rounded-2xl p-5">
             <h2 className="font-display text-xl text-off-white/80">Skills</h2>
             <p className="mt-1 font-body text-xs text-off-white/45">
-              Specialties at Rising Star. Choose as many of the seven as you want: Engagement Host, Gamer,
-              Shop Owner, Musician, Artist, Educator, Community Builder.
+              Specialties at Rising Star. Choose as many of the seven as you want. After you pick a track,
+              its Learning Center courses show here under that skill.
             </p>
             {progress.specialty.chosenTracks.length > 0 ? (
               <div className="mt-3">
                 <ResetSpecialtyButton currentTrack={progress.specialty.chosenTracks.join(", ")} />
               </div>
             ) : null}
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="mt-3 flex flex-col gap-3">
               {SPECIALTY_TRACKS.map((track) => {
                 const skill = progress.skills.find((row) => row.name === track.name);
                 const held = skill ? heldSkills.has(skill.id) : false;
+                const chosen = progress.specialty.chosenTracks.includes(track.name);
+                const open = chosen && progress.specialty.unlocked;
+                const courses = open
+                  ? progress.teachingCourses.filter((course) => course.progressionSpecialty === track.name)
+                  : [];
                 return (
-                  <li key={track.name} className={`flex items-start gap-3 font-body text-sm ${held ? "text-off-white" : "text-off-white/40"}`}>
-                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${held ? "border-orange text-off-white" : "border-off-white/25 text-off-white/40"}`}>
+                  <li key={track.name} className={`flex items-start gap-3 font-body text-sm ${held || chosen ? "text-off-white" : "text-off-white/40"}`}>
+                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${held || chosen ? "border-orange text-off-white" : "border-off-white/25 text-off-white/40"}`}>
                       <SpecialtyIcon name={track.name} className="h-4 w-4" />
                     </span>
-                    <span>
-                      <span className="font-semibold">{held ? "Unlocked" : "Locked"} — {track.name}</span>
-                      <span className="mt-0.5 block text-xs text-off-white/40">{track.description}</span>
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{held || chosen ? "Unlocked" : "Locked"} — {track.name}</p>
+                      <p className="mt-0.5 text-xs text-off-white/40">{track.description}</p>
+                      {open && courses.length > 0 ? (
+                        <ul className="mt-2 flex flex-col gap-1.5 border-l border-orange/30 pl-3">
+                          <li className="font-body text-[10px] font-semibold uppercase tracking-[0.16em] text-orange">
+                            Training
+                          </li>
+                          {courses.map((course) => {
+                            const levelLocked =
+                              !!course.progressionLevel && currentSort < course.progressionLevel.sortOrder;
+                            return (
+                              <li key={course.id}>
+                                {levelLocked ? (
+                                  <span className="font-body text-sm text-off-white/40">
+                                    {course.title}
+                                    {course.progressionLevel ? ` · from ${course.progressionLevel.name}` : ""}
+                                  </span>
+                                ) : (
+                                  <Link
+                                    href={`/learn/${course.id}`}
+                                    className="font-body text-sm text-cyan hover:underline"
+                                  >
+                                    {course.done ? "✓ " : ""}
+                                    {course.title}
+                                  </Link>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}

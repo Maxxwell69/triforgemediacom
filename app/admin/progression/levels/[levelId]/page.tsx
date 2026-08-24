@@ -5,6 +5,7 @@ import { requireProgressionModule } from "@/lib/progression/module";
 import { setLevelCertReqForm, updateLevel } from "../../actions";
 import ImageUploadField from "@/components/ImageUploadField";
 import LevelMilestoneToggle from "@/components/admin/LevelMilestoneToggle";
+import ProgressionCourseAttachPanel from "@/components/admin/ProgressionCourseAttachPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function AdminProgressionLevelDetailPage({
   params: { levelId: string };
 }) {
   requireProgressionModule();
-  const [level, missions, certs] = await Promise.all([
+  const [level, missions, certs, courses] = await Promise.all([
     prisma.progressionLevel.findUnique({
       where: { id: params.levelId },
       include: { milestones: true, certRequirements: true },
@@ -32,10 +33,24 @@ export default async function AdminProgressionLevelDetailPage({
       include: { tiers: { orderBy: { sortOrder: "asc" } } },
       orderBy: { name: "asc" },
     }),
+    prisma.course.findMany({
+      orderBy: { title: "asc" },
+      select: {
+        id: true,
+        title: true,
+        isPublished: true,
+        progressionEnabled: true,
+        progressionSpecialty: true,
+        progressionLevelId: true,
+        progressionLevel: { select: { name: true } },
+      },
+    }),
   ]);
   if (!level) notFound();
   const milestoneIds = new Set(level.milestones.map((m) => m.missionId));
   const certReqById = new Map(level.certRequirements.map((req) => [req.certificationId, req]));
+  const attachedCourses = courses.filter((course) => course.progressionLevelId === level.id);
+  const availableCourses = courses.filter((course) => course.progressionLevelId !== level.id);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -62,6 +77,18 @@ export default async function AdminProgressionLevelDetailPage({
           Save level
         </button>
       </form>
+      <section className="mt-8">
+        <h2 className="font-display text-2xl text-off-white/80">Learning Center courses</h2>
+        <p className="mt-1 font-body text-sm text-off-white/50">
+          Attach LMS courses to this rank. Optionally limit a course to a specialization so only members
+          who picked that track see it as unlocked.
+        </p>
+        <ProgressionCourseAttachPanel
+          target={{ kind: "level", levelId: level.id }}
+          attached={attachedCourses}
+          available={availableCourses}
+        />
+      </section>
       <section className="mt-8">
         <h2 className="font-display text-2xl text-off-white/80">Milestone missions</h2>
         <div className="mt-3 flex flex-col gap-2">
