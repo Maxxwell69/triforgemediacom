@@ -45,8 +45,8 @@ export default async function ProgressPage({
           </h1>
           <p className="mt-2 font-body text-off-white/60">
             {previewSheet
-              ? "Admin preview of the MN apply sheet. Members only see this when Progress is turned on and they are not a Recruit yet."
-              : "Join Creator Progression as a Recruit to unlock the ladder, missions, and training."}
+              ? "Admin preview of the MN apply sheet. Media Network members see this until they are approved as Recruits."
+              : "Media Network members apply below. The team reviews each request before you join as a Recruit."}
           </p>
           <ProgressAccessSheet
             headline={settings.explainerHeadline}

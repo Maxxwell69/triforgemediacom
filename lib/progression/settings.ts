@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const PROGRESSION_SETTINGS_ID = "default";
 
-/** Training is not ready — CN/MN never see Progress while this is true. */
-export const PROGRESSION_MEMBERS_LOCKED = true;
+/** Set true to hide Progress from CN/MN again (staff-only). Live for all members. */
+export const PROGRESSION_MEMBERS_LOCKED = false;
 
 export const DEFAULT_EXPLAINER_HEADLINE = "Creator Progression";
 
@@ -34,6 +34,6 @@ export async function getOrCreateProgressionSettings() {
 
 export async function isProgressionVisibleToMembers() {
   if (PROGRESSION_MEMBERS_LOCKED) return false;
-  const settings = await getOrCreateProgressionSettings();
-  return settings.memberVisible;
+  // Live for every hub member. MN still land on the apply sheet until approved.
+  return true;
 }

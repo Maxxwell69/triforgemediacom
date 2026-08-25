@@ -60,7 +60,7 @@ export default async function AdminProgressionPage() {
         CREATOR <span className="text-gradient">PROGRESSION</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Admin-editable ladder. Hidden from CN and MN until training is ready.
+        Admin-editable ladder. Progress is in the member menu. CN join as Recruits; MN apply until approved.
       </p>
       <ProgressionAdminNav />
       <form action={saveProgressionSettings} className="glass mt-6 flex flex-col gap-4 rounded-2xl p-5">
@@ -72,16 +72,16 @@ export default async function AdminProgressionPage() {
           </p>
         ) : (
           <p className="font-body text-sm text-off-white/60">
-            Keep this off until training is ready. CN members are still enrolled as Recruits in the background.
-            MN members see the apply sheet on /progress once this is on.
+            Progress is in the member menu for everyone. Creator Network members join as Recruits. Media
+            Network members see the apply sheet on /progress until you approve them as Recruit.
           </p>
         )}
         <label className="flex items-center gap-2 font-body text-sm text-off-white/80">
           <input
             type="checkbox"
             name="memberVisible"
-            defaultChecked={PROGRESSION_MEMBERS_LOCKED ? false : settings.memberVisible}
-            disabled={PROGRESSION_MEMBERS_LOCKED}
+            defaultChecked={!PROGRESSION_MEMBERS_LOCKED}
+            disabled
             className="h-4 w-4 accent-orange disabled:opacity-50"
           />
           Show Progress to CN and MN
