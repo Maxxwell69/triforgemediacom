@@ -804,7 +804,7 @@ export async function saveProgressionSettings(formData: FormData) {
   await prisma.progressionSettings.update({
     where: { id: "default" },
     data: {
-      memberVisible: PROGRESSION_MEMBERS_LOCKED ? false : parsed.data.memberVisible,
+      memberVisible: !PROGRESSION_MEMBERS_LOCKED,
       explainerVideoUrl: parsed.data.explainerVideoUrl || null,
       explainerHeadline: parsed.data.explainerHeadline,
       explainerBody: parsed.data.explainerBody || null,

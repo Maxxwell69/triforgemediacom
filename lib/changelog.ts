@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.139",
+    date: "August 25, 2026",
+    title: "Progress is live for members",
+    summary:
+      "Everyone sees Progress in the hub menu. Creator Network members join the ladder as Recruits; Media Network members apply until they are approved.",
+    items: [
+      {
+        kind: "feature",
+        text: "Progress nav and dashboard card show for all members, not just staff",
+      },
+      {
+        kind: "feature",
+        text: "MN members land on the Progress application sheet until an admin approves them as Recruit",
+      },
+    ],
+  },
+  {
     version: "3.138",
     date: "August 24, 2026",
     title: "Templated specialty lessons",
