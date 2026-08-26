@@ -10,6 +10,7 @@ import {
   isLessonUnlocked,
   sendCourseCompletionEmails,
 } from "@/lib/learning";
+import { awardLessonCompletionXp, awardQuizPassXp } from "@/lib/xp";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 
@@ -30,6 +31,7 @@ async function assertLessonAccessible(userId: string, userRole: UserRole, lesson
           id: true,
           isPublished: true,
           groups: { select: { id: true } },
+          progressionCategoryId: true,
         },
       },
     },
@@ -59,11 +61,18 @@ export async function markLessonComplete(lessonId: string) {
   }
 
   const award = await prisma.$transaction(async (tx) => {
+    const prior = await tx.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: user.id, lessonId } },
+      select: { completedAt: true },
+    });
     await tx.lessonProgress.upsert({
       where: { userId_lessonId: { userId: user.id, lessonId } },
       update: { completedAt: new Date() },
       create: { userId: user.id, lessonId, completedAt: new Date() },
     });
+    if (!prior?.completedAt) {
+      await awardLessonCompletionXp(tx, user.id, lesson);
+    }
     return checkCourseCompletion(tx, user.id, lesson.courseId);
   });
   await sendCourseCompletionEmails(user.id, lesson.courseId, award);
@@ -142,6 +151,10 @@ export async function submitQuizAttempt(
   const passed = score >= quiz.passScore;
 
   const award = await prisma.$transaction(async (tx) => {
+    const priorPass = await tx.quizAttempt.findFirst({
+      where: { userId: user.id, quizId: quiz.id, passed: true },
+      select: { id: true },
+    });
     const attemptCount = await tx.quizAttempt.count({
       where: { userId: user.id, quizId: quiz.id },
     });
@@ -157,7 +170,13 @@ export async function submitQuizAttempt(
       },
     });
 
-    if (passed) {
+    if (passed && !priorPass) {
+      await awardQuizPassXp(tx, user.id, {
+        id: quiz.id,
+        passXp: quiz.passXp,
+        perfectXpBonus: quiz.perfectXpBonus,
+        course: { progressionCategoryId: course.progressionCategoryId },
+      }, score);
       return checkCourseCompletion(tx, user.id, courseId);
     }
     return null;

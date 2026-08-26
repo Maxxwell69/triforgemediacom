@@ -40,6 +40,12 @@ export default async function AdminProgressionMissionsPage() {
           <textarea name="description" rows={2} className={fieldClass} />
           <ImageUploadField name="imageUrl" folder="progression-images" label="Image" />
           <input name="xpValue" type="number" min={0} defaultValue={10} className={fieldClass} />
+          <select name="tier" defaultValue="STANDARD" className={fieldClass}>
+            <option value="MICRO">Micro (daily cap 50/category)</option>
+            <option value="STANDARD">Standard (daily cap 100/category)</option>
+            <option value="MILESTONE">Milestone (uncapped)</option>
+            <option value="MAJOR">Major milestone (uncapped)</option>
+          </select>
           <select name="recurrence" defaultValue="ONE_TIME" className={fieldClass}>
             <option value="ONE_TIME">One-time</option>
             <option value="REPEATABLE">Repeatable</option>
@@ -68,6 +74,12 @@ export default async function AdminProgressionMissionsPage() {
             <textarea name="description" defaultValue={mission.description ?? ""} rows={2} className={fieldClass} />
             <ImageUploadField name="imageUrl" folder="progression-images" defaultValue={mission.imageUrl} />
             <input name="xpValue" type="number" min={0} defaultValue={mission.xpValue} className={fieldClass} />
+            <select name="tier" defaultValue={mission.tier} className={fieldClass}>
+              <option value="MICRO">Micro (daily cap 50/category)</option>
+              <option value="STANDARD">Standard (daily cap 100/category)</option>
+              <option value="MILESTONE">Milestone (uncapped)</option>
+              <option value="MAJOR">Major milestone (uncapped)</option>
+            </select>
             <select name="recurrence" defaultValue={mission.recurrence} className={fieldClass}>
               <option value="ONE_TIME">One-time</option>
               <option value="REPEATABLE">Repeatable</option>

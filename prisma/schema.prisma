@@ -739,6 +739,12 @@ enum XPSource {
   REWARD_REFUND
   COURSE_COMPLETION
   SOCIAL_SHARE
+  LESSON_COMPLETION
+  QUIZ_PASS
+  CERT_TIER
+  SKILL_UNLOCK
+  MISSION_COMPLETION
+  STREAK_BONUS
 }
 
 model XPEvent {
@@ -753,6 +759,7 @@ model XPEvent {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, source, refId])
 }
 
 // ---------- Moderation ----------
@@ -828,7 +835,8 @@ model Course {
   category           String?
   isPublished        Boolean  @default(false)
   order              Int      @default(0)
-  xpReward           Int      @default(0)
+  /// Module/course completion bonus (all lessons + quiz). Default 100.
+  xpReward           Int      @default(100)
   completionGroupId  String?
   certificateEnabled Boolean  @default(false)
   /// When on, completing this course (and passing its quiz) counts toward Creator Progression.
@@ -882,6 +890,10 @@ model Lesson {
   content             String?
   dripDaysAfterEnroll Int?
   dripUnlockAt        DateTime?
+  /// Points for completing this lesson (knowledge-only).
+  xpValue             Int       @default(15)
+  /// Extra points when the lesson has a practical exercise/assignment.
+  exerciseXpBonus     Int       @default(10)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -895,12 +907,16 @@ model Lesson {
 }
 
 model Quiz {
-  id        String   @id @default(cuid())
-  courseId  String   @unique
-  title     String
-  passScore Int      @default(70)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  courseId       String   @unique
+  title          String
+  passScore      Int      @default(70)
+  /// Points for passing (meeting passScore).
+  passXp         Int      @default(50)
+  /// Extra points when the passing attempt is 100%.
+  perfectXpBonus Int      @default(25)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions Question[]
@@ -1743,6 +1759,13 @@ enum ProgressionRecurrence {
   WEEKLY
 }
 
+enum ProgressionMissionTier {
+  MICRO
+  STANDARD
+  MILESTONE
+  MAJOR
+}
+
 enum ProgressionUnlockKind {
   QUIZ_PASSED
   CATEGORY_XP
@@ -1841,6 +1864,7 @@ model ProgressionMission {
   description String?
   imageUrl    String?
   xpValue     Int                    @default(0)
+  tier        ProgressionMissionTier @default(STANDARD)
   recurrence  ProgressionRecurrence  @default(ONE_TIME)
   sortOrder   Int                    @default(0)
   status      ProgressionStatus      @default(DRAFT)
@@ -1922,6 +1946,8 @@ model ProgressionCertTier {
   sortOrder   Int    @default(0)
   unlockKind  ProgressionUnlockKind @default(CATEGORY_XP)
   xpRequired  Int?
+  /// Hub XP awarded the moment this tier is earned.
+  xpAward     Int    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1946,6 +1972,8 @@ model ProgressionSkill {
   certificationId String?
   certTierId      String?
   xpRequired      Int?
+  /// Hub XP awarded when this skill is unlocked (specialties default 200).
+  xpAward         Int                       @default(0)
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt
 
@@ -1977,6 +2005,11 @@ model ProgressionSettings {
   explainerVideoUrl   String?
   explainerHeadline   String   @default("Creator Progression")
   explainerBody       String?
+  streak3Xp           Int      @default(25)
+  streak7Xp           Int      @default(75)
+  streak30Xp          Int      @default(300)
+  microDailyCap       Int      @default(50)
+  standardDailyCap    Int      @default(100)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

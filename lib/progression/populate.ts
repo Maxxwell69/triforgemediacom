@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SPECIALTY_TRACKS, SPECIALTY_TRACK_NAMES, specializeMissionName } from "@/lib/progression/tracks";
+import { certTierXpAward, POINT_DEFAULTS } from "@/lib/xp";
+import type { ProgressionMissionTier, ProgressionRecurrence } from "@prisma/client";
 
 const TRACKS = SPECIALTY_TRACK_NAMES;
 
@@ -130,36 +132,177 @@ const CERT_XP: Record<string, number> = {
   "Community Building": 3000,
 };
 
-const MILESTONE_MISSIONS: { name: string; category: string; xpValue: number; description: string }[] = [
+const MILESTONE_MISSIONS: {
+  name: string;
+  category: string;
+  xpValue: number;
+  description: string;
+  tier: ProgressionMissionTier;
+}[] = [
   {
     name: "Set up one core streaming tool",
     category: "Go Live",
     xpValue: 75,
+    tier: "MILESTONE",
     description: "Get one core tool live — stream deck, overlay, scheduler, or equivalent.",
   },
   {
     name: "Launch a personal hub/website",
     category: "Community Building",
     xpValue: 150,
+    tier: "MILESTONE",
     description: "Publish a personal hub or website your audience can find.",
   },
   {
     name: "Complete a lifetime collab",
     category: "Collab",
     xpValue: 200,
+    tier: "MAJOR",
     description: "Finish one real collab — co-stream, raid/host chain, or joint event.",
   },
   {
     name: "Formalize as a business",
     category: "Monetization",
     xpValue: 250,
+    tier: "MAJOR",
     description: "LLC/DBA, contracts, or a sponsor deal on file.",
   },
   {
     name: "Run the full creator toolkit",
     category: "Community Building",
     xpValue: 300,
+    tier: "MAJOR",
     description: "Hub + business entity + an active shop or sponsor pipeline.",
+  },
+];
+
+const ACTIVITY_MISSIONS: {
+  name: string;
+  category: string;
+  xpValue: number;
+  tier: ProgressionMissionTier;
+  recurrence: ProgressionRecurrence;
+  description: string;
+}[] = [
+  {
+    name: "Go live on schedule",
+    category: "Go Live",
+    xpValue: 30,
+    tier: "STANDARD",
+    recurrence: "DAILY",
+    description: "Complete a full scheduled stream.",
+  },
+  {
+    name: "Stream 3x this week",
+    category: "Go Live",
+    xpValue: 100,
+    tier: "MILESTONE",
+    recurrence: "WEEKLY",
+    description: "Go live three times this week.",
+  },
+  {
+    name: "Run one interactive segment",
+    category: "Engagement",
+    xpValue: 25,
+    tier: "STANDARD",
+    recurrence: "DAILY",
+    description: "Run one interactive segment during a stream.",
+  },
+  {
+    name: "Reply to 10 chat messages",
+    category: "Engagement",
+    xpValue: 15,
+    tier: "MICRO",
+    recurrence: "DAILY",
+    description: "Reply to at least 10 chat messages.",
+  },
+  {
+    name: "Update your bio/profile",
+    category: "Growth",
+    xpValue: 10,
+    tier: "MICRO",
+    recurrence: "ONE_TIME",
+    description: "Update your bio or profile.",
+  },
+  {
+    name: "Gain 10 new followers this week",
+    category: "Growth",
+    xpValue: 100,
+    tier: "MILESTONE",
+    recurrence: "WEEKLY",
+    description: "Gain 10 new followers this week.",
+  },
+  {
+    name: "Post one clip",
+    category: "Content Creation",
+    xpValue: 25,
+    tier: "STANDARD",
+    recurrence: "DAILY",
+    description: "Post one clip from a recent stream.",
+  },
+  {
+    name: "Publish a week's content calendar",
+    category: "Content Creation",
+    xpValue: 75,
+    tier: "MILESTONE",
+    recurrence: "WEEKLY",
+    description: "Publish a content calendar for the week.",
+  },
+  {
+    name: "Complete a collab stream",
+    category: "Collab",
+    xpValue: 150,
+    tier: "MILESTONE",
+    recurrence: "REPEATABLE",
+    description: "Complete a collab stream.",
+  },
+  {
+    name: "First-ever collab",
+    category: "Collab",
+    xpValue: 300,
+    tier: "MAJOR",
+    recurrence: "ONE_TIME",
+    description: "Complete your first-ever collab.",
+  },
+  {
+    name: "Run a live sales segment",
+    category: "Monetization",
+    xpValue: 40,
+    tier: "STANDARD",
+    recurrence: "REPEATABLE",
+    description: "Run a live sales segment.",
+  },
+  {
+    name: "First sale",
+    category: "Monetization",
+    xpValue: 250,
+    tier: "MAJOR",
+    recurrence: "ONE_TIME",
+    description: "Make your first sale.",
+  },
+  {
+    name: "Complete a track-specific practice task",
+    category: "Skill Mastery",
+    xpValue: 30,
+    tier: "STANDARD",
+    recurrence: "DAILY",
+    description: "Complete a practice task for your specialty.",
+  },
+  {
+    name: "Welcome a new hub member",
+    category: "Community Building",
+    xpValue: 10,
+    tier: "MICRO",
+    recurrence: "DAILY",
+    description: "Welcome a new hub member.",
+  },
+  {
+    name: "Onboard 5 new members this week",
+    category: "Community Building",
+    xpValue: 75,
+    tier: "MILESTONE",
+    recurrence: "WEEKLY",
+    description: "Onboard 5 new members this week.",
   },
 ];
 
@@ -200,13 +343,16 @@ async function upsertMission(
   name: string,
   description: string,
   xpValue: number,
-  sortOrder: number
+  sortOrder: number,
+  extras?: { recurrence?: ProgressionRecurrence; tier?: ProgressionMissionTier }
 ) {
+  const recurrence = extras?.recurrence ?? "ONE_TIME";
+  const tier = extras?.tier ?? "STANDARD";
   const existing = await prisma.progressionMission.findFirst({ where: { name, categoryId } });
   if (existing) {
     return prisma.progressionMission.update({
       where: { id: existing.id },
-      data: { description, xpValue, sortOrder, status: "ACTIVE", recurrence: "ONE_TIME" },
+      data: { description, xpValue, sortOrder, status: "ACTIVE", recurrence, tier },
     });
   }
   return prisma.progressionMission.create({
@@ -217,7 +363,8 @@ async function upsertMission(
       xpValue,
       sortOrder,
       status: "ACTIVE",
-      recurrence: "ONE_TIME",
+      recurrence,
+      tier,
     },
   });
 }
@@ -240,9 +387,27 @@ async function upsertCertification(categoryId: string, name: string, certifiedXp
       });
 
   const tiers = [
-    { name: "Trainee", sortOrder: 0, unlockKind: "QUIZ_PASSED" as const, xpRequired: null as number | null },
-    { name: "Certified", sortOrder: 1, unlockKind: "CATEGORY_XP" as const, xpRequired: certifiedXp },
-    { name: "Master", sortOrder: 2, unlockKind: "ADMIN_REVIEW" as const, xpRequired: null },
+    {
+      name: "Trainee",
+      sortOrder: 0,
+      unlockKind: "QUIZ_PASSED" as const,
+      xpRequired: null as number | null,
+      xpAward: certTierXpAward("Trainee"),
+    },
+    {
+      name: "Certified",
+      sortOrder: 1,
+      unlockKind: "CATEGORY_XP" as const,
+      xpRequired: certifiedXp,
+      xpAward: certTierXpAward("Certified"),
+    },
+    {
+      name: "Master",
+      sortOrder: 2,
+      unlockKind: "ADMIN_REVIEW" as const,
+      xpRequired: null,
+      xpAward: certTierXpAward("Master"),
+    },
   ];
   for (const tier of tiers) {
     const found = await prisma.progressionCertTier.findFirst({
@@ -251,7 +416,12 @@ async function upsertCertification(categoryId: string, name: string, certifiedXp
     if (found) {
       await prisma.progressionCertTier.update({
         where: { id: found.id },
-        data: { sortOrder: tier.sortOrder, unlockKind: tier.unlockKind, xpRequired: tier.xpRequired },
+        data: {
+          sortOrder: tier.sortOrder,
+          unlockKind: tier.unlockKind,
+          xpRequired: tier.xpRequired,
+          xpAward: tier.xpAward,
+        },
       });
     } else {
       await prisma.progressionCertTier.create({
@@ -320,7 +490,8 @@ export async function populateOfficialProgression() {
         name,
         `Choose the ${track} specialization. Unlocks at Rising Star. One pick carries through Regular → Legend.`,
         50,
-        index
+        index,
+        { tier: "STANDARD", recurrence: "ONE_TIME" }
       )
     );
   }
@@ -333,7 +504,22 @@ export async function populateOfficialProgression() {
         mission.name,
         mission.description,
         mission.xpValue,
-        20 + index
+        20 + index,
+        { tier: mission.tier, recurrence: "ONE_TIME" }
+      )
+    );
+  }
+  for (let index = 0; index < ACTIVITY_MISSIONS.length; index += 1) {
+    const mission = ACTIVITY_MISSIONS[index];
+    missionByName.set(
+      mission.name,
+      await upsertMission(
+        categoryByName.get(mission.category)!.id,
+        mission.name,
+        mission.description,
+        mission.xpValue,
+        40 + index,
+        { tier: mission.tier, recurrence: mission.recurrence }
       )
     );
   }
@@ -434,6 +620,7 @@ export async function populateOfficialProgression() {
       certTierId: null,
       categoryId: skill.categoryId ?? null,
       levelId: skill.levelId ?? null,
+      xpAward: POINT_DEFAULTS.skillUnlock,
     };
     if (existing) {
       await prisma.progressionSkill.update({ where: { id: existing.id }, data });
@@ -470,6 +657,7 @@ export async function syncSpecialtySkills() {
       certTierId: null,
       categoryId: skillMastery?.id ?? null,
       levelId: risingStar?.id ?? null,
+      xpAward: POINT_DEFAULTS.skillUnlock,
     };
     if (existing) {
       await prisma.progressionSkill.update({ where: { id: existing.id }, data });

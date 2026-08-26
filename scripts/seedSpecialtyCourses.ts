@@ -40,7 +40,7 @@ async function upsertCourse(
     title: seed.title,
     description: seed.description,
     category: "Skill Mastery",
-    xpReward: 50,
+    xpReward: 100,
     progressionEnabled: true,
     progressionCategoryId: skillMasteryId,
     progressionLevelId: null,

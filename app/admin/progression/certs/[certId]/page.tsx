@@ -64,6 +64,7 @@ export default async function AdminProgressionCertDetailPage({
           <option value="ADMIN_REVIEW">Admin review</option>
         </select>
         <input name="xpRequired" type="number" min={0} placeholder="XP if using category XP" className={fieldClass} />
+        <input name="xpAward" type="number" min={0} placeholder="Points awarded when this tier is earned" className={fieldClass} />
         <button type="submit" className="self-start rounded-lg border border-cyan/40 px-4 py-1.5 font-body text-sm text-cyan">
           Add tier
         </button>
@@ -80,6 +81,7 @@ export default async function AdminProgressionCertDetailPage({
               <option value="ADMIN_REVIEW">Admin review</option>
             </select>
             <input name="xpRequired" type="number" min={0} defaultValue={tier.xpRequired ?? ""} placeholder="XP if using category XP" className={fieldClass} />
+            <input name="xpAward" type="number" min={0} defaultValue={tier.xpAward} placeholder="Points awarded when earned" className={fieldClass} />
             <div className="flex flex-wrap items-center gap-3">
               <button type="submit" className="rounded-lg border border-cyan/40 px-4 py-1.5 font-body text-sm text-cyan">
                 Save tier

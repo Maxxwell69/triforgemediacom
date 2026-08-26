@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { startOfTodayUTC } from "@/lib/tiktask";
 import { hasTikTaskAccess } from "@/lib/groups";
+import { awardXpOnce } from "@/lib/xp";
+import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
 
 export async function POST(
   _req: Request,
@@ -38,6 +40,12 @@ export async function POST(
     select: { id: true },
   });
 
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    select: { streakCount: true },
+  });
+  const nextStreak = alreadyCompletedToday ? (profile?.streakCount ?? 0) : (profile?.streakCount ?? 0) + 1;
+
   const [updatedTask] = await prisma.$transaction([
     prisma.dailyTask.update({
       where: { id: dailyTask.id },
@@ -60,6 +68,19 @@ export async function POST(
       },
     }),
   ]);
+
+  if (!alreadyCompletedToday && (nextStreak === 3 || nextStreak === 7 || nextStreak === 30)) {
+    const settings = await getOrCreateProgressionSettings();
+    const amount =
+      nextStreak === 30 ? settings.streak30Xp : nextStreak === 7 ? settings.streak7Xp : settings.streak3Xp;
+    await awardXpOnce(prisma, {
+      userId: user.id,
+      amount,
+      source: "STREAK_BONUS",
+      refId: `streak-${nextStreak}-${today.toISOString().slice(0, 10)}`,
+      note: `${nextStreak}-day streak`,
+    });
+  }
 
   revalidatePath("/apps/tiktask");
   revalidatePath("/home");
