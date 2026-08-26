@@ -103,6 +103,8 @@ export async function chooseMySpecialty(missionId: string) {
   const user = await requireProgressionMember();
   await chooseSpecialty(user.id, missionId);
   revalidatePath("/progress");
+  revalidatePath("/groups");
+  revalidatePath("/", "layout");
 }
 
 export async function resetMySpecialty() {

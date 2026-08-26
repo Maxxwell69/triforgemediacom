@@ -49,6 +49,15 @@ export const SPECIALTY_TRACK_NAMES = SPECIALTY_TRACKS.map((track) => track.name)
 
 export const SPECIALTY_UNLOCK_LEVEL = "Rising Star";
 
+/** Hub space names for a specialty. Gamer uses the existing Gaming group. */
+const SPECIALTY_GROUP_ALIASES: Record<string, string[]> = {
+  Gamer: ["Gamer", "Gaming"],
+};
+
+export function groupNamesForSpecialty(track: string): string[] {
+  return SPECIALTY_GROUP_ALIASES[track] ?? [track];
+}
+
 export function isSpecialtyTrackName(name: string): boolean {
   return (SPECIALTY_TRACK_NAMES as readonly string[]).includes(name);
 }
