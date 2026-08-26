@@ -17,6 +17,7 @@
     "db:populate-progression": "npm run guard:db && tsx scripts/populateProgression.ts",
     "db:seed-specialty-courses": "npm run guard:db && tsx scripts/seedSpecialtyCourses.ts",
     "db:seed-specialty-groups": "npm run guard:db && tsx scripts/seedSpecialtyGroups.ts",
+    "db:backfill-learning-points": "npm run guard:db && tsx scripts/backfillLearningPoints.ts",
     "guard:db": "tsx scripts/guardDb.ts",
     "db:backup": "tsx scripts/backupHubDb.ts"
   },

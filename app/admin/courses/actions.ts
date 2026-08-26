@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { checkCourseCompletion, sendCourseCompletionEmails } from "@/lib/learning";
+import { awardLessonCompletionXp } from "@/lib/xp";
 import { hubHas } from "@/lib/hub/modules";
 import { parseProgressionSpecialty } from "@/lib/progression/tracks";
 import {
@@ -532,7 +533,7 @@ export async function reviewSubmission(
 
   const submission = await prisma.assignmentSubmission.findUnique({
     where: { id: submissionId },
-    include: { assignment: { include: { lesson: { select: { id: true, courseId: true } } } } },
+    include: { assignment: { include: { lesson: { select: { id: true, courseId: true, xpValue: true, exerciseXpBonus: true, course: { select: { progressionCategoryId: true } } } } } } },
   });
   if (!submission) throw new Error("Submission not found");
 
@@ -550,11 +551,24 @@ export async function reviewSubmission(
     });
 
     if (status === "APPROVED") {
+      const prior = await tx.lessonProgress.findUnique({
+        where: { userId_lessonId: { userId: submission.userId, lessonId: lesson.id } },
+        select: { completedAt: true },
+      });
       await tx.lessonProgress.upsert({
         where: { userId_lessonId: { userId: submission.userId, lessonId: lesson.id } },
         update: { completedAt: new Date() },
         create: { userId: submission.userId, lessonId: lesson.id, completedAt: new Date() },
       });
+      if (!prior?.completedAt) {
+        await awardLessonCompletionXp(tx, submission.userId, {
+          id: lesson.id,
+          xpValue: lesson.xpValue,
+          exerciseXpBonus: lesson.exerciseXpBonus,
+          assignment: { id: submission.assignmentId },
+          course: lesson.course,
+        });
+      }
       return checkCourseCompletion(tx, submission.userId, lesson.courseId);
     }
     return null;

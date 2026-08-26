@@ -7,6 +7,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
 import { progressionNameSchema, progressionSettingsSchema } from "@/lib/validations/progression";
 import { evaluateProgression, grantProgressionBadges } from "@/lib/progression/engine";
+import { awardXpOnce, certTierXpAward, POINT_DEFAULTS } from "@/lib/xp";
 import { enrollAsRecruit } from "@/lib/progression/access";
 import { parseProgressionSpecialty } from "@/lib/progression/tracks";
 import {
@@ -304,6 +305,12 @@ export async function setLevelCertReq(levelId: string, certificationId: string, 
   revalidateProgression();
 }
 
+function parseMissionTier(raw: FormDataEntryValue | null) {
+  const value = String(raw || "STANDARD");
+  if (value === "MICRO" || value === "MILESTONE" || value === "MAJOR") return value;
+  return "STANDARD" as const;
+}
+
 export async function createMission(formData: FormData) {
   await requireProgressionAdmin();
   const data = parseNamed(formData);
@@ -322,6 +329,7 @@ export async function createMission(formData: FormData) {
       imageUrl: data.imageUrl || null,
       status: data.status ?? "DRAFT",
       xpValue: intField(formData, "xpValue"),
+      tier: parseMissionTier(formData.get("tier")),
       recurrence:
         recurrence === "REPEATABLE" || recurrence === "DAILY" || recurrence === "WEEKLY"
           ? recurrence
@@ -346,6 +354,7 @@ export async function updateMission(formData: FormData) {
       status: data.status ?? "DRAFT",
       categoryId: String(formData.get("categoryId") || ""),
       xpValue: intField(formData, "xpValue"),
+      tier: parseMissionTier(formData.get("tier")),
       recurrence:
         recurrence === "REPEATABLE" || recurrence === "DAILY" || recurrence === "WEEKLY"
           ? recurrence
@@ -489,6 +498,7 @@ export async function updateCertTier(formData: FormData) {
       unlockKind:
         unlockKind === "QUIZ_PASSED" || unlockKind === "ADMIN_REVIEW" ? unlockKind : "CATEGORY_XP",
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
+      ...(formData.has("xpAward") ? { xpAward: intField(formData, "xpAward") } : {}),
     },
   });
   revalidateProgression();
@@ -514,6 +524,7 @@ export async function createSkill(formData: FormData) {
       certificationId: String(formData.get("certificationId") || "") || null,
       certTierId: String(formData.get("certTierId") || "") || null,
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
+      ...(formData.has("xpAward") ? { xpAward: intField(formData, "xpAward") } : {}),
       sortOrder: (last._max.sortOrder ?? -1) + 1,
     },
   });
@@ -541,6 +552,7 @@ export async function updateSkill(formData: FormData) {
       certificationId: String(formData.get("certificationId") || "") || null,
       certTierId: String(formData.get("certTierId") || "") || null,
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
+      ...(formData.has("xpAward") ? { xpAward: intField(formData, "xpAward") } : {}),
     },
   });
   revalidateProgression();
@@ -605,6 +617,7 @@ export async function createCertTier(formData: FormData) {
       unlockKind:
         unlockKind === "QUIZ_PASSED" || unlockKind === "ADMIN_REVIEW" ? unlockKind : "CATEGORY_XP",
       xpRequired: formData.get("xpRequired") ? intField(formData, "xpRequired") : null,
+      ...(formData.has("xpAward") ? { xpAward: intField(formData, "xpAward") } : {}),
       sortOrder: (last._max.sortOrder ?? -1) + 1,
     },
   });
@@ -757,6 +770,24 @@ export async function grantCertification(userId: string, certificationId: string
   });
   await grantProgressionBadges(userId, "CERTIFICATION", certificationId);
   await grantProgressionBadges(userId, "CERTIFICATION", tierId);
+  const cert = await prisma.progressionCertification.findUnique({
+    where: { id: certificationId },
+    include: { tiers: { orderBy: { sortOrder: "asc" } } },
+  });
+  const granted = cert?.tiers.find((tier) => tier.id === tierId);
+  if (cert && granted) {
+    for (const tier of cert.tiers) {
+      if (tier.sortOrder > granted.sortOrder) continue;
+      await awardXpOnce(prisma, {
+        userId,
+        amount: tier.xpAward || certTierXpAward(tier.name),
+        source: "CERT_TIER",
+        refId: tier.id,
+        note: `${cert.name} · ${tier.name}`,
+        categoryId: cert.categoryId,
+      });
+    }
+  }
   await evaluateProgression(userId);
   revalidatePath(`/admin/progression/people/${userId}`);
   revalidatePath("/progress");
@@ -770,6 +801,17 @@ export async function grantSkill(userId: string, skillId: string) {
     update: {},
   });
   await grantProgressionBadges(userId, "SKILL", skillId);
+  const skill = await prisma.progressionSkill.findUnique({ where: { id: skillId } });
+  if (skill) {
+    await awardXpOnce(prisma, {
+      userId,
+      amount: skill.xpAward || POINT_DEFAULTS.skillUnlock,
+      source: "SKILL_UNLOCK",
+      refId: skill.id,
+      note: skill.name,
+      categoryId: skill.categoryId,
+    });
+  }
   await evaluateProgression(userId);
   revalidatePath(`/admin/progression/people/${userId}`);
 }

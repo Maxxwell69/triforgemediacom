@@ -10,6 +10,8 @@ import {
   SPECIALTY_TRACK_NAMES,
   groupNamesForSpecialty,
 } from "@/lib/progression/tracks";
+import { awardXpOnce, certTierXpAward, POINT_DEFAULTS } from "@/lib/xp";
+import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -251,14 +253,34 @@ export async function completeMission(userId: string, missionId: string) {
   const mission = await prisma.progressionMission.findUnique({ where: { id: missionId } });
   if (!mission) throw new Error("Mission not found");
 
-  await prisma.$transaction(async (tx) => {
-    await tx.progressionMissionCompletion.create({
-      data: { userId, missionId, xpAwarded: mission.xpValue },
+  let amount = mission.xpValue;
+  if (mission.tier === "MICRO" || mission.tier === "STANDARD") {
+    const settings = await getOrCreateProgressionSettings();
+    const cap = mission.tier === "MICRO" ? settings.microDailyCap : settings.standardDailyCap;
+    const start = periodStart("DAILY");
+    const today = await prisma.progressionMissionCompletion.findMany({
+      where: {
+        userId,
+        completedAt: { gte: start },
+        mission: { categoryId: mission.categoryId, tier: mission.tier },
+      },
+      select: { xpAwarded: true },
     });
-    await tx.progressionCategoryXp.upsert({
-      where: { userId_categoryId: { userId, categoryId: mission.categoryId } },
-      create: { userId, categoryId: mission.categoryId, amount: mission.xpValue },
-      update: { amount: { increment: mission.xpValue } },
+    const used = today.reduce((sum, row) => sum + row.xpAwarded, 0);
+    amount = Math.max(0, Math.min(amount, cap - used));
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const completion = await tx.progressionMissionCompletion.create({
+      data: { userId, missionId, xpAwarded: amount },
+    });
+    await awardXpOnce(tx, {
+      userId,
+      amount,
+      source: "MISSION_COMPLETION",
+      refId: completion.id,
+      note: mission.name,
+      categoryId: mission.categoryId,
     });
   });
 
@@ -398,6 +420,14 @@ async function evaluateCertifications(userId: string) {
         });
         await grantProgressionBadges(userId, "CERTIFICATION", cert.id);
         await grantProgressionBadges(userId, "CERTIFICATION", tier.id);
+        await awardXpOnce(prisma, {
+          userId,
+          amount: tier.xpAward || certTierXpAward(tier.name),
+          source: "CERT_TIER",
+          refId: tier.id,
+          note: `${cert.name} · ${tier.name}`,
+          categoryId: cert.categoryId,
+        });
       } else if (current.tierId !== tier.id) {
         const currentTier = cert.tiers.find((t) => t.id === current.tierId);
         if ((currentTier?.sortOrder ?? -1) < tier.sortOrder) {
@@ -406,6 +436,14 @@ async function evaluateCertifications(userId: string) {
             data: { tierId: tier.id },
           });
           await grantProgressionBadges(userId, "CERTIFICATION", tier.id);
+          await awardXpOnce(prisma, {
+            userId,
+            amount: tier.xpAward || certTierXpAward(tier.name),
+            source: "CERT_TIER",
+            refId: tier.id,
+            note: `${cert.name} · ${tier.name}`,
+            categoryId: cert.categoryId,
+          });
         }
       }
     }
@@ -461,12 +499,24 @@ async function evaluateSkills(userId: string) {
       }
     }
     if (!ok) continue;
-    const created = await prisma.progressionSkillUnlock.upsert({
+    const existingUnlock = await prisma.progressionSkillUnlock.findUnique({
       where: { userId_skillId: { userId, skillId: skill.id } },
-      create: { userId, skillId: skill.id },
-      update: {},
+      select: { id: true },
     });
-    if (created) await grantProgressionBadges(userId, "SKILL", skill.id);
+    if (!existingUnlock) {
+      await prisma.progressionSkillUnlock.create({
+        data: { userId, skillId: skill.id },
+      });
+      await grantProgressionBadges(userId, "SKILL", skill.id);
+      await awardXpOnce(prisma, {
+        userId,
+        amount: skill.xpAward || POINT_DEFAULTS.skillUnlock,
+        source: "SKILL_UNLOCK",
+        refId: skill.id,
+        note: skill.name,
+        categoryId: skill.categoryId,
+      });
+    }
   }
 }
 

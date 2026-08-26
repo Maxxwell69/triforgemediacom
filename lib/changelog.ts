@@ -130,6 +130,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.142",
+    date: "August 26, 2026",
+    title: "Learning and mission points",
+    summary:
+      "Lessons, quizzes, course bonuses, cert tiers, specialty unlocks, missions, and streak milestones now award the official Tri Forge point values — including backfill for work already done.",
+    items: [
+      {
+        kind: "feature",
+        text: "Learning Center: 15 XP per lesson (25 with an exercise), 50 for a quiz pass (75 at 100%), and 100 when a course is fully complete",
+      },
+      {
+        kind: "feature",
+        text: "Certification tiers award +150 Trainee / +300 Certified / +750 Master; unlocking a specialty skill awards +200",
+      },
+      {
+        kind: "feature",
+        text: "Mission tiers (micro / standard / milestone / major) with daily caps on micro and standard tasks, plus 3/7/30-day streak bonuses",
+      },
+      {
+        kind: "feature",
+        text: "Members who already finished lessons, quizzes, courses, certs, skills, missions, or streaks receive the matching points",
+      },
+    ],
+  },
+  {
     version: "3.141",
     date: "August 26, 2026",
     title: "Home group no longer 404s for new members",

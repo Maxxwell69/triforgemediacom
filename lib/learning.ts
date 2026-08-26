@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendBadgeEarnedEmail, sendCertificateEmail } from "@/lib/email";
+import { awardXpOnce } from "@/lib/xp";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -149,13 +150,13 @@ export async function checkCourseCompletion(
   }
 
   if (course.xpReward > 0) {
-    await tx.xPEvent.create({
-      data: {
-        userId,
-        amount: course.xpReward,
-        source: "COURSE_COMPLETION",
-        refId: enrollment.id,
-      },
+    await awardXpOnce(tx, {
+      userId,
+      amount: course.xpReward,
+      source: "COURSE_COMPLETION",
+      refId: enrollment.id,
+      note: "Module completion bonus",
+      categoryId: course.progressionCategoryId,
     });
   }
 
