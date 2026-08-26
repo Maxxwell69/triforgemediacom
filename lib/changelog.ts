@@ -130,6 +130,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.141",
+    date: "August 26, 2026",
+    title: "Home group no longer 404s for new members",
+    summary:
+      "Clicking Home opens the space for every member, not only the first forty people on the roster.",
+    items: [
+      {
+        kind: "fix",
+        text: "Group pages check your membership directly instead of scanning a 40-person preview list — new test users no longer get a 404 on Home",
+      },
+    ],
+  },
+  {
     version: "3.140",
     date: "August 26, 2026",
     title: "Specialty picks open matching groups",
