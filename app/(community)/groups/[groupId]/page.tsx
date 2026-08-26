@@ -21,23 +21,28 @@ export default async function GroupDetailPage({
   await ensureUserInHomeGroup(user.id);
   const currentActiveId = cookies().get(ACTIVE_GROUP_COOKIE)?.value ?? null;
 
-  const group = await prisma.group.findUnique({
-    where: { id: params.groupId },
-    include: {
-      _count: { select: { members: true, channels: true } },
-      channels: { orderBy: { createdAt: "asc" }, select: { id: true, name: true } },
-      members: {
-        orderBy: { addedAt: "asc" },
-        take: 40,
-        include: {
-          user: { select: { id: true, name: true, email: true } },
+  const [group, membership] = await Promise.all([
+    prisma.group.findUnique({
+      where: { id: params.groupId },
+      include: {
+        _count: { select: { members: true, channels: true } },
+        channels: { orderBy: { createdAt: "asc" }, select: { id: true, name: true } },
+        members: {
+          orderBy: { addedAt: "asc" },
+          take: 40,
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: user.id, groupId: params.groupId } },
+      select: { role: true },
+    }),
+  ]);
   if (!group) notFound();
 
-  const membership = group.members.find((m) => m.userId === user.id) ?? null;
   const isStaff = isAdminRole(user.role);
   // Hub admins/mods are in every group — no apply/invite needed.
   const isMember = Boolean(membership) || isStaff;
