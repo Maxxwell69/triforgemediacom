@@ -2,7 +2,14 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
-import { isSpecializeMissionName, trackNameFromMission, SPECIALTY_UNLOCK_LEVEL, isSpecialtyTrackName, SPECIALTY_TRACK_NAMES } from "@/lib/progression/tracks";
+import {
+  isSpecializeMissionName,
+  trackNameFromMission,
+  SPECIALTY_UNLOCK_LEVEL,
+  isSpecialtyTrackName,
+  SPECIALTY_TRACK_NAMES,
+  groupNamesForSpecialty,
+} from "@/lib/progression/tracks";
 
 export async function ensureProgressionProfile(userId: string) {
   return prisma.progressionProfile.upsert({
@@ -103,6 +110,34 @@ async function specialtyUnlockLevel() {
     where: { status: "ACTIVE", name: SPECIALTY_UNLOCK_LEVEL },
     orderBy: { sortOrder: "asc" },
   });
+}
+
+/** Join the hub space that matches a specialty (Gamer → Gaming). */
+export async function grantSpecialtyGroupAccess(userId: string, track: string) {
+  if (!isSpecialtyTrackName(track)) return;
+  const names = groupNamesForSpecialty(track);
+  const groups = await prisma.group.findMany({
+    where: { name: { in: names }, isHome: false },
+    select: { id: true },
+  });
+  await Promise.all(
+    groups.map((group) =>
+      prisma.groupMember.upsert({
+        where: { userId_groupId: { userId, groupId: group.id } },
+        update: {},
+        create: { userId, groupId: group.id, role: "MEMBER" },
+      })
+    )
+  );
+}
+
+/** Backfill group access for specialties already chosen. */
+export async function syncSpecialtyGroupAccess(userId: string) {
+  const chosen = await getChosenSpecialties(userId);
+  if (chosen.length === 0) return;
+  for (const row of chosen) {
+    await grantSpecialtyGroupAccess(userId, row.track);
+  }
 }
 
 export async function chooseSpecialty(userId: string, missionId: string) {
@@ -229,6 +264,9 @@ export async function completeMission(userId: string, missionId: string) {
 
   await grantProgressionBadges(userId, "MISSION", missionId);
   await evaluateProgression(userId);
+  if (isSpecializeMissionName(mission.name)) {
+    await grantSpecialtyGroupAccess(userId, trackNameFromMission(mission.name));
+  }
 }
 
 export async function completeLearningModule(userId: string, moduleId: string) {

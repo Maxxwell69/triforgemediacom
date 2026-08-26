@@ -31,6 +31,7 @@ import {
 } from "@/lib/activeGroup";
 import { hubHas } from "@/lib/hub/modules";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
+import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
@@ -39,6 +40,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   await ensureUserInHomeGroup(user.id).catch(() => {});
   if (hubHas("progression")) {
     await maybeAutoEnrollProgression(user.id, user.role).catch(() => {});
+    await syncSpecialtyGroupAccess(user.id).catch(() => {});
   }
 
   const [

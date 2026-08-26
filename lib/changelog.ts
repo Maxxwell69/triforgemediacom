@@ -130,6 +130,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.140",
+    date: "August 26, 2026",
+    title: "Specialty picks open matching groups",
+    summary:
+      "Choosing a Creator Progression specialty immediately adds you to that specialty’s hub group, including Gamer → Gaming.",
+    items: [
+      {
+        kind: "feature",
+        text: "Picking a specialty on Progress joins the matching group and its channel right away",
+      },
+      {
+        kind: "feature",
+        text: "Members who already chose a specialty are added to that group the next time they open the hub",
+      },
+    ],
+  },
+  {
     version: "3.139",
     date: "August 25, 2026",
     title: "Progress is live for members",
