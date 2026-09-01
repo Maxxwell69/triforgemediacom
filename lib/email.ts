@@ -920,3 +920,48 @@ export async function sendBroadcastEmails(
 
   return { sent, failed };
 }
+
+function campaignBodyToHtml(bodyText: string, ctaHtml?: string): string {
+  const paragraphs = bodyText
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p style="line-height:1.6;margin:0 0 16px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+  return `${paragraphs}${ctaHtml || ""}`;
+}
+
+/** Opt-in campaign email to a member — same unsubscribe path as broadcasts. */
+export async function sendCampaignEmail(
+  userId: string,
+  to: string,
+  subject: string,
+  bodyText: string,
+  ctaHtml?: string
+) {
+  const inner = campaignBodyToHtml(bodyText, ctaHtml);
+  const html = layout(`${inner}${broadcastFooterHtml(userId)}`);
+  await send(to, subject, html, {
+    headers: broadcastListUnsubscribeHeaders(userId),
+    idempotencyKey: `campaign/${userId}/${Date.now()}`,
+  });
+}
+
+/** Internal admin alert for a campaign match (not member-facing, no unsubscribe). */
+export async function sendCampaignAdminNotifyEmail(
+  to: string[],
+  title: string,
+  body: string,
+  memberUserId: string
+) {
+  const html = layout(`
+    <h1 style="color:#FD4802;font-size:20px;margin:0 0 12px;">${escapeHtml(title)}</h1>
+    <p style="line-height:1.6;margin:0 0 16px;">${escapeHtml(body).replace(/\n/g, "<br/>")}</p>
+    ${button(`${SAMPLE_APP_URL}/admin/users/${memberUserId}`, "Open member")}
+  `);
+  for (const email of to) {
+    await send(email, title, html);
+    await sleep(INDIVIDUAL_SEND_GAP_MS);
+  }
+}
+

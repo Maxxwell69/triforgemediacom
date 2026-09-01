@@ -261,6 +261,8 @@ export async function toggleMyTag(tagId: string, added: boolean) {
       update: {},
       create: { userId: user.id, tagId },
     });
+    const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+    fireCampaignEventSafe({ type: "TAG_ADDED", userId: user.id, payload: { tagId } });
   } else {
     await prisma.userTag.deleteMany({ where: { userId: user.id, tagId } });
   }

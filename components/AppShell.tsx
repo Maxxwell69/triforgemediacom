@@ -30,6 +30,7 @@ import {
   resolveActiveGroupId,
 } from "@/lib/activeGroup";
 import { hubHas } from "@/lib/hub/modules";
+import NotificationBell from "@/components/NotificationBell";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
 
@@ -56,6 +57,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     homeGroup,
     showProgress,
     allGroups,
+    unreadNotifications,
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
@@ -96,6 +98,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
+    prisma.hubNotification.count({ where: { userId: user.id, readAt: null } }),
   ]);
 
   const accessible = allChannels.filter(
@@ -292,6 +295,17 @@ export default async function AppShell({ children }: { children: React.ReactNode
           >
             Account
           </Link>
+          <Link
+            href="/notifications"
+            className="flex items-center justify-between rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Notifications
+            {unreadNotifications > 0 ? (
+              <span className="rounded-full bg-orange px-1.5 font-body text-[10px] font-semibold text-off-white">
+                {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              </span>
+            ) : null}
+          </Link>
           {tikTaskAccess && hubHas("tiktask") && (
             <Link
               href="/apps/tiktask"
@@ -321,14 +335,22 @@ export default async function AppShell({ children }: { children: React.ReactNode
           <span className="truncate font-body text-sm text-off-white/80">
             {sidebarLabel === "Member" ? user.email : sidebarLabel}
           </span>
-          <SignOutButton />
+          <div className="flex items-center gap-1">
+            <NotificationBell unread={unreadNotifications} />
+            <SignOutButton />
+          </div>
         </div>
       </div>
     </>
   );
 
   return (
-    <MobileShell rail={rail} sidebar={sidebar} showAdminFab={isAdmin}>
+    <MobileShell
+      rail={rail}
+      sidebar={sidebar}
+      showAdminFab={isAdmin}
+      headerRight={<NotificationBell unread={unreadNotifications} />}
+    >
       <EnsureDefaultHomeGroup
         homeGroupId={homeGroup?.id ?? null}
         hasCookie={Boolean(activeGroupCookie)}

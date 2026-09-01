@@ -88,7 +88,7 @@ export default async function AdminUserDetailPage({
   const insightsStatus = searchParams?.insights;
   const insightsMessage = searchParams?.insights_message;
 
-  const [user, allGroups, allTags, allBadges, insights] = await Promise.all([
+  const [user, allGroups, allTags, allBadges, insights, liveCount, lastLive] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.userId },
       include: {
@@ -122,6 +122,12 @@ export default async function AdminUserDetailPage({
     loadCreatorInsights(params.userId).catch((err) => {
       console.error("Admin user insights load failed:", err);
       return null;
+    }),
+    prisma.tikTokLiveSession.count({ where: { userId: params.userId } }),
+    prisma.tikTokLiveSession.findFirst({
+      where: { userId: params.userId },
+      orderBy: { startedAt: "desc" },
+      select: { startedAt: true },
     }),
   ]);
 
@@ -251,13 +257,17 @@ export default async function AdminUserDetailPage({
       </div>
 
       {/* Overview stats */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
         <StatCard label="Points" value={String(totalPoints)} />
         <StatCard label="Member since" value={formatDate(user.createdAt)} />
         <StatCard label="Streak" value={user.profile ? `${user.profile.streakCount} days` : "—"} />
         <StatCard
           label="Platform"
           value={user.profile ? PLATFORM_LABELS[user.profile.platform] : "Not set"}
+        />
+        <StatCard
+          label="First hub login"
+          value={user.firstLoginAt ? formatDateTime(user.firstLoginAt) : "Never"}
         />
         <StatCard
           label="Last login"
@@ -271,6 +281,14 @@ export default async function AdminUserDetailPage({
               : user.lastSeenAt
                 ? `Last seen ${formatDateTime(user.lastSeenAt)}`
                 : "—"
+          }
+        />
+        <StatCard
+          label="Go-lives"
+          value={
+            liveCount > 0
+              ? `${liveCount}${lastLive ? ` · ${formatDate(lastLive.startedAt)}` : ""}`
+              : "0"
           }
         />
       </div>

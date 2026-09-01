@@ -10,11 +10,13 @@ export default function MobileShell({
   sidebar,
   children,
   showAdminFab = false,
+  headerRight,
 }: {
   rail?: React.ReactNode;
   sidebar: React.ReactNode;
   children: React.ReactNode;
   showAdminFab?: boolean;
+  headerRight?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -35,21 +37,24 @@ export default function MobileShell({
     >
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
         <Logo height={20} href="/home" />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-          className="rounded-lg border border-off-white/15 p-2 text-off-white/70 transition hover:border-cyan/40 hover:text-off-white"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path
-              d="M3 5h14M3 10h14M3 15h14"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {headerRight}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open menu"
+            className="rounded-lg border border-off-white/15 p-2 text-off-white/70 transition hover:border-cyan/40 hover:text-off-white"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path
+                d="M3 5h14M3 10h14M3 15h14"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open && (

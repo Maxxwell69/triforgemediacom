@@ -96,6 +96,8 @@ export async function completeOnboarding(
 
   if (!existingProfile && user.email) {
     await sendWelcomeEmail(user.email, user.name || "there");
+    const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+    fireCampaignEventSafe({ type: "MEMBER_JOINED", userId: user.id });
   }
 
   redirect("/home");

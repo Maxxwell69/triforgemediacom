@@ -64,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const now = new Date();
+        const wasFirstLogin = !user.lastLoginAt;
         await prisma.user.update({
           where: { id: user.id },
           data: {
@@ -71,8 +72,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             lockedUntil: null,
             lastLoginAt: now,
             lastSeenAt: now,
+            ...(user.firstLoginAt ? {} : { firstLoginAt: now }),
           },
         });
+
+        if (wasFirstLogin) {
+          const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+          fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
+        }
 
         return {
           id: user.id,

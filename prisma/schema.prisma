@@ -83,6 +83,8 @@ model User {
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
   lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)
+  /// Set once on the first successful login — “came into the hub.”
+  firstLoginAt  DateTime?
   lastSeenAt    DateTime? // heartbeat while the hub is open — drives online green dots
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -109,6 +111,7 @@ model User {
   certificates               Certificate[]
   tiktokConnection           TikTokConnection?
   tiktokStatsSnapshot        TikTokStatsSnapshot?
+  liveSessions               TikTokLiveSession[]
   tags                       UserTag[]
   passwordResetTokens        PasswordResetToken[]
   broadcastsCreated          Broadcast[]            @relation("BroadcastCreatedBy")
@@ -157,6 +160,9 @@ model User {
   progressionCertReviews     ProgressionCertificationHeld[] @relation("ProgressionCertReviewer")
   progressionApplication     ProgressionApplication?
   progressionAppsReviewed    ProgressionApplication[] @relation("ProgressionAppReviewer")
+  campaignsCreated           Campaign[]             @relation("CampaignCreatedBy")
+  campaignRuns               CampaignRun[]
+  hubNotifications           HubNotification[]
 }
 
 // ---------- Application / invite flow ----------
@@ -501,6 +507,8 @@ model DirectMessageReaction {
 model Announcement {
   id            String   @id @default("global")
   message       String
+  imageUrl      String?
+  videoUrl      String?
   isActive      Boolean  @default(false)
   updatedAt     DateTime @updatedAt
   updatedByName String?
@@ -586,6 +594,24 @@ model TikTokStatsSnapshot {
   updatedAt        DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// One detected TikTok LIVE window (opened when cron first sees isLive, closed when offline).
+model TikTokLiveSession {
+  id             String    @id @default(cuid())
+  userId         String
+  uniqueId       String
+  roomId         String?
+  title          String?
+  startedAt      DateTime
+  endedAt        DateTime?
+  lastSeenLiveAt DateTime
+  peakViewers    Int       @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@index([userId, endedAt])
 }
 
 // ---------- Password reset ----------
@@ -2166,4 +2192,110 @@ model ClientHub {
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([createdById])
+}
+
+// ---------- Campaign automations (GHL-style trigger → email / notify) ----------
+// Admins define a trigger and one or more actions. No SMS, pipelines, or
+// wait/if-else trees — those stay out of v1.
+
+enum CampaignTriggerType {
+  FIRST_LOGIN
+  MEMBER_JOINED
+  APPLICATION_APPROVED
+  TAG_ADDED
+  LEVEL_REACHED
+  WENT_LIVE
+  INACTIVE_DAYS
+  NEVER_LOGGED_IN
+  DAYS_AFTER_FIRST_LOGIN
+}
+
+enum CampaignActionType {
+  EMAIL
+  HUB_NOTIFY
+  ADMIN_NOTIFY
+}
+
+enum CampaignAudienceType {
+  ALL_MEMBERS
+  TAG
+  GROUP
+  NETWORK_TRACK
+}
+
+enum CampaignRunStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model Campaign {
+  id              String               @id @default(cuid())
+  name            String
+  description     String?
+  enabled         Boolean              @default(true)
+  triggerType     CampaignTriggerType
+  /// { days?: number, tagId?: string, levelId?: string }
+  triggerConfig   Json                 @default("{}")
+  audienceType    CampaignAudienceType @default(ALL_MEMBERS)
+  audienceTagId   String?
+  audienceGroupId String?
+  audienceTrack   String?
+  oncePerUser     Boolean              @default(true)
+  createdById     String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  createdBy User             @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  actions   CampaignAction[]
+  runs      CampaignRun[]
+
+  @@index([enabled, triggerType])
+}
+
+model CampaignAction {
+  id            String             @id @default(cuid())
+  campaignId    String
+  sortOrder     Int                @default(0)
+  type          CampaignActionType
+  emailSubject  String?
+  emailBodyText String?
+  notifyTitle   String?
+  notifyBody    String?
+  notifyHref    String?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, sortOrder])
+}
+
+model CampaignRun {
+  id         String            @id @default(cuid())
+  campaignId String
+  userId     String
+  triggerKey String
+  status     CampaignRunStatus @default(SENT)
+  error      String?
+  createdAt  DateTime          @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId, triggerKey])
+  @@index([campaignId, createdAt])
+}
+
+model HubNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }

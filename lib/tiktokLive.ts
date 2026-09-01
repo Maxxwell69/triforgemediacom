@@ -117,6 +117,57 @@ async function applyLiveStatus(
     },
   });
   await syncLiveTagForUser(userId, status.isLive);
+  await recordLiveSession(userId, uniqueId, status, now);
+}
+
+async function recordLiveSession(
+  userId: string,
+  uniqueId: string,
+  status: { isLive: boolean; roomId: string | null; title: string | null; viewerCount: number | null },
+  now: Date
+) {
+  if (status.isLive) {
+    const open = await prisma.tikTokLiveSession.findFirst({
+      where: { userId, endedAt: null },
+      orderBy: { startedAt: "desc" },
+    });
+    if (open) {
+      await prisma.tikTokLiveSession.update({
+        where: { id: open.id },
+        data: {
+          lastSeenLiveAt: now,
+          peakViewers: Math.max(open.peakViewers, status.viewerCount ?? 0),
+          roomId: status.roomId ?? open.roomId,
+          title: status.title ?? open.title,
+          uniqueId,
+        },
+      });
+      return;
+    }
+    const created = await prisma.tikTokLiveSession.create({
+      data: {
+        userId,
+        uniqueId,
+        roomId: status.roomId,
+        title: status.title,
+        startedAt: now,
+        lastSeenLiveAt: now,
+        peakViewers: status.viewerCount ?? 0,
+      },
+    });
+    const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+    fireCampaignEventSafe({
+      type: "WENT_LIVE",
+      userId,
+      payload: { sessionId: created.id },
+    });
+    return;
+  }
+
+  await prisma.tikTokLiveSession.updateMany({
+    where: { userId, endedAt: null },
+    data: { endedAt: now, lastSeenLiveAt: now },
+  });
 }
 
 /**

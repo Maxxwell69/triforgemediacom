@@ -481,7 +481,7 @@ export async function loadNetworkDashboard(
     topByHearts,
     limitations: [
       "Diamond earnings / gifts are not stored — only Diamond Rush league class & rank when tik.tools returns them.",
-      "Live session history is not kept — average stream length over time needs future logging.",
+      "Live session history is kept from this release onward — earlier go-lives were not stored.",
       "Follower/likes growth charts need snapshot history (current stats are overwrite-only).",
     ],
   };
