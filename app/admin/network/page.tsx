@@ -168,6 +168,12 @@ export default async function AdminNetworkDashboardPage({
           Updated {data.generatedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
         </p>
       </div>
+      <Link
+        href="/admin/roster"
+        className="mt-4 inline-flex rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm font-semibold text-cyan transition hover:bg-cyan/15"
+      >
+        Activity roster — levels, participation, go-lives, hub sign-ins
+      </Link>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {tabs.map((tab) => (

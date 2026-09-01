@@ -61,6 +61,9 @@ export async function approveApplication(formData: FormData) {
     inviteUrl(token)
   );
 
+  const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+  fireCampaignEventSafe({ type: "APPLICATION_APPROVED", userId: application.userId });
+
   revalidatePath("/admin/applications");
 }
 

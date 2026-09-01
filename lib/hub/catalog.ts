@@ -36,7 +36,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
   { id: "webinars", kind: "optional", label: "Webinars", description: "LiveKit stage and recordings" },
   { id: "calendar", kind: "optional", label: "Calendar", description: "Events and availability" },
   { id: "booking", kind: "optional", label: "Staff booking", description: "Public booking pages" },
-  { id: "email", kind: "optional", label: "Email", description: "Broadcasts and templates" },
+  {
+    id: "email",
+    kind: "optional",
+    label: "Email",
+    description: "Broadcasts, templates, and trigger campaigns",
+  },
   { id: "hubBug", kind: "optional", label: "Hub Bug", description: "Bug reports" },
 ];
 

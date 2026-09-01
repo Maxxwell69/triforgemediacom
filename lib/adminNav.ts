@@ -31,6 +31,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "tiktokInsights",
       },
       {
+        href: "/admin/roster",
+        label: "Activity roster",
+        description: "Levels, participation, go-lives, who signed into the hub",
+        sku: "core",
+      },
+      {
         href: "/admin/users",
         label: "Users",
         description: "Roles, bans, TikTok links, groups & tags",
@@ -103,6 +109,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         href: "/admin/broadcast",
         label: "Broadcasts",
         description: "Send announcements to members",
+        sku: "email",
+      },
+      {
+        href: "/admin/campaigns",
+        label: "Campaigns",
+        description: "Triggers that email or notify members",
         sku: "email",
       },
       {

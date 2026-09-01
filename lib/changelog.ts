@@ -126,9 +126,41 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Admin-built levels, mission categories, learning modules, certifications, skills, and badges — with a creator progress tree. Official TriForge ladder content ships as editable data.",
     since: "2.99",
   },
+  {
+    name: "Campaign automations",
+    tagline: "Triggers → email or notify",
+    description:
+      "GHL-style campaigns: first login, inactivity, go-live, tags, and level-ups can email members or drop an in-hub notification.",
+    since: "3.143",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.143",
+    date: "September 1, 2026",
+    title: "Activity roster and campaign triggers",
+    summary:
+      "Admins can see levels, hub participation, and TikTok go-lives in one roster, and run GHL-style campaigns that email or notify when someone signs in, goes quiet, or goes live.",
+    items: [
+      {
+        kind: "feature",
+        text: "Activity roster (Admin → People, and a link from the Network dashboard): levels, XP, TikTask, chat, live counts, and filters for who has signed into the hub",
+      },
+      {
+        kind: "feature",
+        text: "Live session history starts now — the TikTok live poll records each go-live so the roster can show how many times and when",
+      },
+      {
+        kind: "feature",
+        text: "Campaigns (Admin → Email): trigger → email member, hub notification, or notify admins — first login, onboarding, approval, tag, level, go-live, inactivity, and never signed in",
+      },
+      {
+        kind: "feature",
+        text: "In-hub notifications with a bell in the member menu",
+      },
+    ],
+  },
   {
     version: "3.142",
     date: "August 26, 2026",

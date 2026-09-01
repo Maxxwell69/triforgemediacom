@@ -565,7 +565,7 @@ async function evaluateLevel(userId: string) {
 
   const profile = await prisma.progressionProfile.findUnique({
     where: { userId },
-    select: { adminPlacedLevelId: true },
+    select: { adminPlacedLevelId: true, currentLevelId: true },
   });
   if (profile?.adminPlacedLevelId) {
     const earnedIndex = levels.findIndex((level) => level.id === currentId);
@@ -575,11 +575,20 @@ async function evaluateLevel(userId: string) {
     }
   }
 
+  const previousLevelId = profile?.currentLevelId ?? null;
   await prisma.progressionProfile.update({
     where: { userId },
     data: { currentLevelId: currentId },
   });
   if (currentId) await grantProgressionBadges(userId, "LEVEL", currentId);
+  if (currentId && currentId !== previousLevelId) {
+    const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+    fireCampaignEventSafe({
+      type: "LEVEL_REACHED",
+      userId,
+      payload: { levelId: currentId },
+    });
+  }
 }
 
 export async function loadCreatorProgress(userId: string) {

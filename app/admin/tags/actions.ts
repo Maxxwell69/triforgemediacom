@@ -115,6 +115,11 @@ export async function setUserTagAdded(tagId: string, userId: string, added: bool
     await prisma.userTag.deleteMany({ where: { userId, tagId } });
   }
 
+  if (added) {
+    const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
+    fireCampaignEventSafe({ type: "TAG_ADDED", userId, payload: { tagId } });
+  }
+
   revalidatePath(`/admin/tags/${tagId}`);
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
