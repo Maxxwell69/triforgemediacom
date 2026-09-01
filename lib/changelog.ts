@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.149",
+    date: "September 1, 2026",
+    title: "Staging migrate recover",
+    summary: "Deploys no longer fail if announcement image/video columns already exist in the database.",
+    items: [
+      {
+        kind: "fix",
+        text: "Pre-deploy marks the announcement-media migration applied when those columns are already present, so staging can start",
+      },
+    ],
+  },
+  {
     version: "3.148",
     date: "September 1, 2026",
     title: "Home after sign-in",

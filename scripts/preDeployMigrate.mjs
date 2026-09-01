@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 const LEGACY_RECORDINGS = "20260729214500_add_webinar_recordings";
 const RECORDINGS = "20260729221000_add_webinar_recordings";
 const MODERATION = "20260730021500_add_webinar_moderation";
+const ANNOUNCEMENT_MEDIA = "20260901190000_announcement_media";
 
 function run(args) {
   return spawnSync("npx", args, {
@@ -74,6 +75,15 @@ function recover(out) {
   if (name === RECORDINGS || name === MODERATION) {
     migrateResolve("--rolled-back", name);
     return migrateResolve("--applied", name);
+  }
+
+  // Staging already had imageUrl/videoUrl (schema push / older SQL). The
+  // additive migration then fails with "column already exists" and blocks deploy.
+  if (
+    name === ANNOUNCEMENT_MEDIA &&
+    /already exists|imageUrl|videoUrl/i.test(out)
+  ) {
+    return migrateResolve("--applied", ANNOUNCEMENT_MEDIA);
   }
 
   // Unknown failed migration — do not mark rolled-back. That leaves half-applied
