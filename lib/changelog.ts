@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.147",
+    date: "September 1, 2026",
+    title: "Sign-in without server render",
+    summary: "The sign-in form now loads in the browser only, so a server-component crash cannot blank the page.",
+    items: [
+      {
+        kind: "fix",
+        text: "Sign-in no longer server-renders next-auth or search params — Auth.js custom page stays on /login to avoid clashing with /signin",
+      },
+    ],
+  },
+  {
     version: "3.146",
     date: "September 1, 2026",
     title: "Sign-in page cache",
