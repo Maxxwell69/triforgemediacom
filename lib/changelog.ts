@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.145",
+    date: "September 1, 2026",
+    title: "Sign-in after campaign tables",
+    summary: "Signing in no longer crashes if campaign/notification columns are still applying.",
+    items: [
+      {
+        kind: "fix",
+        text: "Login and the hub shell no longer depend on firstLoginAt / hub notifications being present — sign-in works even if that migration is still catching up",
+      },
+    ],
+  },
+  {
     version: "3.144",
     date: "September 1, 2026",
     title: "Staging healthcheck",
