@@ -8,6 +8,7 @@ import DashboardCard from "@/components/DashboardCard";
 import CompanySocialPanel from "@/components/CompanySocialPanel";
 import { hubHas } from "@/lib/hub/modules";
 import { canSeeMemberProgressNav } from "@/lib/progression/access";
+import { loadHubAnnouncement } from "@/lib/announcement";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function HomePage() {
       isAdmin
         ? prisma.rewardRedemption.count({ where: { status: "PENDING" } })
         : Promise.resolve(0),
-      prisma.announcement.findUnique({ where: { id: "global" } }),
+      loadHubAnnouncement(),
     ]);
 
   const visibleChannelCount = allChannels.filter((c) =>
