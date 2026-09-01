@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.148",
+    date: "September 1, 2026",
+    title: "Home after sign-in",
+    summary: "The dashboard no longer crashes when announcement media columns are still catching up.",
+    items: [
+      {
+        kind: "fix",
+        text: "Home loads the announcement banner without requiring image/video columns that were added to the schema ahead of their migration",
+      },
+    ],
+  },
+  {
     version: "3.147",
     date: "September 1, 2026",
     title: "Sign-in without server render",
