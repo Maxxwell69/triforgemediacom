@@ -1,16 +1,35 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
 import HubSiteHeader from "@/components/hub/HubSiteHeader";
 import HubSiteFooter from "@/components/hub/HubSiteFooter";
 import SignInForm from "@/components/hub/SignInForm";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Sign in — TriForge Hub",
   description: "Sign in to the TriForge Hub — community, TikTask, Learning Center, and more.",
 };
 
-export default function SignInPage() {
+function safeCallbackUrl(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("://")) {
+    return "/home";
+  }
+  return raw;
+}
+
+function flag(value: string | string[] | undefined): boolean {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "1";
+}
+
+export default function SignInPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div
@@ -30,9 +49,11 @@ export default function SignInPage() {
           Welcome back. Enter your invite-created credentials to open chat, TikTask, courses,
           and the rest of the Hub.
         </p>
-        <Suspense fallback={<p className="font-body text-sm text-off-white/40">Loading…</p>}>
-          <SignInForm />
-        </Suspense>
+        <SignInForm
+          callbackUrl={safeCallbackUrl(searchParams?.callbackUrl)}
+          welcome={flag(searchParams?.welcome)}
+          reset={flag(searchParams?.reset)}
+        />
         <Link
           href="/"
           className="mt-10 font-body text-sm text-off-white/40 transition hover:text-cyan"

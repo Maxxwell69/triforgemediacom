@@ -14,7 +14,7 @@ export default auth((req) => {
   if (isStaffRoute) {
     const role = req.auth?.user?.role;
     if (!req.auth) {
-      const loginUrl = new URL("/login", req.nextUrl.origin);
+      const loginUrl = new URL("/signin", req.nextUrl.origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -27,7 +27,7 @@ export default auth((req) => {
     }
     const isAllowed = role === "ADMIN" || role === "MOD";
     if (!isAllowed) {
-      const loginUrl = new URL("/login", req.nextUrl.origin);
+      const loginUrl = new URL("/signin", req.nextUrl.origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }

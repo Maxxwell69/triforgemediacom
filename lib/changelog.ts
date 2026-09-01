@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.146",
+    date: "September 1, 2026",
+    title: "Sign-in page cache",
+    summary: "The sign-in screen is no longer served from a year-long cache that could stick on an error page.",
+    items: [
+      {
+        kind: "fix",
+        text: "Sign-in always renders fresh (no ISR cache) and no longer uses a search-params bailout that could replace the form with a blank Application error",
+      },
+    ],
+  },
+  {
     version: "3.145",
     date: "September 1, 2026",
     title: "Sign-in after campaign tables",
