@@ -6,6 +6,6 @@
 # Clears a one-time failed webinar migration (if present), then applies pending.
 preDeployCommand = "node scripts/preDeployMigrate.mjs"
 startCommand = "npx next start"
-healthcheckPath = "/login"
+healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"

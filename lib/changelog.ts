@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.144",
+    date: "September 1, 2026",
+    title: "Staging healthcheck",
+    summary: "Railway healthcheck now hits a 200 JSON route instead of the /login redirect.",
+    items: [
+      {
+        kind: "fix",
+        text: "Deploy healthcheck uses /api/health so a 307 from /login → /signin cannot fail the replica",
+      },
+    ],
+  },
+  {
     version: "3.143",
     date: "September 1, 2026",
     title: "Activity roster and campaign triggers",
