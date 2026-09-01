@@ -2,21 +2,24 @@
 
 import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const inputClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60";
 
-export default function SignInForm() {
+export default function SignInForm({
+  callbackUrl = "/home",
+  welcome = false,
+  reset = false,
+}: {
+  callbackUrl?: string;
+  welcome?: boolean;
+  reset?: boolean;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/home";
-
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const welcome = searchParams.get("welcome") === "1";
-  const reset = searchParams.get("reset") === "1";
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
