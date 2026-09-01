@@ -34,6 +34,15 @@ import NotificationBell from "@/components/NotificationBell";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
 
+async function countUnreadHubNotifications(userId: string): Promise<number> {
+  try {
+    return await prisma.hubNotification.count({ where: { userId, readAt: null } });
+  } catch (err) {
+    console.error("hubNotification count failed:", err);
+    return 0;
+  }
+}
+
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireProfile();
 
@@ -43,6 +52,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
     await maybeAutoEnrollProgression(user.id, user.role).catch(() => {});
     await syncSpecialtyGroupAccess(user.id).catch(() => {});
   }
+
+  const unreadNotifications = await countUnreadHubNotifications(user.id).catch(() => 0);
 
   const [
     allChannels,
@@ -57,7 +68,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
     homeGroup,
     showProgress,
     allGroups,
-    unreadNotifications,
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
@@ -98,7 +108,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
       },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
-    prisma.hubNotification.count({ where: { userId: user.id, readAt: null } }),
   ]);
 
   const accessible = allChannels.filter(

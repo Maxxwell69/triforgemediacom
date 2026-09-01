@@ -33,6 +33,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            status: true,
+            passwordHash: true,
+            failedLoginAttempts: true,
+            lockedUntil: true,
+            lastLoginAt: true,
+          },
         });
 
         if (!user || !user.passwordHash) {
@@ -72,13 +83,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             lockedUntil: null,
             lastLoginAt: now,
             lastSeenAt: now,
-            ...(user.firstLoginAt ? {} : { firstLoginAt: now }),
           },
         });
 
         if (wasFirstLogin) {
-          const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
-          fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
+          void prisma.user
+            .update({ where: { id: user.id }, data: { firstLoginAt: now } })
+            .catch((err) => console.error("firstLoginAt update skipped:", err));
+          void import("@/lib/campaigns/engine")
+            .then(({ fireCampaignEventSafe }) => {
+              fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
+            })
+            .catch((err) => console.error("first-login campaign skipped:", err));
         }
 
         return {
