@@ -76,7 +76,10 @@ function recover(out) {
     return migrateResolve("--applied", name);
   }
 
-  return migrateResolve("--rolled-back", name);
+  // Unknown failed migration — do not mark rolled-back. That leaves half-applied
+  // SQL in place and the next deploy then dies on "already exists".
+  console.error(`Leaving failed migration ${name} unresolved for a human to inspect.`);
+  return false;
 }
 
 if (!process.env.DATABASE_URL) {
