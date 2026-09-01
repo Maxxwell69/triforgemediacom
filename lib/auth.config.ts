@@ -12,7 +12,7 @@ export const authConfig = {
   // Auth.js rejects every request with an UntrustedHost error.
   trustHost: true,
   pages: {
-    signIn: "/signin",
+    signIn: "/login",
   },
   providers: [],
   callbacks: {
@@ -25,9 +25,10 @@ export const authConfig = {
       return token;
     },
     session({ session, token }) {
-      session.user.id = token.id;
-      session.user.role = token.role;
-      session.user.status = token.status;
+      if (!session.user) return session;
+      if (token.id) session.user.id = token.id as string;
+      if (token.role) session.user.role = token.role as typeof session.user.role;
+      if (token.status) session.user.status = token.status as typeof session.user.status;
       return session;
     },
   },
