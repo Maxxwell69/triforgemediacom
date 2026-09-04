@@ -607,8 +607,17 @@ export type AppointmentEmailData = {
   timezone: string;
   guestJoinUrl: string;
   hostWebinarUrl: string;
+  cancelUrl: string;
   notes?: string | null;
+  reminderOffered?: boolean;
 };
+
+function appointmentCancelFooter(cancelUrl: string) {
+  return `
+      <p style="line-height:1.5;margin-top:24px;color:rgba(245,245,245,0.5);font-size:12px;">
+        Need to cancel? <a href="${safeHref(cancelUrl) || "#"}" style="color:#00D4FF;">Cancel this meeting</a>
+      </p>`;
+}
 
 export function buildAppointmentBookerEmail(data: AppointmentEmailData): EmailContent {
   const name = escapeHtml(data.bookerName);
@@ -633,7 +642,9 @@ export function buildAppointmentBookerEmail(data: AppointmentEmailData): EmailCo
       </p>
       <p style="line-height:1.5;margin-top:20px;color:rgba(245,245,245,0.45);font-size:12px;">
         Save this email — your personal room link is above.
+        ${data.reminderOffered ? " We'll also email you about an hour before." : ""}
       </p>
+      ${appointmentCancelFooter(data.cancelUrl)}
     `),
   };
 }
@@ -658,6 +669,7 @@ export function buildAppointmentHostEmail(data: AppointmentEmailData): EmailCont
         Meeting room:<br/>
         <a href="${safeHref(data.hostWebinarUrl) || "#"}" style="color:#00D4FF;word-break:break-all;">${escapeHtml(data.hostWebinarUrl)}</a>
       </p>
+      ${appointmentCancelFooter(data.cancelUrl)}
     `),
   };
 }
@@ -673,6 +685,64 @@ export async function sendAppointmentBookedEmails(
   });
   await send(data.hostEmail, host.subject, host.html, {
     idempotencyKey: `appointment-host/${idempotencyBase}`,
+  });
+}
+
+export function buildAppointmentReminderEmail(
+  data: AppointmentEmailData,
+  forHost: boolean
+): EmailContent {
+  const who = forHost
+    ? `Your meeting with <strong>${escapeHtml(data.bookerName)}</strong> starts in about an hour.`
+    : `Hi ${escapeHtml(data.bookerName)}, your meeting with <strong>${escapeHtml(data.hostName)}</strong> starts in about an hour.`;
+  const roomUrl = forHost ? data.hostWebinarUrl : data.guestJoinUrl;
+  return {
+    subject: `In 1 hour: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#FD4802;margin:0 0 16px;">Meeting in 1 hour</h1>
+      <p style="line-height:1.6;">${who}</p>
+      <p style="line-height:1.6;"><strong>${escapeHtml(data.title)}</strong><br/>${escapeHtml(data.whenLabel)}</p>
+      ${button("Join meeting room", roomUrl)}
+      ${appointmentCancelFooter(data.cancelUrl)}
+    `),
+  };
+}
+
+export async function sendAppointmentReminderEmails(
+  data: AppointmentEmailData,
+  idempotencyBase: string
+) {
+  const booker = buildAppointmentReminderEmail(data, false);
+  const host = buildAppointmentReminderEmail(data, true);
+  await send(data.bookerEmail, booker.subject, booker.html, {
+    idempotencyKey: `appointment-remind-booker/${idempotencyBase}`,
+  });
+  await send(data.hostEmail, host.subject, host.html, {
+    idempotencyKey: `appointment-remind-host/${idempotencyBase}`,
+  });
+}
+
+export function buildAppointmentCancelledEmail(data: AppointmentEmailData): EmailContent {
+  return {
+    subject: `Cancelled: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#FD4802;margin:0 0 16px;">Meeting cancelled</h1>
+      <p style="line-height:1.6;"><strong>${escapeHtml(data.title)}</strong><br/>${escapeHtml(data.whenLabel)} is no longer on the calendar.</p>
+      <p style="line-height:1.6;color:rgba(245,245,245,0.6);">If you still need time, book again from the original link.</p>
+    `),
+  };
+}
+
+export async function sendAppointmentCancelledEmails(
+  data: AppointmentEmailData,
+  idempotencyBase: string
+) {
+  const content = buildAppointmentCancelledEmail(data);
+  await send(data.bookerEmail, content.subject, content.html, {
+    idempotencyKey: `appointment-cancel-booker/${idempotencyBase}`,
+  });
+  await send(data.hostEmail, content.subject, content.html, {
+    idempotencyKey: `appointment-cancel-host/${idempotencyBase}`,
   });
 }
 

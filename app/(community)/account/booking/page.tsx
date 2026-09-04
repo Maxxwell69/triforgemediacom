@@ -56,6 +56,7 @@ export default async function AccountBookingPage() {
                 bufferMins: bookingPage.bufferMins,
                 aheadDays: bookingPage.aheadDays,
                 isActive: bookingPage.isActive,
+                remindHourBefore: bookingPage.remindHourBefore,
                 bookingUrl: bookingPageUrl(bookingPage.slug),
                 weeklyWindows: bookingPage.weeklyWindows.map((w) => ({
                   dayOfWeek: w.dayOfWeek,

@@ -14,6 +14,11 @@ export function bookingPageUrl(slug: string): string {
   return `${base}/book/${slug}`;
 }
 
+export function appointmentCancelUrl(cancelToken: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  return `${base}/book/cancel/${cancelToken}`;
+}
+
 export function suggestBookingSlug(email: string, name?: string | null): string {
   const base =
     (name || email.split("@")[0] || "host")

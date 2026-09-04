@@ -1,0 +1,23 @@
+name: Booking 1-hour reminders
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call booking-reminders cron endpoint
+        run: |
+          http_code=$(curl -s -o response.txt -w "%{http_code}" \
+            --max-time 90 \
+            "https://hub.triforgemedia.com/api/cron/booking-reminders?secret=${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $http_code"
+          echo "Response body:"
+          cat response.txt
+          if [ "$http_code" -ne 200 ]; then
+            echo "Cron endpoint returned a non-200 status"
+            exit 1
+          fi

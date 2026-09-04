@@ -1555,6 +1555,8 @@ model BookingPage {
   /// How many days ahead guests can book.
   aheadDays    Int      @default(14)
   isActive     Boolean  @default(true)
+  /// Offer a 1-hour reminder email on the public booking form.
+  remindHourBefore Boolean @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1623,6 +1625,9 @@ model Appointment {
   endsAt        DateTime
   status        AppointmentStatus @default(CONFIRMED)
   webinarId     String?           @unique
+  cancelToken   String            @unique
+  remindHourBefore Boolean        @default(true)
+  reminderSentAt DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 

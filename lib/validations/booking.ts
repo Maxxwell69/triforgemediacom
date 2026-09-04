@@ -19,6 +19,7 @@ export const bookingPageSettingsSchema = z.object({
   bufferMins: z.coerce.number().int().min(0).max(60),
   aheadDays: z.coerce.number().int().min(1).max(60),
   isActive: z.boolean().optional(),
+  remindHourBefore: z.boolean().optional(),
 });
 
 export const weeklyWindowSchema = z.object({
@@ -33,6 +34,7 @@ export const publicBookSchema = z.object({
   bookerName: z.string().trim().min(2).max(80),
   bookerEmail: z.string().trim().email(),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+  remindHourBefore: z.boolean().optional(),
 });
 
 export const bookingMeetingTypeSchema = z.object({

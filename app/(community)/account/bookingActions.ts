@@ -97,6 +97,7 @@ export async function updateBookingPageSettings(
     bufferMins: formData.get("bufferMins"),
     aheadDays: formData.get("aheadDays"),
     isActive: formData.get("isActive") === "on",
+    remindHourBefore: formData.get("remindHourBefore") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid settings" };
@@ -119,6 +120,7 @@ export async function updateBookingPageSettings(
       bufferMins: parsed.data.bufferMins,
       aheadDays: parsed.data.aheadDays,
       isActive: parsed.data.isActive ?? true,
+      remindHourBefore: parsed.data.remindHourBefore ?? true,
     },
   });
 
