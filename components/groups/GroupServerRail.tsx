@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { setActiveGroupAction } from "@/app/(community)/groups/activeGroupActions";
+
+function isWebinarRoomPath(pathname: string) {
+  return /\/webinars\/[^/]+\/room/.test(pathname);
+}
 
 export type ServerRailSpace = {
   id: string;
@@ -33,7 +37,8 @@ export default function GroupServerRail({
   spaces: ServerRailSpace[];
   activeGroupId: string | null;
 }) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const inWebinarRoom = isWebinarRoomPath(pathname);
   const [pending, startTransition] = useTransition();
   const [unreadByGroup, setUnreadByGroup] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
@@ -93,8 +98,8 @@ export default function GroupServerRail({
                 aria-hidden
               />
               <div className="relative h-12 w-12 shrink-0">
-                <button
-                  type="button"
+                <Link
+                  href={`/groups/${space.id}`}
                   title={space.name}
                   aria-label={
                     unreadCount > 0
@@ -102,22 +107,24 @@ export default function GroupServerRail({
                       : space.name
                   }
                   aria-current={active ? "true" : undefined}
-                  disabled={pending}
-                  onClick={() => {
-                    if (active) return;
+                  aria-disabled={pending || (active && !inWebinarRoom) || undefined}
+                  onClick={(e) => {
+                    // Stay put when this space is already active — except in a
+                    // webinar room, where the icon must navigate (and warn) so
+                    // you can leave the stage.
+                    if (pending || (active && !inWebinarRoom)) {
+                      e.preventDefault();
+                      return;
+                    }
                     startTransition(async () => {
-                      const result = await setActiveGroupAction(space.id);
-                      if (result.error) return;
-                      // Leave any open channel from the previous space so
-                      // SyncActiveGroup on that page can't write the cookie back.
-                      router.push(`/groups/${space.id}`);
+                      await setActiveGroupAction(space.id);
                     });
                   }}
-                  className={`h-full w-full overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+                  className={`block h-full w-full overflow-hidden transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
                     active
                       ? "rounded-2xl shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
                       : "rounded-[1.5rem] hover:rounded-2xl"
-                  } ${pending ? "opacity-60" : ""}`}
+                  } ${pending ? "pointer-events-none opacity-60" : ""}`}
                   style={
                     space.imageUrl
                       ? undefined
@@ -136,7 +143,7 @@ export default function GroupServerRail({
                       {space.name.slice(0, 1).toUpperCase()}
                     </span>
                   )}
-                </button>
+                </Link>
                 <UnreadPill count={unreadCount} />
               </div>
 

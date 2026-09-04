@@ -137,6 +137,42 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.152",
+    date: "September 3, 2026",
+    title: "Sort My Tasks by due date or category",
+    summary: "Personal tasks can be tagged and reordered so the work due soonest or in one category sits together.",
+    items: [
+      {
+        kind: "feature",
+        text: "My Tasks: optional category on each to-do, plus sort by added, due date, or category",
+      },
+    ],
+  },
+  {
+    version: "3.151",
+    date: "September 3, 2026",
+    title: "Task due dates stay on the day you pick",
+    summary: "Entering 9/7 no longer lists the task as due 9/6.",
+    items: [
+      {
+        kind: "fix",
+        text: "Personal task due dates are stored and shown as calendar days, so they no longer shift back one day in US timezones",
+      },
+    ],
+  },
+  {
+    version: "3.150",
+    date: "September 3, 2026",
+    title: "Webinar leave warning on groups",
+    summary: "Leaving a live room via the group rail now asks before you drop off stage.",
+    items: [
+      {
+        kind: "fix",
+        text: "Clicking a group icon or Groups from a webinar room shows the leave warning instead of navigating away silently",
+      },
+    ],
+  },
+  {
     version: "3.149",
     date: "September 1, 2026",
     title: "Staging migrate recover",
