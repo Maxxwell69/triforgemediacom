@@ -137,6 +137,26 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.154",
+    date: "September 4, 2026",
+    title: "Booking types, room links, and calendar-aware slots",
+    summary: "Hosts can offer multiple meeting types, fill extra open hours, and emails now open the meeting room.",
+    items: [
+      {
+        kind: "feature",
+        text: "Booking setup: create meeting types that land on the hub calendar when booked",
+      },
+      {
+        kind: "feature",
+        text: "Add one-off open hours; bookable times skip hub calendar events, webinars, and other bookings",
+      },
+      {
+        kind: "improve",
+        text: "Confirmation emails and the calendar event include a direct meeting-room link",
+      },
+    ],
+  },
+  {
     version: "3.153",
     date: "September 3, 2026",
     title: "Unblock staging pre-deploy",

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { isAdminRole } from "@/lib/rbac";
 import { bookingPageUrl } from "@/lib/booking";
+import { ensureBookingPage } from "@/app/(community)/account/bookingActions";
 import BookingSchedulePanel from "@/components/account/BookingSchedulePanel";
 import AccountPageShell from "@/components/account/AccountPageShell";
 
@@ -12,12 +13,23 @@ export default async function AccountBookingPage() {
     redirect("/account");
   }
 
-  const bookingPage = await prisma.bookingPage.findUnique({
+  const include = {
+    weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] as const },
+    meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as const },
+    openSlots: { orderBy: { startsAt: "asc" } as const },
+  };
+
+  let bookingPage = await prisma.bookingPage.findUnique({
     where: { hostUserId: user.id },
-    include: {
-      weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
-    },
+    include,
   });
+  if (bookingPage && bookingPage.meetingTypes.length === 0) {
+    await ensureBookingPage();
+    bookingPage = await prisma.bookingPage.findUnique({
+      where: { hostUserId: user.id },
+      include,
+    });
+  }
 
   return (
     <AccountPageShell
@@ -27,7 +39,7 @@ export default async function AccountBookingPage() {
           <span className="text-gradient">BOOKING</span>
         </>
       }
-      description="Share a link so people can schedule time with you."
+      description="Share a link so people can schedule time with you. Meeting types land on your calendar; open times skip other hub events."
     >
       <BookingSchedulePanel
         page={
@@ -47,6 +59,19 @@ export default async function AccountBookingPage() {
                   dayOfWeek: w.dayOfWeek,
                   startMinute: w.startMinute,
                   endMinute: w.endMinute,
+                })),
+                meetingTypes: bookingPage.meetingTypes.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  description: t.description,
+                  durationMins: t.durationMins,
+                  isActive: t.isActive,
+                })),
+                openSlots: bookingPage.openSlots.map((s) => ({
+                  id: s.id,
+                  startsAt: s.startsAt.toISOString(),
+                  endsAt: s.endsAt.toISOString(),
+                  label: s.label,
                 })),
               }
             : null

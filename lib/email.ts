@@ -626,9 +626,13 @@ export function buildAppointmentBookerEmail(data: AppointmentEmailData): EmailCo
       <p style="line-height:1.6;">Hi ${name}, your meeting with <strong>${host}</strong> is confirmed.</p>
       <p style="line-height:1.6;"><strong>${title}</strong><br/>${when}<br/><span style="color:rgba(245,245,245,0.55);font-size:13px;">${tz}</span></p>
       ${notes}
-      ${button("Join meeting", data.guestJoinUrl)}
+      ${button("Join meeting room", data.guestJoinUrl)}
+      <p style="line-height:1.5;margin-top:16px;font-size:13px;">
+        Meeting room:<br/>
+        <a href="${safeHref(data.guestJoinUrl) || "#"}" style="color:#00D4FF;word-break:break-all;">${escapeHtml(data.guestJoinUrl)}</a>
+      </p>
       <p style="line-height:1.5;margin-top:20px;color:rgba(245,245,245,0.45);font-size:12px;">
-        Save this email — your personal join link is above.
+        Save this email — your personal room link is above.
       </p>
     `),
   };
@@ -650,6 +654,10 @@ export function buildAppointmentHostEmail(data: AppointmentEmailData): EmailCont
       <p style="line-height:1.6;"><strong>${title}</strong><br/>${when}</p>
       ${notes}
       ${button("Open meeting room", data.hostWebinarUrl)}
+      <p style="line-height:1.5;margin-top:16px;font-size:13px;">
+        Meeting room:<br/>
+        <a href="${safeHref(data.hostWebinarUrl) || "#"}" style="color:#00D4FF;word-break:break-all;">${escapeHtml(data.hostWebinarUrl)}</a>
+      </p>
     `),
   };
 }

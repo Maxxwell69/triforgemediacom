@@ -104,10 +104,10 @@ export default async function CalendarEventPage({
             <div className="mt-8 flex flex-wrap items-center gap-3">
               {event.webinarId ? (
                 <Link
-                  href={`/webinars/${event.webinarId}`}
+                  href={`/webinars/${event.webinarId}/room`}
                   className="rounded-lg bg-cyan/90 px-4 py-2 font-body text-sm font-semibold text-charcoal transition hover:brightness-110"
                 >
-                  Open webinar
+                  Open meeting room
                 </Link>
               ) : alreadyRsvpd ? (
                 <span className="rounded-lg border border-cyan/35 bg-cyan/10 px-4 py-2 font-body text-sm font-semibold text-cyan">

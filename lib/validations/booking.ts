@@ -29,7 +29,21 @@ export const weeklyWindowSchema = z.object({
 
 export const publicBookSchema = z.object({
   startsAt: z.string().trim().min(1, "Pick a time slot"),
+  meetingTypeId: z.string().trim().optional().or(z.literal("")),
   bookerName: z.string().trim().min(2).max(80),
   bookerEmail: z.string().trim().email(),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const bookingMeetingTypeSchema = z.object({
+  title: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(240).optional().or(z.literal("")),
+  durationMins: z.coerce.number().int().min(15).max(180),
+});
+
+export const bookingOpenSlotSchema = z.object({
+  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
+  start: z.string().trim().regex(/^\d{2}:\d{2}$/, "Pick a start time"),
+  end: z.string().trim().regex(/^\d{2}:\d{2}$/, "Pick an end time"),
+  label: z.string().trim().max(80).optional().or(z.literal("")),
 });
