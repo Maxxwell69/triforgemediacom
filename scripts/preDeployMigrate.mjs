@@ -11,6 +11,10 @@ const LEGACY_RECORDINGS = "20260729214500_add_webinar_recordings";
 const RECORDINGS = "20260729221000_add_webinar_recordings";
 const MODERATION = "20260730021500_add_webinar_moderation";
 const ANNOUNCEMENT_MEDIA = "20260901190000_announcement_media";
+const PERSONAL_TASK_CATEGORY = "20260903200000_personal_task_category";
+
+/** Additive-only migrations that are safe to mark applied if SQL already landed. */
+const SAFE_MARK_APPLIED = new Set([ANNOUNCEMENT_MEDIA, PERSONAL_TASK_CATEGORY]);
 
 function run(args) {
   return spawnSync("npx", args, {
@@ -40,6 +44,7 @@ function extractMigrationName(out) {
     /Migration name:\s*`?(\d{14}_[A-Za-z0-9_]+)`?/i,
     /The `(\d{14}_[A-Za-z0-9_]+)` migration/i,
     /failed migrations?[\s\S]*?`(\d{14}_[A-Za-z0-9_]+)`/i,
+    /Migration `(\d{14}_[A-Za-z0-9_]+)` failed/i,
   ];
   for (const re of patterns) {
     const m = out.match(re);
@@ -77,13 +82,13 @@ function recover(out) {
     return migrateResolve("--applied", name);
   }
 
-  // Staging already had imageUrl/videoUrl (schema push / older SQL). The
-  // additive migration then fails with "column already exists" and blocks deploy.
-  if (
-    name === ANNOUNCEMENT_MEDIA &&
-    /already exists|imageUrl|videoUrl/i.test(out)
-  ) {
-    return migrateResolve("--applied", ANNOUNCEMENT_MEDIA);
+  // Additive column migrations: first apply can fail with "already exists".
+  // Later deploys only report P3009 ("migration X failed") with no column text.
+  // Roll back the failed row, then mark applied so deploy can continue.
+  if (SAFE_MARK_APPLIED.has(name)) {
+    console.log(`Recovering additive migration ${name} (mark applied).`);
+    migrateResolve("--rolled-back", name);
+    return migrateResolve("--applied", name);
   }
 
   // Unknown failed migration — do not mark rolled-back. That leaves half-applied

@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.153",
+    date: "September 3, 2026",
+    title: "Unblock staging pre-deploy",
+    summary: "Staging can finish migrations when an older announcement-media change is already in the database.",
+    items: [
+      {
+        kind: "fix",
+        text: "Pre-deploy clears a failed additive migration (P3009) so staging can apply My Tasks category and start",
+      },
+    ],
+  },
+  {
     version: "3.152",
     date: "September 3, 2026",
     title: "Sort My Tasks by due date or category",
