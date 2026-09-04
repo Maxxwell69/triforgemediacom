@@ -13,21 +13,23 @@ export default async function AccountBookingPage() {
     redirect("/account");
   }
 
-  const include = {
-    weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] as const },
-    meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as const },
-    openSlots: { orderBy: { startsAt: "asc" } as const },
-  };
-
   let bookingPage = await prisma.bookingPage.findUnique({
     where: { hostUserId: user.id },
-    include,
+    include: {
+      weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
+      meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      openSlots: { orderBy: { startsAt: "asc" } },
+    },
   });
   if (bookingPage && bookingPage.meetingTypes.length === 0) {
     await ensureBookingPage();
     bookingPage = await prisma.bookingPage.findUnique({
       where: { hostUserId: user.id },
-      include,
+      include: {
+        weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
+        meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+        openSlots: { orderBy: { startsAt: "asc" } },
+      },
     });
   }
 
