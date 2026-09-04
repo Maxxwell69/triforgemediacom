@@ -6,6 +6,7 @@ import { bookingPageUrl } from "@/lib/booking";
 import { ensureBookingPage } from "@/app/(community)/account/bookingActions";
 import BookingSchedulePanel from "@/components/account/BookingSchedulePanel";
 import AccountPageShell from "@/components/account/AccountPageShell";
+import BookingSubnav from "@/components/account/BookingSubnav";
 
 export default async function AccountBookingPage() {
   const { user } = await requireProfile();
@@ -33,6 +34,14 @@ export default async function AccountBookingPage() {
     });
   }
 
+  const upcomingCount = await prisma.appointment.count({
+    where: {
+      hostUserId: user.id,
+      status: "CONFIRMED",
+      endsAt: { gte: new Date() },
+    },
+  });
+
   return (
     <AccountPageShell
       crumbs={[{ label: "Booking" }]}
@@ -43,6 +52,7 @@ export default async function AccountBookingPage() {
       }
       description="Share a link so people can schedule time with you. Meeting types land on your calendar; open times skip other hub events."
     >
+      <BookingSubnav active="setup" upcomingCount={upcomingCount} />
       <BookingSchedulePanel
         page={
           bookingPage

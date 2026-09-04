@@ -746,6 +746,74 @@ export async function sendAppointmentCancelledEmails(
   });
 }
 
+export function buildAppointmentRescheduledEmail(
+  data: AppointmentEmailData,
+  forHost: boolean
+): EmailContent {
+  const who = forHost
+    ? `Your meeting with <strong>${escapeHtml(data.bookerName)}</strong> was moved.`
+    : `Hi ${escapeHtml(data.bookerName)}, your meeting with <strong>${escapeHtml(data.hostName)}</strong> was rescheduled.`;
+  const roomUrl = forHost ? data.hostWebinarUrl : data.guestJoinUrl;
+  return {
+    subject: `Rescheduled: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#00D4FF;margin:0 0 16px;">Meeting rescheduled</h1>
+      <p style="line-height:1.6;">${who}</p>
+      <p style="line-height:1.6;">New time:<br/><strong>${escapeHtml(data.title)}</strong><br/>${escapeHtml(data.whenLabel)}</p>
+      ${button("Join meeting room", roomUrl)}
+      ${appointmentCancelFooter(data.cancelUrl)}
+    `),
+  };
+}
+
+export async function sendAppointmentRescheduledEmails(
+  data: AppointmentEmailData,
+  idempotencyBase: string
+) {
+  const booker = buildAppointmentRescheduledEmail(data, false);
+  const host = buildAppointmentRescheduledEmail(data, true);
+  await send(data.bookerEmail, booker.subject, booker.html, {
+    idempotencyKey: `appointment-reschedule-booker/${idempotencyBase}`,
+  });
+  await send(data.hostEmail, host.subject, host.html, {
+    idempotencyKey: `appointment-reschedule-host/${idempotencyBase}`,
+  });
+}
+
+export function buildAppointmentManualReminderEmail(
+  data: AppointmentEmailData,
+  forHost: boolean
+): EmailContent {
+  const who = forHost
+    ? `Reminder: you have an upcoming meeting with <strong>${escapeHtml(data.bookerName)}</strong>.`
+    : `Hi ${escapeHtml(data.bookerName)}, this is a reminder of your upcoming meeting with <strong>${escapeHtml(data.hostName)}</strong>.`;
+  const roomUrl = forHost ? data.hostWebinarUrl : data.guestJoinUrl;
+  return {
+    subject: `Reminder: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#FD4802;margin:0 0 16px;">Meeting reminder</h1>
+      <p style="line-height:1.6;">${who}</p>
+      <p style="line-height:1.6;"><strong>${escapeHtml(data.title)}</strong><br/>${escapeHtml(data.whenLabel)}</p>
+      ${button("Join meeting room", roomUrl)}
+      ${appointmentCancelFooter(data.cancelUrl)}
+    `),
+  };
+}
+
+export async function sendAppointmentManualReminderEmails(
+  data: AppointmentEmailData,
+  idempotencyBase: string
+) {
+  const booker = buildAppointmentManualReminderEmail(data, false);
+  const host = buildAppointmentManualReminderEmail(data, true);
+  await send(data.bookerEmail, booker.subject, booker.html, {
+    idempotencyKey: `appointment-nudge-booker/${idempotencyBase}`,
+  });
+  await send(data.hostEmail, host.subject, host.html, {
+    idempotencyKey: `appointment-nudge-host/${idempotencyBase}`,
+  });
+}
+
 // ---------- Bug report admin alerts ----------
 
 export type BugReportAlertData = {

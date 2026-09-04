@@ -85,11 +85,18 @@ function assumeEnd(startsAt: Date, endsAt: Date | null, fallbackMins = 60) {
   return endsAt ?? new Date(startsAt.getTime() + fallbackMins * 60 * 1000);
 }
 
+export type BusyRangeOpts = {
+  /** Ignore this appointment (and its mirrored calendar/webinar) when listing slots. */
+  excludeAppointmentId?: string;
+  excludeWebinarId?: string;
+};
+
 /** Busy times from appointments, hub calendar, webinars, and busy blocks. */
 export async function listHostBusyRanges(
   hostUserId: string,
   from: Date,
-  to: Date
+  to: Date,
+  opts?: BusyRangeOpts
 ): Promise<BusyRange[]> {
   const [appointments, events, busySlots, calendarBookings, webinars] = await Promise.all([
     prisma.appointment.findMany({
@@ -98,6 +105,7 @@ export async function listHostBusyRanges(
         status: "CONFIRMED",
         startsAt: { lt: to },
         endsAt: { gt: from },
+        ...(opts?.excludeAppointmentId ? { id: { not: opts.excludeAppointmentId } } : {}),
       },
       select: { startsAt: true, endsAt: true },
     }),
@@ -112,6 +120,9 @@ export async function listHostBusyRanges(
           },
           { startsAt: { lt: to } },
           { OR: [{ endsAt: null }, { endsAt: { gt: from } }] },
+          ...(opts?.excludeWebinarId
+            ? [{ NOT: { webinarId: opts.excludeWebinarId } }]
+            : []),
         ],
       },
       select: { startsAt: true, endsAt: true },
@@ -139,6 +150,7 @@ export async function listHostBusyRanges(
         hostUserId,
         status: { in: ["SCHEDULED", "LIVE"] },
         scheduledAt: { lt: to, gt: new Date(from.getTime() - 3 * 60 * 60 * 1000) },
+        ...(opts?.excludeWebinarId ? { id: { not: opts.excludeWebinarId } } : {}),
       },
       select: { scheduledAt: true },
     }),
@@ -208,10 +220,11 @@ function pushSlicedWindow(
 export async function listOpenSlotsForPage(
   page: PageForSlots & { id: string; hostUserId: string },
   from: Date = new Date(),
-  durationMins = page.durationMins
+  durationMins = page.durationMins,
+  opts?: BusyRangeOpts
 ): Promise<OpenSlot[]> {
   const horizon = new Date(from.getTime() + page.aheadDays * 24 * 60 * 60 * 1000);
-  const busy = await listHostBusyRanges(page.hostUserId, from, horizon);
+  const busy = await listHostBusyRanges(page.hostUserId, from, horizon, opts);
   const slots: OpenSlot[] = [];
   const cursorParts = zonedParts(from, page.timezone);
 
