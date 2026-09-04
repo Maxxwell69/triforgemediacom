@@ -34,6 +34,7 @@ type PageProps = {
   bufferMins: number;
   aheadDays: number;
   isActive: boolean;
+  remindHourBefore: boolean;
   bookingUrl: string;
   weeklyWindows: { dayOfWeek: number; startMinute: number; endMinute: number }[];
   meetingTypes: {
@@ -199,6 +200,15 @@ export default function BookingSchedulePanel({
             className="accent-orange"
           />
           Booking page is active
+        </label>
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="remindHourBefore"
+            defaultChecked={initialPage.remindHourBefore}
+            className="accent-orange"
+          />
+          Offer a 1-hour reminder email (guest can opt in)
         </label>
         <button
           type="submit"

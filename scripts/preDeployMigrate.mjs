@@ -12,9 +12,14 @@ const RECORDINGS = "20260729221000_add_webinar_recordings";
 const MODERATION = "20260730021500_add_webinar_moderation";
 const ANNOUNCEMENT_MEDIA = "20260901190000_announcement_media";
 const PERSONAL_TASK_CATEGORY = "20260903200000_personal_task_category";
+const BOOKING_REMIND_CANCEL = "20260904020000_booking_remind_cancel";
 
 /** Additive-only migrations that are safe to mark applied if SQL already landed. */
-const SAFE_MARK_APPLIED = new Set([ANNOUNCEMENT_MEDIA, PERSONAL_TASK_CATEGORY]);
+const SAFE_MARK_APPLIED = new Set([
+  ANNOUNCEMENT_MEDIA,
+  PERSONAL_TASK_CATEGORY,
+  BOOKING_REMIND_CANCEL,
+]);
 
 function run(args) {
   return spawnSync("npx", args, {

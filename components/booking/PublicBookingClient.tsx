@@ -24,6 +24,7 @@ type Props = {
   durationMins: number;
   slots: OpenSlot[];
   meetingTypes: PublicMeetingType[];
+  remindHourBefore: boolean;
 };
 
 export default function PublicBookingClient({
@@ -35,6 +36,7 @@ export default function PublicBookingClient({
   durationMins,
   slots,
   meetingTypes,
+  remindHourBefore,
 }: Props) {
   const [typeId, setTypeId] = useState<string | null>(meetingTypes[0]?.id ?? null);
   const [dayKey, setDayKey] = useState<string | null>(null);
@@ -215,6 +217,17 @@ export default function PublicBookingClient({
             placeholder="Anything we should know? (optional)"
             className={fieldClass}
           />
+          {remindHourBefore && (
+            <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+              <input
+                type="checkbox"
+                name="remindHourBefore"
+                defaultChecked
+                className="accent-orange"
+              />
+              Email me 1 hour before
+            </label>
+          )}
           {error && <p className="font-body text-sm text-orange">{error}</p>}
           <button
             type="submit"

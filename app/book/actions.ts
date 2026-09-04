@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import {
+  appointmentCancelUrl,
   getActiveBookingPageBySlug,
   listHostBusyRanges,
   listOpenSlotsForPage,
@@ -50,6 +51,7 @@ export async function bookAppointment(
     bookerName: formData.get("bookerName"),
     bookerEmail: formData.get("bookerEmail"),
     notes: formData.get("notes") || "",
+    remindHourBefore: formData.get("remindHourBefore") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid booking" };
@@ -87,6 +89,8 @@ export async function bookAppointment(
 
   const inviteToken = generateWebinarExternalToken();
   const joinToken = generateWebinarExternalToken();
+  const cancelToken = generateWebinarExternalToken();
+  const wantReminder = Boolean(page.remindHourBefore && parsed.data.remindHourBefore);
   const title = `${meetingTitle} with ${parsed.data.bookerName}`;
   const hostDisplay = publicHostDisplayName(page.host);
 
@@ -163,6 +167,8 @@ export async function bookAppointment(
             endsAt,
             status: "CONFIRMED",
             webinarId: webinar.id,
+            cancelToken,
+            remindHourBefore: wantReminder,
           },
         });
 
@@ -202,7 +208,9 @@ export async function bookAppointment(
         timezone: page.timezone,
         guestJoinUrl,
         hostWebinarUrl,
+        cancelUrl: appointmentCancelUrl(cancelToken),
         notes: parsed.data.notes,
+        reminderOffered: wantReminder,
       },
       appointmentId
     );

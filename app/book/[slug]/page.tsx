@@ -43,6 +43,7 @@ export default async function PublicBookPage({
             durationMins={page.durationMins}
             slots={meetingTypes[0]?.slots ?? fallbackSlots}
             meetingTypes={meetingTypes}
+            remindHourBefore={page.remindHourBefore}
           />
         </div>
         <p className="mt-10 text-center font-body text-xs text-off-white/35">

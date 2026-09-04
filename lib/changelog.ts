@@ -137,6 +137,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.155",
+    date: "September 4, 2026",
+    title: "Booking reminders and cancel links",
+    summary: "Guests can opt into a 1-hour reminder, and every booking email includes a cancel link.",
+    items: [
+      {
+        kind: "feature",
+        text: "Public booking: optional 1-hour reminder email to guest and host",
+      },
+      {
+        kind: "feature",
+        text: "Confirmation, reminder, and host emails include a cancel link that frees the slot",
+      },
+    ],
+  },
+  {
     version: "3.154",
     date: "September 4, 2026",
     title: "Booking types, room links, and calendar-aware slots",
