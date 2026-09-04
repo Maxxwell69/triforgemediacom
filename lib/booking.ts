@@ -67,26 +67,146 @@ type PageForSlots = {
   bufferMins: number;
   aheadDays: number;
   weeklyWindows: { dayOfWeek: number; startMinute: number; endMinute: number }[];
+  openSlots?: { startsAt: Date; endsAt: Date }[];
 };
 
-/** Generate open UTC slots from weekly windows, minus existing appointments. */
+type BusyRange = { startsAt: Date; endsAt: Date };
+
+function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+function assumeEnd(startsAt: Date, endsAt: Date | null, fallbackMins = 60) {
+  return endsAt ?? new Date(startsAt.getTime() + fallbackMins * 60 * 1000);
+}
+
+/** Busy times from appointments, hub calendar, webinars, and busy blocks. */
+export async function listHostBusyRanges(
+  hostUserId: string,
+  from: Date,
+  to: Date
+): Promise<BusyRange[]> {
+  const [appointments, events, busySlots, calendarBookings, webinars] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        hostUserId,
+        status: "CONFIRMED",
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+      },
+      select: { startsAt: true, endsAt: true },
+    }),
+    prisma.calendarEvent.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { createdById: hostUserId },
+              { attendees: { some: { userId: hostUserId } } },
+            ],
+          },
+          { startsAt: { lt: to } },
+          { OR: [{ endsAt: null }, { endsAt: { gt: from } }] },
+        ],
+      },
+      select: { startsAt: true, endsAt: true },
+    }),
+    prisma.availabilitySlot.findMany({
+      where: {
+        userId: hostUserId,
+        kind: "BUSY",
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+      },
+      select: { startsAt: true, endsAt: true },
+    }),
+    prisma.calendarBooking.findMany({
+      where: {
+        hostId: hostUserId,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+      },
+      select: { startsAt: true, endsAt: true },
+    }),
+    prisma.webinar.findMany({
+      where: {
+        hostUserId,
+        status: { in: ["SCHEDULED", "LIVE"] },
+        scheduledAt: { lt: to, gt: new Date(from.getTime() - 3 * 60 * 60 * 1000) },
+      },
+      select: { scheduledAt: true },
+    }),
+  ]);
+
+  return [
+    ...appointments,
+    ...events.map((e) => ({ startsAt: e.startsAt, endsAt: assumeEnd(e.startsAt, e.endsAt) })),
+    ...busySlots,
+    ...calendarBookings,
+    ...webinars.map((w) => ({
+      startsAt: w.scheduledAt,
+      endsAt: new Date(w.scheduledAt.getTime() + 60 * 60 * 1000),
+    })),
+  ];
+}
+
+function pushSlicedWindow(
+  slots: OpenSlot[],
+  busy: BusyRange[],
+  timezone: string,
+  from: Date,
+  horizon: Date,
+  durationMins: number,
+  bufferMins: number,
+  windowStart: Date,
+  windowEnd: Date
+) {
+  const startParts = zonedParts(windowStart, timezone);
+  let cursorMin = startParts.hour * 60 + startParts.minute;
+  const endParts = zonedParts(windowEnd, timezone);
+  const endMin = endParts.hour * 60 + endParts.minute + (endParts.day !== startParts.day ? 24 * 60 : 0);
+
+  for (; cursorMin + durationMins <= endMin; cursorMin += durationMins + bufferMins) {
+    const startH = Math.floor(cursorMin / 60);
+    const startM = cursorMin % 60;
+    const endsMin = cursorMin + durationMins;
+    const startsAt = localWallTimeToUtc(
+      timezone,
+      startParts.year,
+      startParts.month,
+      startParts.day,
+      startH,
+      startM
+    );
+    const endsAt = localWallTimeToUtc(
+      timezone,
+      startParts.year,
+      startParts.month,
+      startParts.day,
+      Math.floor(endsMin / 60),
+      endsMin % 60
+    );
+
+    if (startsAt <= from || startsAt >= horizon) continue;
+    if (busy.some((b) => rangesOverlap(startsAt, endsAt, b.startsAt, b.endsAt))) continue;
+
+    slots.push({
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      label: `${minutesToLabel(cursorMin % (24 * 60))} – ${minutesToLabel(endsMin % (24 * 60) || 24 * 60)}`,
+    });
+  }
+}
+
+/** Generate open UTC slots from weekly hours + extra open slots, minus hub calendar busy. */
 export async function listOpenSlotsForPage(
   page: PageForSlots & { id: string; hostUserId: string },
-  from: Date = new Date()
+  from: Date = new Date(),
+  durationMins = page.durationMins
 ): Promise<OpenSlot[]> {
-  if (page.weeklyWindows.length === 0) return [];
-
   const horizon = new Date(from.getTime() + page.aheadDays * 24 * 60 * 60 * 1000);
-  const busy = await prisma.appointment.findMany({
-    where: {
-      hostUserId: page.hostUserId,
-      status: "CONFIRMED",
-      startsAt: { lt: horizon },
-      endsAt: { gt: from },
-    },
-    select: { startsAt: true, endsAt: true },
-  });
-
+  const busy = await listHostBusyRanges(page.hostUserId, from, horizon);
   const slots: OpenSlot[] = [];
   const cursorParts = zonedParts(from, page.timezone);
 
@@ -103,52 +223,59 @@ export async function listOpenSlotsForPage(
     const windows = page.weeklyWindows.filter((w) => w.dayOfWeek === day.dayOfWeek);
 
     for (const win of windows) {
-      for (
-        let startMin = win.startMinute;
-        startMin + page.durationMins <= win.endMinute;
-        startMin += page.durationMins + page.bufferMins
-      ) {
-        const startH = Math.floor(startMin / 60);
-        const startM = startMin % 60;
-        const endsMin = startMin + page.durationMins;
-        const endH = Math.floor(endsMin / 60);
-        const endM = endsMin % 60;
-
-        const startsAt = localWallTimeToUtc(
-          page.timezone,
-          day.year,
-          day.month,
-          day.day,
-          startH,
-          startM
-        );
-        const endsAt = localWallTimeToUtc(
-          page.timezone,
-          day.year,
-          day.month,
-          day.day,
-          endH,
-          endM
-        );
-
-        if (startsAt <= from) continue;
-        if (startsAt >= horizon) continue;
-
-        const overlaps = busy.some(
-          (b) => startsAt < b.endsAt && endsAt > b.startsAt
-        );
-        if (overlaps) continue;
-
-        slots.push({
-          startsAt: startsAt.toISOString(),
-          endsAt: endsAt.toISOString(),
-          label: `${minutesToLabel(startMin)} – ${minutesToLabel(endsMin)}`,
-        });
-      }
+      const windowStart = localWallTimeToUtc(
+        page.timezone,
+        day.year,
+        day.month,
+        day.day,
+        Math.floor(win.startMinute / 60),
+        win.startMinute % 60
+      );
+      const windowEnd = localWallTimeToUtc(
+        page.timezone,
+        day.year,
+        day.month,
+        day.day,
+        Math.floor(win.endMinute / 60),
+        win.endMinute % 60
+      );
+      pushSlicedWindow(
+        slots,
+        busy,
+        page.timezone,
+        from,
+        horizon,
+        durationMins,
+        page.bufferMins,
+        windowStart,
+        windowEnd
+      );
     }
   }
 
-  return slots.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  for (const extra of page.openSlots ?? []) {
+    if (extra.endsAt <= from || extra.startsAt >= horizon) continue;
+    pushSlicedWindow(
+      slots,
+      busy,
+      page.timezone,
+      from,
+      horizon,
+      durationMins,
+      page.bufferMins,
+      extra.startsAt,
+      extra.endsAt
+    );
+  }
+
+  const seen = new Set<string>();
+  return slots
+    .filter((s) => {
+      if (seen.has(s.startsAt)) return false;
+      seen.add(s.startsAt);
+      return true;
+    })
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 }
 
 export async function getActiveBookingPageBySlug(slug: string) {
@@ -156,6 +283,8 @@ export async function getActiveBookingPageBySlug(slug: string) {
     where: { slug, isActive: true },
     include: {
       weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
+      meetingTypes: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      openSlots: { orderBy: { startsAt: "asc" } },
       host: { select: { id: true, name: true, email: true } },
     },
   });

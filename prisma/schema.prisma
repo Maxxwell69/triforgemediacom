@@ -1560,7 +1560,9 @@ model BookingPage {
 
   host         User                   @relation(fields: [hostUserId], references: [id], onDelete: Cascade)
   weeklyWindows BookingWeeklyWindow[]
-  appointments Appointment[]
+  meetingTypes  BookingMeetingType[]
+  openSlots     BookingOpenSlot[]
+  appointments  Appointment[]
 }
 
 /// Recurring weekly open hours in the host's timezone (minutes from local midnight).
@@ -1577,10 +1579,43 @@ model BookingWeeklyWindow {
   @@index([bookingPageId, dayOfWeek])
 }
 
+/// Host-defined bookable meeting (e.g. 15-min intro vs 60-min strategy).
+model BookingMeetingType {
+  id            String   @id @default(cuid())
+  bookingPageId String
+  title         String
+  description   String?
+  durationMins  Int
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookingPage  BookingPage   @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([bookingPageId, sortOrder])
+}
+
+/// One-off extra open hours beyond the weekly schedule (fill gaps).
+model BookingOpenSlot {
+  id            String   @id @default(cuid())
+  bookingPageId String
+  startsAt      DateTime
+  endsAt        DateTime
+  label         String?
+  createdAt     DateTime @default(now())
+
+  bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+
+  @@index([bookingPageId, startsAt])
+}
+
 model Appointment {
   id            String            @id @default(cuid())
   bookingPageId String
   hostUserId    String
+  meetingTypeId String?
   bookerName    String
   bookerEmail   String
   notes         String?
@@ -1591,13 +1626,15 @@ model Appointment {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
-  host        User        @relation("AppointmentHost", fields: [hostUserId], references: [id], onDelete: Cascade)
-  webinar     Webinar?    @relation(fields: [webinarId], references: [id], onDelete: SetNull)
+  bookingPage BookingPage         @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+  host        User                @relation("AppointmentHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  meetingType BookingMeetingType? @relation(fields: [meetingTypeId], references: [id], onDelete: SetNull)
+  webinar     Webinar?            @relation(fields: [webinarId], references: [id], onDelete: SetNull)
 
   @@index([hostUserId, startsAt])
   @@index([bookingPageId, startsAt])
   @@index([bookerEmail])
+  @@index([meetingTypeId])
 }
 
 // ---------- Shop (Hub 0 catalog; Shopify / Printify / Stripe plug in later) ----------

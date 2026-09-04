@@ -17,7 +17,16 @@ export default async function PublicBookPage({
   const page = await getActiveBookingPageBySlug(params.slug);
   if (!page) notFound();
 
-  const slots = await listOpenSlotsForPage(page);
+  const fallbackSlots = await listOpenSlotsForPage(page);
+  const meetingTypes = await Promise.all(
+    page.meetingTypes.map(async (type) => ({
+      id: type.id,
+      title: type.title,
+      description: type.description,
+      durationMins: type.durationMins,
+      slots: await listOpenSlotsForPage(page, new Date(), type.durationMins),
+    }))
+  );
   const hostName = page.host.name?.trim() || "TriForge host";
 
   return (
@@ -32,7 +41,8 @@ export default async function PublicBookPage({
             hostName={hostName}
             timezone={page.timezone}
             durationMins={page.durationMins}
-            slots={slots}
+            slots={meetingTypes[0]?.slots ?? fallbackSlots}
+            meetingTypes={meetingTypes}
           />
         </div>
         <p className="mt-10 text-center font-body text-xs text-off-white/35">

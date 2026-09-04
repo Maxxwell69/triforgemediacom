@@ -3,8 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  addBookingOpenSlot,
+  createBookingMeetingType,
+  deleteBookingMeetingType,
+  deleteBookingOpenSlot,
   ensureBookingPage,
   setBookingWeeklyWindows,
+  updateBookingMeetingType,
   updateBookingPageSettings,
 } from "@/app/(community)/account/bookingActions";
 import { BOOKING_TIMEZONES, DAY_LABELS, minutesToLabel } from "@/lib/bookingClient";
@@ -31,6 +36,14 @@ type PageProps = {
   isActive: boolean;
   bookingUrl: string;
   weeklyWindows: { dayOfWeek: number; startMinute: number; endMinute: number }[];
+  meetingTypes: {
+    id: string;
+    title: string;
+    description: string | null;
+    durationMins: number;
+    isActive: boolean;
+  }[];
+  openSlots: { id: string; startsAt: string; endsAt: string; label: string | null }[];
 };
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => i * 30);
@@ -304,6 +317,193 @@ export default function BookingSchedulePanel({
         >
           {isPending ? "Saving…" : "Save weekly hours"}
         </button>
+      </div>
+
+      <div>
+        <h3 className="font-display text-lg tracking-wide text-off-white/80">Meeting types</h3>
+        <p className="mt-1 font-body text-xs text-off-white/45">
+          Guests pick a type (intro, strategy, etc.). Each type has its own length and lands on
+          your hub calendar when booked.
+        </p>
+        <div className="mt-3 flex flex-col gap-3">
+          {initialPage.meetingTypes.map((type) => (
+            <form
+              key={type.id}
+              className="rounded-xl border border-off-white/10 p-3"
+              action={(formData) => {
+                startTransition(async () => {
+                  const result = await updateBookingMeetingType(type.id, formData);
+                  setError(result.error);
+                  if (!result.error) router.refresh();
+                });
+              }}
+            >
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_7rem]">
+                <input
+                  name="title"
+                  defaultValue={type.title}
+                  required
+                  className={fieldClass}
+                />
+                <select
+                  name="durationMins"
+                  defaultValue={String(type.durationMins)}
+                  className={fieldClass}
+                >
+                  {[15, 30, 45, 60, 90].map((m) => (
+                    <option key={m} value={m}>
+                      {m} min
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <textarea
+                name="description"
+                defaultValue={type.description ?? ""}
+                rows={2}
+                placeholder="What this meeting is for"
+                className={`${fieldClass} mt-2`}
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 font-body text-xs text-off-white/60">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    defaultChecked={type.isActive}
+                    className="accent-orange"
+                  />
+                  Bookable
+                </label>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="font-body text-xs text-cyan hover:underline disabled:opacity-40"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (!confirm("Remove this meeting type?")) return;
+                    startTransition(async () => {
+                      const result = await deleteBookingMeetingType(type.id);
+                      setError(result.error);
+                      if (!result.error) router.refresh();
+                    });
+                  }}
+                  className="font-body text-xs text-orange/80 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+            </form>
+          ))}
+        </div>
+        <form
+          className="mt-3 flex flex-col gap-2 rounded-xl border border-dashed border-off-white/15 p-3"
+          action={(formData) => {
+            startTransition(async () => {
+              const result = await createBookingMeetingType(formData);
+              setError(result.error);
+              if (!result.error) router.refresh();
+            });
+          }}
+        >
+          <p className="font-body text-xs uppercase tracking-wider text-off-white/40">
+            Add meeting type
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_7rem]">
+            <input name="title" required placeholder="e.g. Strategy call" className={fieldClass} />
+            <select name="durationMins" defaultValue="30" className={fieldClass}>
+              {[15, 30, 45, 60, 90].map((m) => (
+                <option key={m} value={m}>
+                  {m} min
+                </option>
+              ))}
+            </select>
+          </div>
+          <input
+            name="description"
+            placeholder="Optional description"
+            className={fieldClass}
+          />
+          <button
+            type="submit"
+            disabled={isPending}
+            className="self-start rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan disabled:opacity-40"
+          >
+            Add type
+          </button>
+        </form>
+      </div>
+
+      <div>
+        <h3 className="font-display text-lg tracking-wide text-off-white/80">Fill open slots</h3>
+        <p className="mt-1 font-body text-xs text-off-white/45">
+          Add extra one-off hours beyond the weekly schedule. Open times already hide hub
+          calendar events, webinars, and other bookings so you don&apos;t double-book.
+        </p>
+        {initialPage.openSlots.length > 0 && (
+          <ul className="mt-3 flex flex-col gap-2">
+            {initialPage.openSlots.map((slot) => (
+              <li
+                key={slot.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-off-white/10 px-3 py-2"
+              >
+                <span className="font-body text-xs text-off-white/70">
+                  {slot.label ? `${slot.label} · ` : ""}
+                  {new Date(slot.startsAt).toLocaleString([], {
+                    timeZone: initialPage.timezone,
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                  {" – "}
+                  {new Date(slot.endsAt).toLocaleTimeString([], {
+                    timeZone: initialPage.timezone,
+                    timeStyle: "short",
+                  })}
+                </span>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      const result = await deleteBookingOpenSlot(slot.id);
+                      setError(result.error);
+                      if (!result.error) router.refresh();
+                    })
+                  }
+                  className="font-body text-xs text-orange/80 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2"
+          action={(formData) => {
+            startTransition(async () => {
+              const result = await addBookingOpenSlot(formData);
+              setError(result.error);
+              if (!result.error) router.refresh();
+            });
+          }}
+        >
+          <input name="date" type="date" required className={fieldClass} />
+          <input name="label" placeholder="Label (optional)" className={fieldClass} />
+          <input name="start" type="time" required className={fieldClass} />
+          <input name="end" type="time" required className={fieldClass} />
+          <button
+            type="submit"
+            disabled={isPending}
+            className="sm:col-span-2 self-start rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white shadow-glow disabled:opacity-40"
+          >
+            Add open hours
+          </button>
+        </form>
       </div>
 
       {error && <p className="font-body text-sm text-orange">{error}</p>}

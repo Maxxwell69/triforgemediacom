@@ -5,7 +5,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { suggestBookingSlug } from "@/lib/booking";
-import { bookingPageSettingsSchema, weeklyWindowSchema } from "@/lib/validations/booking";
+import { parseZonedDateTime } from "@/lib/time";
+import {
+  bookingMeetingTypeSchema,
+  bookingOpenSlotSchema,
+  bookingPageSettingsSchema,
+  weeklyWindowSchema,
+} from "@/lib/validations/booking";
 import { z } from "zod";
 
 async function requireStaff() {
@@ -24,7 +30,21 @@ async function requireStaff() {
 export async function ensureBookingPage() {
   const user = await requireStaff();
   const existing = await prisma.bookingPage.findUnique({ where: { hostUserId: user.id } });
-  if (existing) return existing.id;
+  if (existing) {
+    const typeCount = await prisma.bookingMeetingType.count({
+      where: { bookingPageId: existing.id },
+    });
+    if (typeCount === 0) {
+      await prisma.bookingMeetingType.create({
+        data: {
+          bookingPageId: existing.id,
+          title: "Meeting",
+          durationMins: existing.durationMins,
+        },
+      });
+    }
+    return existing.id;
+  }
 
   let slug = suggestBookingSlug(user.email, user.name);
   for (let i = 0; i < 5; i++) {
@@ -47,6 +67,13 @@ export async function ensureBookingPage() {
           startMinute: 9 * 60,
           endMinute: 17 * 60,
         })),
+      },
+      meetingTypes: {
+        create: {
+          title: "Meeting",
+          durationMins: 30,
+          sortOrder: 0,
+        },
       },
     },
   });
@@ -142,6 +169,155 @@ export async function setBookingWeeklyWindows(
   ]);
 
   revalidatePath("/account");
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+async function hostBookingPage() {
+  const user = await requireStaff();
+  await ensureBookingPage();
+  const page = await prisma.bookingPage.findUnique({
+    where: { hostUserId: user.id },
+    select: { id: true, slug: true, timezone: true },
+  });
+  if (!page) throw new Error("Booking page not found");
+  return page;
+}
+
+export async function createBookingMeetingType(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const parsed = bookingMeetingTypeSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description") || "",
+    durationMins: formData.get("durationMins"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid meeting type" };
+  }
+
+  const maxOrder = await prisma.bookingMeetingType.aggregate({
+    where: { bookingPageId: page.id },
+    _max: { sortOrder: true },
+  });
+
+  await prisma.bookingMeetingType.create({
+    data: {
+      bookingPageId: page.id,
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      durationMins: parsed.data.durationMins,
+      sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
+    },
+  });
+
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function updateBookingMeetingType(
+  typeId: string,
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const parsed = bookingMeetingTypeSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description") || "",
+    durationMins: formData.get("durationMins"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid meeting type" };
+  }
+
+  const existing = await prisma.bookingMeetingType.findFirst({
+    where: { id: typeId, bookingPageId: page.id },
+    select: { id: true },
+  });
+  if (!existing) return { error: "Meeting type not found" };
+
+  await prisma.bookingMeetingType.update({
+    where: { id: typeId },
+    data: {
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      durationMins: parsed.data.durationMins,
+      isActive: formData.get("isActive") === "on",
+    },
+  });
+
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function deleteBookingMeetingType(
+  typeId: string
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const existing = await prisma.bookingMeetingType.findFirst({
+    where: { id: typeId, bookingPageId: page.id },
+    select: { id: true },
+  });
+  if (!existing) return { error: "Meeting type not found" };
+  await prisma.bookingMeetingType.delete({ where: { id: typeId } });
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function addBookingOpenSlot(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const parsed = bookingOpenSlotSchema.safeParse({
+    date: formData.get("date"),
+    start: formData.get("start"),
+    end: formData.get("end"),
+    label: formData.get("label") || "",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid open slot" };
+  }
+
+  const startsAt = parseZonedDateTime(
+    `${parsed.data.date}T${parsed.data.start}`,
+    page.timezone,
+    "start time"
+  );
+  const endsAt = parseZonedDateTime(
+    `${parsed.data.date}T${parsed.data.end}`,
+    page.timezone,
+    "end time"
+  );
+  if (endsAt <= startsAt) return { error: "End time must be after the start." };
+
+  await prisma.bookingOpenSlot.create({
+    data: {
+      bookingPageId: page.id,
+      startsAt,
+      endsAt,
+      label: parsed.data.label || null,
+    },
+  });
+
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function deleteBookingOpenSlot(
+  slotId: string
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const existing = await prisma.bookingOpenSlot.findFirst({
+    where: { id: slotId, bookingPageId: page.id },
+    select: { id: true },
+  });
+  if (!existing) return { error: "Open slot not found" };
+  await prisma.bookingOpenSlot.delete({ where: { id: slotId } });
   revalidatePath("/account/booking");
   revalidatePath(`/book/${page.slug}`);
   return { error: null };

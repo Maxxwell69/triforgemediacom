@@ -4,13 +4,14 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import {
   getActiveBookingPageBySlug,
+  listHostBusyRanges,
   listOpenSlotsForPage,
 } from "@/lib/booking";
 import { publicBookSchema } from "@/lib/validations/booking";
 import { webinarRoomName } from "@/lib/webinars";
 import {
   generateWebinarExternalToken,
-  webinarGuestAccessUrl,
+  webinarGuestRoomUrl,
 } from "@/lib/webinarExternal";
 import { sendAppointmentBookedEmails } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -45,6 +46,7 @@ export async function bookAppointment(
 
   const parsed = publicBookSchema.safeParse({
     startsAt: formData.get("startsAt"),
+    meetingTypeId: formData.get("meetingTypeId") || "",
     bookerName: formData.get("bookerName"),
     bookerEmail: formData.get("bookerEmail"),
     notes: formData.get("notes") || "",
@@ -64,11 +66,20 @@ export async function bookAppointment(
   const page = await getActiveBookingPageBySlug(slug);
   if (!page) return { error: "This booking page is unavailable." };
 
+  const meetingType = parsed.data.meetingTypeId
+    ? page.meetingTypes.find((t) => t.id === parsed.data.meetingTypeId && t.isActive)
+    : page.meetingTypes[0] ?? null;
+  if (parsed.data.meetingTypeId && !meetingType) {
+    return { error: "That meeting type is no longer available." };
+  }
+  const durationMins = meetingType?.durationMins ?? page.durationMins;
+  const meetingTitle = meetingType?.title || page.title;
+
   const startsAt = new Date(parsed.data.startsAt);
   if (Number.isNaN(startsAt.getTime())) return { error: "Invalid start time." };
-  const endsAt = new Date(startsAt.getTime() + page.durationMins * 60 * 1000);
+  const endsAt = new Date(startsAt.getTime() + durationMins * 60 * 1000);
 
-  const open = await listOpenSlotsForPage(page);
+  const open = await listOpenSlotsForPage(page, new Date(), durationMins);
   const match = open.find((s) => s.startsAt === startsAt.toISOString());
   if (!match) {
     return { error: "That time is no longer available. Pick another slot." };
@@ -76,7 +87,7 @@ export async function bookAppointment(
 
   const inviteToken = generateWebinarExternalToken();
   const joinToken = generateWebinarExternalToken();
-  const title = `${page.title} with ${parsed.data.bookerName}`;
+  const title = `${meetingTitle} with ${parsed.data.bookerName}`;
   const hostDisplay = publicHostDisplayName(page.host);
 
   let webinarId: string;
@@ -88,16 +99,8 @@ export async function bookAppointment(
         // Serialize bookings per host so two concurrent requests can't both pass the conflict check.
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:${page.hostUserId}`}))`;
 
-        const conflict = await tx.appointment.findFirst({
-          where: {
-            hostUserId: page.hostUserId,
-            status: "CONFIRMED",
-            startsAt: { lt: endsAt },
-            endsAt: { gt: startsAt },
-          },
-          select: { id: true },
-        });
-        if (conflict) {
+        const busy = await listHostBusyRanges(page.hostUserId, startsAt, endsAt);
+        if (busy.some((b) => startsAt < b.endsAt && endsAt > b.startsAt)) {
           throw new Error("SLOT_TAKEN");
         }
 
@@ -131,16 +134,20 @@ export async function bookAppointment(
           },
         });
 
-        // Private staff calendar entry (not hub-wide).
+        // Private staff calendar entry linked to the meeting room.
         await tx.calendarEvent.create({
           data: {
             title,
-            description: `With ${parsed.data.bookerName} (${emailKey})`,
+            description: `With ${parsed.data.bookerName} (${emailKey})${
+              meetingType ? ` · ${meetingType.title}` : ""
+            }`,
             kind: "MEETING",
             visibility: "PRIVATE",
             startsAt,
             endsAt,
+            location: "Hub meeting room",
             createdById: page.hostUserId,
+            webinarId: webinar.id,
           },
         });
 
@@ -148,6 +155,7 @@ export async function bookAppointment(
           data: {
             bookingPageId: page.id,
             hostUserId: page.hostUserId,
+            meetingTypeId: meetingType?.id ?? null,
             bookerName: parsed.data.bookerName,
             bookerEmail: emailKey,
             notes: parsed.data.notes || null,
@@ -179,8 +187,8 @@ export async function bookAppointment(
     timeStyle: "short",
   }).format(startsAt);
 
-  const guestJoinUrl = webinarGuestAccessUrl(inviteToken, joinToken);
-  const hostWebinarUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/webinars/${webinarId}`;
+  const guestJoinUrl = webinarGuestRoomUrl(inviteToken, joinToken);
+  const hostWebinarUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/webinars/${webinarId}/room`;
 
   try {
     await sendAppointmentBookedEmails(
@@ -189,7 +197,7 @@ export async function bookAppointment(
         bookerEmail: emailKey,
         hostName: hostDisplay,
         hostEmail: page.host.email,
-        title: page.title,
+        title: meetingTitle,
         whenLabel,
         timezone: page.timezone,
         guestJoinUrl,

@@ -7,6 +7,14 @@ import type { OpenSlot } from "@/lib/bookingClient";
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
 
+export type PublicMeetingType = {
+  id: string;
+  title: string;
+  description: string | null;
+  durationMins: number;
+  slots: OpenSlot[];
+};
+
 type Props = {
   slug: string;
   title: string;
@@ -15,6 +23,7 @@ type Props = {
   timezone: string;
   durationMins: number;
   slots: OpenSlot[];
+  meetingTypes: PublicMeetingType[];
 };
 
 export default function PublicBookingClient({
@@ -25,18 +34,25 @@ export default function PublicBookingClient({
   timezone,
   durationMins,
   slots,
+  meetingTypes,
 }: Props) {
+  const [typeId, setTypeId] = useState<string | null>(meetingTypes[0]?.id ?? null);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<OpenSlot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [doneUrl, setDoneUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const activeType = meetingTypes.find((t) => t.id === typeId) ?? null;
+  const activeSlots = activeType?.slots ?? slots;
+  const activeDuration = activeType?.durationMins ?? durationMins;
+  const activeTitle = activeType?.title ?? title;
+
   const days = useMemo(() => {
     const map = new Map<string, { label: string; slots: OpenSlot[] }>();
-    for (const slot of slots) {
+    for (const slot of activeSlots) {
       const d = new Date(slot.startsAt);
-      const key = d.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
+      const key = d.toLocaleDateString("en-CA", { timeZone: timezone });
       const label = d.toLocaleDateString([], {
         timeZone: timezone,
         weekday: "short",
@@ -48,7 +64,7 @@ export default function PublicBookingClient({
       map.set(key, entry);
     }
     return Array.from(map.entries()).map(([key, value]) => ({ key, ...value }));
-  }, [slots, timezone]);
+  }, [activeSlots, timezone]);
 
   const daySlots = days.find((d) => d.key === dayKey)?.slots ?? [];
 
@@ -57,13 +73,13 @@ export default function PublicBookingClient({
       <div className="glass rounded-2xl p-8 text-center">
         <h2 className="font-display text-3xl tracking-wide text-gradient">You&apos;re booked</h2>
         <p className="mt-3 font-body text-sm text-off-white/60">
-          Confirmation emails are on the way. Use your personal join link below when it&apos;s time.
+          Confirmation emails are on the way with your meeting room link.
         </p>
         <a
           href={doneUrl}
           className="mt-6 inline-block rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow"
         >
-          Open join link
+          Open meeting room
         </a>
       </div>
     );
@@ -74,17 +90,44 @@ export default function PublicBookingClient({
       <div>
         <p className="font-body text-sm text-off-white/50">Meeting with {hostName}</p>
         <h1 className="mt-1 font-display text-4xl tracking-wide text-gradient sm:text-5xl">
-          {title}
+          {activeTitle}
         </h1>
-        {description && (
-          <p className="mt-2 font-body text-sm text-off-white/60">{description}</p>
+        {(activeType?.description || description) && (
+          <p className="mt-2 font-body text-sm text-off-white/60">
+            {activeType?.description || description}
+          </p>
         )}
         <p className="mt-2 font-body text-xs text-off-white/40">
-          {durationMins} minutes · times in {timezone}
+          {activeDuration} minutes · times in {timezone}
         </p>
       </div>
 
-      {slots.length === 0 ? (
+      {meetingTypes.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {meetingTypes.map((type) => (
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => {
+                setTypeId(type.id);
+                setDayKey(null);
+                setSelected(null);
+              }}
+              className={[
+                "rounded-xl border px-3 py-2 text-left font-body text-sm transition",
+                typeId === type.id
+                  ? "border-cyan/50 bg-cyan/15 text-cyan"
+                  : "border-off-white/10 text-off-white/70 hover:border-off-white/25",
+              ].join(" ")}
+            >
+              <span className="block font-medium">{type.title}</span>
+              <span className="block text-[11px] text-off-white/45">{type.durationMins} min</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeSlots.length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center font-body text-sm text-off-white/50">
           No open times right now. Check back later.
         </p>
@@ -143,6 +186,7 @@ export default function PublicBookingClient({
           className="glass flex flex-col gap-3 rounded-2xl p-6"
           action={(formData) => {
             formData.set("startsAt", selected.startsAt);
+            if (typeId) formData.set("meetingTypeId", typeId);
             startTransition(async () => {
               const result = await bookAppointment(slug, formData);
               if (result.error) setError(result.error);
@@ -155,7 +199,7 @@ export default function PublicBookingClient({
         >
           <h2 className="font-display text-xl tracking-wide text-off-white/80">Your details</h2>
           <p className="font-body text-xs text-off-white/45">
-            Booking {selected.label} ({timezone})
+            Booking {activeTitle} · {selected.label} ({timezone})
           </p>
           <input name="bookerName" required placeholder="Your name" className={fieldClass} />
           <input
