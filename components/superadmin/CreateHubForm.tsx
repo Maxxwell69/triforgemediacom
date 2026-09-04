@@ -71,7 +71,8 @@ export default function CreateHubForm({
       <section className="glass rounded-2xl p-6">
         <h2 className="font-display text-xl tracking-wide text-off-white">Optional SKUs</h2>
         <p className="mt-1 font-body text-xs text-off-white/45">
-          Core admin is always on. Flagship TriForge modules stay off for client hubs.
+          Core admin is always on. Optional modules start off — check only what this client
+          bought. Flagship TriForge modules stay off.
         </p>
         <ul className="mt-4 space-y-2">
           {optional.map((sku) => (
