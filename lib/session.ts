@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
 
 /**
  * Sessions are JWTs that can live for weeks — role/status are only stamped
@@ -62,23 +62,13 @@ export async function requireAdminPage() {
 }
 
 /**
- * Hub-maker / Obtainable Hub control plane. ADMIN only.
- * If SUPERADMIN_EMAILS is set, the account email must also be on that list.
+ * Create Hub control plane. Any Hub 0 ADMIN can open it.
+ * Mods and members cannot. SUPERADMIN_EMAILS is not required.
  */
 export async function requireSuperAdminPage() {
   const user = await requireAdminPage();
-  if (user.role !== "ADMIN") {
+  if (!isTrueAdmin(user.role)) {
     notFound();
-  }
-  const allow = (process.env.SUPERADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  if (allow.length > 0) {
-    const email = (user.email || "").toLowerCase();
-    if (!allow.includes(email)) {
-      notFound();
-    }
   }
   return user;
 }

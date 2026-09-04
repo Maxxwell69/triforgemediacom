@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.160",
+    date: "September 4, 2026",
+    title: "Create Hub for every Hub 0 admin",
+    summary: "Any main-hub Admin can open Create Hub. An email allowlist is no longer required.",
+    items: [
+      {
+        kind: "fix",
+        text: "Create Hub (/superadmin) is available to every Hub 0 ADMIN, not only SUPERADMIN_EMAILS",
+      },
+    ],
+  },
+  {
     version: "3.159",
     date: "September 4, 2026",
     title: "Client hub sign-in stays on that hub",
