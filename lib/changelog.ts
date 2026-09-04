@@ -137,6 +137,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.159",
+    date: "September 4, 2026",
+    title: "Client hub sign-in stays on that hub",
+    summary: "Sign in on a client hub landing page no longer opens the staging/TriForge login.",
+    items: [
+      {
+        kind: "fix",
+        text: "Client hub Sign in goes to that hub’s own sign-in page instead of Hub 0 /signin",
+      },
+    ],
+  },
+  {
     version: "3.158",
     date: "September 4, 2026",
     title: "Client hub tenant database",

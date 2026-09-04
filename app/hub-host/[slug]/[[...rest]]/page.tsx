@@ -69,7 +69,7 @@ export default async function ClientHubHostPage({ params }: Props) {
   }
 
   return (
-    <ClientHubShell name={hub.name} signInHref="/signin">
+    <ClientHubShell name={hub.name} signInHref={`/hub-host/${hub.slug}/signin`}>
       <p className="mb-3 text-xs uppercase tracking-[0.3em] text-cyan">Welcome</p>
       <h1 className="mb-3 text-center font-display text-5xl tracking-wide sm:text-6xl">
         {hub.name.toUpperCase()}
