@@ -9,6 +9,7 @@ import {
   personalTaskStatusOptions,
   updatePersonalTaskSchema,
 } from "@/lib/validations/personalTask";
+import { parseDateOnly } from "@/lib/time";
 import { z } from "zod";
 
 async function requirePersonalTasksUser(): Promise<
@@ -25,6 +26,8 @@ async function requirePersonalTasksUser(): Promise<
 function parseDueAt(raw: string | null | undefined): Date | null | undefined {
   if (raw === undefined) return undefined;
   if (raw === null || raw === "") return null;
+  const dateOnly = parseDateOnly(raw);
+  if (dateOnly) return dateOnly;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
   return d;
@@ -45,6 +48,7 @@ export async function createPersonalTask(
     title: formData.get("title"),
     notes: formData.get("notes") || "",
     dueAt: formData.get("dueAt") || "",
+    category: formData.get("category") || "",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid task" };
@@ -61,6 +65,7 @@ export async function createPersonalTask(
       title: parsed.data.title,
       notes: parsed.data.notes || null,
       dueAt: parseDueAt(parsed.data.dueAt) ?? null,
+      category: parsed.data.category || null,
       sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
     },
   });
@@ -87,6 +92,7 @@ export async function updatePersonalTask(
     notes: formData.has("notes") ? String(formData.get("notes") ?? "") : undefined,
     status: formData.get("status") || undefined,
     dueAt: formData.has("dueAt") ? String(formData.get("dueAt") ?? "") : undefined,
+    category: formData.has("category") ? String(formData.get("category") ?? "") : undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid update" };
@@ -97,11 +103,13 @@ export async function updatePersonalTask(
     notes?: string | null;
     status?: (typeof personalTaskStatusOptions)[number];
     dueAt?: Date | null;
+    category?: string | null;
   } = {};
   if (parsed.data.title !== undefined) data.title = parsed.data.title;
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes || null;
   if (parsed.data.status !== undefined) data.status = parsed.data.status;
   if (parsed.data.dueAt !== undefined) data.dueAt = parseDueAt(parsed.data.dueAt) ?? null;
+  if (parsed.data.category !== undefined) data.category = parsed.data.category || null;
 
   await prisma.personalTask.update({ where: { id: taskId }, data });
   revalidateTasks();

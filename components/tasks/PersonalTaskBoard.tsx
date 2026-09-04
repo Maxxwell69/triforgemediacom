@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createPersonalTask,
   deletePersonalTask,
   setPersonalTaskStatus,
+  updatePersonalTask,
 } from "@/app/apps/tasks/actions";
+import { formatDateOnly } from "@/lib/time";
+import { personalTaskCategoryOptions } from "@/lib/validations/personalTask";
 
 type Task = {
   id: string;
@@ -14,24 +17,85 @@ type Task = {
   notes: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   dueAt: string | null;
+  category: string | null;
 };
+
+type SortMode = "added" | "due" | "category";
+
+const SORT_STORAGE_KEY = "hub.personalTasks.sort";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
 
 function formatDue(iso: string | null) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDateOnly(iso);
+}
+
+function compareDue(a: Task, b: Task) {
+  if (!a.dueAt && !b.dueAt) return 0;
+  if (!a.dueAt) return 1;
+  if (!b.dueAt) return -1;
+  return a.dueAt.localeCompare(b.dueAt);
+}
+
+function compareCategory(a: Task, b: Task) {
+  const ac = (a.category || "").toLowerCase();
+  const bc = (b.category || "").toLowerCase();
+  if (!ac && !bc) return compareDue(a, b);
+  if (!ac) return 1;
+  if (!bc) return -1;
+  return ac.localeCompare(bc) || compareDue(a, b);
+}
+
+function sortTasks(tasks: Task[], mode: SortMode) {
+  if (mode === "added") return tasks;
+  const copy = [...tasks];
+  copy.sort(mode === "due" ? compareDue : compareCategory);
+  return copy;
+}
+
+function groupByCategory(tasks: Task[]) {
+  const groups: { label: string; tasks: Task[] }[] = [];
+  const index = new Map<string, number>();
+  for (const task of tasks) {
+    const label = task.category?.trim() || "No category";
+    const existing = index.get(label);
+    if (existing === undefined) {
+      index.set(label, groups.length);
+      groups.push({ label, tasks: [task] });
+    } else {
+      groups[existing].tasks.push(task);
+    }
+  }
+  return groups;
 }
 
 export default function PersonalTaskBoard({ tasks: initial }: { tasks: Task[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [sort, setSort] = useState<SortMode>("added");
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SORT_STORAGE_KEY);
+      if (saved === "added" || saved === "due" || saved === "category") {
+        setSort(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  function changeSort(next: SortMode) {
+    setSort(next);
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, next);
+    } catch {
+      // ignore
+    }
+  }
 
   function run(action: () => Promise<{ error: string | null }>) {
     setError(null);
@@ -42,8 +106,21 @@ export default function PersonalTaskBoard({ tasks: initial }: { tasks: Task[] })
     });
   }
 
-  const open = initial.filter((t) => t.status !== "DONE");
-  const done = initial.filter((t) => t.status === "DONE");
+  const usedCategories = useMemo(() => {
+    const extra = initial
+      .map((t) => t.category?.trim())
+      .filter((c): c is string => Boolean(c) && !personalTaskCategoryOptions.includes(c as (typeof personalTaskCategoryOptions)[number]));
+    return [...personalTaskCategoryOptions, ...Array.from(new Set(extra)).sort((a, b) => a.localeCompare(b))];
+  }, [initial]);
+
+  const open = sortTasks(
+    initial.filter((t) => t.status !== "DONE"),
+    sort
+  );
+  const done = sortTasks(
+    initial.filter((t) => t.status === "DONE"),
+    sort
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,6 +159,21 @@ export default function PersonalTaskBoard({ tasks: initial }: { tasks: Task[] })
             <span className="font-body text-xs text-off-white/45">Due date</span>
             <input name="dueAt" type="date" className={fieldClass} />
           </label>
+          <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
+            <span className="font-body text-xs text-off-white/45">Category</span>
+            <input
+              name="category"
+              list="personal-task-categories"
+              maxLength={40}
+              placeholder="Optional"
+              className={fieldClass}
+            />
+            <datalist id="personal-task-categories">
+              {usedCategories.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </label>
           <button
             type="submit"
             disabled={pending}
@@ -98,46 +190,131 @@ export default function PersonalTaskBoard({ tasks: initial }: { tasks: Task[] })
         </p>
       )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
-          Open ({open.length})
-        </h2>
-        {open.length === 0 ? (
-          <p className="rounded-xl border border-off-white/10 px-4 py-6 text-center font-body text-sm text-off-white/40">
-            No open tasks — add one above.
-          </p>
-        ) : (
-          open.map((task) => (
-            <TaskRow key={task.id} task={task} pending={pending} onRun={run} />
-          ))
-        )}
-      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">
+          Sort
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ["added", "Added"],
+              ["due", "Due date"],
+              ["category", "Category"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => changeSort(value)}
+              aria-pressed={sort === value}
+              className={`rounded-lg px-3 py-1.5 font-body text-xs transition ${
+                sort === value
+                  ? "bg-cyan/15 text-cyan ring-1 ring-cyan/40"
+                  : "border border-off-white/15 text-off-white/60 hover:bg-off-white/5 hover:text-off-white/90"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <TaskSection
+        title={`Open (${open.length})`}
+        empty="No open tasks — add one above."
+        tasks={open}
+        sort={sort}
+        pending={pending}
+        categories={usedCategories}
+        onRun={run}
+      />
 
       {done.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
-            Done ({done.length})
-          </h2>
-          {done.map((task) => (
-            <TaskRow key={task.id} task={task} pending={pending} onRun={run} />
-          ))}
-        </section>
+        <TaskSection
+          title={`Done (${done.length})`}
+          tasks={done}
+          sort={sort}
+          pending={pending}
+          categories={usedCategories}
+          onRun={run}
+        />
       )}
     </div>
+  );
+}
+
+function TaskSection({
+  title,
+  empty,
+  tasks,
+  sort,
+  pending,
+  categories,
+  onRun,
+}: {
+  title: string;
+  empty?: string;
+  tasks: Task[];
+  sort: SortMode;
+  pending: boolean;
+  categories: string[];
+  onRun: (action: () => Promise<{ error: string | null }>) => void;
+}) {
+  const groups = sort === "category" ? groupByCategory(tasks) : [{ label: null, tasks }];
+
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-body text-xs font-semibold uppercase tracking-wider text-off-white/40">
+        {title}
+      </h2>
+      {tasks.length === 0 && empty ? (
+        <p className="rounded-xl border border-off-white/10 px-4 py-6 text-center font-body text-sm text-off-white/40">
+          {empty}
+        </p>
+      ) : (
+        groups.map((group) => (
+          <div key={group.label ?? "flat"} className="flex flex-col gap-2">
+            {group.label ? (
+              <p className="mt-1 px-1 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/30">
+                {group.label}
+                <span className="ml-1.5 font-normal normal-case tracking-normal text-off-white/25">
+                  {group.tasks.length}
+                </span>
+              </p>
+            ) : null}
+            {group.tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                pending={pending}
+                categories={categories}
+                onRun={onRun}
+              />
+            ))}
+          </div>
+        ))
+      )}
+    </section>
   );
 }
 
 function TaskRow({
   task,
   pending,
+  categories,
   onRun,
 }: {
   task: Task;
   pending: boolean;
+  categories: string[];
   onRun: (action: () => Promise<{ error: string | null }>) => void;
 }) {
   const due = formatDue(task.dueAt);
   const isDone = task.status === "DONE";
+  const categoryChoices =
+    task.category && !categories.includes(task.category)
+      ? [...categories, task.category]
+      : categories;
 
   return (
     <div
@@ -161,6 +338,26 @@ function TaskRow({
         <div className="mt-2 flex flex-wrap items-center gap-2 font-body text-[11px] uppercase tracking-wide text-off-white/35">
           <span>{task.status.replace("_", " ")}</span>
           {due ? <span>· Due {due}</span> : null}
+          <label className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+            <span className="sr-only">Category</span>
+            <select
+              value={task.category ?? ""}
+              disabled={pending}
+              onChange={(e) => {
+                const formData = new FormData();
+                formData.set("category", e.target.value);
+                onRun(() => updatePersonalTask(task.id, formData));
+              }}
+              className="rounded-md border border-off-white/10 bg-off-white/5 px-1.5 py-0.5 font-body text-[11px] uppercase tracking-wide text-off-white/55 outline-none focus:border-cyan/50 disabled:opacity-40"
+            >
+              <option value="">No category</option>
+              {categoryChoices.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 

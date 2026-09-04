@@ -48,7 +48,7 @@ export function useWebinarLeaveGuard(enabled: boolean) {
     }
 
     function onDocumentClick(e: MouseEvent) {
-      if (isModifiedClick(e) || e.defaultPrevented) return;
+      if (isModifiedClick(e)) return;
       const anchor = resolveAnchor(e.target);
       if (!anchor) return;
       if (anchor.target && anchor.target !== "_self") return;
@@ -59,6 +59,7 @@ export function useWebinarLeaveGuard(enabled: boolean) {
       if (!window.confirm(LEAVE_MESSAGE)) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
       }
     }
 

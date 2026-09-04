@@ -1405,6 +1405,7 @@ model PersonalTask {
   notes       String?
   status      PersonalTaskStatus @default(TODO)
   dueAt       DateTime?
+  category    String?
   sortOrder   Int                @default(0)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -1413,6 +1414,7 @@ model PersonalTask {
 
   @@index([userId, status])
   @@index([userId, sortOrder])
+  @@index([userId, category])
 }
 
 // ---------- Calendar / availability / booking ----------

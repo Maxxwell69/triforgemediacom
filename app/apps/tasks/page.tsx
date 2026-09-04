@@ -39,6 +39,7 @@ export default async function PersonalTasksPage() {
               notes: t.notes,
               status: t.status,
               dueAt: t.dueAt ? t.dueAt.toISOString() : null,
+              category: t.category,
             }))}
           />
         </div>

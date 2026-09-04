@@ -89,3 +89,25 @@ export function formTimeZone(formData: FormData) {
   const raw = String(formData.get("timeZone") || "").trim();
   return raw || null;
 }
+
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Parse `YYYY-MM-DD` from `<input type="date">` as that calendar day.
+ * `new Date("2026-09-07")` is UTC midnight; formatting it in US timezones
+ * shows the previous day. Always store and display date-only values in UTC.
+ */
+export function parseDateOnly(value: string): Date | null {
+  const match = value.trim().match(DATE_ONLY);
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDateOnly(
+  value: Date | string,
+  options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }
+): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return date.toLocaleDateString(undefined, { ...options, timeZone: "UTC" });
+}
