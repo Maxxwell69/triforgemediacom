@@ -1,4 +1,4 @@
-import { ALL_SKU_IDS, CORE_SKUS, OPTIONAL_SKUS, isHubSkuId } from "@/lib/hub/catalog";
+import { ALL_SKU_IDS, CORE_SKUS, OPTIONAL_SKUS } from "@/lib/hub/catalog";
 
 export const RESERVED_HUB_SLUGS = new Set([
   "www",
@@ -31,13 +31,13 @@ export const HUB_SETUP_STEPS: HubSetupStep[] = [
     id: "dns",
     field: "dnsCnameAt",
     label: "DNS CNAME",
-    how: "Add CNAME `{slug}.hub` → the same Railway hostname as hub.triforgemedia.com (DNS only, not proxied).",
+    how: "Wildcard DNS is already on `*.hub.triforgemedia.com`. Mark this when the slug hostname resolves.",
   },
   {
     id: "tls",
     field: "railwayDomainAt",
     label: "Railway TLS domain",
-    how: "Railway → triforgemediacom → custom domains → add `{slug}.hub.triforgemedia.com` so TLS issues.",
+    how: "Wildcard Railway domain `*.hub.triforgemedia.com` should already have a green cert. Mark this when HTTPS loads for this slug.",
   },
   {
     id: "database",
@@ -64,17 +64,19 @@ export function normalizeHubSlug(raw: string) {
 }
 
 export function parseHubSkuIds(values: FormDataEntryValue[]) {
+  const optionalIds = new Set(OPTIONAL_SKUS.map((sku) => sku.id));
   const enabled = new Set<string>(CORE_SKUS.map((sku) => sku.id));
   for (const value of values) {
-    if (typeof value === "string" && isHubSkuId(value) && value !== "core") {
+    if (typeof value === "string" && optionalIds.has(value)) {
       enabled.add(value);
     }
   }
   return ALL_SKU_IDS.filter((id) => enabled.has(id));
 }
 
+/** New client hubs start with core only — optional modules stay off until checked. */
 export function defaultClientSkuIds() {
-  return ["core", ...OPTIONAL_SKUS.map((sku) => sku.id)];
+  return CORE_SKUS.map((sku) => sku.id);
 }
 
 export function validateHubInput(

@@ -137,6 +137,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.157",
+    date: "September 4, 2026",
+    title: "Client hub hostname gate",
+    summary: "Wildcard client hosts no longer open Hub 0, and new hubs start with core only.",
+    items: [
+      {
+        kind: "feature",
+        text: "{slug}.hub.triforgemedia.com shows that hub’s own page and login — unknown slugs 404 instead of the TriForge Hub",
+      },
+      {
+        kind: "improve",
+        text: "Create Hub leaves optional modules off until you check them; flagship TriForge SKUs cannot be added",
+      },
+    ],
+  },
+  {
     version: "3.156",
     date: "September 4, 2026",
     title: "Host active meetings",
