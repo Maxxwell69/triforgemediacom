@@ -66,12 +66,20 @@ export default async function AccountPage() {
           accent="cyan"
         />
         {isStaff && (
-          <AccountFeatureLink
-            href="/account/booking"
-            title="Booking"
-            description="Set weekly availability and share your booking link."
-            accent="orange"
-          />
+          <>
+            <AccountFeatureLink
+              href="/account/booking"
+              title="Booking"
+              description="Set weekly availability, share your booking link, and manage active meetings."
+              accent="orange"
+            />
+            <AccountFeatureLink
+              href="/account/booking/meetings"
+              title="Active meetings"
+              description="Cancel, remind, or reschedule upcoming bookings."
+              accent="orange"
+            />
+          </>
         )}
         <AccountFeatureLink
           href="/account/insights"

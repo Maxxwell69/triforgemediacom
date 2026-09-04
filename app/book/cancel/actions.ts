@@ -1,8 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { webinarGuestRoomUrl } from "@/lib/webinarExternal";
-import { appointmentEmailPayload } from "@/lib/bookingReminders";
+import {
+  managedAppointmentEmailPayload,
+  markAppointmentCancelled,
+  meetingStillActionable,
+} from "@/lib/bookingMeetings";
 import { sendAppointmentCancelledEmails } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -19,7 +22,7 @@ export async function cancelAppointmentByToken(
     include: {
       host: { select: { name: true, email: true } },
       bookingPage: { select: { timezone: true, title: true } },
-      meetingType: { select: { title: true } },
+      meetingType: { select: { title: true, durationMins: true } },
       webinar: {
         select: {
           id: true,
@@ -31,46 +34,14 @@ export async function cancelAppointmentByToken(
   });
   if (!appointment) return { error: "This cancel link is invalid." };
   if (appointment.status === "CANCELLED") return { error: null, already: true };
-  if (appointment.startsAt.getTime() < Date.now() - 30 * 60 * 1000) {
+  if (!meetingStillActionable(appointment.startsAt)) {
     return { error: "This meeting has already started or passed." };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: appointment.id },
-      data: { status: "CANCELLED" },
-    });
-    if (appointment.webinarId) {
-      await tx.calendarEvent.deleteMany({ where: { webinarId: appointment.webinarId } });
-      await tx.webinar.update({
-        where: { id: appointment.webinarId },
-        data: { status: "ENDED", endedAt: new Date() },
-      });
-    }
-  });
-
-  const invite = appointment.webinar?.externalInviteToken;
-  const join = appointment.webinar?.externalGuests[0]?.joinToken;
-  const webinarId = appointment.webinar?.id;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  await markAppointmentCancelled(appointment);
 
   try {
-    await sendAppointmentCancelledEmails(
-      appointmentEmailPayload({
-        bookerName: appointment.bookerName,
-        bookerEmail: appointment.bookerEmail,
-        hostName: appointment.host.name,
-        hostEmail: appointment.host.email,
-        title: appointment.meetingType?.title || appointment.bookingPage.title,
-        startsAt: appointment.startsAt,
-        timezone: appointment.bookingPage.timezone,
-        guestJoinUrl:
-          invite && join ? webinarGuestRoomUrl(invite, join) : appUrl,
-        hostWebinarUrl: webinarId ? `${appUrl}/webinars/${webinarId}/room` : appUrl,
-        cancelToken: appointment.cancelToken,
-      }),
-      appointment.id
-    );
+    await sendAppointmentCancelledEmails(managedAppointmentEmailPayload(appointment), appointment.id);
   } catch (err) {
     console.error("appointment cancel email failed", appointment.id, err);
   }

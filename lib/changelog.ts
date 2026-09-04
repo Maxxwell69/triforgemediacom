@@ -137,6 +137,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.156",
+    date: "September 4, 2026",
+    title: "Host active meetings",
+    summary: "Hosts can open upcoming bookings and cancel, send a reminder, or reschedule from the hub.",
+    items: [
+      {
+        kind: "feature",
+        text: "Booking → Active meetings lists upcoming appointments from your public link",
+      },
+      {
+        kind: "feature",
+        text: "Open a meeting to cancel it, email a reminder, or move it to another open slot",
+      },
+    ],
+  },
+  {
     version: "3.155",
     date: "September 4, 2026",
     title: "Booking reminders and cancel links",
