@@ -2217,7 +2217,8 @@ model ProgressionBadgeGrant {
   @@unique([userId, badgeId])
 }
 
-/// Control-plane record for a client hub. Does not provision DNS or a database yet.
+/// Control-plane record for a client hub (lives in Hub 0). Tenant data is a
+/// separate Postgres schema on the same instance, named tenantDbName.
 model ClientHub {
   id                 String   @id @default(cuid())
   name               String
@@ -2225,6 +2226,8 @@ model ClientHub {
   clientAdminEmail   String
   enabledSkuIds      String[] @default([])
   notes              String?
+  /// Postgres schema for this hub, e.g. hub_acme. Null until provisioned.
+  tenantDbName       String?  @unique
   dnsCnameAt         DateTime?
   railwayDomainAt    DateTime?
   tenantDbAt         DateTime?

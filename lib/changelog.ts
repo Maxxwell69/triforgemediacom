@@ -137,6 +137,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.158",
+    date: "September 4, 2026",
+    title: "Client hub tenant database",
+    summary: "Super-admins can provision an empty Postgres schema for a client hub on this environment’s database.",
+    items: [
+      {
+        kind: "feature",
+        text: "Create Hub → Provision creates schema hub_{slug} and runs migrations; Hub 0 public data is untouched",
+      },
+      {
+        kind: "improve",
+        text: "Tenant database can no longer be marked done by checkbox — only a successful provision counts",
+      },
+    ],
+  },
+  {
     version: "3.157",
     date: "September 4, 2026",
     title: "Client hub hostname gate",

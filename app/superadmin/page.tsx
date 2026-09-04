@@ -35,8 +35,9 @@ export default async function SuperAdminHubsPage() {
         CREATE <span className="text-gradient">HUB</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        Save the hub record first (name, slug, client email, SKUs). Optional modules start
-        unchecked. Then open it and work the setup list. Client hostnames never open Hub 0.
+        Save the hub record first, then open it and click Provision to create that hub’s
+        empty database schema. Test this on staging — it uses this environment’s Postgres,
+        not Hub 0 production members.
       </p>
 
       {hubs.length > 0 ? (

@@ -33,7 +33,7 @@ export default async function ClientHubHostPage({ params }: Props) {
 
   const hub = await prisma.clientHub.findUnique({
     where: { slug: params.slug },
-    select: { name: true, slug: true },
+    select: { name: true, slug: true, tenantDbAt: true },
   });
 
   if (!hub) {
@@ -59,7 +59,9 @@ export default async function ClientHubHostPage({ params }: Props) {
           SIGN <span className="text-gradient">IN</span>
         </h1>
         <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
-          Member access for {hub.name}. This login is not the TriForge Hub.
+          {hub.tenantDbAt
+            ? `Member access for ${hub.name}. This login is not the TriForge Hub. Invites are next.`
+            : `${hub.name} is reserved, but its database isn’t provisioned yet. Sign-in will open after that.`}
         </p>
         <ClientHubSignInForm hubName={hub.name} />
       </ClientHubShell>
@@ -73,8 +75,9 @@ export default async function ClientHubHostPage({ params }: Props) {
         {hub.name.toUpperCase()}
       </h1>
       <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
-        This community is private. Sign in with the invite your admin sent — you won&apos;t
-        land in the TriForge Hub from here.
+        {hub.tenantDbAt
+          ? "This community is private. Sign-in will use this hub’s own database — not the TriForge Hub."
+          : "This hub is reserved. The database hasn’t been provisioned yet, so members can’t sign in."}
       </p>
     </ClientHubShell>
   );

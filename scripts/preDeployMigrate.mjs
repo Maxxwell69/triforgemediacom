@@ -13,12 +13,14 @@ const MODERATION = "20260730021500_add_webinar_moderation";
 const ANNOUNCEMENT_MEDIA = "20260901190000_announcement_media";
 const PERSONAL_TASK_CATEGORY = "20260903200000_personal_task_category";
 const BOOKING_REMIND_CANCEL = "20260904020000_booking_remind_cancel";
+const CLIENT_HUB_TENANT_DB = "20260904040000_client_hub_tenant_db_name";
 
 /** Additive-only migrations that are safe to mark applied if SQL already landed. */
 const SAFE_MARK_APPLIED = new Set([
   ANNOUNCEMENT_MEDIA,
   PERSONAL_TASK_CATEGORY,
   BOOKING_REMIND_CANCEL,
+  CLIENT_HUB_TENANT_DB,
 ]);
 
 function run(args) {

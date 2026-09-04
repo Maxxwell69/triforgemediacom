@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { HubSku } from "@/lib/hub/catalog";
 import { HUB_SETUP_STEPS } from "@/lib/hub/clientHubs";
-import { saveClientHubAction, toggleHubSetupStepAction } from "@/app/superadmin/actions";
+import { saveClientHubAction, toggleHubSetupStepAction, provisionClientHubDatabaseAction } from "@/app/superadmin/actions";
 
 const fieldClass =
   "mt-1 w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
@@ -15,6 +16,7 @@ type HubFields = {
   clientAdminEmail: string;
   notes: string | null;
   enabledSkuIds: string[];
+  tenantDbName: string | null;
   dnsCnameAt: Date | string | null;
   railwayDomainAt: Date | string | null;
   tenantDbAt: Date | string | null;
@@ -30,6 +32,7 @@ export default function HubSetupForm({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   const done = {
     dns: !!hub.dnsCnameAt,
     tls: !!hub.railwayDomainAt,
@@ -113,18 +116,20 @@ export default function HubSetupForm({
       <section className="glass rounded-2xl p-6">
         <h2 className="font-display text-xl tracking-wide text-off-white">Next setup steps</h2>
         <p className="mt-1 font-body text-xs text-off-white/45">
-          The hub record is saved. Mark each step when you finish it outside the app.
+          DNS and TLS can be marked when the slug hostname loads. The tenant database is created
+          here — it does not touch Hub 0 members.
         </p>
         <ul className="mt-4 space-y-3">
           <li className="rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-3">
             <p className="font-body text-sm text-off-white">Hub record saved</p>
             <p className="mt-1 font-body text-[11px] text-off-white/55">
-              Name, slug, email, and SKUs are in Postgres. This site (Hub 0) is unchanged.
+              Name, slug, email, and SKUs are in Hub 0 Postgres. This site is unchanged.
             </p>
           </li>
           {HUB_SETUP_STEPS.map((step) => {
             const complete = done[step.id];
             const how = step.how.replaceAll("{slug}", hub.slug);
+            const isDatabase = step.id === "database";
             return (
               <li
                 key={step.id}
@@ -138,22 +143,46 @@ export default function HubSetupForm({
                       {complete ? "Done" : "To do"} — {step.label}
                     </p>
                     <p className="mt-1 font-body text-[11px] text-off-white/55">{how}</p>
+                    {isDatabase && hub.tenantDbName ? (
+                      <p className="mt-1 font-body text-[11px] text-cyan/80">
+                        Schema {hub.tenantDbName}
+                      </p>
+                    ) : null}
                   </div>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => {
-                      const data = new FormData();
-                      data.set("hubId", hub.id);
-                      data.set("stepId", step.id);
-                      start(async () => {
-                        await toggleHubSetupStepAction(data);
-                      });
-                    }}
-                    className="shrink-0 rounded-lg border border-off-white/20 px-3 py-1.5 font-body text-xs text-off-white/80 hover:text-off-white disabled:opacity-50"
-                  >
-                    {complete ? "Undo" : "Mark done"}
-                  </button>
+                  {isDatabase ? (
+                    <button
+                      type="button"
+                      disabled={pending || complete}
+                      onClick={() => {
+                        const data = new FormData();
+                        data.set("hubId", hub.id);
+                        start(async () => {
+                          const result = await provisionClientHubDatabaseAction(data);
+                          setError(result.error);
+                          if (!result.error) router.refresh();
+                        });
+                      }}
+                      className="shrink-0 rounded-lg border border-orange/40 bg-orange/15 px-3 py-1.5 font-body text-xs text-orange hover:border-orange/70 disabled:opacity-50"
+                    >
+                      {pending && !complete ? "Provisioning…" : complete ? "Provisioned" : "Provision"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        const data = new FormData();
+                        data.set("hubId", hub.id);
+                        data.set("stepId", step.id);
+                        start(async () => {
+                          await toggleHubSetupStepAction(data);
+                        });
+                      }}
+                      className="shrink-0 rounded-lg border border-off-white/20 px-3 py-1.5 font-body text-xs text-off-white/80 hover:text-off-white disabled:opacity-50"
+                    >
+                      {complete ? "Undo" : "Mark done"}
+                    </button>
+                  )}
                 </div>
               </li>
             );
