@@ -20,6 +20,10 @@ export default async function AccountBookingPage() {
       weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
       meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       openSlots: { orderBy: { startsAt: "asc" } },
+      dateOverrides: {
+        orderBy: { localDate: "asc" },
+        include: { windows: { orderBy: { startMinute: "asc" } } },
+      },
     },
   });
   if (bookingPage && bookingPage.meetingTypes.length === 0) {
@@ -30,6 +34,10 @@ export default async function AccountBookingPage() {
         weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
         meetingTypes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
         openSlots: { orderBy: { startsAt: "asc" } },
+        dateOverrides: {
+          orderBy: { localDate: "asc" },
+          include: { windows: { orderBy: { startMinute: "asc" } } },
+        },
       },
     });
   }
@@ -50,7 +58,7 @@ export default async function AccountBookingPage() {
           <span className="text-gradient">BOOKING</span>
         </>
       }
-      description="Share a link so people can schedule time with you. Meeting types land on your calendar; open times skip other hub events."
+      description="Share a link so people can schedule time with you. Use date exceptions for a day off or different hours without changing the weekly schedule."
     >
       <BookingSubnav active="setup" upcomingCount={upcomingCount} />
       <BookingSchedulePanel
@@ -85,6 +93,16 @@ export default async function AccountBookingPage() {
                   startsAt: s.startsAt.toISOString(),
                   endsAt: s.endsAt.toISOString(),
                   label: s.label,
+                })),
+                dateOverrides: bookingPage.dateOverrides.map((o) => ({
+                  id: o.id,
+                  localDate: o.localDate,
+                  kind: o.kind,
+                  note: o.note,
+                  windows: o.windows.map((w) => ({
+                    startMinute: w.startMinute,
+                    endMinute: w.endMinute,
+                  })),
                 })),
               }
             : null

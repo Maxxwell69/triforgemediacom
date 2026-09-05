@@ -43,6 +43,18 @@ export const bookingMeetingTypeSchema = z.object({
   durationMins: z.coerce.number().int().min(15).max(180),
 });
 
+export const dateOverrideWindowSchema = z.object({
+  startMinute: z.coerce.number().int().min(0).max(24 * 60 - 1),
+  endMinute: z.coerce.number().int().min(1).max(24 * 60),
+});
+
+export const bookingDateOverrideSchema = z.object({
+  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
+  kind: z.enum(["CLOSED", "CUSTOM"]),
+  note: z.string().trim().max(120).optional().or(z.literal("")),
+  windows: z.array(dateOverrideWindowSchema).optional(),
+});
+
 export const bookingOpenSlotSchema = z.object({
   date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
   start: z.string().trim().regex(/^\d{2}:\d{2}$/, "Pick a start time"),

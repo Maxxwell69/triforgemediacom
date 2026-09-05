@@ -1704,6 +1704,7 @@ model BookingPage {
   weeklyWindows BookingWeeklyWindow[]
   meetingTypes  BookingMeetingType[]
   openSlots     BookingOpenSlot[]
+  dateOverrides BookingDateOverride[]
   appointments  Appointment[]
 }
 
@@ -1737,6 +1738,40 @@ model BookingMeetingType {
   appointments Appointment[]
 
   @@index([bookingPageId, sortOrder])
+}
+
+enum BookingDateOverrideKind {
+  CLOSED
+  CUSTOM
+}
+
+/// One calendar date that replaces the weekly schedule (day off or custom hours).
+model BookingDateOverride {
+  id            String                  @id @default(cuid())
+  bookingPageId String
+  /// YYYY-MM-DD in BookingPage.timezone
+  localDate     String
+  kind          BookingDateOverrideKind
+  note          String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  bookingPage BookingPage                 @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+  windows     BookingDateOverrideWindow[]
+
+  @@unique([bookingPageId, localDate])
+  @@index([bookingPageId, localDate])
+}
+
+model BookingDateOverrideWindow {
+  id          String @id @default(cuid())
+  overrideId  String
+  startMinute Int
+  endMinute   Int
+
+  override BookingDateOverride @relation(fields: [overrideId], references: [id], onDelete: Cascade)
+
+  @@index([overrideId])
 }
 
 /// One-off extra open hours beyond the weekly schedule (fill gaps).

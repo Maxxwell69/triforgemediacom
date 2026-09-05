@@ -144,6 +144,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.163",
+    date: "September 5, 2026",
+    title: "Booking date exceptions",
+    summary:
+      "Hosts can take a specific calendar day off or set custom hours for that date without changing the weekly schedule.",
+    items: [
+      {
+        kind: "feature",
+        text: "Account → Booking: day-off and custom-hours exceptions for a single date",
+      },
+      {
+        kind: "improve",
+        text: "Public /book slots skip or replace weekly hours on exception dates",
+      },
+    ],
+  },
+  {
     version: "3.162",
     date: "September 5, 2026",
     title: "Hub Suggestions board",
