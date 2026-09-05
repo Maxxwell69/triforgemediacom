@@ -6,7 +6,6 @@ import type { SupportTicketStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/session";
 import { isAdminRole } from "@/lib/rbac";
-import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { updateSupportTicketSchema } from "@/lib/validations/support";
 import {
   SUPPORT_STATUS_LABELS,
