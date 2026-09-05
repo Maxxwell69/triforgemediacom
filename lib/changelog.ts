@@ -144,6 +144,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.164",
+    date: "September 5, 2026",
+    title: "Announcement YouTube banner",
+    summary: "Admins can add a YouTube link to the company announcement so members can watch it on the dashboard.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin dashboard announcement accepts an optional YouTube (or Vimeo) URL",
+      },
+      {
+        kind: "feature",
+        text: "Member home banner embeds the video under the announcement text",
+      },
+    ],
+  },
+  {
     version: "3.163",
     date: "September 5, 2026",
     title: "Booking date exceptions",

@@ -5,6 +5,7 @@ import { hubHas } from "@/lib/hub/modules";
 import { liveNotStaleWhere } from "@/lib/tiktokLive";
 import { requireAdminPage } from "@/lib/session";
 import { setAnnouncement, clearAnnouncement } from "./actions";
+import VideoEmbed from "@/components/VideoEmbed";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,7 @@ export default async function AdminDashboardPage() {
         </h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
           Shows as a banner at the top of every member&apos;s dashboard until you clear it.
+          Optional YouTube link plays in the banner.
         </p>
 
         <form action={setAnnouncement} className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6">
@@ -146,6 +148,22 @@ export default async function AdminDashboardPage() {
             placeholder="e.g. Server maintenance tonight at 10pm EST — chat will be briefly unavailable."
             className={fieldClass}
           />
+          <label className="font-body text-xs text-off-white/50">
+            YouTube video (optional)
+            <input
+              name="videoUrl"
+              type="text"
+              inputMode="url"
+              defaultValue={announcement?.videoUrl ?? ""}
+              placeholder="https://www.youtube.com/watch?v=…"
+              className={`${fieldClass} mt-1`}
+            />
+          </label>
+          {announcement?.isActive && announcement.videoUrl ? (
+            <div className="max-w-xl">
+              <VideoEmbed url={announcement.videoUrl} />
+            </div>
+          ) : null}
           <div className="flex items-center gap-3">
             <button
               type="submit"

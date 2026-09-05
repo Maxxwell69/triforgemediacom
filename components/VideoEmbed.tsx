@@ -8,7 +8,7 @@ export default function VideoEmbed({ url }: { url: string | null }) {
     <div className="aspect-video w-full overflow-hidden rounded-xl bg-charcoal">
       <iframe
         src={src}
-        title="Lesson video"
+        title="Video"
         className="h-full w-full"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
