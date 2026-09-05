@@ -9,6 +9,7 @@ import CompanySocialPanel from "@/components/CompanySocialPanel";
 import { hubHas } from "@/lib/hub/modules";
 import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
+import VideoEmbed from "@/components/VideoEmbed";
 
 export const dynamic = "force-dynamic";
 
@@ -58,11 +59,18 @@ export default async function HomePage() {
     <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-5xl">
         {announcement?.isActive && (
-          <div className="glass mb-8 flex items-start gap-3 rounded-2xl border border-orange/30 bg-orange/5 p-4">
-            <span className="mt-0.5 text-xl" aria-hidden="true">
-              📣
-            </span>
-            <p className="font-body text-sm text-off-white/90">{announcement.message}</p>
+          <div className="glass mb-8 flex flex-col gap-3 rounded-2xl border border-orange/30 bg-orange/5 p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-xl" aria-hidden="true">
+                📣
+              </span>
+              <p className="font-body text-sm text-off-white/90">{announcement.message}</p>
+            </div>
+            {announcement.videoUrl ? (
+              <div className="max-w-2xl">
+                <VideoEmbed url={announcement.videoUrl} />
+              </div>
+            ) : null}
           </div>
         )}
 
