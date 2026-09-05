@@ -385,6 +385,26 @@ async function hasPassedCategoryTeaching(userId: string, categoryId: string): Pr
   return !!pass;
 }
 
+/** Categories that have a published LMS course or an active quiz module assigned. */
+export async function awardedTrainingCategoryIds(): Promise<Set<string>> {
+  const [courses, modules] = await Promise.all([
+    prisma.course.findMany({
+      where: { progressionEnabled: true, isPublished: true, progressionCategoryId: { not: null } },
+      select: { progressionCategoryId: true },
+    }),
+    prisma.progressionLearningModule.findMany({
+      where: { status: "ACTIVE", quiz: { isNot: null } },
+      select: { categoryId: true },
+    }),
+  ]);
+  const ids = new Set<string>();
+  for (const course of courses) {
+    if (course.progressionCategoryId) ids.add(course.progressionCategoryId);
+  }
+  for (const module of modules) ids.add(module.categoryId);
+  return ids;
+}
+
 async function evaluateCertifications(userId: string) {
   const certs = await prisma.progressionCertification.findMany({
     where: { status: "ACTIVE" },
@@ -394,15 +414,18 @@ async function evaluateCertifications(userId: string) {
   const xpByCategory = new Map(xpRows.map((row) => [row.categoryId, row.amount]));
   const held = await prisma.progressionCertificationHeld.findMany({ where: { userId } });
   const heldByCert = new Map(held.map((row) => [row.certificationId, row]));
+  const trainingCategories = await awardedTrainingCategoryIds();
 
   for (const cert of certs) {
     for (const tier of cert.tiers) {
       if (tier.unlockKind === "ADMIN_REVIEW") continue;
+      const waivedTraining =
+        tier.unlockKind === "QUIZ_PASSED" && !trainingCategories.has(cert.categoryId);
       let ok = false;
       if (tier.unlockKind === "CATEGORY_XP") {
         ok = (xpByCategory.get(cert.categoryId) ?? 0) >= (tier.xpRequired ?? 0);
       } else if (tier.unlockKind === "QUIZ_PASSED") {
-        ok = await hasPassedCategoryTeaching(userId, cert.categoryId);
+        ok = waivedTraining || (await hasPassedCategoryTeaching(userId, cert.categoryId));
       }
       if (!ok) continue;
       const current = heldByCert.get(cert.id);
@@ -418,6 +441,7 @@ async function evaluateCertifications(userId: string) {
           reviewedById: null,
           awardedAt: new Date(),
         });
+        if (waivedTraining) continue;
         await grantProgressionBadges(userId, "CERTIFICATION", cert.id);
         await grantProgressionBadges(userId, "CERTIFICATION", tier.id);
         await awardXpOnce(prisma, {
@@ -526,7 +550,7 @@ async function evaluateLevel(userId: string) {
     orderBy: { sortOrder: "asc" },
     include: {
       milestones: true,
-      certRequirements: { include: { tier: true } },
+      certRequirements: { include: { tier: true, certification: { select: { categoryId: true } } } },
     },
   });
   const totalXp = await totalProgressionXp(userId);
@@ -540,6 +564,7 @@ async function evaluateLevel(userId: string) {
     include: { tier: true },
   });
   const heldByCert = new Map(certs.map((row) => [row.certificationId, row]));
+  const trainingCategories = await awardedTrainingCategoryIds();
 
   let currentId: string | null = null;
   for (const level of levels) {
@@ -552,9 +577,12 @@ async function evaluateLevel(userId: string) {
           : level.milestones.every((m) => doneMissions.has(m.missionId));
     const certsOk = level.certRequirements.every((req) => {
       const held = heldByCert.get(req.certificationId);
-      if (!held) return false;
-      if (!req.tier) return true;
-      return held.tier.sortOrder >= req.tier.sortOrder;
+      if (held && (!req.tier || held.tier.sortOrder >= req.tier.sortOrder)) return true;
+      // Quiz/training gates do not block a rank when no course is assigned to that track.
+      if (!req.tier || req.tier.unlockKind === "QUIZ_PASSED") {
+        return !trainingCategories.has(req.certification.categoryId);
+      }
+      return false;
     });
     if (xpOk && milestonesOk && certsOk) {
       currentId = level.id;
@@ -609,8 +637,10 @@ export async function loadCreatorProgress(userId: string) {
           milestones: { include: { mission: { select: { id: true, name: true } } } },
           certRequirements: {
             include: {
-              certification: { select: { id: true, name: true } },
-              tier: { select: { id: true, name: true, sortOrder: true } },
+              certification: {
+                select: { id: true, name: true, categoryId: true, category: { select: { name: true } } },
+              },
+              tier: { select: { id: true, name: true, sortOrder: true, unlockKind: true, xpRequired: true } },
             },
           },
         },
@@ -644,6 +674,7 @@ export async function loadCreatorProgress(userId: string) {
       }),
     ]);
 
+  const trainingCategoryIds = await awardedTrainingCategoryIds();
   const teachingCourses = await prisma.course.findMany({
     where: { progressionEnabled: true, isPublished: true },
     orderBy: { order: "asc" },
@@ -699,6 +730,7 @@ export async function loadCreatorProgress(userId: string) {
     })),
     totalXp: xpRows.reduce((sum, row) => sum + row.amount, 0),
     xpByCategory: Object.fromEntries(xpRows.map((row) => [row.categoryId, row.amount])),
+    trainingCategoryIds: Array.from(trainingCategoryIds),
     missionCompletions: missionsDone,
     moduleCompletions: modulesDone,
     certsHeld,
