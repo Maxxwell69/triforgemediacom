@@ -66,6 +66,12 @@ export function zonedParts(date: Date, timeZone: string) {
   };
 }
 
+type DateOverrideForSlots = {
+  localDate: string;
+  kind: "CLOSED" | "CUSTOM";
+  windows: { startMinute: number; endMinute: number }[];
+};
+
 type PageForSlots = {
   timezone: string;
   durationMins: number;
@@ -73,7 +79,12 @@ type PageForSlots = {
   aheadDays: number;
   weeklyWindows: { dayOfWeek: number; startMinute: number; endMinute: number }[];
   openSlots?: { startsAt: Date; endsAt: Date }[];
+  dateOverrides?: DateOverrideForSlots[];
 };
+
+function localDateKey(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
 type BusyRange = { startsAt: Date; endsAt: Date };
 
@@ -227,6 +238,9 @@ export async function listOpenSlotsForPage(
   const busy = await listHostBusyRanges(page.hostUserId, from, horizon, opts);
   const slots: OpenSlot[] = [];
   const cursorParts = zonedParts(from, page.timezone);
+  const overrideByDate = new Map(
+    (page.dateOverrides ?? []).map((o) => [o.localDate, o] as const)
+  );
 
   for (let dayOffset = 0; dayOffset <= page.aheadDays; dayOffset++) {
     const probe = localWallTimeToUtc(
@@ -238,7 +252,14 @@ export async function listOpenSlotsForPage(
       0
     );
     const day = zonedParts(probe, page.timezone);
-    const windows = page.weeklyWindows.filter((w) => w.dayOfWeek === day.dayOfWeek);
+    const dateKey = localDateKey(day.year, day.month, day.day);
+    const override = overrideByDate.get(dateKey);
+    if (override?.kind === "CLOSED") continue;
+
+    const windows =
+      override?.kind === "CUSTOM"
+        ? override.windows
+        : page.weeklyWindows.filter((w) => w.dayOfWeek === day.dayOfWeek);
 
     for (const win of windows) {
       const windowStart = localWallTimeToUtc(
@@ -273,6 +294,11 @@ export async function listOpenSlotsForPage(
 
   for (const extra of page.openSlots ?? []) {
     if (extra.endsAt <= from || extra.startsAt >= horizon) continue;
+    const extraDay = zonedParts(extra.startsAt, page.timezone);
+    const extraKey = localDateKey(extraDay.year, extraDay.month, extraDay.day);
+    const extraOverride = overrideByDate.get(extraKey);
+    // A date override replaces that day's hours entirely — skip additive extras.
+    if (extraOverride) continue;
     pushSlicedWindow(
       slots,
       busy,
@@ -303,6 +329,10 @@ export async function getActiveBookingPageBySlug(slug: string) {
       weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
       meetingTypes: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       openSlots: { orderBy: { startsAt: "asc" } },
+      dateOverrides: {
+        orderBy: { localDate: "asc" },
+        include: { windows: { orderBy: { startMinute: "asc" } } },
+      },
       host: { select: { id: true, name: true, email: true } },
     },
   });

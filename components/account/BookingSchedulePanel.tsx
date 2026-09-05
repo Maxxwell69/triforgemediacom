@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   addBookingOpenSlot,
   createBookingMeetingType,
+  deleteBookingDateOverride,
   deleteBookingMeetingType,
   deleteBookingOpenSlot,
   ensureBookingPage,
   setBookingWeeklyWindows,
   updateBookingMeetingType,
   updateBookingPageSettings,
+  upsertBookingDateOverride,
 } from "@/app/(community)/account/bookingActions";
 import { BOOKING_TIMEZONES, DAY_LABELS, minutesToLabel } from "@/lib/bookingClient";
 
@@ -45,6 +47,13 @@ type PageProps = {
     isActive: boolean;
   }[];
   openSlots: { id: string; startsAt: string; endsAt: string; label: string | null }[];
+  dateOverrides: {
+    id: string;
+    localDate: string;
+    kind: "CLOSED" | "CUSTOM";
+    note: string | null;
+    windows: { startMinute: number; endMinute: number }[];
+  }[];
 };
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => i * 30);
@@ -65,6 +74,10 @@ export default function BookingSchedulePanel({
   const [windows, setWindows] = useState<WindowRow[]>(() =>
     (initialPage?.weeklyWindows ?? []).map((w) => ({ ...w, key: newKey() }))
   );
+  const [overrideKind, setOverrideKind] = useState<"CLOSED" | "CUSTOM">("CLOSED");
+  const [overrideWindows, setOverrideWindows] = useState<WindowRow[]>(() => [
+    { key: newKey(), dayOfWeek: 0, startMinute: 9 * 60, endMinute: 17 * 60 },
+  ]);
 
   const byDay = useMemo(() => {
     const map = new Map<number, WindowRow[]>();
@@ -327,6 +340,174 @@ export default function BookingSchedulePanel({
         >
           {isPending ? "Saving…" : "Save weekly hours"}
         </button>
+      </div>
+
+      <div>
+        <h3 className="font-display text-lg tracking-wide text-off-white/80">
+          Date exceptions
+        </h3>
+        <p className="mt-1 font-body text-xs text-off-white/45">
+          Take a specific day off, or set different hours for that date only. Your weekly
+          schedule stays the same.
+        </p>
+        {initialPage.dateOverrides.length > 0 && (
+          <ul className="mt-3 flex flex-col gap-2">
+            {initialPage.dateOverrides.map((override) => (
+              <li
+                key={override.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-off-white/10 px-3 py-2"
+              >
+                <span className="font-body text-xs text-off-white/70">
+                  <span className="font-semibold text-off-white">
+                    {override.localDate}
+                  </span>
+                  {" · "}
+                  {override.kind === "CLOSED"
+                    ? "Day off"
+                    : override.windows
+                        .map(
+                          (w) =>
+                            `${minutesToLabel(w.startMinute)} – ${
+                              w.endMinute === 24 * 60
+                                ? "12:00 AM"
+                                : minutesToLabel(w.endMinute)
+                            }`
+                        )
+                        .join(", ")}
+                  {override.note ? ` · ${override.note}` : ""}
+                </span>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      const result = await deleteBookingDateOverride(override.id);
+                      setError(result.error);
+                      if (!result.error) router.refresh();
+                    })
+                  }
+                  className="font-body text-xs text-orange/80 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          className="mt-3 flex flex-col gap-3 rounded-xl border border-off-white/10 p-3"
+          action={(formData) => {
+            formData.set("kind", overrideKind);
+            formData.set(
+              "windows",
+              JSON.stringify(
+                overrideKind === "CUSTOM"
+                  ? overrideWindows.map(({ startMinute, endMinute }) => ({
+                      startMinute,
+                      endMinute,
+                    }))
+                  : []
+              )
+            );
+            startTransition(async () => {
+              const result = await upsertBookingDateOverride(formData);
+              setError(result.error);
+              if (!result.error) router.refresh();
+            });
+          }}
+        >
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="font-body text-xs text-off-white/50">
+              Date
+              <input name="date" type="date" required className={`${fieldClass} mt-1`} />
+            </label>
+            <label className="font-body text-xs text-off-white/50">
+              Exception
+              <select
+                value={overrideKind}
+                onChange={(e) => setOverrideKind(e.target.value as "CLOSED" | "CUSTOM")}
+                className={`${fieldClass} mt-1`}
+              >
+                <option value="CLOSED">Day off — no bookings</option>
+                <option value="CUSTOM">Custom hours for this date</option>
+              </select>
+            </label>
+          </div>
+          <input
+            name="note"
+            placeholder="Note (optional) — e.g. PTO, early close"
+            className={fieldClass}
+          />
+          {overrideKind === "CUSTOM" && (
+            <div className="flex flex-col gap-2">
+              {overrideWindows.map((w) => (
+                <div key={w.key} className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={w.startMinute}
+                    onChange={(e) => {
+                      const startMinute = Number(e.target.value);
+                      setOverrideWindows((prev) =>
+                        prev.map((row) => (row.key === w.key ? { ...row, startMinute } : row))
+                      );
+                    }}
+                    className="rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 font-body text-xs text-off-white"
+                  >
+                    {TIME_OPTIONS.map((m) => (
+                      <option key={m} value={m}>
+                        {minutesToLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="font-body text-xs text-off-white/40">to</span>
+                  <select
+                    value={w.endMinute}
+                    onChange={(e) => {
+                      const endMinute = Number(e.target.value);
+                      setOverrideWindows((prev) =>
+                        prev.map((row) => (row.key === w.key ? { ...row, endMinute } : row))
+                      );
+                    }}
+                    className="rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 font-body text-xs text-off-white"
+                  >
+                    {[...TIME_OPTIONS.filter((m) => m > 0), 24 * 60].map((m) => (
+                      <option key={m} value={m}>
+                        {m === 24 * 60 ? "12:00 AM (end)" : minutesToLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOverrideWindows((prev) => prev.filter((row) => row.key !== w.key))
+                    }
+                    className="font-body text-xs text-orange/80"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setOverrideWindows((prev) => [
+                    ...prev,
+                    { key: newKey(), dayOfWeek: 0, startMinute: 9 * 60, endMinute: 17 * 60 },
+                  ])
+                }
+                className="self-start font-body text-xs text-cyan hover:underline"
+              >
+                + Hours
+              </button>
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={isPending}
+            className="self-start rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white shadow-glow disabled:opacity-40"
+          >
+            {isPending ? "Saving…" : "Save date exception"}
+          </button>
+        </form>
       </div>
 
       <div>

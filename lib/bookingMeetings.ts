@@ -18,6 +18,7 @@ export const appointmentManageInclude = {
       hostUserId: true,
       weeklyWindows: true,
       openSlots: true,
+      dateOverrides: { include: { windows: true } },
     },
   },
   meetingType: { select: { title: true, durationMins: true } },

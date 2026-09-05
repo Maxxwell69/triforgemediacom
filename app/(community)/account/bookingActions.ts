@@ -7,6 +7,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { suggestBookingSlug } from "@/lib/booking";
 import { parseZonedDateTime } from "@/lib/time";
 import {
+  bookingDateOverrideSchema,
   bookingMeetingTypeSchema,
   bookingOpenSlotSchema,
   bookingPageSettingsSchema,
@@ -305,6 +306,71 @@ export async function addBookingOpenSlot(
     },
   });
 
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function upsertBookingDateOverride(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+
+  let windowsRaw: unknown = [];
+  const windowsJson = String(formData.get("windows") || "[]");
+  try {
+    windowsRaw = JSON.parse(windowsJson);
+  } catch {
+    return { error: "Invalid hours payload" };
+  }
+
+  const parsed = bookingDateOverrideSchema.safeParse({
+    date: formData.get("date"),
+    kind: formData.get("kind"),
+    note: formData.get("note") || "",
+    windows: windowsRaw,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid date exception" };
+  }
+
+  const kind = parsed.data.kind;
+  const windows = (parsed.data.windows ?? []).filter((w) => w.endMinute > w.startMinute);
+  if (kind === "CUSTOM" && windows.length === 0) {
+    return { error: "Add at least one time range, or take the day off." };
+  }
+
+  await prisma.bookingDateOverride.deleteMany({
+    where: { bookingPageId: page.id, localDate: parsed.data.date },
+  });
+  await prisma.bookingDateOverride.create({
+    data: {
+      bookingPageId: page.id,
+      localDate: parsed.data.date,
+      kind,
+      note: parsed.data.note || null,
+      windows:
+        kind === "CUSTOM"
+          ? { create: windows.map((w) => ({ startMinute: w.startMinute, endMinute: w.endMinute })) }
+          : undefined,
+    },
+  });
+
+  revalidatePath("/account/booking");
+  revalidatePath(`/book/${page.slug}`);
+  return { error: null };
+}
+
+export async function deleteBookingDateOverride(
+  overrideId: string
+): Promise<{ error: string | null }> {
+  const page = await hostBookingPage();
+  const existing = await prisma.bookingDateOverride.findFirst({
+    where: { id: overrideId, bookingPageId: page.id },
+    select: { id: true },
+  });
+  if (!existing) return { error: "Date exception not found" };
+  await prisma.bookingDateOverride.delete({ where: { id: overrideId } });
   revalidatePath("/account/booking");
   revalidatePath(`/book/${page.slug}`);
   return { error: null };
