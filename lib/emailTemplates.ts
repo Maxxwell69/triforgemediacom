@@ -13,7 +13,11 @@ export type EmailTemplateKey =
   | "tiktok-request-expected"
   | "media-network-info"
   | "hub-migration-invite"
-  | "email-changed";
+  | "email-changed"
+  | "support-ticket-opened"
+  | "support-ticket-reply"
+  | "support-ticket-status"
+  | "support-ticket-closed";
 
 export type TemplateVarDef = {
   key: string;
@@ -234,6 +238,83 @@ export const EMAIL_TEMPLATE_DEFS: EmailTemplateDef[] = [
 <p style="line-height:1.6;">Hi {{name}}, your login email was changed from <strong>{{oldEmail}}</strong> to <strong>{{newEmail}}</strong>.</p>
 <p style="line-height:1.6;">If you didn't make this change, contact TriForge support right away.</p>`,
   },
+  {
+    key: "support-ticket-opened",
+    label: "Support ticket opened",
+    trigger: "Sent to the member when they open a support ticket.",
+    variables: [
+      { key: "name", label: "Member name", kind: "text" },
+      { key: "ticketLabel", label: "Ticket number (TF-0001)", kind: "text" },
+      { key: "subject", label: "Ticket subject", kind: "text" },
+      { key: "url", label: "Portal URL (plain text)", kind: "text" },
+      { key: "cta", label: "Open in Hub button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "We got your ticket {{ticketLabel}}",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket opened</h1>
+<p style="line-height:1.6;">Hi {{name}}, we received <strong>{{ticketLabel}}</strong> — {{subject}}.</p>
+<p style="line-height:1.6;">Replies happen in the Hub, not over email. Open the portal to follow along.</p>
+{{cta}}
+<p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
+  },
+  {
+    key: "support-ticket-reply",
+    label: "Support ticket reply",
+    trigger: "Sent when staff replies and the member should check the portal.",
+    variables: [
+      { key: "name", label: "Member name", kind: "text" },
+      { key: "ticketLabel", label: "Ticket number", kind: "text" },
+      { key: "subject", label: "Ticket subject", kind: "text" },
+      { key: "url", label: "Portal URL (plain text)", kind: "text" },
+      { key: "cta", label: "Open in Hub button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "New reply on {{ticketLabel}}",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">New reply on your ticket</h1>
+<p style="line-height:1.6;">Hi {{name}}, the team replied on <strong>{{ticketLabel}}</strong> — {{subject}}.</p>
+<p style="line-height:1.6;">Open the Hub to read it and reply there. Don't reply to this email.</p>
+{{cta}}
+<p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
+  },
+  {
+    key: "support-ticket-status",
+    label: "Support ticket status",
+    trigger: "Sent when a ticket status changes (not closed).",
+    variables: [
+      { key: "name", label: "Member name", kind: "text" },
+      { key: "ticketLabel", label: "Ticket number", kind: "text" },
+      { key: "subject", label: "Ticket subject", kind: "text" },
+      { key: "statusLabel", label: "New status", kind: "text" },
+      { key: "url", label: "Portal URL (plain text)", kind: "text" },
+      { key: "cta", label: "Open in Hub button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "{{ticketLabel}} is now {{statusLabel}}",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket update</h1>
+<p style="line-height:1.6;">Hi {{name}}, <strong>{{ticketLabel}}</strong> ({{subject}}) is now <strong>{{statusLabel}}</strong>.</p>
+<p style="line-height:1.6;">Open the Hub portal to see details. Don't reply to this email.</p>
+{{cta}}
+<p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
+  },
+  {
+    key: "support-ticket-closed",
+    label: "Support ticket closed",
+    trigger: "Sent when a ticket is resolved or closed.",
+    variables: [
+      { key: "name", label: "Member name", kind: "text" },
+      { key: "ticketLabel", label: "Ticket number", kind: "text" },
+      { key: "subject", label: "Ticket subject", kind: "text" },
+      { key: "url", label: "Portal URL (plain text)", kind: "text" },
+      { key: "cta", label: "Open in Hub button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "{{ticketLabel}} is closed",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket closed</h1>
+<p style="line-height:1.6;">Hi {{name}}, <strong>{{ticketLabel}}</strong> — {{subject}} — is closed.</p>
+<p style="line-height:1.6;">You can still read the thread in the Hub. Open a new ticket if you need more help.</p>
+{{cta}}
+<p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
+  },
 ];
 
 export function getTemplateDef(key: string): EmailTemplateDef | undefined {
@@ -362,6 +443,47 @@ export function sampleVarsFor(key: EmailTemplateKey): TemplateVars {
           oldEmail: "jane.old@example.com",
           newEmail: "jane.new@example.com",
         },
+      };
+    case "support-ticket-opened":
+      return {
+        text: {
+          name,
+          ticketLabel: "TF-0001",
+          subject: "Can't update my TikTok handle",
+          url: `${SAMPLE_APP_URL}/support/tickets/sample`,
+        },
+        html: { cta: button(`${SAMPLE_APP_URL}/support/tickets/sample`, "Open in Hub") },
+      };
+    case "support-ticket-reply":
+      return {
+        text: {
+          name,
+          ticketLabel: "TF-0001",
+          subject: "Can't update my TikTok handle",
+          url: `${SAMPLE_APP_URL}/support/tickets/sample`,
+        },
+        html: { cta: button(`${SAMPLE_APP_URL}/support/tickets/sample`, "Open in Hub") },
+      };
+    case "support-ticket-status":
+      return {
+        text: {
+          name,
+          ticketLabel: "TF-0001",
+          subject: "Can't update my TikTok handle",
+          statusLabel: "Waiting on you",
+          url: `${SAMPLE_APP_URL}/support/tickets/sample`,
+        },
+        html: { cta: button(`${SAMPLE_APP_URL}/support/tickets/sample`, "Open in Hub") },
+      };
+    case "support-ticket-closed":
+      return {
+        text: {
+          name,
+          ticketLabel: "TF-0001",
+          subject: "Can't update my TikTok handle",
+          url: `${SAMPLE_APP_URL}/support/tickets/sample`,
+        },
+        html: { cta: button(`${SAMPLE_APP_URL}/support/tickets/sample`, "Open in Hub") },
       };
     default:
       return { text: { name } };

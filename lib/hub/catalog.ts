@@ -43,6 +43,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
     description: "Broadcasts, templates, and trigger campaigns",
   },
   { id: "hubBug", kind: "optional", label: "Hub Bug", description: "Bug reports" },
+  {
+    id: "support",
+    kind: "optional",
+    label: "Support",
+    description: "FAQ and member ticket portal",
+  },
 ];
 
 /** TriForge Hub 0 only — never a client Create Hub checkbox. */

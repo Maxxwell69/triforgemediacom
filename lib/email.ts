@@ -1111,3 +1111,180 @@ export async function sendCampaignAdminNotifyEmail(
   }
 }
 
+// ---------- Support tickets (outbound portal CTAs only) ----------
+
+export type SupportTicketEmailData = {
+  name: string;
+  ticketLabel: string;
+  subject: string;
+  url: string;
+  statusLabel?: string;
+};
+
+export type SupportTicketAdminAlertData = {
+  ticketLabel: string;
+  subject: string;
+  requesterName: string;
+  categoryLabel: string;
+  preview: string;
+  adminUrl: string;
+};
+
+export function buildSupportTicketOpenedEmail(data: SupportTicketEmailData): EmailContent {
+  return {
+    subject: `We got your ticket ${data.ticketLabel}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket opened</h1>
+      <p style="line-height:1.6;">Hi ${escapeHtml(data.name)}, we received <strong>${escapeHtml(data.ticketLabel)}</strong> — ${escapeHtml(data.subject)}.</p>
+      <p style="line-height:1.6;">Replies happen in the Hub, not over email. Open the portal to follow along.</p>
+      ${button(data.url, "Open in Hub")}
+      <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: ${escapeHtml(data.url)}</p>
+    `),
+  };
+}
+
+export function buildSupportTicketReplyEmail(data: SupportTicketEmailData): EmailContent {
+  return {
+    subject: `New reply on ${data.ticketLabel}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">New reply on your ticket</h1>
+      <p style="line-height:1.6;">Hi ${escapeHtml(data.name)}, the team replied on <strong>${escapeHtml(data.ticketLabel)}</strong> — ${escapeHtml(data.subject)}.</p>
+      <p style="line-height:1.6;">Open the Hub to read it and reply there. Don't reply to this email.</p>
+      ${button(data.url, "Open in Hub")}
+      <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: ${escapeHtml(data.url)}</p>
+    `),
+  };
+}
+
+export function buildSupportTicketStatusEmail(data: SupportTicketEmailData): EmailContent {
+  const status = data.statusLabel || "updated";
+  return {
+    subject: `${data.ticketLabel} is now ${status}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket update</h1>
+      <p style="line-height:1.6;">Hi ${escapeHtml(data.name)}, <strong>${escapeHtml(data.ticketLabel)}</strong> (${escapeHtml(data.subject)}) is now <strong>${escapeHtml(status)}</strong>.</p>
+      <p style="line-height:1.6;">Open the Hub portal to see details. Don't reply to this email.</p>
+      ${button(data.url, "Open in Hub")}
+      <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: ${escapeHtml(data.url)}</p>
+    `),
+  };
+}
+
+export function buildSupportTicketClosedEmail(data: SupportTicketEmailData): EmailContent {
+  return {
+    subject: `${data.ticketLabel} is closed`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Ticket closed</h1>
+      <p style="line-height:1.6;">Hi ${escapeHtml(data.name)}, <strong>${escapeHtml(data.ticketLabel)}</strong> — ${escapeHtml(data.subject)} — is closed.</p>
+      <p style="line-height:1.6;">You can still read the thread in the Hub. Open a new ticket if you need more help.</p>
+      ${button(data.url, "Open in Hub")}
+      <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: ${escapeHtml(data.url)}</p>
+    `),
+  };
+}
+
+export function buildSupportTicketAdminAlert(data: SupportTicketAdminAlertData): EmailContent {
+  return {
+    subject: `Support ${data.ticketLabel}: ${data.subject}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New support ticket</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">${escapeHtml(data.requesterName)} opened ${escapeHtml(data.ticketLabel)} (${escapeHtml(data.categoryLabel)}).</p>
+      <p style="line-height:1.6;margin:0 0 16px;color:rgba(245,245,245,0.7);">${escapeHtml(data.preview).replace(/\n/g, "<br/>")}</p>
+      ${button(data.adminUrl, "Open in admin")}
+    `),
+  };
+}
+
+export async function sendSupportTicketOpenedEmail(to: string, data: SupportTicketEmailData) {
+  const { subject, html } = await resolveEditableEmail(
+    "support-ticket-opened",
+    {
+      text: {
+        name: data.name,
+        ticketLabel: data.ticketLabel,
+        subject: data.subject,
+        url: data.url,
+      },
+      html: { cta: button(data.url, "Open in Hub") },
+    },
+    () => buildSupportTicketOpenedEmail(data)
+  );
+  await send(to, subject, html);
+}
+
+export async function sendSupportTicketReplyEmail(to: string, data: SupportTicketEmailData) {
+  const { subject, html } = await resolveEditableEmail(
+    "support-ticket-reply",
+    {
+      text: {
+        name: data.name,
+        ticketLabel: data.ticketLabel,
+        subject: data.subject,
+        url: data.url,
+      },
+      html: { cta: button(data.url, "Open in Hub") },
+    },
+    () => buildSupportTicketReplyEmail(data)
+  );
+  await send(to, subject, html);
+}
+
+export async function sendSupportTicketStatusEmail(to: string, data: SupportTicketEmailData) {
+  const { subject, html } = await resolveEditableEmail(
+    "support-ticket-status",
+    {
+      text: {
+        name: data.name,
+        ticketLabel: data.ticketLabel,
+        subject: data.subject,
+        statusLabel: data.statusLabel || "updated",
+        url: data.url,
+      },
+      html: { cta: button(data.url, "Open in Hub") },
+    },
+    () => buildSupportTicketStatusEmail(data)
+  );
+  await send(to, subject, html);
+}
+
+export async function sendSupportTicketClosedEmail(to: string, data: SupportTicketEmailData) {
+  const { subject, html } = await resolveEditableEmail(
+    "support-ticket-closed",
+    {
+      text: {
+        name: data.name,
+        ticketLabel: data.ticketLabel,
+        subject: data.subject,
+        url: data.url,
+      },
+      html: { cta: button(data.url, "Open in Hub") },
+    },
+    () => buildSupportTicketClosedEmail(data)
+  );
+  await send(to, subject, html);
+}
+
+export async function sendSupportTicketAdminAlert(
+  adminEmails: string[],
+  data: SupportTicketAdminAlertData
+) {
+  const { subject, html } = buildSupportTicketAdminAlert(data);
+  await sendToMany(adminEmails, subject, html);
+}
+
+export async function sendSupportTicketStaffReplyAlert(
+  emails: string[],
+  data: SupportTicketAdminAlertData
+) {
+  const { subject, html } = {
+    subject: `Reply on ${data.ticketLabel}: ${data.subject}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">Member replied</h1>
+      <p style="line-height:1.6;margin:0 0 16px;">${escapeHtml(data.requesterName)} replied on ${escapeHtml(data.ticketLabel)}.</p>
+      <p style="line-height:1.6;margin:0 0 16px;color:rgba(245,245,245,0.7);">${escapeHtml(data.preview).replace(/\n/g, "<br/>")}</p>
+      ${button(data.adminUrl, "Open in admin")}
+    `),
+  };
+  await sendToMany(emails, subject, html);
+}
+

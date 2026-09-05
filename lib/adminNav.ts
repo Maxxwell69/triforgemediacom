@@ -157,6 +157,25 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    id: "support",
+    label: "Support",
+    description: "FAQ and member tickets",
+    links: [
+      {
+        href: "/admin/support",
+        label: "Tickets",
+        description: "Member support queue",
+        sku: "support",
+      },
+      {
+        href: "/admin/faq",
+        label: "FAQ",
+        description: "Help articles members can search",
+        sku: "support",
+      },
+    ],
+  },
+  {
     id: "webinars",
     label: "Live & events",
     description: "Who's live, webinars, and hub events",
