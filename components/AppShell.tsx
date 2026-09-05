@@ -20,10 +20,12 @@ import PresenceBeacon from "@/components/PresenceBeacon";
 import { aggregateUnreadByGroup, getChannelUnreadCounts } from "@/lib/channelReads";
 import { getBugReportUnreadCount } from "@/lib/bugReads";
 import { getSupportTicketUnreadCount } from "@/lib/supportReads";
+import { getSuggestionUnreadCount } from "@/lib/suggestionReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
 import HubBugNavLink from "@/components/HubBugNavLink";
 import SupportNavLink from "@/components/support/SupportNavLink";
+import SuggestionNavLink from "@/components/suggestions/SuggestionNavLink";
 import GroupServerRail from "@/components/groups/GroupServerRail";
 import EnsureDefaultHomeGroup from "@/components/groups/EnsureDefaultHomeGroup";
 import {
@@ -67,6 +69,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     tiktokStats,
     hubBugUnread,
     supportUnread,
+    suggestionUnread,
     assignedProjectCount,
     homeGroup,
     showProgress,
@@ -91,6 +94,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
     getBugReportUnreadCount(user.id),
     hubHas("support")
       ? getSupportTicketUnreadCount(user.id, user.role)
+      : Promise.resolve(0),
+    hubHas("support")
+      ? getSuggestionUnreadCount(user.id)
       : Promise.resolve(0),
     prisma.project.count({
       where: {
@@ -306,6 +312,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
           )}
           {hubHas("support") && (
             <SupportNavLink initialCount={supportUnread} />
+          )}
+          {hubHas("support") && (
+            <SuggestionNavLink initialCount={suggestionUnread} />
           )}
           <Link
             href="/account"

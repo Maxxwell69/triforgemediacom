@@ -1288,3 +1288,44 @@ export async function sendSupportTicketStaffReplyAlert(
   await sendToMany(emails, subject, html);
 }
 
+export type SuggestionAdminAlertData = {
+  ticketLabel: string;
+  title: string;
+  authorName: string;
+  preview: string;
+  adminUrl: string;
+};
+
+export type SuggestionStatusEmailData = {
+  name: string;
+  ticketLabel: string;
+  title: string;
+  statusLabel: string;
+  url: string;
+};
+
+export async function sendSuggestionAdminAlert(
+  adminEmails: string[],
+  data: SuggestionAdminAlertData
+) {
+  const subject = `Suggestion ${data.ticketLabel}: ${data.title}`;
+  const html = layout(`
+    <h1 style="color:#FD4802;font-size:20px;margin:0 0 8px;">New suggestion</h1>
+    <p style="line-height:1.6;margin:0 0 16px;">${escapeHtml(data.authorName)} submitted ${escapeHtml(data.ticketLabel)}.</p>
+    <p style="line-height:1.6;margin:0 0 16px;color:rgba(245,245,245,0.7);">${escapeHtml(data.preview).replace(/\n/g, "<br/>")}</p>
+    ${button(data.adminUrl, "Open suggestions")}
+  `);
+  await sendToMany(adminEmails, subject, html);
+}
+
+export async function sendSuggestionStatusEmail(to: string, data: SuggestionStatusEmailData) {
+  const subject = `${data.ticketLabel} is ${data.statusLabel}`;
+  const html = layout(`
+    <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Suggestion update</h1>
+    <p style="line-height:1.6;">Hi ${escapeHtml(data.name)}, <strong>${escapeHtml(data.ticketLabel)}</strong> — ${escapeHtml(data.title)} — is now <strong>${escapeHtml(data.statusLabel)}</strong>.</p>
+    <p style="line-height:1.6;">Open the Hub to see the board. Don't reply to this email.</p>
+    ${button(data.url, "Open in Hub")}
+  `);
+  await send(to, subject, html);
+}
+

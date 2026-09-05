@@ -47,7 +47,7 @@ export const OPTIONAL_SKUS: HubSku[] = [
     id: "support",
     kind: "optional",
     label: "Support",
-    description: "FAQ and member ticket portal",
+    description: "FAQ, tickets, and suggestions",
   },
 ];
 

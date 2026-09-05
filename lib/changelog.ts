@@ -144,6 +144,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.162",
+    date: "September 5, 2026",
+    title: "Hub Suggestions board",
+    summary:
+      "Members can pitch hub ideas. Staff tags each one Accepted, Working on it, Applied, or Rejected.",
+    items: [
+      {
+        kind: "feature",
+        text: "Suggestions board at /suggestions with public tags and SG-0001 ticket numbers",
+      },
+      {
+        kind: "feature",
+        text: "Admin queue at /admin/suggestions to tag ideas and leave a visible staff note",
+      },
+    ],
+  },
+  {
     version: "3.161",
     date: "September 5, 2026",
     title: "Hub Support network",

@@ -142,6 +142,16 @@ export default async function HomePage() {
             />
           )}
 
+          {hubHas("support") && (
+            <DashboardCard
+              href="/suggestions"
+              icon="💡"
+              title="Suggestions"
+              description="Pitch hub ideas. Staff tags Accepted, Working on it, Applied, or Rejected."
+              accent="orange"
+            />
+          )}
+
           <DashboardCard
             href="/rewards"
             icon="🎁"
