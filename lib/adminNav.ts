@@ -173,6 +173,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         description: "Help articles members can search",
         sku: "support",
       },
+      {
+        href: "/admin/suggestions",
+        label: "Suggestions",
+        description: "Tag member ideas on the board",
+        sku: "support",
+      },
     ],
   },
   {

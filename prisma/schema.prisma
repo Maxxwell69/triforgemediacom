@@ -168,6 +168,8 @@ model User {
   supportTicketMessages      SupportTicketMessage[]
   supportTicketRead          SupportTicketRead?
   faqArticlesUpdated         FaqArticle[]           @relation("FaqArticleUpdatedBy")
+  suggestionsSubmitted       Suggestion[]
+  suggestionRead             SuggestionRead?
 }
 
 // ---------- Application / invite flow ----------
@@ -1404,6 +1406,42 @@ model SupportTicketMessage {
 
 /// Per-user cursor for Support sidebar unread badge.
 model SupportTicketRead {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SuggestionStatus {
+  NEW
+  ACCEPTED
+  WORKING_ON_IT
+  APPLIED
+  REJECTED
+}
+
+model Suggestion {
+  id            String           @id @default(cuid())
+  /// Public trackable id (SG-0001). Auto-increments.
+  ticketNumber  Int              @unique @default(autoincrement())
+  title         String
+  description   String
+  status        SuggestionStatus @default(NEW)
+  adminNotes    String?
+  authorId      String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+/// Per-user cursor for Suggestions sidebar unread badge.
+model SuggestionRead {
   id         String   @id @default(cuid())
   userId     String   @unique
   lastReadAt DateTime @default(now())

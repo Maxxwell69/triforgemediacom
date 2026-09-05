@@ -90,6 +90,12 @@ export default async function SupportHomePage({
           >
             Open a ticket
           </Link>
+          <Link
+            href="/suggestions"
+            className="rounded-lg border border-off-white/20 px-5 py-2.5 font-body text-sm text-off-white/80 transition hover:border-cyan/40 hover:text-cyan"
+          >
+            Suggestions
+          </Link>
           {needsAttention > 0 && (
             <span className="self-center font-body text-xs text-cyan">
               {needsAttention} need{needsAttention === 1 ? "s" : ""} your attention
