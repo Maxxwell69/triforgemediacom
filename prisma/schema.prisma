@@ -163,6 +163,11 @@ model User {
   campaignsCreated           Campaign[]             @relation("CampaignCreatedBy")
   campaignRuns               CampaignRun[]
   hubNotifications           HubNotification[]
+  supportTicketsRequested    SupportTicket[]        @relation("SupportTicketRequester")
+  supportTicketsAssigned     SupportTicket[]        @relation("SupportTicketAssignee")
+  supportTicketMessages      SupportTicketMessage[]
+  supportTicketRead          SupportTicketRead?
+  faqArticlesUpdated         FaqArticle[]           @relation("FaqArticleUpdatedBy")
 }
 
 // ---------- Application / invite flow ----------
@@ -1302,6 +1307,103 @@ model BugReport {
 
 /// Per-user cursor for Hub Bug sidebar unread badge (new tickets since last visit).
 model BugReportRead {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Support network (FAQ + tickets) ----------
+
+enum SupportTicketStatus {
+  OPEN
+  WAITING_ON_MEMBER
+  WAITING_ON_STAFF
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketCategory {
+  ACCOUNT
+  BILLING
+  MEMBERSHIP
+  CONTENT
+  OTHER
+}
+
+model FaqCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles FaqArticle[]
+
+  @@index([published, sortOrder])
+}
+
+model FaqArticle {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  body        String
+  published   Boolean  @default(true)
+  featured    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  categoryId  String
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category  FaqCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  updatedBy User?       @relation("FaqArticleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([categoryId, sortOrder])
+  @@index([published, featured])
+}
+
+model SupportTicket {
+  id             String                 @id @default(cuid())
+  /// Public trackable ticket id (TF-0001). Auto-increments.
+  ticketNumber   Int                    @unique @default(autoincrement())
+  subject        String
+  category       SupportTicketCategory  @default(OTHER)
+  status         SupportTicketStatus    @default(OPEN)
+  requesterId    String
+  assigneeId     String?
+  lastActivityAt DateTime               @default(now())
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  requester User                   @relation("SupportTicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignee  User?                  @relation("SupportTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages  SupportTicketMessage[]
+
+  @@index([status, lastActivityAt])
+  @@index([requesterId])
+  @@index([assigneeId])
+}
+
+model SupportTicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+/// Per-user cursor for Support sidebar unread badge.
+model SupportTicketRead {
   id         String   @id @default(cuid())
   userId     String   @unique
   lastReadAt DateTime @default(now())

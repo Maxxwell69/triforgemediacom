@@ -132,6 +132,16 @@ export default async function HomePage() {
             />
           )}
 
+          {hubHas("support") && (
+            <DashboardCard
+              href="/support"
+              icon="🎧"
+              title="Support"
+              description="FAQ and tickets — replies stay in the hub."
+              accent="cyan"
+            />
+          )}
+
           <DashboardCard
             href="/rewards"
             icon="🎁"

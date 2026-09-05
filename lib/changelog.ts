@@ -133,9 +133,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "GHL-style campaigns: first login, inactivity, go-live, tags, and level-ups can email members or drop an in-hub notification.",
     since: "3.143",
   },
+  {
+    name: "Hub Support",
+    tagline: "FAQ + ticket portal",
+    description:
+      "Searchable admin-editable FAQ and a member ticket portal. Emails only tell people to open the hub — conversation stays in the portal, not in email replies.",
+    since: "3.161",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.161",
+    date: "September 5, 2026",
+    title: "Hub Support network",
+    summary:
+      "Members can search an admin-editable FAQ and open tickets in the hub. Emails only send people back to the portal.",
+    items: [
+      {
+        kind: "program",
+        text: "Hub Support: FAQ + ticket portal at /support (ticket numbers TF-0001)",
+      },
+      {
+        kind: "feature",
+        text: "Admin FAQ editor and support queue with reply threads, assignment, and statuses",
+      },
+      {
+        kind: "feature",
+        text: "Outbound ticket emails (opened, reply, status, closed) with Open in Hub CTAs — no inbound mailbox",
+      },
+    ],
+  },
   {
     version: "3.157",
     date: "September 4, 2026",
