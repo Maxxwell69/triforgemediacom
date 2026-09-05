@@ -77,32 +77,53 @@ export default async function ProgressPage({
     : null;
   const heldCertById = new Map(progress.certsHeld.map((row) => [row.certificationId, row]));
 
-  const levelRequirements = (nextLevel ?? currentLevel)?.certRequirements.map((req) => {
-    const held = heldCertById.get(req.certificationId);
-    const done = req.tier
-      ? !!held && held.tier.sortOrder >= req.tier.sortOrder
-      : !!held;
-    const label = req.tier
-      ? `${req.certification.name} · ${req.tier.name}`
-      : req.certification.name;
-    return { id: req.id, label, done };
-  }) ?? [];
-  const milestoneRequirements = (nextLevel ?? currentLevel)?.milestones.map((row) => ({
-    id: row.id,
-    label: row.mission.name,
-    done: doneMissions.has(row.missionId),
-  })) ?? [];
+  const targetLevel = nextLevel ?? currentLevel;
+  const trainingCategorySet = new Set(progress.trainingCategoryIds);
+  const levelRequirements =
+    targetLevel?.certRequirements.map((req) => {
+      const held = heldCertById.get(req.certificationId);
+      const done = req.tier
+        ? !!held && held.tier.sortOrder >= req.tier.sortOrder
+        : !!held;
+      const label = req.tier
+        ? `${req.certification.name} · ${req.tier.name}`
+        : req.certification.name;
+      const hasTraining = trainingCategorySet.has(req.certification.categoryId);
+      const waived =
+        !done && (!req.tier || req.tier.unlockKind === "QUIZ_PASSED") && !hasTraining;
+      let detail: string | null = null;
+      if (!done && !waived && req.tier?.unlockKind === "CATEGORY_XP" && req.tier.xpRequired) {
+        const have = progress.xpByCategory[req.certification.categoryId] ?? 0;
+        detail = `${have.toLocaleString()} / ${req.tier.xpRequired.toLocaleString()} ${req.certification.category.name} XP`;
+      } else if (!done && req.tier?.unlockKind === "ADMIN_REVIEW") {
+        detail = "Staff review required";
+      }
+      return { id: req.id, label, done, waived, detail };
+    }) ?? [];
+  const milestoneRequirements =
+    targetLevel?.milestones.map((row) => ({
+      id: row.id,
+      label: row.mission.name,
+      done: doneMissions.has(row.missionId),
+    })) ?? [];
 
   const attachedLevelIds = new Set(
     [currentLevel?.id, nextLevel?.id].filter((id): id is string => !!id)
   );
+  const neededCategoryIds = new Set(
+    (targetLevel?.certRequirements ?? []).map((req) => req.certification.categoryId)
+  );
   const training = progress.teachingCourses
-    .filter(
-      (course) =>
-        course.progressionLevelId &&
-        attachedLevelIds.has(course.progressionLevelId) &&
-        courseMatchesSpecialty(course.progressionSpecialty, progress.specialty.chosenTracks)
-    )
+    .filter((course) => {
+      if (!courseMatchesSpecialty(course.progressionSpecialty, progress.specialty.chosenTracks)) {
+        return false;
+      }
+      const onThisOrNextLevel =
+        !!course.progressionLevelId && attachedLevelIds.has(course.progressionLevelId);
+      const teachesNeededCert =
+        !!course.progressionCategoryId && neededCategoryIds.has(course.progressionCategoryId);
+      return onThisOrNextLevel || teachesNeededCert;
+    })
     .map((course) => ({
       id: course.id,
       title: course.title,
@@ -121,6 +142,50 @@ export default async function ProgressPage({
       }))
     )
   );
+
+  const seenPathway = new Set<string>();
+  const pathwayMissions: {
+    id: string;
+    name: string;
+    xpValue: number;
+    categoryName: string;
+    done: boolean;
+    blocked: string | null;
+  }[] = [];
+  const pushPathway = (
+    block: (typeof missionBlocks)[number],
+    opts?: { includeDone?: boolean }
+  ) => {
+    if (seenPathway.has(block.mission.id)) return;
+    const oneTimeDone =
+      doneMissions.has(block.mission.id) && block.mission.recurrence === "ONE_TIME";
+    if (oneTimeDone && !opts?.includeDone) return;
+    seenPathway.add(block.mission.id);
+    pathwayMissions.push({
+      id: block.mission.id,
+      name: block.mission.name,
+      xpValue: block.mission.xpValue,
+      categoryName: block.categoryName,
+      done: oneTimeDone,
+      blocked: block.blocked,
+    });
+  };
+
+  for (const row of targetLevel?.milestones ?? []) {
+    const block = missionBlocks.find((item) => item.mission.id === row.missionId);
+    if (block) pushPathway(block, { includeDone: true });
+  }
+
+  const perCategory: Record<string, number> = {};
+  for (const block of missionBlocks) {
+    if (isSpecializeMissionName(block.mission.name)) continue;
+    if (!neededCategoryIds.has(block.mission.categoryId)) continue;
+    const count = perCategory[block.mission.categoryId] ?? 0;
+    if (count >= 3) continue;
+    const before = seenPathway.size;
+    pushPathway(block);
+    if (seenPathway.size > before) perCategory[block.mission.categoryId] = count + 1;
+  }
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -147,6 +212,7 @@ export default async function ProgressPage({
             xpNeed={nextLevel?.xpRequired ?? null}
             requirements={[...milestoneRequirements, ...levelRequirements]}
             training={training}
+            missions={pathwayMissions}
           />
         ) : null}
 

@@ -144,6 +144,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.165",
+    date: "September 5, 2026",
+    title: "Clear path through every rank",
+    summary:
+      "Progress shows the next rank’s courses, missions, and category XP. Training requirements are waived when no course is assigned to that track.",
+    items: [
+      {
+        kind: "fix",
+        text: "Members no longer stall at Regular when Fan Favorite training lives on an earlier rank — those courses and track missions now appear in Path to Fan Favorite",
+      },
+      {
+        kind: "improve",
+        text: "Quiz/training cert gates are waived when no published course is assigned to that category",
+      },
+    ],
+  },
+  {
     version: "3.164",
     date: "September 5, 2026",
     title: "Announcement YouTube banner",

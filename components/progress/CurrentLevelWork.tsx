@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CompleteMissionButton from "@/components/progress/CompleteMissionButton";
 
 type TrainingLink = {
   id: string;
@@ -9,6 +10,23 @@ type TrainingLink = {
   specialtyName?: string | null;
 };
 
+type Requirement = {
+  id: string;
+  label: string;
+  done: boolean;
+  waived?: boolean;
+  detail?: string | null;
+};
+
+type PathwayMission = {
+  id: string;
+  name: string;
+  xpValue: number;
+  categoryName: string;
+  done: boolean;
+  blocked: string | null;
+};
+
 export default function CurrentLevelWork({
   currentName,
   currentDescription,
@@ -17,14 +35,16 @@ export default function CurrentLevelWork({
   xpNeed,
   requirements,
   training,
+  missions,
 }: {
   currentName: string;
   currentDescription: string | null;
   nextName: string | null;
   xpHave: number;
   xpNeed: number | null;
-  requirements: { id: string; label: string; done: boolean }[];
+  requirements: Requirement[];
   training: TrainingLink[];
+  missions: PathwayMission[];
 }) {
   const remainingXp = Math.max(0, (xpNeed ?? 0) - xpHave);
 
@@ -39,7 +59,7 @@ export default function CurrentLevelWork({
       ) : null}
 
       {nextName ? (
-        <p className="mt-5 font-display text-xl text-off-white/80">Training to reach {nextName}</p>
+        <p className="mt-5 font-display text-xl text-off-white/80">Path to {nextName}</p>
       ) : (
         <p className="mt-5 font-body text-sm text-cyan">You are at the top of the ladder.</p>
       )}
@@ -67,19 +87,25 @@ export default function CurrentLevelWork({
           {requirements.map((item) => (
             <li
               key={item.id}
-              className={`font-body text-sm ${item.done ? "text-cyan" : "text-off-white/80"}`}
+              className={`font-body text-sm ${item.done || item.waived ? "text-cyan" : "text-off-white/80"}`}
             >
-              {item.done ? "✓" : "○"} {item.label}
+              {item.done || item.waived ? "✓" : "○"} {item.label}
+              {item.waived ? (
+                <span className="text-off-white/40"> · waived — no training assigned</span>
+              ) : null}
+              {item.detail && !item.waived ? (
+                <span className="text-off-white/45"> · {item.detail}</span>
+              ) : null}
             </li>
           ))}
         </ul>
       ) : null}
 
-      <h3 className="mt-6 font-display text-lg text-off-white/80">Learning Center</h3>
+      <h3 className="mt-6 font-display text-lg text-off-white/80">Training</h3>
       {training.length === 0 ? (
         <p className="mt-2 font-body text-sm text-off-white/40">
-          No Learning Center courses are attached to this level yet. Attach a course to the level in Admin →
-          Courses.
+          No Learning Center courses are assigned for this next rank. Training gates without a course
+          do not block you — keep earning XP and complete the missions below.
         </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
@@ -102,6 +128,38 @@ export default function CurrentLevelWork({
           ))}
         </ul>
       )}
+
+      {missions.length > 0 ? (
+        <>
+          <h3 className="mt-6 font-display text-lg text-off-white/80">Next missions</h3>
+          <p className="mt-1 font-body text-xs text-off-white/45">
+            These missions count toward the rank above. Certified ranks also need category XP from
+            that track.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {missions.map((mission) => (
+              <li key={mission.id} className="flex items-center justify-between gap-3">
+                <span className="font-body text-sm text-off-white/80">
+                  {mission.name}
+                  <span className="text-off-white/40">
+                    {" "}
+                    · {mission.categoryName} · {mission.xpValue} XP
+                  </span>
+                </span>
+                {mission.done ? (
+                  <span className="font-body text-xs text-cyan">Done</span>
+                ) : (
+                  <CompleteMissionButton
+                    missionId={mission.id}
+                    disabled={!!mission.blocked}
+                    label={mission.blocked || "Complete"}
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </section>
   );
 }

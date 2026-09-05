@@ -139,15 +139,30 @@ export async function attachCourseToLevel(formData: FormData) {
   const levelId = String(formData.get("levelId") || "");
   const specialty = parseProgressionSpecialty(formData.get("specialty"));
   const [course, level] = await Promise.all([
-    prisma.course.findUnique({ where: { id: courseId }, select: { id: true } }),
-    prisma.progressionLevel.findUnique({ where: { id: levelId }, select: { id: true } }),
+    prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, progressionCategoryId: true },
+    }),
+    prisma.progressionLevel.findUnique({
+      where: { id: levelId },
+      select: {
+        id: true,
+        certRequirements: { select: { certification: { select: { categoryId: true } } } },
+      },
+    }),
   ]);
   if (!course || !level) throw new Error("Course or level not found");
+  const uniqueCategories = Array.from(
+    new Set(level.certRequirements.map((row) => row.certification.categoryId))
+  );
+  const inferredCategory =
+    course.progressionCategoryId ?? (uniqueCategories.length === 1 ? uniqueCategories[0] : null);
   await prisma.course.update({
     where: { id: courseId },
     data: {
       progressionEnabled: true,
       progressionLevelId: levelId,
+      ...(inferredCategory ? { progressionCategoryId: inferredCategory } : {}),
       ...(formData.has("specialty") ? { progressionSpecialty: specialty } : {}),
     },
   });
