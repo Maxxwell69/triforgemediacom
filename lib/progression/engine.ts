@@ -22,11 +22,19 @@ export async function ensureProgressionProfile(userId: string) {
 }
 
 export async function totalProgressionXp(userId: string): Promise<number> {
-  const rows = await prisma.progressionCategoryXp.findMany({
-    where: { userId },
-    select: { amount: true },
-  });
-  return rows.reduce((sum, row) => sum + row.amount, 0);
+  const [rows, hub] = await Promise.all([
+    prisma.progressionCategoryXp.findMany({
+      where: { userId },
+      select: { amount: true },
+    }),
+    prisma.xPEvent.aggregate({
+      where: { userId },
+      _sum: { amount: true },
+    }),
+  ]);
+  const categoryTotal = rows.reduce((sum, row) => sum + row.amount, 0);
+  // Hub XP (TikTask, shares, untagged lessons) still counts toward rank gates.
+  return Math.max(categoryTotal, hub._sum.amount ?? 0);
 }
 
 export async function grantProgressionBadges(
@@ -608,6 +616,14 @@ async function evaluateLevel(userId: string) {
     where: { userId },
     data: { currentLevelId: currentId },
   });
+  const recruit = levels.find((level) => level.name === "Recruit");
+  const earned = levels.find((level) => level.id === currentId);
+  if (earned && recruit && earned.sortOrder > recruit.sortOrder) {
+    await prisma.user.updateMany({
+      where: { id: userId, role: "RECRUIT" },
+      data: { role: "MEMBER" },
+    });
+  }
   if (currentId) await grantProgressionBadges(userId, "LEVEL", currentId);
   if (currentId && currentId !== previousLevelId) {
     const { fireCampaignEventSafe } = await import("@/lib/campaigns/engine");
@@ -728,7 +744,7 @@ export async function loadCreatorProgress(userId: string) {
       ...course,
       done: completedCourseIds.has(course.id) || (!!course.quiz && passedQuizIds.has(course.quiz.id)),
     })),
-    totalXp: xpRows.reduce((sum, row) => sum + row.amount, 0),
+    totalXp: await totalProgressionXp(userId),
     xpByCategory: Object.fromEntries(xpRows.map((row) => [row.categoryId, row.amount])),
     trainingCategoryIds: Array.from(trainingCategoryIds),
     missionCompletions: missionsDone,

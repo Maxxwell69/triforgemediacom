@@ -47,9 +47,27 @@ export async function enrollAsRecruit(userId: string) {
   await evaluateProgression(userId);
 }
 
+/** Re-run rank evaluation when someone is still labeled Recruit. */
+export async function refreshStaleRecruitRank(userId: string) {
+  const [profile, user] = await Promise.all([
+    prisma.progressionProfile.findUnique({
+      where: { userId },
+      select: { enrolledAt: true, currentLevel: { select: { name: true } } },
+    }),
+    prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+  ]);
+  if (!profile?.enrolledAt) return;
+  if (user?.role === "RECRUIT" || !profile.currentLevel || profile.currentLevel.name === "Recruit") {
+    await evaluateProgression(userId);
+  }
+}
+
 /** CN members (and staff) join the ladder as Recruit without applying. */
 export async function maybeAutoEnrollProgression(userId: string, role?: UserRole) {
-  if (await isProgressionEnrolled(userId)) return false;
+  if (await isProgressionEnrolled(userId)) {
+    await refreshStaleRecruitRank(userId);
+    return false;
+  }
   if (role && isAdminRole(role)) {
     await enrollAsRecruit(userId);
     return true;

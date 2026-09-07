@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, FormEvent, KeyboardEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/rbac";
+import { chatRankLabel } from "@/lib/chatAuthors";
 import { isMuted } from "@/lib/moderation";
 import { buildMentionToken, getActiveMentionQuery } from "@/lib/chatMentions";
 import type { ReactionSummary } from "@/lib/dmAccess";
@@ -19,6 +20,7 @@ type ChatUser = {
   image: string | null;
   role: ChatRole;
   mutedUntil: string | Date | null;
+  progressionLevel?: string | null;
 };
 
 type ChatMessage = {
@@ -247,6 +249,7 @@ export default function DmChatView({
         <div className="flex flex-col gap-4">
           {messages.map((message) => {
             const isAuthor = message.user.id === currentUserId;
+            const rank = chatRankLabel(message.user.role, message.user.progressionLevel);
             return (
               <div key={message.id} className="group flex gap-3">
                 <Link
@@ -265,11 +268,11 @@ export default function DmChatView({
                     >
                       {message.user.name || "Unknown"}
                     </Link>
-                    {message.user.role !== "MEMBER" && (
+                    {rank ? (
                       <span className="rounded bg-orange/15 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
-                        {ROLE_LABELS[message.user.role]}
+                        {rank}
                       </span>
-                    )}
+                    ) : null}
                     <span className="font-body text-xs text-off-white/30">
                       {new Date(message.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",

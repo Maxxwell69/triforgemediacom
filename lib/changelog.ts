@@ -144,6 +144,44 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.167",
+    date: "September 7, 2026",
+    title: "TikTok Battles Mastery",
+    summary:
+      "New Collab-track course certifies creators on LIVE Battles, with a Battle Certified badge and a hub squad for practice matches.",
+    items: [
+      {
+        kind: "feature",
+        text: "Learning Center: TikTok Battles Mastery — five lessons, hands-on tasks, and a 15-question certification exam (500 XP)",
+      },
+      {
+        kind: "program",
+        text: "TikTok Battles Squad group with #main and #debriefs — apply after Lessons 1–2, or auto-join when you pass the course",
+      },
+    ],
+  },
+  {
+    version: "3.166",
+    date: "September 5, 2026",
+    title: "Recruits show their earned rank",
+    summary:
+      "Members who have moved past Recruit no longer stay labeled Recruit in chat or on the ladder. Hub XP now counts toward the next rank.",
+    items: [
+      {
+        kind: "fix",
+        text: "TikTask and other hub XP count toward progression ranks, so members are not stuck at Recruit after earning XP",
+      },
+      {
+        kind: "fix",
+        text: "Chat shows the earned progression rank instead of a stale Recruit membership badge",
+      },
+      {
+        kind: "improve",
+        text: "Visiting the hub re-evaluates anyone still marked Recruit so their real level lands",
+      },
+    ],
+  },
+  {
     version: "3.165",
     date: "September 5, 2026",
     title: "Clear path through every rank",

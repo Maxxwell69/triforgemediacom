@@ -71,6 +71,7 @@ export const chatAuthorSelect = {
   profile: { select: { socialLinks: true, username: true, showRealName: true } },
   tiktokConnection: { select: { displayName: true, avatarUrl: true } },
   tiktokStatsSnapshot: { select: { nickname: true, avatarUrl: true, uniqueId: true } },
+  progressionProfile: { select: { currentLevel: { select: { name: true } } } },
 } as const;
 
 export function getMemberAvatarUrl(member: MemberLike): string | null {
