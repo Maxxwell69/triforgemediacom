@@ -409,7 +409,7 @@ export async function awardedTrainingCategoryIds(): Promise<Set<string>> {
   for (const course of courses) {
     if (course.progressionCategoryId) ids.add(course.progressionCategoryId);
   }
-  for (const module of modules) ids.add(module.categoryId);
+  for (const row of modules) ids.add(row.categoryId);
   return ids;
 }
 
