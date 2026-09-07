@@ -48,7 +48,7 @@ const LEVELS: {
   {
     name: "Rising Star",
     xpRequired: 1500,
-    description: "Specialization unlocked. Growth and Content Creation Trainee required — then pick one of the seven tracks.",
+    description: "Specialization unlocked. Growth and Content Creation Trainee required — then pick any of the specialty tracks.",
     certs: [
       { category: "Growth", tier: "Trainee" },
       { category: "Content Creation", tier: "Trainee" },
@@ -488,7 +488,7 @@ export async function populateOfficialProgression() {
       await upsertMission(
         skillMasteryId,
         name,
-        `Choose the ${track} specialization. Unlocks at Rising Star. One pick carries through Regular → Legend.`,
+        `Choose the ${track} specialization. Unlocks at Rising Star. Picks carry through Regular → Legend.`,
         50,
         index,
         { tier: "STANDARD", recurrence: "ONE_TIME" }
@@ -637,7 +637,7 @@ export async function populateOfficialProgression() {
   };
 }
 
-/** Always keep the seven specialty skills live and archive the old extras. */
+/** Keep specialty skills, choose-missions, and pick-badges in sync with SPECIALTY_TRACKS. */
 export async function syncSpecialtySkills() {
   await prisma.progressionSkill.updateMany({
     where: { name: { in: ["Early Adopter", "Multi-Track", "Community Pillar"] } },
@@ -664,6 +664,22 @@ export async function syncSpecialtySkills() {
     } else {
       await prisma.progressionSkill.create({ data: { name: track.name, ...data } });
     }
+
+    if (!skillMastery) continue;
+    const mission = await upsertMission(
+      skillMastery.id,
+      specializeMissionName(track.name),
+      `Choose the ${track.name} specialization. Unlocks at Rising Star. Picks carry through Regular → Legend.`,
+      50,
+      index,
+      { tier: "STANDARD", recurrence: "ONE_TIME" }
+    );
+    await upsertBadge(
+      track.name,
+      `Chose the ${track.name} specialization.`,
+      "MISSION",
+      mission.id
+    );
   }
 }
 

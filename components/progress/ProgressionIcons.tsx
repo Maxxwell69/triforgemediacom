@@ -93,6 +93,17 @@ export function IconCommunityBuilder({ className = "h-6 w-6" }: { className?: st
   );
 }
 
+export function IconBattleHosts({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M8 11.2c0-2.6 1.8-4.7 4.2-4.7 1.1 0 2.1.4 2.8 1.1.5-.4 1.2-.6 1.9-.6 2 0 3.6 1.5 3.6 3.4 0 .5-.1 1-.3 1.4H8.2c-.1-.2-.2-.4-.2-.6Z" />
+      <path d="M8.2 12.8h12.1v1.2c0 1.6-1.2 2.8-2.7 2.8h-.8c-.6 0-1.1-.2-1.5-.6-.4.4-.9.6-1.5.6H12c-1.5 0-2.7-1.2-2.7-2.8v-1.2H8.2Z" />
+      <path d="M9.4 16.6v1.6c0 .7.6 1.3 1.3 1.3h.8c.7 0 1.3-.6 1.3-1.3v-1.4" />
+      <path d="M14.4 16.8v1.4c0 .7.6 1.3 1.3 1.3h.7c.7 0 1.3-.6 1.3-1.3v-1.6" />
+    </svg>
+  );
+}
+
 export function IconForgeMark({ className = "h-10 w-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
@@ -111,6 +122,7 @@ const SPECIALTY_ICONS: Record<string, (props: { className?: string }) => JSX.Ele
   Artist: IconArtist,
   Educator: IconEducator,
   "Community Builder": IconCommunityBuilder,
+  "Battle Hosts": IconBattleHosts,
 };
 
 export function SpecialtyIcon({ name, className }: { name: string; className?: string }) {

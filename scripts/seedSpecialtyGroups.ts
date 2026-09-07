@@ -1,5 +1,5 @@
 /**
- * Creates the six remaining specialization spaces (Gaming already exists)
+ * Creates specialization spaces (Gaming already exists for Gamer)
  * with one #main channel each. Images stay empty so the default letter
  * avatar shows until you upload one in Admin → Groups.
  *
@@ -41,6 +41,10 @@ const SPECIALTY_GROUPS = [
   {
     name: "Community Builder",
     description: "Discord, fan clubs, events, and bringing people together. All welcome.",
+  },
+  {
+    name: "Battle Hosts",
+    description: "TikTok LIVE Battles — pairing, scoring, and running competitive matches. All welcome.",
   },
 ] as const;
 

@@ -124,7 +124,7 @@ export default function ProgressionChart({
           <p className="mt-8 font-body text-[11px] font-semibold uppercase tracking-[0.28em] text-orange">
             Specializations
           </p>
-          <div className="mt-4 grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="mt-4 grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
             {options.map((track) => {
               const locked = !specialty.unlocked;
               return (

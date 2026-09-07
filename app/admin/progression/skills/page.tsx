@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireProgressionModule } from "@/lib/progression/module";
 import { ensureOfficialProgression } from "@/lib/progression/populate";
+import { allSpecialtyTracksLabel } from "@/lib/progression/tracks";
 import { createSkill, updateSkill } from "../actions";
 import ProgressionAdminNav from "@/components/admin/ProgressionAdminNav";
 import ProgressionRowTools from "@/components/admin/ProgressionRowTools";
@@ -72,8 +73,8 @@ export default async function AdminProgressionSkillsPage() {
         SPECIAL <span className="text-gradient">SKILLS</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        The seven creator specialties — Engagement Host, Gamer, Shop Owner, Musician, Artist, Educator, Community
-        Builder. Choosing a specialty at Rising Star unlocks that skill. Creators can choose more than one.
+        The creator specialties — {allSpecialtyTracksLabel()}. Choosing a specialty at Rising Star unlocks
+        that skill. Creators can choose more than one.
       </p>
       <ProgressionAdminNav />
       <form action={createSkill} className="glass mt-8 flex flex-col gap-3 rounded-2xl p-6">

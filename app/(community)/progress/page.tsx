@@ -377,7 +377,7 @@ export default async function ProgressPage({
           <div className="glass rounded-2xl p-5">
             <h2 className="font-display text-xl text-off-white/80">Skills</h2>
             <p className="mt-1 font-body text-xs text-off-white/45">
-              Specialties at Rising Star. Choose as many of the seven as you want. After you pick a track,
+              Specialties at Rising Star. Choose as many as you want. After you pick a track,
               its Learning Center courses show here under that skill.
             </p>
             {progress.specialty.chosenTracks.length > 0 ? (
