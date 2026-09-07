@@ -1,6 +1,6 @@
 /**
- * Upserts TikTok Battles Mastery (5 lessons + certification exam),
- * the Battle Certified badge, and the TikTok Battles Squad group + channels.
+ * Upserts Battle Hosts (5 lessons + certification exam),
+ * the Battle Hosts badge, and the Battle Hosts group + channels.
  *
  *   npx tsx scripts/seedBattlesCourse.ts
  *   npx tsx scripts/seedBattlesCourse.ts --staging
@@ -12,10 +12,13 @@ import type { PrismaClient } from "@prisma/client";
 import { lessonHtml } from "./specialtyCourseContent";
 import {
   BATTLES_BADGE_NAME,
+  BATTLES_BADGE_NAME_ALIASES,
   BATTLES_CHANNELS,
   BATTLES_COURSE,
   BATTLES_COURSE_TITLE,
+  BATTLES_COURSE_TITLE_ALIASES,
   BATTLES_GROUP_NAME,
+  BATTLES_GROUP_NAME_ALIASES,
   BATTLES_MODULES,
 } from "./battlesCourseContent";
 
@@ -28,13 +31,19 @@ function extractHost(url: string): string | null {
 }
 
 const GROUP_DESCRIPTION =
-  "Standing space for creators running or training on TikTok LIVE Battles. Pair for practice matches and debrief after. Finish Lessons 1–2 of TikTok Battles Mastery before you apply so practice matches stay safe. Full certification (all five lessons + exam) auto-joins you and awards Battle Certified.";
+  "Standing space for Battle Hosts running or training on TikTok LIVE Battles. Pair for practice matches and debrief after. Finish Lessons 1–2 of Battle Hosts before you apply so practice matches stay safe. Full certification (all five lessons + exam) auto-joins you and awards the Battle Hosts badge.";
 
 async function upsertGroup(prisma: PrismaClient) {
-  let group = await prisma.group.findUnique({
-    where: { name: BATTLES_GROUP_NAME },
-    include: { channels: { select: { id: true, name: true } } },
-  });
+  const groupInclude = { channels: { select: { id: true, name: true } } } as const;
+  let group =
+    (await prisma.group.findUnique({
+      where: { name: BATTLES_GROUP_NAME },
+      include: groupInclude,
+    })) ??
+    (await prisma.group.findFirst({
+      where: { name: { in: [...BATTLES_GROUP_NAME_ALIASES] } },
+      include: groupInclude,
+    }));
 
   if (!group) {
     group = await prisma.group.create({
@@ -55,6 +64,7 @@ async function upsertGroup(prisma: PrismaClient) {
     group = await prisma.group.update({
       where: { id: group.id },
       data: {
+        name: BATTLES_GROUP_NAME,
         description: GROUP_DESCRIPTION,
         joinMode: "APPLY",
         showInList: true,
@@ -94,27 +104,32 @@ async function upsertCourse(
   groupId: string,
   publish: boolean
 ) {
-  const [collab, regular] = await Promise.all([
+  const [skillMastery, collab] = await Promise.all([
+    prisma.progressionCategory.findFirst({ where: { name: "Skill Mastery" }, select: { id: true } }),
     prisma.progressionCategory.findFirst({ where: { name: "Collab" }, select: { id: true } }),
-    prisma.progressionLevel.findFirst({ where: { name: "Regular" }, select: { id: true } }),
   ]);
 
-  const existing = await prisma.course.findFirst({
-    where: { title: BATTLES_COURSE_TITLE },
-    select: { id: true, isPublished: true },
-  });
+  const existing =
+    (await prisma.course.findFirst({
+      where: { title: BATTLES_COURSE_TITLE },
+      select: { id: true, isPublished: true },
+    })) ??
+    (await prisma.course.findFirst({
+      where: { title: { in: [...BATTLES_COURSE_TITLE_ALIASES] } },
+      select: { id: true, isPublished: true },
+    }));
 
   const maxOrder = await prisma.course.aggregate({ _max: { order: true } });
   const shared = {
     title: BATTLES_COURSE.title,
     description: BATTLES_COURSE.description,
-    category: "Collab",
+    category: "Skill Mastery",
     xpReward: BATTLES_COURSE.xpReward,
     certificateEnabled: true,
     progressionEnabled: true,
-    progressionCategoryId: collab?.id ?? null,
-    progressionLevelId: regular?.id ?? null,
-    progressionSpecialty: null,
+    progressionCategoryId: skillMastery?.id ?? collab?.id ?? null,
+    progressionLevelId: null,
+    progressionSpecialty: BATTLES_COURSE_TITLE,
     completionGroupId: groupId,
   };
 
@@ -179,34 +194,27 @@ async function upsertCourse(
       xpValue: 15,
       exerciseXpBonus: 10,
     };
-    const saved = found
-      ? await prisma.lesson.update({ where: { id: found.id }, data: lessonData })
-      : await prisma.lesson.create({ data: { courseId: course.id, ...lessonData } });
-
-    const assignmentTitle = `Hands-on · ${lesson.title}`;
-    await prisma.assignment.upsert({
-      where: { lessonId: saved.id },
-      create: {
-        lessonId: saved.id,
-        title: assignmentTitle,
-        instructions: lesson.exercise ?? "",
-      },
-      update: {
-        title: assignmentTitle,
-        instructions: lesson.exercise ?? "",
-      },
-    });
+    if (found) {
+      await prisma.lesson.update({ where: { id: found.id }, data: lessonData });
+    } else {
+      await prisma.lesson.create({ data: { courseId: course.id, ...lessonData } });
+    }
   }
+
+  // Hands-on submissions are off for now — keep lesson exercises as reading, not graded homework.
+  await prisma.assignment.deleteMany({
+    where: { lesson: { courseId: course.id } },
+  });
 
   const quiz = await prisma.quiz.upsert({
     where: { courseId: course.id },
     create: {
       courseId: course.id,
-      title: "TikTok Battles Mastery — certification exam",
+      title: "Battle Hosts — certification exam",
       passScore: 75,
     },
     update: {
-      title: "TikTok Battles Mastery — certification exam",
+      title: "Battle Hosts — certification exam",
       passScore: 75,
     },
   });
@@ -227,16 +235,22 @@ async function upsertCourse(
     });
   }
 
-  const badge = await prisma.badge.findFirst({
-    where: { name: BATTLES_BADGE_NAME },
-    select: { id: true },
-  });
+  const badge =
+    (await prisma.badge.findFirst({
+      where: { name: BATTLES_BADGE_NAME },
+      select: { id: true },
+    })) ??
+    (await prisma.badge.findFirst({
+      where: { name: { in: [...BATTLES_BADGE_NAME_ALIASES] } },
+      select: { id: true },
+    }));
   if (badge) {
     await prisma.badge.update({
       where: { id: badge.id },
       data: {
+        name: BATTLES_BADGE_NAME,
         courseId: course.id,
-        description: "Passed TikTok Battles Mastery. Collab-track Battle certification.",
+        description: "Passed Battle Hosts. Collab-track Battle Hosts certification.",
         icon: "🥊",
       },
     });
@@ -244,7 +258,7 @@ async function upsertCourse(
     await prisma.badge.create({
       data: {
         name: BATTLES_BADGE_NAME,
-        description: "Passed TikTok Battles Mastery. Collab-track Battle certification.",
+        description: "Passed Battle Hosts. Collab-track Battle Hosts certification.",
         icon: "🥊",
         courseId: course.id,
       },
@@ -291,9 +305,11 @@ async function main() {
 
   const groupId = await upsertGroup(prisma);
   const course = await upsertCourse(prisma, groupId, publish);
+  const { syncSpecialtySkills } = await import("../lib/progression/populate");
+  await syncSpecialtySkills();
 
   console.log(
-    production ? "Seeded Battles course on production:" : "Seeded Battles course:"
+    production ? "Seeded Battle Hosts on production:" : "Seeded Battle Hosts:"
   );
   console.log(
     `  ${course.created ? "NEW" : "updated"} · ${course.published ? "LIVE" : "draft"} · ${BATTLES_COURSE_TITLE} (${course.lessons} lessons, ${course.questions} exam questions)`

@@ -43,6 +43,12 @@ export const SPECIALTY_TRACKS = [
     accent: "orange",
     focuses: ["Discord", "Fan clubs", "Events", "Bringing people together"],
   },
+  {
+    name: "Battle Hosts",
+    description: "TikTok LIVE Battles — pairing, scoring, and running competitive matches.",
+    accent: "orange",
+    focuses: ["LIVE Battles", "Pairing", "Scoring", "Match etiquette"],
+  },
 ] as const;
 
 export const SPECIALTY_TRACK_NAMES = SPECIALTY_TRACKS.map((track) => track.name);
@@ -102,4 +108,8 @@ export function formatSpecialtyTracks(tracks: string[]) {
   if (tracks.length === 1) return tracks[0];
   if (tracks.length === 2) return `${tracks[0]} and ${tracks[1]}`;
   return `${tracks.slice(0, -1).join(", ")}, and ${tracks[tracks.length - 1]}`;
+}
+
+export function allSpecialtyTracksLabel() {
+  return formatSpecialtyTracks([...SPECIALTY_TRACK_NAMES]);
 }

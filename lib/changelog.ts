@@ -140,23 +140,51 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Searchable admin-editable FAQ and a member ticket portal. Emails only tell people to open the hub — conversation stays in the portal, not in email replies.",
     since: "3.161",
   },
+  {
+    name: "Battle Hosts",
+    tagline: "LIVE Battles specialty",
+    description:
+      "Rising Star specialization for TikTok LIVE Battles — five lessons, a 15-question exam, a Battle Hosts badge, and a hub group for practice matches.",
+    since: "3.167",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.168",
+    date: "September 7, 2026",
+    title: "Battle Hosts",
+    summary:
+      "Battle Hosts is now a Rising Star specialization, with the course, group, and badge sharing that name.",
+    items: [
+      {
+        kind: "improve",
+        text: "Course, group, badge, and certification exam renamed to Battle Hosts",
+      },
+      {
+        kind: "fix",
+        text: "Battle Hosts lessons no longer show a hands-on assignment submit form — that homework is off for now",
+      },
+      {
+        kind: "feature",
+        text: "Battle Hosts added as an eighth specialization — Choose on Progress, Skill Mastery training, and the Battle Hosts course unlocks on that track",
+      },
+    ],
+  },
+  {
     version: "3.167",
     date: "September 7, 2026",
-    title: "TikTok Battles Mastery",
+    title: "Battle Hosts",
     summary:
-      "New Collab-track course certifies creators on LIVE Battles, with a Battle Certified badge and a hub squad for practice matches.",
+      "New Collab-track course certifies creators on LIVE Battles, with a Battle Hosts badge and a hub group for practice matches.",
     items: [
       {
         kind: "feature",
-        text: "Learning Center: TikTok Battles Mastery — five lessons, hands-on tasks, and a 15-question certification exam (500 XP)",
+        text: "Learning Center: Battle Hosts — five lessons, knowledge checks, and a 15-question certification exam (500 XP)",
       },
       {
         kind: "program",
-        text: "TikTok Battles Squad group with #main and #debriefs — apply after Lessons 1–2, or auto-join when you pass the course",
+        text: "Battle Hosts group with #main and #debriefs — apply after Lessons 1–2, or auto-join when you pass the course",
       },
     ],
   },

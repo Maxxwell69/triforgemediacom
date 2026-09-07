@@ -1,15 +1,20 @@
 import type { LessonSeed, QuestionSeed } from "./specialtyCourseContent";
 
-export const BATTLES_COURSE_TITLE = "TikTok Battles Mastery";
-export const BATTLES_GROUP_NAME = "TikTok Battles Squad";
-export const BATTLES_BADGE_NAME = "Battle Certified";
+export const BATTLES_COURSE_TITLE = "Battle Hosts";
+export const BATTLES_GROUP_NAME = "Battle Hosts";
+export const BATTLES_BADGE_NAME = "Battle Hosts";
 
-const FOOTER = "Collab · Battles";
+/** Previous names from the 3.167 seed — lookup aliases so re-runs rename instead of duplicating. */
+export const BATTLES_COURSE_TITLE_ALIASES = [BATTLES_COURSE_TITLE, "TikTok Battles Mastery"] as const;
+export const BATTLES_GROUP_NAME_ALIASES = [BATTLES_GROUP_NAME, "TikTok Battles Squad"] as const;
+export const BATTLES_BADGE_NAME_ALIASES = [BATTLES_BADGE_NAME, "Battle Certified"] as const;
+
+const FOOTER = "Collab · Battle Hosts";
 
 export const BATTLES_COURSE = {
   title: BATTLES_COURSE_TITLE,
   description:
-    "Certifies you on TikTok LIVE Battles (Matches / PK Battles) — the head-to-head, split-screen competition where two creators compete for gift points in real time. Five lessons plus a certification exam. Everything here lives in the TriForge hub and TikTok's own LIVE tools.",
+    "Battle Hosts certifies you on TikTok LIVE Battles (Matches / PK Battles) — the head-to-head, split-screen competition where two creators compete for gift points in real time. Five lessons plus a certification exam. Everything here lives in the TriForge hub and TikTok's own LIVE tools.",
   xpReward: 500,
   lessons: [
     {
@@ -136,7 +141,7 @@ export const BATTLES_COURSE = {
       footerLabel: FOOTER,
       paragraphs: [
         "A guest's compliance issues during a Battle can affect the host's account standing. You are not only picking a fun opponent — you are attaching your LIVE to theirs for five minutes. Vet who you battle with.",
-        "If you would not put them on your brand, do not put them on your Battle. Ask around in the Squad, watch a recent LIVE, and skip anyone who treats the other side's chat as a target.",
+        "If you would not put them on your brand, do not put them on your Battle. Ask around in Battle Hosts, watch a recent LIVE, and skip anyone who treats the other side's chat as a target.",
         "Never pressure viewers to overspend. Frame gifting as support, not obligation. If the only way you can win is guilt, you are training the wrong habit into the room.",
         "Keep Battle content inside TikTok's LIVE guidelines. No baiting, harassment, or targeting the opposing creator's audience. Competitive does not mean hostile.",
         "Check your own account standing in LIVE Center before you schedule Battles. If you have an active warning, fix that first. Then close out respectfully: tag your opponent, thank both communities, and do not frame a loss as a grudge.",
