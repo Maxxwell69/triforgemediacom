@@ -16,6 +16,9 @@ export type LessonSeed = {
   /** Titles for method steps — one per paragraph after the intro paragraph. */
   stepTitles: string[];
   exercise: string | null;
+  /** Ungraded study questions shown at the end of the lesson. */
+  knowledgeCheck?: string[];
+  footerLabel?: string;
 };
 
 export type CourseSeed = {
@@ -89,6 +92,26 @@ export function lessonHtml(lesson: LessonSeed, index: number) {
 ${methodSteps(lesson.stepTitles, rest)}`
       : "";
 
+  const knowledgeBlock =
+    lesson.knowledgeCheck && lesson.knowledgeCheck.length > 0
+      ? `
+    <div style="margin-top: 32px; background: rgb(36, 36, 36); border: 1px solid rgb(59, 59, 59); color: rgb(255, 255, 255); border-radius: 14px; padding: 24px;">
+      <div style="color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
+        <p style="margin: 0px;"><strong>Knowledge check</strong></p>
+      </div>
+      <p style="margin: 0px 0px 12px; font-size: 16px; color: rgb(222, 222, 222);">
+        Work these before you mark the lesson complete. The certification exam covers the same ground.
+      </p>
+      <ol style="margin: 0px; padding-left: 22px; font-size: 16px; color: rgb(222, 222, 222);">
+${lesson.knowledgeCheck
+  .map(
+    (q) => `        <li style="margin: 0px 0px 8px;">${escapeHtml(q)}</li>`
+  )
+  .join("\n")}
+      </ol>
+    </div>`
+      : "";
+
   const exerciseBlock = lesson.exercise
     ? `
     <div style="margin-top: 32px; background: rgb(21, 21, 21); color: rgb(255, 255, 255); border-radius: 14px; padding: 24px;">
@@ -145,6 +168,7 @@ ${methodSteps(lesson.stepTitles, rest)}`
 ${introParagraphs(intro)}
 ${method}
 ${exerciseBlock}
+${knowledgeBlock}
 
     <div style="margin-top: 32px; background: rgb(21, 21, 21); color: rgb(255, 255, 255); border-radius: 16px; padding: 28px; text-align: center;">
       <h2 style="margin: 0px 0px 6px; font-size: 26px; color: rgb(255, 255, 255); text-transform: uppercase;">
@@ -156,7 +180,7 @@ ${exerciseBlock}
       <p style="margin: 0px 0px 6px; color: rgb(176, 176, 176);">Written lesson · Est. reading time: ${escapeHtml(lesson.readingTime)}.</p>
       <p style="margin: 0px 0px 20px; color: rgb(176, 176, 176);">Mark complete when you're ready, then keep moving.</p>
       <p style="margin: 0px; font-weight: 700;">
-        <strong>Tri Forge Media · Skill Mastery</strong>
+        <strong>Tri Forge Media · ${escapeHtml(lesson.footerLabel ?? "Skill Mastery")}</strong>
       </p>
     </div>
   </div>

@@ -6,6 +6,7 @@ import { startOfTodayUTC } from "@/lib/tiktask";
 import { hasTikTaskAccess } from "@/lib/groups";
 import { awardXpOnce } from "@/lib/xp";
 import { getOrCreateProgressionSettings } from "@/lib/progression/settings";
+import { hubHas } from "@/lib/hub/modules";
 
 export async function POST(
   _req: Request,
@@ -82,8 +83,14 @@ export async function POST(
     });
   }
 
+  if (hubHas("progression")) {
+    const { evaluateProgression } = await import("@/lib/progression/engine");
+    await evaluateProgression(user.id).catch(() => {});
+  }
+
   revalidatePath("/apps/tiktask");
   revalidatePath("/home");
+  revalidatePath("/progress");
 
   return NextResponse.json({ task: updatedTask, xpAwarded: dailyTask.template.xpValue });
 }

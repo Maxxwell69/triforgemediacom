@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, FormEvent, KeyboardEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/rbac";
+import { chatRankLabel } from "@/lib/chatAuthors";
 import { canModerate, canBeModerationTarget, isMuted, MUTE_DURATION_PRESETS_MINUTES } from "@/lib/moderation";
 import { buildMentionToken, getActiveMentionQuery } from "@/lib/chatMentions";
 import type { ReactionSummary } from "@/lib/dmAccess";
@@ -21,6 +22,7 @@ type ChatUser = {
   image: string | null;
   role: ChatRole;
   mutedUntil: string | Date | null;
+  progressionLevel?: string | null;
 };
 
 type ReplyPreview = {
@@ -553,6 +555,7 @@ export default function ChatView({
 
             const reply = message.replyTo ?? null;
             const authorOnline = onlineIds.has(message.user.id);
+            const rank = chatRankLabel(message.user.role, message.user.progressionLevel);
 
             return (
               <div
@@ -612,11 +615,11 @@ export default function ChatView({
                       )}
                       {message.user.name || "Unknown"}
                     </Link>
-                    {message.user.role !== "MEMBER" && (
+                    {rank ? (
                       <span className="rounded bg-orange/15 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
-                        {ROLE_LABELS[message.user.role]}
+                        {rank}
                       </span>
-                    )}
+                    ) : null}
                     {authorMuted && (
                       <span className="rounded bg-off-white/10 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-off-white/50">
                         Muted
