@@ -141,7 +141,7 @@ async function upsertCourse(
       where: { courseId: course.id, title: spec.title },
       select: { id: true },
     });
-    const module = found
+    const courseModule = found
       ? await prisma.module.update({
           where: { id: found.id },
           data: { order: i, description: spec.lessonTitles.join(" · ") },
@@ -154,7 +154,7 @@ async function upsertCourse(
             order: i,
           },
         });
-    moduleIds[spec.title] = module.id;
+    moduleIds[spec.title] = courseModule.id;
   }
 
   const lessonToModule = new Map<string, string>();
