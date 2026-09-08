@@ -23,24 +23,31 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default async function AdminWebinarsPage() {
-  const webinars = await prisma.webinar.findMany({
-    orderBy: { scheduledAt: "desc" },
-    include: {
-      host: { select: { name: true, email: true } },
-      recordings: { orderBy: { sortOrder: "asc" }, select: { id: true, title: true, url: true } },
-      externalGuests: {
-        orderBy: { registeredAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          registeredAt: true,
-          joinedAt: true,
+  const [webinars, members] = await Promise.all([
+    prisma.webinar.findMany({
+      orderBy: { scheduledAt: "desc" },
+      include: {
+        host: { select: { name: true, email: true } },
+        recordings: { orderBy: { sortOrder: "asc" }, select: { id: true, title: true, url: true } },
+        externalGuests: {
+          orderBy: { registeredAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            registeredAt: true,
+            joinedAt: true,
+          },
         },
+        _count: { select: { attendances: true, chatMessages: true } },
       },
-      _count: { select: { attendances: true, chatMessages: true } },
-    },
-  });
+    }),
+    prisma.user.findMany({
+      where: { status: "ACTIVE", hiddenFromDirectory: false },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+      select: { id: true, name: true, email: true },
+    }),
+  ]);
 
   const livekitReady = isLiveKitConfigured();
 
@@ -67,7 +74,7 @@ export default async function AdminWebinarsPage() {
 
       <div className="mt-8 glass rounded-2xl p-6">
         <h2 className="font-display text-2xl tracking-wide">Create webinar</h2>
-        <CreateWebinarForm />
+        <CreateWebinarForm members={members} />
       </div>
 
       <div className="mt-10">
@@ -145,6 +152,7 @@ export default async function AdminWebinarsPage() {
                         : null
                     }
                     externalSignupEnabled={w.externalSignupEnabled}
+                    members={members}
                   />
                 </div>
                 <AdminWebinarExternalSignup

@@ -430,7 +430,7 @@ export async function regenerateWebinarExternalInviteAction(webinarId: string) {
   return { error: null };
 }
 
-const MAX_WEBINAR_INVITES = 40;
+const MAX_WEBINAR_INVITES = 200;
 
 function guestDisplayName(email: string) {
   const local = email.split("@")[0] || "there";

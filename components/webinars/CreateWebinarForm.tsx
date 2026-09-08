@@ -6,9 +6,15 @@ import ImageUploadField from "@/components/ImageUploadField";
 import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import { WEBINAR_AUDIENCE_OPTIONS, WEEKDAY_OPTIONS } from "@/lib/validations/webinar";
 import { attachDeviceTimeZone } from "@/lib/timeClient";
-import AdminWebinarInvitePanel from "@/components/webinars/AdminWebinarInvitePanel";
+import AdminWebinarInvitePanel, {
+  type WebinarInviteMember,
+} from "@/components/webinars/AdminWebinarInvitePanel";
 
-export default function CreateWebinarForm() {
+export default function CreateWebinarForm({
+  members,
+}: {
+  members: WebinarInviteMember[];
+}) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -217,6 +223,7 @@ export default function CreateWebinarForm() {
             hubUrl={created.hubUrl}
             inviteUrl={created.inviteUrl}
             externalSignupEnabled={created.externalSignupEnabled}
+            members={members}
           />
         </div>
       )}

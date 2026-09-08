@@ -158,6 +158,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.171",
+    date: "September 8, 2026",
+    title: "Webinar member invites",
+    summary: "Admins can pick hub members from a list when inviting people to a webinar.",
+    items: [
+      {
+        kind: "feature",
+        text: "Webinar invite panel now lists members to select, plus search and select all",
+      },
+    ],
+  },
+  {
     version: "3.170",
     date: "September 8, 2026",
     title: "Webinar stage and invites",
