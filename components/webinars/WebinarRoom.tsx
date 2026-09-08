@@ -10,7 +10,12 @@ import {
   useRoomContext,
   useParticipants,
 } from "@livekit/components-react";
-import { RoomEvent, DisconnectReason } from "livekit-client";
+import { Room, RoomEvent, DisconnectReason } from "livekit-client";
+import { isAppleWebinarClient } from "@/lib/webinarApple";
+import {
+  WebinarApplePublishPrompt,
+  WebinarSoundUnlock,
+} from "@/components/webinars/WebinarSoundUnlock";
 import "@livekit/components-styles";
 import type { WebinarParticipantRole } from "@prisma/client";
 import WebinarSidePanel from "@/components/webinars/WebinarSidePanel";
@@ -318,6 +323,7 @@ function RoomChrome({
                 End webinar
               </button>
             )}
+            <WebinarApplePublishPrompt canPublish={canPublish} />
             <AudienceControls
               webinarId={webinarId}
               role={role}
@@ -402,7 +408,29 @@ export default function WebinarRoom({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [kicked, setKicked] = useState(false);
+  const [room, setRoom] = useState<Room | null>(null);
+  const [needsAppleTap, setNeedsAppleTap] = useState(false);
+  const [appleUnlocked, setAppleUnlocked] = useState(false);
   const backHref = leaveHref || "/webinars";
+  const canPublish = role === "HOST" || role === "SPEAKER";
+
+  useEffect(() => {
+    const next = new Room({
+      adaptiveStream: false,
+      dynacast: true,
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    setRoom(next);
+    if (isAppleWebinarClient()) setNeedsAppleTap(true);
+    else setAppleUnlocked(true);
+    return () => {
+      void next.disconnect();
+    };
+  }, []);
 
   const fetchToken = useCallback(async () => {
     setLoading(true);
@@ -460,7 +488,7 @@ export default function WebinarRoom({
     }
   }
 
-  if (loading) {
+  if (loading || !room) {
     return (
       <div className="flex flex-1 items-center justify-center p-10">
         <p className="font-body text-off-white/60">Connecting to room…</p>
@@ -475,6 +503,27 @@ export default function WebinarRoom({
         <Link href={backHref} className="font-body text-sm text-cyan hover:underline">
           {guestMode ? "Back to your registration" : "Back to webinars"}
         </Link>
+      </div>
+    );
+  }
+
+  if (token && serverUrl && needsAppleTap && !appleUnlocked) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-10 text-center">
+        <h1 className="font-display text-3xl tracking-wide text-off-white">{title}</h1>
+        <p className="max-w-md font-body text-sm text-off-white/60">
+          On iPhone, iPad, and Safari, sound stays off until you tap. Enter the room to unlock
+          audio.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            void room.startAudio().finally(() => setAppleUnlocked(true));
+          }}
+          className="rounded-lg bg-orange px-5 py-2.5 font-body text-sm font-semibold text-charcoal shadow-glow"
+        >
+          Enter with sound
+        </button>
       </div>
     );
   }
@@ -499,19 +548,20 @@ export default function WebinarRoom({
 
   return (
     <LiveKitRoom
-      key={`${token.slice(0, 24)}-${role}`}
+      room={room}
       token={token}
       serverUrl={serverUrl}
       connect
-      audio={role === "HOST" || role === "SPEAKER"}
-      video={role === "HOST" || role === "SPEAKER"}
-      // Keep stage tracks subscribed for all viewers (screen share was easy to miss
-      // with adaptiveStream when the focus tile had no laid-out size yet).
-      options={{ adaptiveStream: false, dynacast: true }}
+      audio={!needsAppleTap && canPublish}
+      video={!needsAppleTap && canPublish}
+      onConnected={() => {
+        if (needsAppleTap) void room.startAudio();
+      }}
       data-lk-theme="default"
       className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden bg-charcoal"
     >
       <RoomAudioRenderer />
+      <WebinarSoundUnlock />
       <KickWatcher onKicked={() => setKicked(true)} />
       <RoomChrome
         webinarId={webinarId}

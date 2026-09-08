@@ -158,6 +158,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.172",
+    date: "September 8, 2026",
+    title: "Safari webinar sound",
+    summary: "iPhone, iPad, and Safari now unlock webinar audio with a tap instead of staying silent.",
+    items: [
+      {
+        kind: "fix",
+        text: "Apple browsers tap Enter with sound before joining, and a banner appears if playback is still blocked",
+      },
+      {
+        kind: "fix",
+        text: "Hosts on Apple tap to turn on mic and camera so Safari does not silently fail capture",
+      },
+    ],
+  },
+  {
     version: "3.171",
     date: "September 8, 2026",
     title: "Webinar member invites",
