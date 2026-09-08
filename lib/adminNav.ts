@@ -113,7 +113,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         href: "/admin/campaigns",
-        label: "Campaigns",
+        label: "Email campaigns",
         description: "Triggers that email or notify members",
         sku: "email",
       },
@@ -197,6 +197,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "Webinars",
         description: "Schedule and manage webinars",
         sku: "webinars",
+      },
+      {
+        href: "/admin/hub-campaigns",
+        label: "Hub campaigns",
+        description: "Interviews, meetings, games, and battles members can join",
+        sku: "hubCampaigns",
       },
       {
         href: "/admin/calendar",

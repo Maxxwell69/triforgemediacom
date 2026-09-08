@@ -34,6 +34,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
   { id: "badges", kind: "optional", label: "Badges", description: "Achievement badges" },
   { id: "learning", kind: "optional", label: "Learning Center", description: "Courses, quizzes, certificates" },
   { id: "webinars", kind: "optional", label: "Webinars", description: "LiveKit stage and recordings" },
+  {
+    id: "hubCampaigns",
+    kind: "optional",
+    label: "Hub campaigns",
+    description: "Signup campaigns: interviews, meetings, games, battles",
+  },
   { id: "calendar", kind: "optional", label: "Calendar", description: "Events and availability" },
   { id: "booking", kind: "optional", label: "Staff booking", description: "Public booking pages" },
   {

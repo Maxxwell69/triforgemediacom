@@ -10,6 +10,7 @@ import { hubHas } from "@/lib/hub/modules";
 import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
 import VideoEmbed from "@/components/VideoEmbed";
+import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,17 @@ export default async function HomePage() {
 
   const firstName = (user.name || user.email || "there").split(" ")[0].split("@")[0];
   const showProgress = await canSeeMemberProgressNav(user.role);
+
+  let campaignStat: string | null = null;
+  if (hubHas("hubCampaigns")) {
+    try {
+      const visibleCampaigns = await listVisibleHubCampaigns(user.id, user.role);
+      const openCount = visibleCampaigns.filter((c) => c.status === "OPEN").length;
+      campaignStat = `${openCount} open`;
+    } catch (err) {
+      console.error("hubCampaign list failed:", err);
+    }
+  }
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -119,6 +131,17 @@ export default async function HomePage() {
             description="Join live sessions with the TriForge team."
             accent="orange"
           />
+
+          {hubHas("hubCampaigns") && (
+            <DashboardCard
+              href="/campaigns"
+              icon="🎯"
+              title="Campaigns"
+              description="Sign up for interviews, meetings, games, and battles."
+              stat={campaignStat}
+              accent="cyan"
+            />
+          )}
 
           {showProgress && (
             <DashboardCard
