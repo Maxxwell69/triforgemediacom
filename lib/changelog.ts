@@ -147,9 +147,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Rising Star specialization for TikTok LIVE Battles — five lessons, a 15-question exam, a Battle Hosts badge, and a hub group for practice matches.",
     since: "3.167",
   },
+  {
+    name: "Hub Campaigns",
+    tagline: "Interviews · meetings · games · battles",
+    description:
+      "Admins publish campaigns for everyone or a tag/badge audience. Members sign up from the campaign window and see who’s involved plus what needs to get done.",
+    since: "3.169",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.169",
+    date: "September 8, 2026",
+    title: "Hub Campaigns",
+    summary:
+      "Admins can run interviews, meetings, games, and battles as signup campaigns, targeted by tag or badge.",
+    items: [
+      {
+        kind: "program",
+        text: "Hub Campaigns — Interviews, Meeting, Games, and Battles members can join from the campaign window",
+      },
+      {
+        kind: "feature",
+        text: "Limit a campaign to everyone, a tag, or a badge, with optional capacity and a shared to-do list",
+      },
+      {
+        kind: "feature",
+        text: "Each campaign page shows who’s involved and what we need to do",
+      },
+    ],
+  },
   {
     version: "3.168",
     date: "September 7, 2026",
