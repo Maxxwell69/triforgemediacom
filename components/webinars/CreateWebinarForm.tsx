@@ -6,6 +6,7 @@ import ImageUploadField from "@/components/ImageUploadField";
 import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import { WEBINAR_AUDIENCE_OPTIONS, WEEKDAY_OPTIONS } from "@/lib/validations/webinar";
 import { attachDeviceTimeZone } from "@/lib/timeClient";
+import AdminWebinarInvitePanel from "@/components/webinars/AdminWebinarInvitePanel";
 
 export default function CreateWebinarForm() {
   const [error, setError] = useState<string | null>(null);
@@ -13,9 +14,18 @@ export default function CreateWebinarForm() {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
   const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [created, setCreated] = useState<{
+    webinarId: string;
+    title: string;
+    hubUrl: string;
+    inviteUrl: string | null;
+    externalSignupEnabled: boolean;
+    count: number;
+  } | null>(null);
 
   return (
-    <form
+    <div>
+      <form
       key={formKey}
       className="mt-4 flex flex-col gap-3"
       onSubmit={(e) => {
@@ -34,9 +44,19 @@ export default function CreateWebinarForm() {
           const count = result.count ?? 1;
           setSuccess(
             count > 1
-              ? `Created ${count} sessions for this week’s series.`
-              : "Webinar created."
+              ? `Created ${count} sessions for this week’s series. Invite people to the first session below.`
+              : "Webinar created. Invite people below."
           );
+          if (result.webinarId && result.hubUrl && result.title) {
+            setCreated({
+              webinarId: result.webinarId,
+              title: result.title,
+              hubUrl: result.hubUrl,
+              inviteUrl: result.inviteUrl ?? null,
+              externalSignupEnabled: Boolean(result.externalSignupEnabled),
+              count,
+            });
+          }
           setRepeatWeekly(false);
           setFormKey((k) => k + 1);
         });
@@ -189,5 +209,17 @@ export default function CreateWebinarForm() {
         {pending ? "Creating…" : repeatWeekly ? "Create weekly series" : "Create webinar"}
       </button>
     </form>
+      {created && (
+        <div className="mt-4">
+          <AdminWebinarInvitePanel
+            webinarId={created.webinarId}
+            title={created.title}
+            hubUrl={created.hubUrl}
+            inviteUrl={created.inviteUrl}
+            externalSignupEnabled={created.externalSignupEnabled}
+          />
+        </div>
+      )}
+    </div>
   );
 }

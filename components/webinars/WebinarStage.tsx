@@ -24,7 +24,7 @@ import { parseWebinarParticipantMeta } from "@/lib/webinarParticipantMeta";
 
 export type StageLayoutMode = "auto" | "grid" | "focus";
 
-const MAX_STAGE_CAMERAS = 4;
+const MAX_STAGE_CAMERAS = 12;
 
 function isOnStage(track: TrackReferenceOrPlaceholder): boolean {
   if (track.source === Track.Source.ScreenShare) {

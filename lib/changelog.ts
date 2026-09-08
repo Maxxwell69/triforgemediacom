@@ -158,6 +158,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.170",
+    date: "September 8, 2026",
+    title: "Webinar stage and invites",
+    summary:
+      "More people can appear on the webinar main stage, and admins can copy links or email invites as soon as a webinar is created.",
+    items: [
+      {
+        kind: "improve",
+        text: "Webinar main stage now shows up to 12 people (was 4)",
+      },
+      {
+        kind: "feature",
+        text: "Invite people after creating a webinar — copy the hub or signup link, or email personal join links",
+      },
+    ],
+  },
+  {
     version: "3.169",
     date: "September 8, 2026",
     title: "Hub Campaigns",

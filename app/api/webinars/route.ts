@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       hostUserId: auth.user.id,
       livekitRoomName: `webinar_pending_${Date.now()}`,
       externalSignupEnabled,
-      externalInviteToken: externalSignupEnabled ? generateWebinarExternalToken() : null,
+      externalInviteToken: generateWebinarExternalToken(),
     },
   });
 

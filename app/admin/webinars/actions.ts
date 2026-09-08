@@ -7,13 +7,20 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { webinarRoomName } from "@/lib/webinars";
-import { generateWebinarExternalToken } from "@/lib/webinarExternal";
+import {
+  generateWebinarExternalToken,
+  webinarExternalInviteUrl,
+  webinarGuestAccessUrl,
+  webinarHubUrl,
+} from "@/lib/webinarExternal";
 import {
   createWebinarSchema,
+  parseWebinarInviteEmails,
   updateWebinarHostAvatarSchema,
   updateWebinarSchema,
   webinarRecordingSchema,
 } from "@/lib/validations/webinar";
+import { sendWebinarInviteEmail } from "@/lib/email";
 import { syncCalendarEventForWebinar } from "@/lib/calendar";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
 import { expandWeeklyWebinarTimes, parseRepeatWeekdays } from "@/lib/webinarRecurrence";
@@ -59,7 +66,7 @@ async function insertWebinar(input: {
       hostUserId: input.hostUserId,
       livekitRoomName: `webinar_pending_${Date.now()}_${randomBytes(4).toString("hex")}`,
       externalSignupEnabled: input.externalSignupEnabled,
-      externalInviteToken: input.externalSignupEnabled ? generateWebinarExternalToken() : null,
+      externalInviteToken: generateWebinarExternalToken(),
       seriesId: input.seriesId,
     },
   });
@@ -122,17 +129,28 @@ export async function createWebinarAction(formData: FormData) {
     seriesId,
   };
 
-  let firstId = "";
+  let first = null as Awaited<ReturnType<typeof insertWebinar>> | null;
   for (let i = 0; i < times.length; i += 1) {
     const created = await insertWebinar({ ...shared, scheduledAt: times[i] });
-    if (i === 0) firstId = created.id;
+    if (i === 0) first = created;
   }
 
   revalidatePath("/admin/webinars");
   revalidatePath("/webinars");
   revalidatePath("/calendar");
   revalidatePath("/admin/calendar");
-  return { error: null, webinarId: firstId, count: times.length };
+  if (!first) return { error: "Could not create webinar" };
+  return {
+    error: null,
+    webinarId: first.id,
+    count: times.length,
+    title: first.title,
+    hubUrl: webinarHubUrl(first.id),
+    inviteUrl: first.externalInviteToken
+      ? webinarExternalInviteUrl(first.externalInviteToken)
+      : null,
+    externalSignupEnabled: first.externalSignupEnabled,
+  };
 }
 
 export async function updateWebinarAction(webinarId: string, formData: FormData) {
@@ -410,4 +428,124 @@ export async function regenerateWebinarExternalInviteAction(webinarId: string) {
 
   revalidatePath("/admin/webinars");
   return { error: null };
+}
+
+const MAX_WEBINAR_INVITES = 40;
+
+function guestDisplayName(email: string) {
+  const local = email.split("@")[0] || "there";
+  return local.replace(/[._-]+/g, " ").trim() || "there";
+}
+
+function webinarWhenLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+    timeZoneName: "short",
+  }).format(date);
+}
+
+/** Email personal join links after a webinar exists. Hub members get the hub page; others get a guest link. */
+export async function inviteWebinarGuestsAction(webinarId: string, emailsRaw: string) {
+  await requireAdmin();
+
+  const webinar = await prisma.webinar.findUnique({
+    where: { id: webinarId },
+    select: {
+      id: true,
+      title: true,
+      scheduledAt: true,
+      status: true,
+      externalSignupEnabled: true,
+      externalInviteToken: true,
+    },
+  });
+  if (!webinar) return { error: "Webinar not found" };
+  if (webinar.status === "ENDED") return { error: "This webinar has ended." };
+
+  const emails = parseWebinarInviteEmails(emailsRaw);
+  if (emails.length === 0) {
+    return { error: "Add at least one valid email address." };
+  }
+  if (emails.length > MAX_WEBINAR_INVITES) {
+    return { error: `Invite up to ${MAX_WEBINAR_INVITES} people at a time.` };
+  }
+
+  let inviteToken = webinar.externalInviteToken;
+  if (!inviteToken) {
+    inviteToken = generateWebinarExternalToken();
+    await prisma.webinar.update({
+      where: { id: webinar.id },
+      data: { externalInviteToken: inviteToken },
+    });
+  }
+
+  const members = await prisma.user.findMany({
+    where: { email: { in: emails }, status: "ACTIVE" },
+    select: { email: true, name: true },
+  });
+  const memberByEmail = new Map(
+    members.map((user) => [user.email.toLowerCase(), user] as const)
+  );
+
+  const whenLabel = webinarWhenLabel(webinar.scheduledAt);
+  const hubUrl = webinarHubUrl(webinar.id);
+  let sent = 0;
+  const failed: string[] = [];
+
+  for (const email of emails) {
+    const member = memberByEmail.get(email);
+    const useHubLink = Boolean(member) && !webinar.externalSignupEnabled;
+    let joinUrl = hubUrl;
+    let name = member?.name?.trim() || guestDisplayName(email);
+
+    if (!useHubLink) {
+      const existing = await prisma.webinarGuest.findUnique({
+        where: { webinarId_email: { webinarId: webinar.id, email } },
+        select: { joinToken: true, name: true },
+      });
+      const guest =
+        existing ??
+        (await prisma.webinarGuest.create({
+          data: {
+            webinarId: webinar.id,
+            email,
+            name,
+            joinToken: generateWebinarExternalToken(),
+            role: "AUDIENCE",
+          },
+          select: { joinToken: true, name: true },
+        }));
+      joinUrl = webinarGuestAccessUrl(inviteToken, guest.joinToken);
+      name = guest.name || name;
+    }
+
+    try {
+      await sendWebinarInviteEmail(email, {
+        name,
+        title: webinar.title,
+        whenLabel,
+        joinUrl,
+      });
+      sent += 1;
+    } catch (err) {
+      console.error("webinar invite email failed:", email, err);
+      failed.push(email);
+    }
+  }
+
+  revalidatePath("/admin/webinars");
+  if (sent === 0) {
+    return { error: failed.length ? `Could not email ${failed.join(", ")}` : "No invites sent." };
+  }
+  return {
+    error: null,
+    sent,
+    failed,
+  };
 }

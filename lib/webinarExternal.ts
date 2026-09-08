@@ -7,9 +7,16 @@ export function generateWebinarExternalToken(): string {
   return randomBytes(32).toString("hex");
 }
 
+function appBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
+export function webinarHubUrl(webinarId: string): string {
+  return `${appBaseUrl()}/webinars/${webinarId}`;
+}
+
 export function webinarExternalInviteUrl(inviteToken: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${base}/w/${inviteToken}`;
+  return `${appBaseUrl()}/w/${inviteToken}`;
 }
 
 export function webinarGuestAccessUrl(inviteToken: string, joinToken: string): string {

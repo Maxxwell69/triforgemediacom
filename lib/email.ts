@@ -1318,6 +1318,42 @@ export async function sendSuggestionAdminAlert(
   await sendToMany(adminEmails, subject, html);
 }
 
+export type WebinarInviteEmailData = {
+  name: string;
+  title: string;
+  whenLabel: string;
+  joinUrl: string;
+};
+
+export function buildWebinarInviteEmail(data: WebinarInviteEmailData): EmailContent {
+  const name = escapeHtml(data.name);
+  const title = escapeHtml(data.title);
+  const when = escapeHtml(data.whenLabel);
+  return {
+    subject: `You're invited: ${data.title}`,
+    html: layout(`
+      <h1 style="color:#FD4802;margin:0 0 16px;">You're invited</h1>
+      <p style="line-height:1.6;">Hi ${name}, you've been invited to a TriForge webinar.</p>
+      <p style="line-height:1.6;"><strong>${title}</strong><br/>${when}</p>
+      ${button(data.joinUrl, "Open webinar")}
+      <p style="line-height:1.5;margin-top:16px;font-size:13px;">
+        Your personal link:<br/>
+        <a href="${safeHref(data.joinUrl) || "#"}" style="color:#00D4FF;word-break:break-all;">${escapeHtml(data.joinUrl)}</a>
+      </p>
+      <p style="line-height:1.5;margin-top:20px;color:rgba(245,245,245,0.45);font-size:12px;">
+        Save this email — this link is yours. Don't reply here.
+      </p>
+    `),
+  };
+}
+
+export async function sendWebinarInviteEmail(to: string, data: WebinarInviteEmailData) {
+  const { subject, html } = buildWebinarInviteEmail(data);
+  await send(to, subject, html, {
+    idempotencyKey: `webinar-invite/${to}/${data.joinUrl.slice(-24)}`,
+  });
+}
+
 export async function sendSuggestionStatusEmail(to: string, data: SuggestionStatusEmailData) {
   const subject = `${data.ticketLabel} is ${data.statusLabel}`;
   const html = layout(`

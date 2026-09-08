@@ -68,6 +68,24 @@ export const webinarExternalSignupSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(254),
 });
 
+const inviteEmail = z.string().trim().email().max(254);
+
+export function parseWebinarInviteEmails(raw: string): string[] {
+  const parts = raw
+    .split(/[\s,;]+/)
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const part of parts) {
+    const parsed = inviteEmail.safeParse(part);
+    if (!parsed.success || seen.has(parsed.data)) continue;
+    seen.add(parsed.data);
+    unique.push(parsed.data);
+  }
+  return unique;
+}
+
 export const updateWebinarHostAvatarSchema = z.object({
   hostAvatarUrl: optionalImageUrl,
 });

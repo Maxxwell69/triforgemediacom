@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isLiveKitConfigured } from "@/lib/livekit";
-import { webinarExternalInviteUrl } from "@/lib/webinarExternal";
+import { webinarExternalInviteUrl, webinarHubUrl } from "@/lib/webinarExternal";
+import AdminWebinarInvitePanel from "@/components/webinars/AdminWebinarInvitePanel";
 import CreateWebinarForm from "@/components/webinars/CreateWebinarForm";
 import AdminWebinarActions from "@/components/webinars/AdminWebinarActions";
 import AdminWebinarAudience from "@/components/webinars/AdminWebinarAudience";
@@ -51,8 +52,9 @@ export default async function AdminWebinarsPage() {
       <p className="mt-2 font-body text-off-white/60">
         Schedule webinars for all members, Creator Network (CN), Media Network (MN), or admins
         only. Turn on Repeat weekly to publish multiple sessions across the week. Optionally open
-        a secure outside signup page for people who are not in the network. After a session, attach
-        screen recordings so members can rewatch on the webinar page.
+        a secure outside signup page for people who are not in the network. After you create one,
+        copy a link or email invites. After a session, attach screen recordings so members can
+        rewatch on the webinar page.
       </p>
 
       {!livekitReady && (
@@ -132,6 +134,19 @@ export default async function AdminWebinarsPage() {
                 </div>
                 <AdminWebinarAudience webinarId={w.id} audience={w.audience} />
                 <AdminWebinarHostAvatar webinarId={w.id} hostAvatarUrl={w.hostAvatarUrl} />
+                <div className="mt-4">
+                  <AdminWebinarInvitePanel
+                    webinarId={w.id}
+                    title={w.title}
+                    hubUrl={webinarHubUrl(w.id)}
+                    inviteUrl={
+                      w.externalInviteToken
+                        ? webinarExternalInviteUrl(w.externalInviteToken)
+                        : null
+                    }
+                    externalSignupEnabled={w.externalSignupEnabled}
+                  />
+                </div>
                 <AdminWebinarExternalSignup
                   webinarId={w.id}
                   enabled={w.externalSignupEnabled}
