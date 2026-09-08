@@ -8,7 +8,7 @@ import {
   HUB_CAMPAIGN_AUDIENCES,
   HUB_CAMPAIGN_CATEGORIES,
   HUB_CAMPAIGN_STATUSES,
-} from "@/lib/hubCampaigns";
+} from "@/lib/hubCampaignLabels";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
