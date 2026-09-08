@@ -1,57 +1,19 @@
 import { notFound } from "next/navigation";
-import type {
-  HubCampaignAudienceType,
-  HubCampaignCategory,
-  HubCampaignStatus,
-  UserRole,
-} from "@prisma/client";
+import type { HubCampaignAudienceType, HubCampaignStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hubHas } from "@/lib/hub/modules";
 import { isAdminRole } from "@/lib/rbac";
 
-export const HUB_CAMPAIGN_CATEGORIES: {
-  value: HubCampaignCategory;
-  label: string;
-  icon: string;
-}[] = [
-  { value: "INTERVIEWS", label: "Interviews", icon: "🎙️" },
-  { value: "MEETING", label: "Meeting", icon: "📅" },
-  { value: "GAMES", label: "Games", icon: "🎮" },
-  { value: "BATTLES", label: "Battles", icon: "⚔️" },
-];
-
-export const HUB_CAMPAIGN_STATUSES: { value: HubCampaignStatus; label: string }[] = [
-  { value: "DRAFT", label: "Draft" },
-  { value: "OPEN", label: "Open" },
-  { value: "CLOSED", label: "Closed" },
-  { value: "ARCHIVED", label: "Archived" },
-];
-
-export const HUB_CAMPAIGN_AUDIENCES: {
-  value: HubCampaignAudienceType;
-  label: string;
-}[] = [
-  { value: "ALL_MEMBERS", label: "Everyone" },
-  { value: "TAG", label: "Members with a tag" },
-  { value: "BADGE", label: "Members with a badge" },
-];
+export {
+  HUB_CAMPAIGN_AUDIENCES,
+  HUB_CAMPAIGN_CATEGORIES,
+  HUB_CAMPAIGN_STATUSES,
+  hubCampaignCategoryMeta,
+  hubCampaignStatusLabel,
+} from "@/lib/hubCampaignLabels";
 
 export function requireHubCampaignsModule() {
   if (!hubHas("hubCampaigns")) notFound();
-}
-
-export function hubCampaignCategoryMeta(category: HubCampaignCategory) {
-  return (
-    HUB_CAMPAIGN_CATEGORIES.find((c) => c.value === category) ?? {
-      value: category,
-      label: category,
-      icon: "📌",
-    }
-  );
-}
-
-export function hubCampaignStatusLabel(status: HubCampaignStatus) {
-  return HUB_CAMPAIGN_STATUSES.find((s) => s.value === status)?.label ?? status;
 }
 
 export type HubCampaignAudienceKeys = {
