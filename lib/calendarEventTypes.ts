@@ -57,6 +57,6 @@ export function calendarFeaturedProfileLabel(kind: string): string {
   return "Profile";
 }
 
-export function calendarOpponentProfileLabel(kind: string): string {
+export function calendarOpponentProfileLabel(): string {
   return "Battler 2";
 }

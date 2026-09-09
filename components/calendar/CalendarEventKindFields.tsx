@@ -115,7 +115,7 @@ export default function CalendarEventKindFields({
       {calendarKindNeedsOpponent(kind) && (
         <CalendarMemberField
           name="opponentUserId"
-          label={calendarOpponentProfileLabel(kind)}
+          label={calendarOpponentProfileLabel()}
           members={members}
         />
       )}

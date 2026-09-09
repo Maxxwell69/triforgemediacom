@@ -158,6 +158,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.175",
+    date: "September 9, 2026",
+    title: "Calendar deploy fix",
+    summary: "Production and staging builds succeed again after the new calendar event types.",
+    items: [
+      {
+        kind: "fix",
+        text: "Removed an unused calendar label argument that failed the Railway lint build",
+      },
+    ],
+  },
+  {
     version: "3.174",
     date: "September 9, 2026",
     title: "Calendar event types",
