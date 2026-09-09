@@ -137,6 +137,8 @@ model User {
   projectTasksCreated        ProjectTask[]          @relation("ProjectTaskCreatedBy")
   projectTasksAssigned       ProjectTask[]          @relation("ProjectTaskAssignee")
   calendarEventsCreated      CalendarEvent[]        @relation("CalendarEventCreatedBy")
+  calendarEventsFeatured     CalendarEvent[]        @relation("CalendarEventFeatured")
+  calendarEventsOpponent     CalendarEvent[]        @relation("CalendarEventOpponent")
   calendarEventAttendances   CalendarEventAttendee[]
   availabilitySlots          AvailabilitySlot[]
   calendarBookingsMade       CalendarBooking[]      @relation("CalendarBookingBooker")
@@ -1571,6 +1573,9 @@ enum CalendarEventKind {
   LIVE
   WEBINAR
   OTHER
+  INTERVIEW
+  BATTLE
+  SHOP_EVENT
 }
 
 enum CalendarEventVisibility {
@@ -1611,18 +1616,26 @@ model CalendarEvent {
   createdById String
   /// When set, this row mirrors a mass-audience Webinar on the hub calendar.
   webinarId   String?                 @unique
+  /// Interview subject, shop featured member, or battle profile 1.
+  featuredUserId String?
+  /// Battle profile 2.
+  opponentUserId String?
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
 
-  group     Group?                  @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  createdBy User                    @relation("CalendarEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
-  webinar   Webinar?                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
-  attendees CalendarEventAttendee[]
-  bookings  CalendarBooking[]
+  group        Group?                  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy    User                    @relation("CalendarEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  featuredUser User?                   @relation("CalendarEventFeatured", fields: [featuredUserId], references: [id], onDelete: SetNull)
+  opponentUser User?                   @relation("CalendarEventOpponent", fields: [opponentUserId], references: [id], onDelete: SetNull)
+  webinar      Webinar?                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  attendees    CalendarEventAttendee[]
+  bookings     CalendarBooking[]
 
   @@index([startsAt])
   @@index([kind, startsAt])
   @@index([groupId])
+  @@index([featuredUserId])
+  @@index([opponentUserId])
 }
 
 model CalendarEventAttendee {

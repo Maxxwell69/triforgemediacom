@@ -158,6 +158,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.174",
+    date: "September 9, 2026",
+    title: "Calendar event types",
+    summary: "Interviews, battles, and shop events on the hub calendar now link to the right member profiles.",
+    items: [
+      {
+        kind: "feature",
+        text: "New calendar types: Interview (one profile), Battles (two profiles), and Shop event (one profile)",
+      },
+      {
+        kind: "feature",
+        text: "Profile pickers only appear for those types, and the event page links to each member",
+      },
+    ],
+  },
+  {
     version: "3.173",
     date: "September 9, 2026",
     title: "Booking on admin profiles",
