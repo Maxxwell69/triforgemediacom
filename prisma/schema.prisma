@@ -2589,9 +2589,24 @@ model HubCampaign {
   audienceBadge Badge?              @relation(fields: [audienceBadgeId], references: [id], onDelete: SetNull)
   signups       HubCampaignSignup[]
   tasks         HubCampaignTask[]
+  slots         HubCampaignSlot[]
 
   @@index([status, category])
   @@index([startsAt])
+}
+
+/// Admin-posted interview times. One member can claim a slot.
+model HubCampaignSlot {
+  id         String   @id @default(cuid())
+  campaignId String
+  startsAt   DateTime
+  endsAt     DateTime
+  createdAt  DateTime @default(now())
+
+  campaign HubCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  signup   HubCampaignSignup?
+
+  @@index([campaignId, startsAt])
 }
 
 model HubCampaignSignup {
@@ -2599,10 +2614,12 @@ model HubCampaignSignup {
   campaignId String
   userId     String
   note       String?
+  slotId     String?  @unique
   joinedAt   DateTime @default(now())
 
-  campaign HubCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign HubCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot     HubCampaignSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
 
   @@unique([campaignId, userId])
   @@index([userId])

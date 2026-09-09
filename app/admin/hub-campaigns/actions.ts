@@ -7,7 +7,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
-import { hubCampaignSchema, hubCampaignTaskSchema } from "@/lib/validations/hubCampaign";
+import {
+  hubCampaignSchema,
+  hubCampaignSlotSchema,
+  hubCampaignTaskSchema,
+} from "@/lib/validations/hubCampaign";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
 
 async function requireAdmin() {
@@ -160,6 +164,62 @@ export async function setHubCampaignSignup(
     await prisma.hubCampaignSignup.deleteMany({ where: { campaignId, userId } });
   }
   revalidateCampaign(campaignId);
+}
+
+export async function createHubCampaignSlot(campaignId: string, formData: FormData) {
+  await requireAdmin();
+  const campaign = await prisma.hubCampaign.findUnique({
+    where: { id: campaignId },
+    select: { id: true, category: true },
+  });
+  if (!campaign) throw new Error("Campaign not found");
+  if (campaign.category !== "INTERVIEWS") {
+    throw new Error("Time slots are only for Interview campaigns");
+  }
+
+  const parsed = hubCampaignSlotSchema.safeParse({
+    startsAt: formData.get("startsAt"),
+    durationMins: formData.get("durationMins") || "30",
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Invalid time slot");
+  }
+
+  const zone = formTimeZone(formData);
+  const startsAt = parseZonedDateTime(parsed.data.startsAt, zone, "start time");
+  if (startsAt.getTime() < Date.now() - 60_000) {
+    throw new Error("Pick a time in the future");
+  }
+  const endsAt = new Date(startsAt.getTime() + parsed.data.durationMins * 60_000);
+
+  const overlap = await prisma.hubCampaignSlot.findFirst({
+    where: {
+      campaignId,
+      startsAt: { lt: endsAt },
+      endsAt: { gt: startsAt },
+    },
+    select: { id: true },
+  });
+  if (overlap) throw new Error("That time overlaps another slot");
+
+  await prisma.hubCampaignSlot.create({
+    data: { campaignId, startsAt, endsAt },
+  });
+  revalidateCampaign(campaignId);
+}
+
+export async function deleteHubCampaignSlot(slotId: string) {
+  await requireAdmin();
+  const slot = await prisma.hubCampaignSlot.findUnique({
+    where: { id: slotId },
+    include: { signup: { select: { id: true } } },
+  });
+  if (!slot) throw new Error("Slot not found");
+  if (slot.signup) {
+    throw new Error("Remove the member from this time before deleting the slot");
+  }
+  await prisma.hubCampaignSlot.delete({ where: { id: slotId } });
+  revalidateCampaign(slot.campaignId);
 }
 
 export async function createHubCampaignTask(campaignId: string, formData: FormData) {

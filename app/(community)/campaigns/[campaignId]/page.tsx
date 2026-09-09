@@ -16,6 +16,8 @@ import { getMemberAvatarUrl, getMemberDisplayName, getMemberInitial } from "@/li
 import MemberAvatar from "@/components/MemberAvatar";
 import LocalWhen from "@/components/LocalWhen";
 import { joinHubCampaign, leaveHubCampaign, toggleHubCampaignTask } from "../actions";
+import InterviewSlotPicker from "@/components/campaigns/InterviewSlotPicker";
+import { isInterviewCampaign } from "@/lib/hubCampaignLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,14 @@ export default async function CampaignDetailPage({
       audienceBadge: { select: { name: true } },
       signups: {
         orderBy: { joinedAt: "asc" },
-        include: { user: { select: hubCampaignMemberSelect } },
+        include: {
+          user: { select: hubCampaignMemberSelect },
+          slot: { select: { startsAt: true, endsAt: true } },
+        },
+      },
+      slots: {
+        orderBy: { startsAt: "asc" },
+        include: { signup: { select: { userId: true } } },
       },
       tasks: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -129,7 +138,7 @@ export default async function CampaignDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canJoin && (
+            {canJoin && !isInterviewCampaign(campaign.category) && (
               <form
                 action={async () => {
                   "use server";
@@ -166,6 +175,47 @@ export default async function CampaignDetailPage({
             )}
           </div>
         </div>
+
+        {isInterviewCampaign(campaign.category) && (
+          <section className="glass mt-8 rounded-2xl p-6">
+            <h2 className="font-display text-2xl tracking-wide text-off-white/80">
+              Interview times
+            </h2>
+            {mySignup?.slot && (
+              <p className="mt-2 font-body text-sm text-cyan">
+                Your time:{" "}
+                <LocalWhen
+                  startsAt={mySignup.slot.startsAt.toISOString()}
+                  endsAt={mySignup.slot.endsAt.toISOString()}
+                />
+              </p>
+            )}
+            {(canJoin || (canLeave && campaign.status === "OPEN")) && (
+              <div className="mt-4">
+                <InterviewSlotPicker
+                  campaignId={campaign.id}
+                  currentSlotId={mySignup?.slotId ?? null}
+                  slots={campaign.slots
+                    .filter(
+                      (slot) =>
+                        slot.startsAt.getTime() > Date.now() &&
+                        (!slot.signup || slot.signup.userId === user.id)
+                    )
+                    .map((slot) => ({
+                      id: slot.id,
+                      startsAt: slot.startsAt.toISOString(),
+                      endsAt: slot.endsAt.toISOString(),
+                    }))}
+                />
+              </div>
+            )}
+            {!canJoin && !canLeave && !mySignup?.slot && (
+              <p className="mt-3 font-body text-sm text-off-white/45">
+                Interview times will show here when this campaign is open.
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="glass mt-8 rounded-2xl p-6">
           <h2 className="font-display text-2xl tracking-wide text-off-white/80">
@@ -274,9 +324,17 @@ export default async function CampaignDetailPage({
                     size={36}
                     textSize="text-sm"
                   />
-                  <span className="truncate font-body text-sm text-off-white">
+                  <span className="min-w-0 truncate font-body text-sm text-off-white">
                     {getMemberDisplayName(signup.user)}
                     {signup.userId === user.id ? " (you)" : ""}
+                    {signup.slot && (
+                      <span className="mt-0.5 block truncate text-xs text-off-white/45">
+                        <LocalWhen
+                          startsAt={signup.slot.startsAt.toISOString()}
+                          endsAt={signup.slot.endsAt.toISOString()}
+                        />
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

@@ -44,8 +44,8 @@ export default async function CampaignsPage({
               CAMP<span className="text-gradient">AIGNS</span>
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              Sign up for interviews, meetings, games, and battles. Each page shows who&apos;s
-              in and what we need to do.
+              Sign up for interviews, meetings, games, and battles. Interviews let you pick a
+              posted time. Each page shows who&apos;s in and what we need to do.
             </p>
           </div>
           {isAdmin && (
