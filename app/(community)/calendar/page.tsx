@@ -1,9 +1,11 @@
 import { requireProfile } from "@/lib/session";
 import {
   addDays,
+  calendarMemberLabel,
   listCalendarFilterGroups,
   listEventCreatableGroups,
   listVisibleCalendarEvents,
+  loadCalendarMemberOptions,
   startOfDay,
 } from "@/lib/calendar";
 import EventsCalendar from "@/components/calendar/EventsCalendar";
@@ -14,6 +16,9 @@ export const dynamic = "force-dynamic";
 const LEGEND = [
   { label: "Webinar", className: "bg-cyan/20 text-cyan border-cyan/35" },
   { label: "Live", className: "bg-orange/20 text-orange border-orange/35" },
+  { label: "Interview", className: "bg-cyan/15 text-cyan border-cyan/35" },
+  { label: "Battles", className: "bg-orange/15 text-orange border-orange/35" },
+  { label: "Shop event", className: "bg-emerald-400/15 text-emerald-300 border-emerald-400/35" },
   { label: "Meeting", className: "bg-[#3B82F6]/15 text-[#93C5FD] border-[#3B82F6]/35" },
   { label: "Event", className: "bg-cyan/10 text-off-white/80 border-cyan/25" },
 ] as const;
@@ -23,10 +28,11 @@ export default async function CalendarPage() {
 
   const from = startOfDay(addDays(new Date(), -45));
   const to = addDays(from, 120);
-  const [events, filterGroups, creatableGroups] = await Promise.all([
+  const [events, filterGroups, creatableGroups, members] = await Promise.all([
     listVisibleCalendarEvents(user.id, user.role, from, to),
     listCalendarFilterGroups(user.id, user.role),
     listEventCreatableGroups(user.id, user.role),
+    loadCalendarMemberOptions(),
   ]);
 
   return (
@@ -64,6 +70,7 @@ export default async function CalendarPage() {
                 name: g.name,
                 color: g.color,
               }))}
+              members={members}
             />
           </div>
         </div>
@@ -89,6 +96,12 @@ export default async function CalendarPage() {
               groupId: e.groupId,
               groupName: e.group?.name ?? null,
               groupColor: e.group?.color ?? null,
+              featured: e.featuredUser
+                ? { id: e.featuredUser.id, label: calendarMemberLabel(e.featuredUser) }
+                : null,
+              opponent: e.opponentUser
+                ? { id: e.opponentUser.id, label: calendarMemberLabel(e.opponentUser) }
+                : null,
             }))}
           />
         </div>

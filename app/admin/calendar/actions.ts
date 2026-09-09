@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { calendarEventSchema, parseDateTime } from "@/lib/validations/calendar";
 import { formTimeZone } from "@/lib/time";
+import {
+  assertCalendarProfileMembers,
+  calendarProfileIdsFromParsed,
+} from "@/lib/calendar";
 
 async function requireAdmin() {
   const session = await auth();
@@ -38,6 +42,8 @@ export async function createAdminCalendarEvent(formData: FormData) {
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
     groupId: formData.get("groupId") || "",
+    featuredUserId: formData.get("featuredUserId") || "",
+    opponentUserId: formData.get("opponentUserId") || "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid event");
@@ -58,6 +64,13 @@ export async function createAdminCalendarEvent(formData: FormData) {
     throw new Error("Create webinars under Admin → Webinars so they sync onto the calendar.");
   }
 
+  const profiles = calendarProfileIdsFromParsed(parsed.data);
+  const profileError = await assertCalendarProfileMembers(
+    profiles.featuredUserId,
+    profiles.opponentUserId
+  );
+  if (profileError) throw new Error(profileError);
+
   await prisma.calendarEvent.create({
     data: {
       title: parsed.data.title,
@@ -68,6 +81,8 @@ export async function createAdminCalendarEvent(formData: FormData) {
       endsAt,
       location: parsed.data.location || null,
       groupId: parsed.data.groupId || null,
+      featuredUserId: profiles.featuredUserId,
+      opponentUserId: profiles.opponentUserId,
       createdById: session.user.id,
     },
   });
@@ -93,6 +108,8 @@ export async function updateAdminCalendarEvent(formData: FormData) {
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
     groupId: formData.get("groupId") || "",
+    featuredUserId: formData.get("featuredUserId") || "",
+    opponentUserId: formData.get("opponentUserId") || "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid event");
@@ -108,17 +125,27 @@ export async function updateAdminCalendarEvent(formData: FormData) {
     throw new Error("Group visibility requires a group");
   }
 
+  const nextKind = parsed.data.kind === "WEBINAR" ? existing.kind : parsed.data.kind;
+  const profiles = calendarProfileIdsFromParsed({ ...parsed.data, kind: nextKind });
+  const profileError = await assertCalendarProfileMembers(
+    profiles.featuredUserId,
+    profiles.opponentUserId
+  );
+  if (profileError) throw new Error(profileError);
+
   await prisma.calendarEvent.update({
     where: { id },
     data: {
       title: parsed.data.title,
       description: parsed.data.description || null,
-      kind: parsed.data.kind === "WEBINAR" ? existing.kind : parsed.data.kind,
+      kind: nextKind,
       visibility,
       startsAt,
       endsAt,
       location: parsed.data.location || null,
       groupId: parsed.data.groupId || null,
+      featuredUserId: profiles.featuredUserId,
+      opponentUserId: profiles.opponentUserId,
     },
   });
 

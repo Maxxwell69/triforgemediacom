@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { canViewEvent, listEventCreatableGroups } from "@/lib/calendar";
+import {
+  assertCalendarProfileMembers,
+  calendarProfileIdsFromParsed,
+  canViewEvent,
+  listEventCreatableGroups,
+} from "@/lib/calendar";
 import { getUserGroupIds } from "@/lib/groups";
 import {
   availabilitySlotSchema,
@@ -50,6 +55,8 @@ export async function createGroupCalendarEvent(
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
     groupId: formData.get("groupId") || "",
+    featuredUserId: formData.get("featuredUserId") || "",
+    opponentUserId: formData.get("opponentUserId") || "",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || "Invalid event" };
@@ -75,6 +82,13 @@ export async function createGroupCalendarEvent(
   }
   if (endsAt && endsAt <= startsAt) return { error: "End time must be after start time" };
 
+  const profiles = calendarProfileIdsFromParsed(parsed.data);
+  const profileError = await assertCalendarProfileMembers(
+    profiles.featuredUserId,
+    profiles.opponentUserId
+  );
+  if (profileError) return { error: profileError };
+
   const event = await prisma.calendarEvent.create({
     data: {
       title: parsed.data.title,
@@ -85,6 +99,8 @@ export async function createGroupCalendarEvent(
       endsAt,
       location: parsed.data.location || null,
       groupId: parsed.data.groupId,
+      featuredUserId: profiles.featuredUserId,
+      opponentUserId: profiles.opponentUserId,
       createdById: user.id,
     },
     select: { id: true },

@@ -1,13 +1,12 @@
 import { z } from "zod";
 import { parseZonedDateTime } from "@/lib/time";
+import {
+  calendarEventKindOptions,
+  calendarKindNeedsFeatured,
+  calendarKindNeedsOpponent,
+} from "@/lib/calendarEventTypes";
 
-export const calendarEventKindOptions = [
-  "MEETING",
-  "EVENT",
-  "LIVE",
-  "WEBINAR",
-  "OTHER",
-] as const;
+export { calendarEventKindOptions } from "@/lib/calendarEventTypes";
 
 export const calendarEventVisibilityOptions = ["HUB", "GROUP", "PRIVATE"] as const;
 
@@ -20,16 +19,52 @@ export const calendarBookingStatusOptions = [
   "CANCELLED",
 ] as const;
 
-export const calendarEventSchema = z.object({
-  title: z.string().trim().min(2, "Title must be at least 2 characters").max(120),
-  description: z.string().trim().max(2000).optional().or(z.literal("")),
-  kind: z.enum(calendarEventKindOptions),
-  visibility: z.enum(calendarEventVisibilityOptions).optional(),
-  startsAt: z.string().trim().min(1, "Start time is required"),
-  endsAt: z.string().trim().optional().or(z.literal("")),
-  location: z.string().trim().max(200).optional().or(z.literal("")),
-  groupId: z.string().trim().optional().or(z.literal("")),
-});
+export const calendarEventSchema = z
+  .object({
+    title: z.string().trim().min(2, "Title must be at least 2 characters").max(120),
+    description: z.string().trim().max(2000).optional().or(z.literal("")),
+    kind: z.enum(calendarEventKindOptions),
+    visibility: z.enum(calendarEventVisibilityOptions).optional(),
+    startsAt: z.string().trim().min(1, "Start time is required"),
+    endsAt: z.string().trim().optional().or(z.literal("")),
+    location: z.string().trim().max(200).optional().or(z.literal("")),
+    groupId: z.string().trim().optional().or(z.literal("")),
+    featuredUserId: z.string().trim().optional().or(z.literal("")),
+    opponentUserId: z.string().trim().optional().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    if (calendarKindNeedsFeatured(data.kind) && !data.featuredUserId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["featuredUserId"],
+        message:
+          data.kind === "INTERVIEW"
+            ? "Pick the person being interviewed"
+            : data.kind === "BATTLE"
+              ? "Pick battler 1"
+              : "Pick the featured profile",
+      });
+    }
+    if (calendarKindNeedsOpponent(data.kind) && !data.opponentUserId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["opponentUserId"],
+        message: "Pick battler 2",
+      });
+    }
+    if (
+      data.kind === "BATTLE" &&
+      data.featuredUserId &&
+      data.opponentUserId &&
+      data.featuredUserId === data.opponentUserId
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["opponentUserId"],
+        message: "Battles need two different profiles",
+      });
+    }
+  });
 
 export const availabilitySlotSchema = z.object({
   kind: z.enum(availabilityKindOptions),

@@ -2,6 +2,8 @@
 
 import { type MouseEvent, useMemo, useState } from "react";
 import Link from "next/link";
+import { calendarKindLabel } from "@/lib/calendarEventTypes";
+import CalendarEventProfiles from "@/components/calendar/CalendarEventProfiles";
 
 type DayRipple = {
   id: string;
@@ -23,6 +25,8 @@ export type CalendarEventItem = {
   groupId: string | null;
   groupName: string | null;
   groupColor: string | null;
+  featured?: { id: string; label: string } | null;
+  opponent?: { id: string; label: string } | null;
 };
 
 export type CalendarFilterGroup = {
@@ -35,13 +39,6 @@ export type CalendarFilterGroup = {
 type CalendarView = "month" | "week" | "day" | "agenda";
 type CalendarFilter = "all" | "hub" | string;
 
-const KIND_LABEL: Record<string, string> = {
-  MEETING: "Meeting",
-  EVENT: "Event",
-  LIVE: "Live",
-  WEBINAR: "Webinar",
-  OTHER: "Other",
-};
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -81,6 +78,27 @@ function kindAccent(kind: string): KindAccent {
         bar: "bg-cyan/70",
         pill: "text-off-white/80 border-cyan/30 bg-cyan/5",
         dot: "bg-cyan/70",
+      };
+    case "INTERVIEW":
+      return {
+        chip: "bg-cyan/20 text-cyan border-cyan/30",
+        bar: "bg-cyan",
+        pill: "text-cyan border-cyan/40 bg-cyan/10",
+        dot: "bg-cyan",
+      };
+    case "BATTLE":
+      return {
+        chip: "bg-orange/20 text-orange border-orange/30",
+        bar: "bg-orange",
+        pill: "text-orange border-orange/40 bg-orange/10",
+        dot: "bg-orange",
+      };
+    case "SHOP_EVENT":
+      return {
+        chip: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
+        bar: "bg-emerald-400",
+        pill: "text-emerald-300 border-emerald-400/40 bg-emerald-400/10",
+        dot: "bg-emerald-400",
       };
     default:
       return {
@@ -140,7 +158,7 @@ function EventChip({ event, compact }: { event: CalendarEventItem; compact?: boo
   const accent = kindAccent(event.kind);
   return (
     <span
-      title={`${KIND_LABEL[event.kind] || event.kind}: ${event.title}`}
+      title={`${calendarKindLabel(event.kind)}: ${event.title}`}
       className={[
         "block w-full truncate rounded border px-1 font-body leading-tight transition",
         accent.chip,
@@ -176,7 +194,7 @@ function EventDetailCard({
             <span
               className={`rounded-md border px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide ${accent.pill}`}
             >
-              {KIND_LABEL[event.kind] || event.kind}
+              {calendarKindLabel(event.kind)}
             </span>
             {event.groupName && (
               <span className="rounded-md border border-off-white/15 px-1.5 py-0.5 font-body text-[10px] text-off-white/50">
@@ -197,6 +215,12 @@ function EventDetailCard({
             {event.location ? ` · ${event.location}` : ""}
             {event.hostLabel ? ` · ${event.hostLabel}` : ""}
           </p>
+          <CalendarEventProfiles
+            kind={event.kind}
+            featured={event.featured ?? null}
+            opponent={event.opponent ?? null}
+            className="mt-1.5 font-body text-xs text-off-white/60"
+          />
           {event.description && (
             <p
               className={[

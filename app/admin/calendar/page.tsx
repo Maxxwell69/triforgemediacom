@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { defaultCalendarWindow } from "@/lib/calendar";
+import {
+  calendarMemberLabel,
+  defaultCalendarWindow,
+  loadCalendarMemberOptions,
+} from "@/lib/calendar";
+import { calendarKindLabel } from "@/lib/calendarEventTypes";
 import { createAdminCalendarEvent } from "./actions";
 import DeleteCalendarEventButton from "@/components/admin/DeleteCalendarEventButton";
 import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import LocalWhen from "@/components/LocalWhen";
+import CalendarEventKindFields from "@/components/calendar/CalendarEventKindFields";
+import CalendarEventProfiles from "@/components/calendar/CalendarEventProfiles";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +21,7 @@ const fieldClass =
 export default async function AdminEventsPage() {
   const { from, to } = defaultCalendarWindow(90);
 
-  const [events, groups] = await Promise.all([
+  const [events, groups, members] = await Promise.all([
     prisma.calendarEvent.findMany({
       where: { startsAt: { gte: from, lt: to } },
       orderBy: { startsAt: "asc" },
@@ -22,6 +29,22 @@ export default async function AdminEventsPage() {
         createdBy: { select: { name: true, email: true } },
         webinar: { select: { id: true, status: true } },
         group: { select: { name: true } },
+        featuredUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { username: true, socialLinks: true } },
+          },
+        },
+        opponentUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { username: true, socialLinks: true } },
+          },
+        },
         _count: { select: { attendees: true } },
       },
     }),
@@ -29,6 +52,7 @@ export default async function AdminEventsPage() {
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
       select: { id: true, name: true },
     }),
+    loadCalendarMemberOptions(),
   ]);
 
   return (
@@ -60,27 +84,22 @@ export default async function AdminEventsPage() {
           placeholder="Optional description"
           className={fieldClass}
         />
+        <CalendarEventKindFields members={members} defaultKind="MEETING" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <select name="kind" defaultValue="MEETING" className={fieldClass}>
-            <option value="MEETING">Meeting</option>
-            <option value="EVENT">Event</option>
-            <option value="LIVE">Live</option>
-            <option value="OTHER">Other</option>
-          </select>
           <select name="visibility" defaultValue="HUB" className={fieldClass}>
             <option value="HUB">All hub members</option>
             <option value="GROUP">Group only</option>
             <option value="PRIVATE">Private (staff only)</option>
           </select>
+          <select name="groupId" defaultValue="" className={fieldClass}>
+            <option value="">No group</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <select name="groupId" defaultValue="" className={fieldClass}>
-          <option value="">No group</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
         <input name="location" placeholder="Location / link (optional)" className={fieldClass} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input name="startsAt" type="datetime-local" required className={fieldClass} />
@@ -113,7 +132,7 @@ export default async function AdminEventsPage() {
             >
               <div className="min-w-0">
                 <p className="font-body text-sm font-medium text-off-white">
-                  <span className="mr-2 text-xs text-cyan">{event.kind}</span>
+                  <span className="mr-2 text-xs text-cyan">{calendarKindLabel(event.kind)}</span>
                   {event.title}
                   {event.webinarId && (
                     <span className="ml-2 text-xs text-off-white/40">(webinar sync)</span>
@@ -128,6 +147,20 @@ export default async function AdminEventsPage() {
                   {" · "}
                   {event._count.attendees} attendees
                 </p>
+                <CalendarEventProfiles
+                  kind={event.kind}
+                  featured={
+                    event.featuredUser
+                      ? { id: event.featuredUser.id, label: calendarMemberLabel(event.featuredUser) }
+                      : null
+                  }
+                  opponent={
+                    event.opponentUser
+                      ? { id: event.opponentUser.id, label: calendarMemberLabel(event.opponentUser) }
+                      : null
+                  }
+                  className="mt-1 font-body text-xs text-off-white/55"
+                />
               </div>
               <div className="flex shrink-0 gap-2">
                 {event.webinarId ? (

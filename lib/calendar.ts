@@ -10,6 +10,12 @@ import type {
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { getUserGroupIds } from "@/lib/groups";
+import { getMemberDisplayName } from "@/lib/memberDisplay";
+import {
+  calendarKindNeedsFeatured,
+  calendarKindNeedsOpponent,
+  type CalendarMemberOption,
+} from "@/lib/calendarEventTypes";
 
 /** Mass-audience webinars mirror onto the hub calendar. Admin-only stays off it. */
 export function webinarShouldAppearOnCalendar(audience: WebinarAudience): boolean {
@@ -70,6 +76,61 @@ export async function syncCalendarEventForWebinar(webinar: WebinarCalendarSource
   });
 }
 
+const calendarProfileUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  profile: { select: { username: true, socialLinks: true } },
+} as const;
+
+export function calendarMemberLabel(user: {
+  name: string | null;
+  email?: string | null;
+  profile?: { username?: string | null; socialLinks?: unknown } | null;
+}): string {
+  return getMemberDisplayName(user) || user.email || "Member";
+}
+
+export async function loadCalendarMemberOptions(): Promise<CalendarMemberOption[]> {
+  const users = await prisma.user.findMany({
+    where: { status: "ACTIVE" },
+    select: calendarProfileUserSelect,
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+    take: 500,
+  });
+  return users.map((u) => ({
+    id: u.id,
+    label: u.email ? `${calendarMemberLabel(u)} · ${u.email}` : calendarMemberLabel(u),
+  }));
+}
+
+export function calendarProfileIdsFromParsed(data: {
+  kind: string;
+  featuredUserId?: string;
+  opponentUserId?: string;
+}): { featuredUserId: string | null; opponentUserId: string | null } {
+  return {
+    featuredUserId: calendarKindNeedsFeatured(data.kind) ? data.featuredUserId || null : null,
+    opponentUserId: calendarKindNeedsOpponent(data.kind) ? data.opponentUserId || null : null,
+  };
+}
+
+export async function assertCalendarProfileMembers(
+  featuredUserId: string | null,
+  opponentUserId: string | null
+): Promise<string | null> {
+  const ids = [featuredUserId, opponentUserId].filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return null;
+  const found = await prisma.user.findMany({
+    where: { id: { in: ids }, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (found.length !== ids.length) {
+    return "Pick active hub members for the profile links.";
+  }
+  return null;
+}
+
 export function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -127,6 +188,8 @@ export async function listVisibleCalendarEvents(
       webinar: { select: { id: true, status: true, audience: true } },
       group: { select: { id: true, name: true, color: true } },
       attendees: { select: { userId: true } },
+      featuredUser: { select: calendarProfileUserSelect },
+      opponentUser: { select: calendarProfileUserSelect },
       _count: { select: { bookings: true } },
     },
   });

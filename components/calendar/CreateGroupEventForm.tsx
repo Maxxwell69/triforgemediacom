@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGroupCalendarEvent } from "@/app/(community)/calendar/actions";
 import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
+import CalendarEventKindFields from "@/components/calendar/CalendarEventKindFields";
 import { attachDeviceTimeZone } from "@/lib/timeClient";
+import type { CalendarMemberOption } from "@/lib/calendarEventTypes";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
@@ -15,7 +17,13 @@ type CreatableGroup = {
   color: string;
 };
 
-export default function CreateGroupEventForm({ groups }: { groups: CreatableGroup[] }) {
+export default function CreateGroupEventForm({
+  groups,
+  members,
+}: {
+  groups: CreatableGroup[];
+  members: CalendarMemberOption[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,22 +77,15 @@ export default function CreateGroupEventForm({ groups }: { groups: CreatableGrou
         placeholder="Optional description"
         className={fieldClass}
       />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <select name="groupId" required defaultValue={groups[0]?.id} className={fieldClass}>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-              {g.name === "Home" ? " (everyone)" : ""}
-            </option>
-          ))}
-        </select>
-        <select name="kind" defaultValue="EVENT" className={fieldClass}>
-          <option value="EVENT">Event</option>
-          <option value="MEETING">Meeting</option>
-          <option value="LIVE">Live</option>
-          <option value="OTHER">Other</option>
-        </select>
-      </div>
+      <select name="groupId" required defaultValue={groups[0]?.id} className={fieldClass}>
+        {groups.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+            {g.name === "Home" ? " (everyone)" : ""}
+          </option>
+        ))}
+      </select>
+      <CalendarEventKindFields members={members} defaultKind="EVENT" />
       <input name="location" placeholder="Location / link (optional)" className={fieldClass} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="startsAt" type="datetime-local" required className={fieldClass} />

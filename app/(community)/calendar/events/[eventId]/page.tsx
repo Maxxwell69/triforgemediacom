@@ -6,16 +6,11 @@ import { canViewEvent } from "@/lib/calendar";
 import LocalWhen from "@/components/LocalWhen";
 import { getUserGroupIds } from "@/lib/groups";
 import RsvpButton from "@/components/calendar/RsvpButton";
+import CalendarEventProfiles from "@/components/calendar/CalendarEventProfiles";
+import { calendarKindLabel } from "@/lib/calendarEventTypes";
+import { calendarMemberLabel } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<string, string> = {
-  MEETING: "Meeting",
-  EVENT: "Event",
-  LIVE: "Live",
-  WEBINAR: "Webinar",
-  OTHER: "Other",
-};
 
 export default async function CalendarEventPage({
   params,
@@ -32,6 +27,22 @@ export default async function CalendarEventPage({
       group: { select: { id: true, name: true, color: true } },
       webinar: { select: { id: true, status: true } },
       attendees: { select: { userId: true } },
+      featuredUser: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { username: true, socialLinks: true } },
+        },
+      },
+      opponentUser: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { username: true, socialLinks: true } },
+        },
+      },
       _count: { select: { attendees: true } },
     },
   });
@@ -64,7 +75,7 @@ export default async function CalendarEventPage({
           <div className="p-6 sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md border border-cyan/35 bg-cyan/10 px-2 py-0.5 font-body text-[11px] font-semibold uppercase tracking-wide text-cyan">
-                {KIND_LABEL[event.kind] || event.kind}
+                {calendarKindLabel(event.kind)}
               </span>
               {event.group && (
                 <span className="rounded-md border border-off-white/15 px-2 py-0.5 font-body text-[11px] text-off-white/60">
@@ -94,6 +105,22 @@ export default async function CalendarEventPage({
               {" · "}
               {event._count.attendees} RSVP{event._count.attendees === 1 ? "" : "s"}
             </p>
+
+            <div className="mt-6">
+              <CalendarEventProfiles
+                kind={event.kind}
+                featured={
+                  event.featuredUser
+                    ? { id: event.featuredUser.id, label: calendarMemberLabel(event.featuredUser) }
+                    : null
+                }
+                opponent={
+                  event.opponentUser
+                    ? { id: event.opponentUser.id, label: calendarMemberLabel(event.opponentUser) }
+                    : null
+                }
+              />
+            </div>
 
             {event.description && (
               <p className="mt-6 whitespace-pre-wrap font-body text-sm leading-relaxed text-off-white/70">
