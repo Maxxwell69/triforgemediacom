@@ -15,6 +15,7 @@ import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -184,9 +185,19 @@ export default async function AdminUsersPage({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
-      <h1 className="font-display text-5xl tracking-wide">
-        USER <span className="text-gradient">MANAGEMENT</span>
-      </h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-5xl tracking-wide">
+          USER <span className="text-gradient">MANAGEMENT</span>
+        </h1>
+        {hubHas("booking") && (
+          <Link
+            href="/account/booking"
+            className="rounded-lg border border-orange/40 px-3 py-1.5 font-body text-xs font-semibold text-orange transition hover:bg-orange/10"
+          >
+            Staff booking
+          </Link>
+        )}
+      </div>
       <p className="mt-2 font-body text-off-white/60">
         {users.length} account{users.length === 1 ? "" : "s"}
         {roleFilter === "STAFF"

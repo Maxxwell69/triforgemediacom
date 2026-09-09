@@ -56,6 +56,7 @@ export default async function MemberProfilePage({
       tiktokConnection: true,
       tiktokStatsSnapshot: true,
       tags: { include: { tag: true } },
+      bookingPage: { select: { slug: true, isActive: true } },
     },
   });
   if (!member || !member.profile) notFound();
@@ -74,6 +75,7 @@ export default async function MemberProfilePage({
         tiktokConnection: true,
         tiktokStatsSnapshot: true,
         tags: { include: { tag: true } },
+        bookingPage: { select: { slug: true, isActive: true } },
       },
     });
     if (refreshed?.profile) member = refreshed;
@@ -136,6 +138,14 @@ export default async function MemberProfilePage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {member.bookingPage?.isActive && (
+                <Link
+                  href={`/book/${member.bookingPage.slug}`}
+                  className="rounded-lg bg-orange px-3 py-1.5 font-body text-xs font-semibold text-charcoal shadow-glow transition hover:opacity-90"
+                >
+                  Book a meeting
+                </Link>
+              )}
               {isAdmin && <EffectCheckbox userId={member.id} effect={member.effect} />}
               <ShareButton
                 title={displayName}

@@ -210,6 +210,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         description: "Schedule hub meetings and events",
         sku: "calendar",
       },
+      {
+        href: "/account/booking",
+        label: "Staff booking",
+        description: "Set availability and share your public book link",
+        sku: "booking",
+      },
     ],
   },
   {

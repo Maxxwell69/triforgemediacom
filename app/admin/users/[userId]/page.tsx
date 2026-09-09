@@ -28,6 +28,7 @@ import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
 import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLevel";
 import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,7 @@ export default async function AdminUserDetailPage({
       where: { id: params.userId },
       include: {
         profile: true,
+        bookingPage: { select: { slug: true, isActive: true, title: true } },
         application: { include: { reviewedBy: { select: { name: true, email: true } } } },
         groupMemberships: { include: { group: true } },
         tags: { include: { tag: true } },
@@ -252,6 +254,24 @@ export default async function AdminUserDetailPage({
           <PersonalTasksToggle userId={user.id} enabled={user.personalTasksEnabled} />
           {canDm && !isSelf && user.status === "ACTIVE" && (
             <StartDmButton userId={user.id} userName={displayName} />
+          )}
+          {hubHas("booking") && (
+            <>
+              <Link
+                href="/account/booking"
+                className="rounded-lg border border-orange/40 px-3 py-1.5 font-body text-xs font-semibold text-orange transition hover:bg-orange/10"
+              >
+                Staff booking
+              </Link>
+              {user.bookingPage?.isActive && (
+                <Link
+                  href={`/book/${user.bookingPage.slug}`}
+                  className="rounded-lg bg-orange px-3 py-1.5 font-body text-xs font-semibold text-charcoal shadow-glow transition hover:opacity-90"
+                >
+                  Book {isSelf ? "your page" : displayName}
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>

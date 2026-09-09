@@ -158,6 +158,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.173",
+    date: "September 9, 2026",
+    title: "Booking on admin profiles",
+    summary: "Admin user profiles now link to the staff booking system, and member profiles show Book a meeting when that admin is taking appointments.",
+    items: [
+      {
+        kind: "feature",
+        text: "Staff booking link on admin user list, user profiles, Account → Profile, and Live & events nav",
+      },
+      {
+        kind: "feature",
+        text: "Book a meeting button on an admin’s member profile when their public book page is active",
+      },
+    ],
+  },
+  {
     version: "3.172",
     date: "September 8, 2026",
     title: "Safari webinar sound",

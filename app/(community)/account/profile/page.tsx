@@ -11,6 +11,8 @@ import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "../NameIdentityForm";
 import AccountPageShell from "@/components/account/AccountPageShell";
 import { networkBadgeColor } from "@/lib/mnCn";
+import { isAdminRole } from "@/lib/rbac";
+import { hubHas } from "@/lib/hub/modules";
 
 export default async function AccountProfilePage() {
   const { user, profile } = await requireProfile();
@@ -60,6 +62,16 @@ export default async function AccountProfilePage() {
       }
       description="Badges, identity, socials, and the tags other members see."
     >
+      {isAdminRole(user.role) && hubHas("booking") && (
+        <div className="-mt-2 mb-8">
+          <Link
+            href="/account/booking"
+            className="inline-flex rounded-lg border border-orange/40 px-3 py-1.5 font-body text-xs font-semibold text-orange transition hover:bg-orange/10"
+          >
+            Staff booking
+          </Link>
+        </div>
+      )}
       <h2 className="font-display text-lg tracking-wide text-off-white/70">Badges</h2>
       <div className="mt-3">
         {userBadges.length === 0 ? (
