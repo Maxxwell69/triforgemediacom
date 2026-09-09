@@ -44,3 +44,7 @@ export function hubCampaignCategoryMeta(category: HubCampaignCategory) {
 export function hubCampaignStatusLabel(status: HubCampaignStatus) {
   return HUB_CAMPAIGN_STATUSES.find((s) => s.value === status)?.label ?? status;
 }
+
+export function isInterviewCampaign(category: HubCampaignCategory | string) {
+  return category === "INTERVIEWS";
+}

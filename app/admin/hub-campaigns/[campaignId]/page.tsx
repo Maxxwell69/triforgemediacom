@@ -17,7 +17,10 @@ import {
   updateHubCampaignTask,
 } from "../actions";
 import HubCampaignForm from "@/components/admin/HubCampaignForm";
+import InterviewSlotAdmin from "@/components/admin/InterviewSlotAdmin";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
+import { isInterviewCampaign } from "@/lib/hubCampaignLabels";
+import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,14 @@ export default async function AdminHubCampaignDetailPage({
         audienceBadge: { select: { id: true, name: true } },
         signups: {
           orderBy: { joinedAt: "asc" },
-          include: { user: { select: hubCampaignMemberSelect } },
+          include: {
+            user: { select: hubCampaignMemberSelect },
+            slot: { select: { startsAt: true, endsAt: true } },
+          },
+        },
+        slots: {
+          orderBy: { startsAt: "asc" },
+          include: { signup: { include: { user: { select: hubCampaignMemberSelect } } } },
         },
         tasks: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -129,6 +139,18 @@ export default async function AdminHubCampaignDetailPage({
         </div>
       </section>
 
+      {isInterviewCampaign(campaign.category) && (
+        <InterviewSlotAdmin
+          campaignId={campaign.id}
+          slots={campaign.slots.map((slot) => ({
+            id: slot.id,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            bookedBy: slot.signup ? getMemberDisplayName(slot.signup.user) : null,
+          }))}
+        />
+      )}
+
       <section className="mt-10">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Who&apos;s involved</h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
@@ -170,8 +192,16 @@ export default async function AdminHubCampaignDetailPage({
                   key={signup.id}
                   className="flex items-center justify-between gap-3 rounded-lg border border-off-white/10 px-3 py-2"
                 >
-                  <span className="font-body text-sm text-off-white">
+                  <span className="min-w-0 font-body text-sm text-off-white">
                     {getMemberDisplayName(signup.user)}
+                    {signup.slot && (
+                      <span className="mt-0.5 block text-xs text-off-white/45">
+                        <LocalWhen
+                          startsAt={signup.slot.startsAt.toISOString()}
+                          endsAt={signup.slot.endsAt.toISOString()}
+                        />
+                      </span>
+                    )}
                   </span>
                   <form
                     action={async () => {

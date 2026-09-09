@@ -57,3 +57,15 @@ export const hubCampaignTaskSchema = z.object({
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   assigneeId: z.string().trim().optional().or(z.literal("")),
 });
+
+export const INTERVIEW_SLOT_DURATIONS = [15, 30, 45, 60] as const;
+
+export const hubCampaignSlotSchema = z.object({
+  startsAt: z.string().trim().min(1, "Start time is required"),
+  durationMins: z.coerce
+    .number()
+    .refine(
+      (n) => (INTERVIEW_SLOT_DURATIONS as readonly number[]).includes(n),
+      "Pick 15, 30, 45, or 60 minutes"
+    ),
+});

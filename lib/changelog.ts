@@ -158,6 +158,22 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.176",
+    date: "September 9, 2026",
+    title: "Interview campaign booking",
+    summary: "Interview campaigns now post available times so members can book a slot, like staff booking.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admins add interview times on a campaign; each slot is one member",
+      },
+      {
+        kind: "feature",
+        text: "Members pick a day and time to sign up, and can change or leave to free the slot",
+      },
+    ],
+  },
+  {
     version: "3.175",
     date: "September 9, 2026",
     title: "Calendar deploy fix",

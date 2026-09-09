@@ -10,6 +10,7 @@ export {
   HUB_CAMPAIGN_STATUSES,
   hubCampaignCategoryMeta,
   hubCampaignStatusLabel,
+  isInterviewCampaign,
 } from "@/lib/hubCampaignLabels";
 
 export function requireHubCampaignsModule() {
