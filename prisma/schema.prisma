@@ -176,6 +176,8 @@ model User {
   faqArticlesUpdated         FaqArticle[]           @relation("FaqArticleUpdatedBy")
   suggestionsSubmitted       Suggestion[]
   suggestionRead             SuggestionRead?
+  socialPlannerAccounts      SocialPlannerAccount[]
+  socialPlannerItemsCreated  SocialPlannerItem[]     @relation("SocialPlannerItemCreatedBy")
 }
 
 // ---------- Application / invite flow ----------
@@ -1627,9 +1629,10 @@ model CalendarEvent {
   createdBy    User                    @relation("CalendarEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   featuredUser User?                   @relation("CalendarEventFeatured", fields: [featuredUserId], references: [id], onDelete: SetNull)
   opponentUser User?                   @relation("CalendarEventOpponent", fields: [opponentUserId], references: [id], onDelete: SetNull)
-  webinar      Webinar?                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
-  attendees    CalendarEventAttendee[]
-  bookings     CalendarBooking[]
+  webinar           Webinar?                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  attendees         CalendarEventAttendee[]
+  bookings          CalendarBooking[]
+  socialPlannerItem SocialPlannerItem?
 
   @@index([startsAt])
   @@index([kind, startsAt])
@@ -2645,4 +2648,103 @@ model HubCampaignTask {
   createdBy User        @relation("HubCampaignTaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([campaignId, sortOrder])
+}
+
+// ---------- Social Planner (admin TikTok schedule + Direct Post) ----------
+
+enum SocialPlannerItemKind {
+  VIDEO
+  PHOTO
+  LIVE
+}
+
+enum SocialPlannerItemStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
+
+/// TikTok account authorized for Content Posting API (video.publish). Separate from Login Kit stats.
+model SocialPlannerAccount {
+  id                    String   @id @default(cuid())
+  connectedById         String
+  openId                String   @unique
+  username              String?
+  nickname              String?
+  avatarUrl             String?
+  accessToken           String
+  refreshToken          String
+  accessTokenExpiresAt  DateTime
+  refreshTokenExpiresAt DateTime
+  scopes                String
+  /// Cached from /creator_info/query/ — string[] of allowed privacy_level values.
+  privacyLevelOptions   Json?
+  maxVideoDurationSec   Int?
+  commentDisabled       Boolean  @default(false)
+  duetDisabled          Boolean  @default(false)
+  stitchDisabled        Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  connectedBy User                @relation(fields: [connectedById], references: [id], onDelete: Cascade)
+  items       SocialPlannerItem[]
+
+  @@index([connectedById])
+}
+
+model SocialPlannerItem {
+  id              String                  @id @default(cuid())
+  accountId       String
+  createdById     String
+  kind            SocialPlannerItemKind
+  status          SocialPlannerItemStatus @default(DRAFT)
+  caption         String                  @default("")
+  /// LIVE title or photo post title (TikTok `title` field).
+  title           String?
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  privacyLevel    String                  @default("SELF_ONLY")
+  disableComment  Boolean                 @default(false)
+  disableDuet     Boolean                 @default(false)
+  disableStitch   Boolean                 @default(false)
+  mediaR2Key      String?
+  mediaUrl        String?
+  mediaMime       String?
+  mediaBytes      Int?
+  tiktokPublishId String?
+  tiktokShareUrl  String?
+  lastError       String?
+  calendarEventId String?                 @unique
+  consentGivenAt  DateTime?
+  remindedAt      DateTime?
+  liveDetectedAt  DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  account       SocialPlannerAccount          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdBy     User                          @relation("SocialPlannerItemCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  calendarEvent CalendarEvent?                @relation(fields: [calendarEventId], references: [id], onDelete: SetNull)
+  attempts      SocialPlannerPublishAttempt[]
+
+  @@index([status, scheduledAt])
+  @@index([accountId, status])
+  @@index([kind, status])
+}
+
+model SocialPlannerPublishAttempt {
+  id         String    @id @default(cuid())
+  itemId     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  ok         Boolean   @default(false)
+  error      String?
+  rawStatus  String?
+  publishId  String?
+
+  item SocialPlannerItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, startedAt])
 }

@@ -141,6 +141,13 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "3.161",
   },
   {
+    name: "Social Planner",
+    tagline: "TikTok schedule & Direct Post",
+    description:
+      "Admin module to draft and schedule TikTok videos and LIVE reminders, then auto-publish through TikTok’s Content Posting API. Optional Create Hub SKU.",
+    since: "3.177",
+  },
+  {
     name: "Battle Hosts",
     tagline: "LIVE Battles specialty",
     description:
@@ -157,6 +164,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.177",
+    date: "September 10, 2026",
+    title: "Social Planner",
+    summary:
+      "Admins can draft and schedule TikTok videos and LIVE reminders, then auto-publish through TikTok’s posting API.",
+    items: [
+      {
+        kind: "feature",
+        text: "New optional hub SKU: Social Planner — admin calendar, compose, and connected TikTok posting accounts",
+      },
+      {
+        kind: "feature",
+        text: "Scheduled videos upload from R2 and publish via TikTok Direct Post; LIVE rows remind and detect go-live (tik.tools)",
+      },
+    ],
+  },
   {
     version: "3.176",
     date: "September 9, 2026",

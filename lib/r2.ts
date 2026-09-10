@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import {
@@ -6,11 +6,12 @@ import {
   ALLOWED_SHOP_FILE_EXTENSIONS,
   ALLOWED_VIDEO_EXTENSIONS,
   MAX_SHOP_FILE_BYTES,
+  MAX_SOCIAL_PLANNER_VIDEO_BYTES,
   MAX_UPLOAD_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
 } from "@/lib/uploadConstraints";
 
-export { MAX_UPLOAD_BYTES, MAX_VIDEO_UPLOAD_BYTES };
+export { MAX_UPLOAD_BYTES, MAX_VIDEO_UPLOAD_BYTES, MAX_SOCIAL_PLANNER_VIDEO_BYTES };
 
 export function isR2Configured(): boolean {
   return !!(
@@ -259,4 +260,77 @@ export async function createSignedShopDownloadUrl(key: string, fileName: string)
     ResponseContentDisposition: `attachment; filename="${safeDownloadName(fileName)}"`,
   });
   return getSignedUrl(client, command, { expiresIn: 120 });
+}
+
+export function isSocialPlannerMediaKey(key: string): boolean {
+  return key.startsWith("social-planner/");
+}
+
+/** Presigned PUT for Social Planner videos (browser uploads directly to R2). */
+export async function createPresignedSocialPlannerUpload(opts: {
+  contentType: string;
+  fileSize: number;
+}) {
+  const extension = ALLOWED_VIDEO_EXTENSIONS[opts.contentType];
+  if (!extension) {
+    throw new Error("Unsupported video type. Use MP4, WebM, or MOV.");
+  }
+  if (opts.fileSize <= 0 || opts.fileSize > MAX_SOCIAL_PLANNER_VIDEO_BYTES) {
+    throw new Error("File is too large. Max size for TikTok posts is 1GB.");
+  }
+
+  const { bucketName, publicUrl } = getBucketConfig();
+  const client = getR2Client();
+  const key = `social-planner/${randomUUID()}.${extension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: opts.contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 60 * 60 });
+
+  return {
+    uploadUrl,
+    publicUrl: `${publicUrl}/${key}`,
+    key,
+  };
+}
+
+export async function getR2ObjectSize(key: string): Promise<number> {
+  if (!isSocialPlannerMediaKey(key) && !key.startsWith("webinar-recordings/")) {
+    throw new Error("Invalid object key");
+  }
+  const { bucketName } = getBucketConfig();
+  const client = getR2Client();
+  const res = await client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+  const size = res.ContentLength;
+  if (typeof size !== "number" || size <= 0) {
+    throw new Error("Could not read video size from storage");
+  }
+  return size;
+}
+
+export async function getR2ObjectRange(key: string, start: number, end: number): Promise<Buffer> {
+  if (!isSocialPlannerMediaKey(key) && !key.startsWith("webinar-recordings/")) {
+    throw new Error("Invalid object key");
+  }
+  if (start < 0 || end < start) {
+    throw new Error("Invalid byte range");
+  }
+  const { bucketName } = getBucketConfig();
+  const client = getR2Client();
+  const res = await client.send(
+    new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Range: `bytes=${start}-${end}`,
+    })
+  );
+  const bytes = await res.Body?.transformToByteArray();
+  if (!bytes || bytes.byteLength === 0) {
+    throw new Error("Empty range from storage");
+  }
+  return Buffer.from(bytes);
 }
