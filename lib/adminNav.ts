@@ -211,6 +211,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "calendar",
       },
       {
+        href: "/admin/social-planner",
+        label: "Social Planner",
+        description: "Schedule TikTok videos and LIVE reminders",
+        sku: "socialPlanner",
+      },
+      {
         href: "/account/booking",
         label: "Staff booking",
         description: "Set availability and share your public book link",

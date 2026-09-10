@@ -15,7 +15,8 @@ type UploadFolder =
   | "host-avatars"
   | "group-images"
   | "shop-images"
-  | "progression-images";
+  | "progression-images"
+  | "social-planner";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -45,6 +46,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "progression-images": {
     dimensions: "512\u00D7512px (1:1)",
     hint: "Shows on the progression tree, missions, and badges \u2014 square crops best.",
+  },
+  "social-planner": {
+    dimensions: "1080\u00D71350px (4:5) or 1080\u00D71920px (9:16)",
+    hint: "TikTok photo posts. The R2 domain must be verified in TikTok\u2019s developer portal for Direct Post.",
   },
 };
 

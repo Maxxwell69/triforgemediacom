@@ -41,6 +41,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
     description: "Signup campaigns: interviews, meetings, games, battles",
   },
   { id: "calendar", kind: "optional", label: "Calendar", description: "Events and availability" },
+  {
+    id: "socialPlanner",
+    kind: "optional",
+    label: "Social Planner",
+    description: "Draft and schedule TikTok videos and LIVE reminders; auto-publish at the planned time",
+  },
   { id: "booking", kind: "optional", label: "Staff booking", description: "Public booking pages" },
   {
     id: "email",

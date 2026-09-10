@@ -14,6 +14,7 @@ const ALLOWED_FOLDERS = new Set([
   "chat-attachments",
   "shop-images",
   "progression-images",
+  "social-planner",
 ]);
 
 export async function POST(request: NextRequest) {

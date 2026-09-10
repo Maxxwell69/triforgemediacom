@@ -20,6 +20,9 @@ export const ALLOWED_IMAGE_EXTENSIONS: Record<string, string> = {
 /** Screen recordings / webinar replays uploaded via presigned R2 PUT. */
 export const MAX_VIDEO_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
 
+/** TikTok Content Posting API video cap (Direct Post). */
+export const MAX_SOCIAL_PLANNER_VIDEO_BYTES = 1024 * 1024 * 1024; // 1GB
+
 export const ALLOWED_VIDEO_MIME_TYPES = [
   "video/mp4",
   "video/webm",

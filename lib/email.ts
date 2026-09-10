@@ -1365,3 +1365,24 @@ export async function sendSuggestionStatusEmail(to: string, data: SuggestionStat
   await send(to, subject, html);
 }
 
+export async function sendSocialPlannerLiveReminderEmail(
+  to: string,
+  data: {
+    name: string | null;
+    handle: string;
+    title: string;
+    whenLabel: string;
+    url: string;
+  }
+) {
+  const greeting = data.name?.trim() ? escapeHtml(data.name.trim()) : "there";
+  const html = layout(`
+    <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">LIVE reminder</h1>
+    <p style="line-height:1.6;">Hi ${greeting}, <strong>${escapeHtml(data.handle)}</strong> is scheduled to go live in about an hour.</p>
+    <p style="line-height:1.6;"><strong>${escapeHtml(data.title)}</strong><br/>${escapeHtml(data.whenLabel)}</p>
+    <p style="line-height:1.6;color:rgba(245,245,245,0.65);">TikTok has no API to start a LIVE — open the TikTok app at the scheduled time. The hub will mark this reminder published if we detect the account go live.</p>
+    ${button(data.url, "Open Social Planner")}
+  `);
+  await send(to, `LIVE reminder: ${data.title}`, html);
+}
+
