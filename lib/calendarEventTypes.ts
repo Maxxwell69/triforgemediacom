@@ -60,3 +60,18 @@ export function calendarFeaturedProfileLabel(kind: string): string {
 export function calendarOpponentProfileLabel(): string {
   return "Battler 2";
 }
+
+/** Turn a location/link field into a safe http(s) href, or null if it's plain text. */
+export function calendarLocationHref(location: string | null | undefined): string | null {
+  const trimmed = (location || "").trim();
+  if (!trimmed || /\s/.test(trimmed)) return null;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    if (!parsed.hostname.includes(".")) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}

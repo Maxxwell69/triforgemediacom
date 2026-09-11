@@ -102,6 +102,7 @@ export default async function CalendarPage() {
               opponent: e.opponentUser
                 ? { id: e.opponentUser.id, label: calendarMemberLabel(e.opponentUser) }
                 : null,
+              imageUrl: e.imageUrl,
             }))}
           />
         </div>

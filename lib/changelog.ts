@@ -165,6 +165,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.181",
+    date: "September 11, 2026",
+    title: "Calendar event photos and links",
+    summary:
+      "Calendar events can include a photo, and location links on the event page open in a new tab.",
+    items: [
+      {
+        kind: "feature",
+        text: "Add an event photo when creating or editing a calendar event",
+      },
+      {
+        kind: "improve",
+        text: "Location/link on the event page is clickable when it’s a URL",
+      },
+    ],
+  },
+  {
     version: "3.180",
     date: "September 11, 2026",
     title: "Interview spots, time, and network",

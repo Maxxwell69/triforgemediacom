@@ -12,6 +12,7 @@ import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import LocalWhen from "@/components/LocalWhen";
 import CalendarEventKindFields from "@/components/calendar/CalendarEventKindFields";
 import CalendarEventProfiles from "@/components/calendar/CalendarEventProfiles";
+import ImageUploadField from "@/components/ImageUploadField";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,7 @@ export default async function AdminEventsPage() {
           </select>
         </div>
         <input name="location" placeholder="Location / link (optional)" className={fieldClass} />
+        <ImageUploadField name="imageUrl" folder="calendar-event-images" label="Event photo" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input name="startsAt" type="datetime-local" required className={fieldClass} />
           <input name="endsAt" type="datetime-local" className={fieldClass} />

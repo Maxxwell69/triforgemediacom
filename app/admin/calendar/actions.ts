@@ -26,9 +26,10 @@ async function requireAdmin() {
   return { ...session, user: { ...session.user, id: dbUser.id, role: dbUser.role } };
 }
 
-function revalidateCalendar() {
+function revalidateCalendar(eventId?: string) {
   revalidatePath("/admin/calendar");
   revalidatePath("/calendar");
+  if (eventId) revalidatePath(`/calendar/events/${eventId}`);
 }
 
 export async function createAdminCalendarEvent(formData: FormData) {
@@ -41,6 +42,7 @@ export async function createAdminCalendarEvent(formData: FormData) {
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
+    imageUrl: formData.get("imageUrl") || "",
     groupId: formData.get("groupId") || "",
     featuredUserId: formData.get("featuredUserId") || "",
     opponentUserId: formData.get("opponentUserId") || "",
@@ -71,7 +73,7 @@ export async function createAdminCalendarEvent(formData: FormData) {
   );
   if (profileError) throw new Error(profileError);
 
-  await prisma.calendarEvent.create({
+  const created = await prisma.calendarEvent.create({
     data: {
       title: parsed.data.title,
       description: parsed.data.description || null,
@@ -80,14 +82,16 @@ export async function createAdminCalendarEvent(formData: FormData) {
       startsAt,
       endsAt,
       location: parsed.data.location || null,
+      imageUrl: parsed.data.imageUrl || null,
       groupId: parsed.data.groupId || null,
       featuredUserId: profiles.featuredUserId,
       opponentUserId: profiles.opponentUserId,
       createdById: session.user.id,
     },
+    select: { id: true },
   });
 
-  revalidateCalendar();
+  revalidateCalendar(created.id);
 }
 
 export async function updateAdminCalendarEvent(formData: FormData) {
@@ -107,6 +111,7 @@ export async function updateAdminCalendarEvent(formData: FormData) {
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
+    imageUrl: formData.get("imageUrl") || "",
     groupId: formData.get("groupId") || "",
     featuredUserId: formData.get("featuredUserId") || "",
     opponentUserId: formData.get("opponentUserId") || "",
@@ -143,13 +148,14 @@ export async function updateAdminCalendarEvent(formData: FormData) {
       startsAt,
       endsAt,
       location: parsed.data.location || null,
+      imageUrl: parsed.data.imageUrl || null,
       groupId: parsed.data.groupId || null,
       featuredUserId: profiles.featuredUserId,
       opponentUserId: profiles.opponentUserId,
     },
   });
 
-  revalidateCalendar();
+  revalidateCalendar(id);
 }
 
 export async function deleteAdminCalendarEvent(eventId: string) {

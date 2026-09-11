@@ -7,6 +7,7 @@ import DeviceTimeZoneField from "@/components/DeviceTimeZoneField";
 import CalendarEventKindFields from "@/components/calendar/CalendarEventKindFields";
 import { attachDeviceTimeZone } from "@/lib/timeClient";
 import type { CalendarMemberOption } from "@/lib/calendarEventTypes";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
@@ -87,6 +88,7 @@ export default function CreateGroupEventForm({
       </select>
       <CalendarEventKindFields members={members} defaultKind="EVENT" />
       <input name="location" placeholder="Location / link (optional)" className={fieldClass} />
+      <ImageUploadField name="imageUrl" folder="calendar-event-images" label="Event photo" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="startsAt" type="datetime-local" required className={fieldClass} />
         <input name="endsAt" type="datetime-local" className={fieldClass} />
