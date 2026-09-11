@@ -12,7 +12,6 @@ import {
   createHubCampaignTask,
   deleteHubCampaignTask,
   setHubCampaignSignup,
-  setHubCampaignTaskStatus,
   updateHubCampaign,
   updateHubCampaignTask,
 } from "../actions";
@@ -55,6 +54,7 @@ export default async function AdminHubCampaignDetailPage({
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           include: {
             assignee: { select: { id: true, name: true, email: true } },
+            completions: { select: { userId: true } },
           },
         },
       },
@@ -225,6 +225,10 @@ export default async function AdminHubCampaignDetailPage({
 
       <section className="mt-10">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">What we need to do</h2>
+        <p className="mt-1 font-body text-sm text-off-white/50">
+          Unassigned tasks are a personal checklist for every signup. Assigning a task to one
+          person does not stop others from joining.
+        </p>
         <div className="glass mt-4 rounded-2xl p-6">
           <form
             action={async (formData) => {
@@ -263,7 +267,14 @@ export default async function AdminHubCampaignDetailPage({
               No tasks yet. Add what this campaign needs to get done.
             </p>
           )}
-          {campaign.tasks.map((task) => (
+          {campaign.tasks.map((task) => {
+            const doneBy = task.assigneeId
+              ? task.completions.some((c) => c.userId === task.assigneeId)
+                ? 1
+                : 0
+              : task.completions.filter((c) => signedUpIds.has(c.userId)).length;
+            const outOf = task.assigneeId ? 1 : campaign.signups.length;
+            return (
             <div key={task.id} className="glass flex flex-col gap-2 rounded-xl p-4">
               <form
                 action={async (formData) => {
@@ -304,26 +315,15 @@ export default async function AdminHubCampaignDetailPage({
                 </button>
               </form>
               <div className="flex flex-wrap items-center gap-2">
-                <form
-                  action={async () => {
-                    "use server";
-                    await setHubCampaignTaskStatus(
-                      task.id,
-                      task.status === "DONE" ? "TODO" : "DONE"
-                    );
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className={`rounded-lg border px-3 py-2 font-body text-xs font-semibold ${
-                      task.status === "DONE"
-                        ? "border-cyan/40 bg-cyan/10 text-cyan"
-                        : "border-off-white/20 text-off-white/60"
-                    }`}
-                  >
-                    {task.status === "DONE" ? "Done" : "Mark done"}
-                  </button>
-                </form>
+                <span className="font-body text-xs text-off-white/45">
+                  {outOf === 0
+                    ? "No signups yet"
+                    : task.assigneeId
+                      ? doneBy
+                        ? "Assignee done"
+                        : "Assignee to do"
+                      : `${doneBy}/${outOf} members done`}
+                </span>
                 <form
                   action={async () => {
                     "use server";
@@ -339,7 +339,8 @@ export default async function AdminHubCampaignDetailPage({
                 </form>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </main>

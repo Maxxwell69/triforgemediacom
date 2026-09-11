@@ -6,9 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
 import {
-  canJoinHubCampaign,
   canSeeHubCampaign,
+  clearHubCampaignMemberWork,
   getUserCampaignAudience,
+  hubCampaignJoinBlockReason,
+  isHubCampaignTaskForMember,
 } from "@/lib/hubCampaigns";
 
 async function requireMember() {
@@ -55,16 +57,13 @@ export async function joinHubCampaign(campaignId: string) {
   ) {
     throw new Error("You cannot join this campaign");
   }
-  if (
-    !canJoinHubCampaign(campaign, {
-      isAdmin,
-      signedUp: !!existing,
-      signupCount: campaign._count.signups,
-      audience,
-    })
-  ) {
-    throw new Error("This campaign is not open for signups");
-  }
+  const joinBlock = hubCampaignJoinBlockReason(campaign, {
+    isAdmin,
+    signedUp: !!existing,
+    signupCount: campaign._count.signups,
+    audience,
+  });
+  if (joinBlock) throw new Error(joinBlock);
   if (campaign.category === "INTERVIEWS") {
     throw new Error("Pick an interview time to sign up");
   }
@@ -99,19 +98,17 @@ export async function joinHubCampaignSlot(campaignId: string, slotId: string) {
     throw new Error("You cannot join this campaign");
   }
   const joiningFresh = !existing;
-  if (
-    joiningFresh &&
-    !canJoinHubCampaign(campaign, {
+  if (joiningFresh) {
+    const joinBlock = hubCampaignJoinBlockReason(campaign, {
       isAdmin,
       signedUp: false,
       signupCount: campaign._count.signups,
       audience,
-    })
-  ) {
-    throw new Error("This campaign is not open for signups");
+    });
+    if (joinBlock) throw new Error(joinBlock);
   }
-  if (existing && campaign.status !== "OPEN" && !isAdmin) {
-    throw new Error("Signups are locked on this campaign");
+  if (existing && campaign.status === "ARCHIVED" && !isAdmin) {
+    throw new Error("This campaign is archived");
   }
 
   const slot = await prisma.hubCampaignSlot.findFirst({
@@ -147,8 +144,15 @@ export async function joinHubCampaignSlot(campaignId: string, slotId: string) {
       });
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "Someone already booked that time") {
-      throw err;
+    if (err instanceof Error) {
+      if (
+        err.message === "Someone already booked that time" ||
+        err.message.startsWith("This campaign") ||
+        err.message.startsWith("You're already") ||
+        err.message.startsWith("You're not")
+      ) {
+        throw err;
+      }
     }
     throw new Error("That time was just taken. Pick another.");
   }
@@ -162,13 +166,16 @@ export async function leaveHubCampaign(campaignId: string) {
     select: { status: true },
   });
   if (!campaign) throw new Error("Campaign not found");
-  if (campaign.status !== "OPEN" && !isAdminRole(user.role)) {
-    throw new Error("Signups are locked on this campaign");
+  if (campaign.status === "ARCHIVED" && !isAdminRole(user.role)) {
+    throw new Error("This campaign is archived");
   }
 
-  await prisma.hubCampaignSignup.deleteMany({
-    where: { campaignId, userId: user.id },
+  await prisma.$transaction(async (tx) => {
+    await tx.hubCampaignSignup.deleteMany({
+      where: { campaignId, userId: user.id },
+    });
   });
+  await clearHubCampaignMemberWork(campaignId, user.id);
   revalidateCampaign(campaignId);
 }
 
@@ -199,10 +206,19 @@ export async function toggleHubCampaignTask(taskId: string) {
   if (task.campaign.status === "ARCHIVED") {
     throw new Error("This campaign is archived");
   }
+  if (!isAdmin && !isHubCampaignTaskForMember(task, user.id)) {
+    throw new Error("That task is assigned to someone else");
+  }
 
-  await prisma.hubCampaignTask.update({
-    where: { id: taskId },
-    data: { status: task.status === "DONE" ? "TODO" : "DONE" },
+  const existing = await prisma.hubCampaignTaskCompletion.findUnique({
+    where: { taskId_userId: { taskId, userId: user.id } },
   });
+  if (existing) {
+    await prisma.hubCampaignTaskCompletion.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.hubCampaignTaskCompletion.create({
+      data: { taskId, userId: user.id },
+    });
+  }
   revalidateCampaign(task.campaign.id);
 }

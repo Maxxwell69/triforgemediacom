@@ -158,12 +158,29 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "Hub Campaigns",
     tagline: "Interviews · meetings · games · battles",
     description:
-      "Admins publish campaigns for everyone or a tag/badge audience. Members sign up from the campaign window and see who’s involved plus what needs to get done.",
+      "Admins publish campaigns for everyone or a tag/badge audience. Members sign up from the campaign window, can leave and rejoin, and each person has their own to-do checklist.",
     since: "3.169",
   },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.178",
+    date: "September 11, 2026",
+    title: "Campaign signups and personal tasks",
+    summary:
+      "Leaving a campaign frees the spot so you or someone else can sign up again, and campaign tasks are now a personal checklist.",
+    items: [
+      {
+        kind: "fix",
+        text: "Members can leave an open or closed campaign and sign up again; their seat and interview time are released",
+      },
+      {
+        kind: "fix",
+        text: "Campaign to-dos are per member, so one person finishing tasks no longer looks like the campaign is done for everyone",
+      },
+    ],
+  },
   {
     version: "3.177",
     date: "September 10, 2026",

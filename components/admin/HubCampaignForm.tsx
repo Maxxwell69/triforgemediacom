@@ -211,6 +211,10 @@ export default function HubCampaignForm({
           placeholder="No limit"
           className={`${fieldClass} mt-1`}
         />
+        <span className="mt-1 block font-body text-xs text-off-white/40">
+          How many people can join. Leave blank for no limit. Tasks do not count as a seat —
+          leaving frees a spot.
+        </span>
       </label>
 
       <button
