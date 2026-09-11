@@ -165,6 +165,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.179",
+    date: "September 11, 2026",
+    title: "Interview campaign list signup",
+    summary:
+      "Interview campaigns now have a Sign up button so members can join the list even when no times are posted yet.",
+    items: [
+      {
+        kind: "fix",
+        text: "Members can sign up for interview campaigns without picking a time; they can book a slot later when times are posted",
+      },
+    ],
+  },
+  {
     version: "3.178",
     date: "September 11, 2026",
     title: "Campaign signups and personal tasks",

@@ -51,7 +51,8 @@ export default function InterviewSlotPicker({
   if (slots.length === 0) {
     return (
       <p className="font-body text-sm text-off-white/50">
-        No interview times are posted yet. Check back soon.
+        No interview times are posted yet. Sign up above to join the list — you can pick a time
+        later.
       </p>
     );
   }
