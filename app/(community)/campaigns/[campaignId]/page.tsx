@@ -144,7 +144,7 @@ export default async function CampaignDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canJoin && !isInterviewCampaign(campaign.category) && (
+            {canJoin && (
               <form
                 action={async () => {
                   "use server";
@@ -196,7 +196,7 @@ export default async function CampaignDetailPage({
                 />
               </p>
             )}
-            {(canJoin || (canLeave && campaign.status === "OPEN")) && (
+            {(canJoin || (canLeave && campaign.status !== "ARCHIVED")) && (
               <div className="mt-4">
                 <InterviewSlotPicker
                   campaignId={campaign.id}

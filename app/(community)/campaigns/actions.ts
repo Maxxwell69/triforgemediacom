@@ -64,9 +64,6 @@ export async function joinHubCampaign(campaignId: string) {
     audience,
   });
   if (joinBlock) throw new Error(joinBlock);
-  if (campaign.category === "INTERVIEWS") {
-    throw new Error("Pick an interview time to sign up");
-  }
 
   await prisma.hubCampaignSignup.upsert({
     where: { campaignId_userId: { campaignId, userId: user.id } },
