@@ -8,12 +8,17 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
 import {
+  hubCampaignInterviewCreateSchema,
   hubCampaignSchema,
   hubCampaignSlotSchema,
   hubCampaignTaskSchema,
 } from "@/lib/validations/hubCampaign";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
 import { clearHubCampaignMemberWork } from "@/lib/hubCampaigns";
+import {
+  claimNextOpenInterviewSlot,
+  createInterviewSlotBatch,
+} from "@/lib/hubCampaignSlots";
 
 async function requireAdmin() {
   if (!hubHas("hubCampaigns")) {
@@ -99,11 +104,52 @@ export async function createHubCampaign(formData: FormData) {
   const session = await requireAdmin();
   const data = parseCampaignForm(formData);
 
-  const campaign = await prisma.hubCampaign.create({
-    data: {
-      ...data,
-      createdById: session.user.id,
-    },
+  let interviewBatch: {
+    startsAt: Date;
+    endsAt: Date;
+    network: string;
+    count: number;
+  } | null = null;
+
+  if (data.category === "INTERVIEWS") {
+    if (!data.startsAt) throw new Error("Set the interview time");
+    const parsed = hubCampaignInterviewCreateSchema.safeParse({
+      network: formData.get("interviewNetwork"),
+      slotCount: formData.get("interviewSlotCount") || "8",
+      durationMins: formData.get("interviewDurationMins") || "60",
+    });
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message || "Set network and how many spots");
+    }
+    const fromDuration = new Date(
+      data.startsAt.getTime() + parsed.data.durationMins * 60_000
+    );
+    const endsAt =
+      data.endsAt && data.endsAt.getTime() > data.startsAt.getTime()
+        ? data.endsAt
+        : fromDuration;
+    interviewBatch = {
+      startsAt: data.startsAt,
+      endsAt,
+      network: parsed.data.network,
+      count: parsed.data.slotCount,
+    };
+  }
+
+  const campaign = await prisma.$transaction(async (tx) => {
+    const created = await tx.hubCampaign.create({
+      data: {
+        ...data,
+        createdById: session.user.id,
+      },
+    });
+    if (interviewBatch) {
+      await createInterviewSlotBatch(tx, {
+        campaignId: created.id,
+        ...interviewBatch,
+      });
+    }
+    return created;
   });
 
   revalidateCampaign(campaign.id);
@@ -115,10 +161,25 @@ export async function updateHubCampaign(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (!id) throw new Error("Missing campaign");
   const data = parseCampaignForm(formData);
+  const payload =
+    data.category === "INTERVIEWS"
+      ? {
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          status: data.status,
+          startsAt: data.startsAt,
+          endsAt: data.endsAt,
+          location: data.location,
+          audienceType: data.audienceType,
+          audienceTagId: data.audienceTagId,
+          audienceBadgeId: data.audienceBadgeId,
+        }
+      : data;
 
   await prisma.hubCampaign.update({
     where: { id },
-    data,
+    data: payload,
   });
 
   revalidateCampaign(id);
@@ -143,7 +204,7 @@ export async function setHubCampaignSignup(
   if (added) {
     const campaign = await prisma.hubCampaign.findUnique({
       where: { id: campaignId },
-      select: { capacity: true, _count: { select: { signups: true } } },
+      select: { capacity: true, category: true, _count: { select: { signups: true } } },
     });
     if (!campaign) throw new Error("Campaign not found");
     const existing = await prisma.hubCampaignSignup.findUnique({
@@ -156,11 +217,22 @@ export async function setHubCampaignSignup(
     ) {
       throw new Error("This campaign is full");
     }
-    await prisma.hubCampaignSignup.upsert({
-      where: { campaignId_userId: { campaignId, userId } },
-      update: {},
-      create: { campaignId, userId },
-    });
+    if (campaign.category === "INTERVIEWS" && !existing) {
+      await prisma.$transaction(async (tx) => {
+        const posted = await tx.hubCampaignSlot.count({ where: { campaignId } });
+        if (posted > 0) {
+          await claimNextOpenInterviewSlot(tx, { campaignId, userId });
+          return;
+        }
+        await tx.hubCampaignSignup.create({ data: { campaignId, userId } });
+      });
+    } else {
+      await prisma.hubCampaignSignup.upsert({
+        where: { campaignId_userId: { campaignId, userId } },
+        update: {},
+        create: { campaignId, userId },
+      });
+    }
   } else {
     await prisma.hubCampaignSignup.deleteMany({ where: { campaignId, userId } });
     await clearHubCampaignMemberWork(campaignId, userId);
@@ -181,31 +253,26 @@ export async function createHubCampaignSlot(campaignId: string, formData: FormDa
 
   const parsed = hubCampaignSlotSchema.safeParse({
     startsAt: formData.get("startsAt"),
-    durationMins: formData.get("durationMins") || "30",
+    durationMins: formData.get("durationMins") || "60",
+    network: formData.get("network"),
+    slotCount: formData.get("slotCount") || "1",
   });
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message || "Invalid time slot");
+    throw new Error(parsed.error.issues[0]?.message || "Invalid interview spots");
   }
 
   const zone = formTimeZone(formData);
-  const startsAt = parseZonedDateTime(parsed.data.startsAt, zone, "start time");
-  if (startsAt.getTime() < Date.now() - 60_000) {
-    throw new Error("Pick a time in the future");
-  }
+  const startsAt = parseZonedDateTime(parsed.data.startsAt, zone, "interview time");
   const endsAt = new Date(startsAt.getTime() + parsed.data.durationMins * 60_000);
 
-  const overlap = await prisma.hubCampaignSlot.findFirst({
-    where: {
+  await prisma.$transaction(async (tx) => {
+    await createInterviewSlotBatch(tx, {
       campaignId,
-      startsAt: { lt: endsAt },
-      endsAt: { gt: startsAt },
-    },
-    select: { id: true },
-  });
-  if (overlap) throw new Error("That time overlaps another slot");
-
-  await prisma.hubCampaignSlot.create({
-    data: { campaignId, startsAt, endsAt },
+      startsAt,
+      endsAt,
+      network: parsed.data.network,
+      count: parsed.data.slotCount,
+    });
   });
   revalidateCampaign(campaignId);
 }
@@ -221,6 +288,13 @@ export async function deleteHubCampaignSlot(slotId: string) {
     throw new Error("Remove the member from this time before deleting the slot");
   }
   await prisma.hubCampaignSlot.delete({ where: { id: slotId } });
+  const remaining = await prisma.hubCampaignSlot.count({
+    where: { campaignId: slot.campaignId },
+  });
+  await prisma.hubCampaign.update({
+    where: { id: slot.campaignId },
+    data: { capacity: remaining },
+  });
   revalidateCampaign(slot.campaignId);
 }
 

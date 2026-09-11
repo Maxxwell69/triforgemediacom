@@ -19,6 +19,7 @@ import HubCampaignForm from "@/components/admin/HubCampaignForm";
 import InterviewSlotAdmin from "@/components/admin/InterviewSlotAdmin";
 import { getMemberDisplayName } from "@/lib/memberDisplay";
 import { isInterviewCampaign } from "@/lib/hubCampaignLabels";
+import { interviewNetworkLabel } from "@/lib/hubCampaignSlots";
 import LocalWhen from "@/components/LocalWhen";
 
 export const dynamic = "force-dynamic";
@@ -43,11 +44,11 @@ export default async function AdminHubCampaignDetailPage({
           orderBy: { joinedAt: "asc" },
           include: {
             user: { select: hubCampaignMemberSelect },
-            slot: { select: { startsAt: true, endsAt: true } },
+            slot: { select: { startsAt: true, endsAt: true, network: true, position: true } },
           },
         },
         slots: {
-          orderBy: { startsAt: "asc" },
+          orderBy: [{ startsAt: "asc" }, { position: "asc" }],
           include: { signup: { include: { user: { select: hubCampaignMemberSelect } } } },
         },
         tasks: {
@@ -146,6 +147,8 @@ export default async function AdminHubCampaignDetailPage({
             id: slot.id,
             startsAt: slot.startsAt,
             endsAt: slot.endsAt,
+            network: slot.network,
+            position: slot.position,
             bookedBy: slot.signup ? getMemberDisplayName(slot.signup.user) : null,
           }))}
         />
@@ -196,6 +199,10 @@ export default async function AdminHubCampaignDetailPage({
                     {getMemberDisplayName(signup.user)}
                     {signup.slot && (
                       <span className="mt-0.5 block text-xs text-off-white/45">
+                        {interviewNetworkLabel(signup.slot.network)
+                          ? `${interviewNetworkLabel(signup.slot.network)} · `
+                          : ""}
+                        Spot {signup.slot.position} ·{" "}
                         <LocalWhen
                           startsAt={signup.slot.startsAt.toISOString()}
                           endsAt={signup.slot.endsAt.toISOString()}

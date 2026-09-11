@@ -12,6 +12,7 @@ import {
   hubCampaignJoinBlockReason,
   isHubCampaignTaskForMember,
 } from "@/lib/hubCampaigns";
+import { claimNextOpenInterviewSlot } from "@/lib/hubCampaignSlots";
 
 async function requireMember() {
   if (!hubHas("hubCampaigns")) {
@@ -64,6 +65,23 @@ export async function joinHubCampaign(campaignId: string) {
     audience,
   });
   if (joinBlock) throw new Error(joinBlock);
+
+  if (campaign.category === "INTERVIEWS") {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await claimNextOpenInterviewSlot(tx, {
+          campaignId,
+          userId: user.id,
+          existingSignupId: existing?.id,
+        });
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("spots")) throw err;
+      throw new Error("That spot was just taken. Try again.");
+    }
+    revalidateCampaign(campaignId);
+    return;
+  }
 
   await prisma.hubCampaignSignup.upsert({
     where: { campaignId_userId: { campaignId, userId: user.id } },

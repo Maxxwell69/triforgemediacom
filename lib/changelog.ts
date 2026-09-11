@@ -165,6 +165,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.180",
+    date: "September 11, 2026",
+    title: "Interview spots, time, and network",
+    summary:
+      "Admins set interview time, network, and how many spots. Signing up books the next open spot, and booked names show on the campaign.",
+    items: [
+      {
+        kind: "feature",
+        text: "Interview campaigns: set time, network (TikTok, Twitch, YouTube, Kick, Instagram), and spot count in admin",
+      },
+      {
+        kind: "feature",
+        text: "Member Sign up fills the next open interview spot; the campaign page shows booked vs open spots",
+      },
+    ],
+  },
+  {
     version: "3.179",
     date: "September 11, 2026",
     title: "Interview campaign list signup",

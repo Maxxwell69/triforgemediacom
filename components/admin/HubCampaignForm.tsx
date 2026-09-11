@@ -9,6 +9,11 @@ import {
   HUB_CAMPAIGN_CATEGORIES,
   HUB_CAMPAIGN_STATUSES,
 } from "@/lib/hubCampaignLabels";
+import {
+  INTERVIEW_NETWORKS,
+  INTERVIEW_SLOT_DURATIONS,
+} from "@/lib/validations/hubCampaign";
+import { PLATFORM_LABELS } from "@/lib/platforms";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
@@ -55,6 +60,11 @@ export default function HubCampaignForm({
   const [audienceType, setAudienceType] = useState<HubCampaignAudienceType>(
     initial?.audienceType ?? "ALL_MEMBERS"
   );
+  const [category, setCategory] = useState<HubCampaignCategory>(
+    initial?.category ?? "MEETING"
+  );
+  const isInterview = category === "INTERVIEWS";
+  const isCreate = !campaignId;
 
   return (
     <form
@@ -87,7 +97,8 @@ export default function HubCampaignForm({
           Category
           <select
             name="category"
-            defaultValue={initial?.category ?? "MEETING"}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as HubCampaignCategory)}
             className={`${fieldClass} mt-1`}
           >
             {HUB_CAMPAIGN_CATEGORIES.map((c) => (
@@ -117,10 +128,11 @@ export default function HubCampaignForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="font-body text-sm text-off-white/70">
-          Starts
+          {isInterview ? "Interview time" : "Starts"}
           <input
             name="startsAt"
             type="datetime-local"
+            required={isInterview && isCreate}
             defaultValue={toLocalInput(initial?.startsAtIso ?? null)}
             className={`${fieldClass} mt-1`}
           />
@@ -135,6 +147,49 @@ export default function HubCampaignForm({
           />
         </label>
       </div>
+
+      {isInterview && isCreate && (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label className="font-body text-sm text-off-white/70">
+              Network
+              <select name="interviewNetwork" required defaultValue="TIKTOK" className={`${fieldClass} mt-1`}>
+                {INTERVIEW_NETWORKS.map((network) => (
+                  <option key={network} value={network}>
+                    {PLATFORM_LABELS[network]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="font-body text-sm text-off-white/70">
+              Interview spots
+              <input
+                name="interviewSlotCount"
+                type="number"
+                min={1}
+                max={50}
+                required
+                defaultValue={8}
+                className={`${fieldClass} mt-1`}
+              />
+            </label>
+            <label className="font-body text-sm text-off-white/70">
+              Length
+              <select name="interviewDurationMins" defaultValue="60" className={`${fieldClass} mt-1`}>
+                {INTERVIEW_SLOT_DURATIONS.map((mins) => (
+                  <option key={mins} value={mins}>
+                    {mins} min
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="font-body text-xs text-off-white/40">
+            Members who sign up take the next open spot. You can add more times from the campaign
+            page.
+          </p>
+        </>
+      )}
 
       <input
         name="location"
@@ -200,22 +255,24 @@ export default function HubCampaignForm({
       {audienceType !== "TAG" && <input type="hidden" name="audienceTagId" value="" />}
       {audienceType !== "BADGE" && <input type="hidden" name="audienceBadgeId" value="" />}
 
-      <label className="font-body text-sm text-off-white/70">
-        Capacity (optional)
-        <input
-          name="capacity"
-          type="number"
-          min={1}
-          max={5000}
-          defaultValue={initial?.capacity}
-          placeholder="No limit"
-          className={`${fieldClass} mt-1`}
-        />
-        <span className="mt-1 block font-body text-xs text-off-white/40">
-          How many people can join. Leave blank for no limit. Tasks do not count as a seat —
-          leaving frees a spot.
-        </span>
-      </label>
+      {!isInterview && (
+        <label className="font-body text-sm text-off-white/70">
+          Capacity (optional)
+          <input
+            name="capacity"
+            type="number"
+            min={1}
+            max={5000}
+            defaultValue={initial?.capacity}
+            placeholder="No limit"
+            className={`${fieldClass} mt-1`}
+          />
+          <span className="mt-1 block font-body text-xs text-off-white/40">
+            How many people can join. Leave blank for no limit. Tasks do not count as a seat —
+            leaving frees a spot.
+          </span>
+        </label>
+      )}
 
       <button
         type="submit"

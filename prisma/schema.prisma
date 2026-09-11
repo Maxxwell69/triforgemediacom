@@ -2599,18 +2599,21 @@ model HubCampaign {
   @@index([startsAt])
 }
 
-/// Admin-posted interview times. One member can claim a slot.
+/// Admin-posted interview spots. Signup claims the next open one.
 model HubCampaignSlot {
   id         String   @id @default(cuid())
   campaignId String
   startsAt   DateTime
   endsAt     DateTime
+  network    String?
+  position   Int      @default(1)
   createdAt  DateTime @default(now())
 
   campaign HubCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   signup   HubCampaignSignup?
 
   @@index([campaignId, startsAt])
+  @@index([campaignId, position])
 }
 
 model HubCampaignSignup {

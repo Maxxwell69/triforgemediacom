@@ -17,8 +17,9 @@ import { getMemberAvatarUrl, getMemberDisplayName, getMemberInitial } from "@/li
 import MemberAvatar from "@/components/MemberAvatar";
 import LocalWhen from "@/components/LocalWhen";
 import { joinHubCampaign, leaveHubCampaign, toggleHubCampaignTask } from "../actions";
-import InterviewSlotPicker from "@/components/campaigns/InterviewSlotPicker";
+import InterviewSpotsBoard from "@/components/campaigns/InterviewSpotsBoard";
 import { isInterviewCampaign } from "@/lib/hubCampaignLabels";
+import { interviewNetworkLabel } from "@/lib/hubCampaignSlots";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,14 @@ export default async function CampaignDetailPage({
         orderBy: { joinedAt: "asc" },
         include: {
           user: { select: hubCampaignMemberSelect },
-          slot: { select: { startsAt: true, endsAt: true } },
+          slot: { select: { startsAt: true, endsAt: true, network: true, position: true } },
         },
       },
       slots: {
-        orderBy: { startsAt: "asc" },
-        include: { signup: { select: { userId: true } } },
+        orderBy: [{ startsAt: "asc" }, { position: "asc" }],
+        include: {
+          signup: { include: { user: { select: hubCampaignMemberSelect } } },
+        },
       },
       tasks: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -74,12 +77,17 @@ export default async function CampaignDetailPage({
     notFound();
   }
 
-  const canJoin = canJoinHubCampaign(campaign, {
-    isAdmin,
-    signedUp: !!mySignup,
-    signupCount: campaign.signups.length,
-    audience,
-  });
+  const openInterviewSpots = campaign.slots.filter((slot) => !slot.signup).length;
+  const canJoin =
+    canJoinHubCampaign(campaign, {
+      isAdmin,
+      signedUp: !!mySignup,
+      signupCount: campaign.signups.length,
+      audience,
+    }) &&
+    (!isInterviewCampaign(campaign.category) || openInterviewSpots > 0);
+  const canClaimSpot =
+    campaign.status === "OPEN" && (canJoin || !!mySignup);
   const canLeave = !!mySignup && (campaign.status !== "ARCHIVED" || isAdmin);
   const canToggleTasks = isAdmin || !!mySignup;
   const meta = hubCampaignCategoryMeta(campaign.category);
@@ -185,41 +193,19 @@ export default async function CampaignDetailPage({
         {isInterviewCampaign(campaign.category) && (
           <section className="glass mt-8 rounded-2xl p-6">
             <h2 className="font-display text-2xl tracking-wide text-off-white/80">
-              Interview times
+              Interview spots
             </h2>
-            {mySignup?.slot && (
-              <p className="mt-2 font-body text-sm text-cyan">
-                Your time:{" "}
-                <LocalWhen
-                  startsAt={mySignup.slot.startsAt.toISOString()}
-                  endsAt={mySignup.slot.endsAt.toISOString()}
-                />
-              </p>
-            )}
-            {(canJoin || (canLeave && campaign.status !== "ARCHIVED")) && (
-              <div className="mt-4">
-                <InterviewSlotPicker
-                  campaignId={campaign.id}
-                  currentSlotId={mySignup?.slotId ?? null}
-                  slots={campaign.slots
-                    .filter(
-                      (slot) =>
-                        slot.startsAt.getTime() > Date.now() &&
-                        (!slot.signup || slot.signup.userId === user.id)
-                    )
-                    .map((slot) => ({
-                      id: slot.id,
-                      startsAt: slot.startsAt.toISOString(),
-                      endsAt: slot.endsAt.toISOString(),
-                    }))}
-                />
-              </div>
-            )}
-            {!canJoin && !canLeave && !mySignup?.slot && (
-              <p className="mt-3 font-body text-sm text-off-white/45">
-                Interview times will show here when this campaign is open.
-              </p>
-            )}
+            <p className="mt-1 font-body text-xs text-off-white/40">
+              Sign up to take the next open spot. Booked names show here.
+            </p>
+            <div className="mt-4">
+              <InterviewSpotsBoard
+                campaignId={campaign.id}
+                currentUserId={user.id}
+                canClaim={canClaimSpot && campaign.status !== "ARCHIVED"}
+                slots={campaign.slots}
+              />
+            </div>
           </section>
         )}
 
@@ -342,6 +328,10 @@ export default async function CampaignDetailPage({
                     {signup.userId === user.id ? " (you)" : ""}
                     {signup.slot && (
                       <span className="mt-0.5 block truncate text-xs text-off-white/45">
+                        {interviewNetworkLabel(signup.slot.network)
+                          ? `${interviewNetworkLabel(signup.slot.network)} · `
+                          : ""}
+                        Spot {signup.slot.position} ·{" "}
                         <LocalWhen
                           startsAt={signup.slot.startsAt.toISOString()}
                           endsAt={signup.slot.endsAt.toISOString()}
