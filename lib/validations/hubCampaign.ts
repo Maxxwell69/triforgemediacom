@@ -58,14 +58,44 @@ export const hubCampaignTaskSchema = z.object({
   assigneeId: z.string().trim().optional().or(z.literal("")),
 });
 
-export const INTERVIEW_SLOT_DURATIONS = [15, 30, 45, 60] as const;
+export const INTERVIEW_SLOT_DURATIONS = [15, 30, 45, 60, 90, 120] as const;
+
+export const INTERVIEW_NETWORKS = [
+  "TIKTOK",
+  "TWITCH",
+  "YOUTUBE",
+  "KICK",
+  "INSTAGRAM",
+  "OTHER",
+] as const;
 
 export const hubCampaignSlotSchema = z.object({
-  startsAt: z.string().trim().min(1, "Start time is required"),
+  startsAt: z.string().trim().min(1, "Interview time is required"),
   durationMins: z.coerce
     .number()
     .refine(
       (n) => (INTERVIEW_SLOT_DURATIONS as readonly number[]).includes(n),
-      "Pick 15, 30, 45, or 60 minutes"
+      "Pick a length between 15 and 120 minutes"
+    ),
+  network: z.enum(INTERVIEW_NETWORKS, { error: "Pick a network" }),
+  slotCount: z.coerce
+    .number()
+    .int()
+    .min(1, "Need at least 1 interview spot")
+    .max(50, "50 spots max per batch"),
+});
+
+export const hubCampaignInterviewCreateSchema = z.object({
+  network: z.enum(INTERVIEW_NETWORKS, { error: "Pick a network" }),
+  slotCount: z.coerce
+    .number()
+    .int()
+    .min(1, "Need at least 1 interview spot")
+    .max(50, "50 spots max"),
+  durationMins: z.coerce
+    .number()
+    .refine(
+      (n) => (INTERVIEW_SLOT_DURATIONS as readonly number[]).includes(n),
+      "Pick a length between 15 and 120 minutes"
     ),
 });
