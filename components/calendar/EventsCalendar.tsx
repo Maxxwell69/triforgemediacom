@@ -27,6 +27,7 @@ export type CalendarEventItem = {
   groupColor: string | null;
   featured?: { id: string; label: string } | null;
   opponent?: { id: string; label: string } | null;
+  imageUrl?: string | null;
 };
 
 export type CalendarFilterGroup = {
@@ -189,7 +190,15 @@ function EventDetailCard({
     >
       <span className={`absolute inset-y-0 left-0 w-1 ${accent.bar}`} aria-hidden />
       <div className="flex flex-wrap items-start justify-between gap-3 pl-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
+          {event.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.imageUrl}
+              alt=""
+              className={`mb-3 w-full rounded-lg object-cover ${large ? "h-40" : "h-28"}`}
+            />
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`rounded-md border px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide ${accent.pill}`}

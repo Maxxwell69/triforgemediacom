@@ -28,6 +28,7 @@ export const calendarEventSchema = z
     startsAt: z.string().trim().min(1, "Start time is required"),
     endsAt: z.string().trim().optional().or(z.literal("")),
     location: z.string().trim().max(200).optional().or(z.literal("")),
+    imageUrl: z.string().trim().max(500).optional().or(z.literal("")),
     groupId: z.string().trim().optional().or(z.literal("")),
     featuredUserId: z.string().trim().optional().or(z.literal("")),
     opponentUserId: z.string().trim().optional().or(z.literal("")),
@@ -51,6 +52,20 @@ export const calendarEventSchema = z
         path: ["opponentUserId"],
         message: "Pick battler 2",
       });
+    }
+    if (data.imageUrl) {
+      try {
+        const parsed = new URL(data.imageUrl);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          throw new Error("bad protocol");
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["imageUrl"],
+          message: "Event photo must be a valid image URL",
+        });
+      }
     }
     if (
       data.kind === "BATTLE" &&

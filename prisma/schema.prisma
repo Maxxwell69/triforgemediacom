@@ -1615,6 +1615,7 @@ model CalendarEvent {
   startsAt    DateTime
   endsAt      DateTime?
   location    String?
+  imageUrl    String?
   groupId     String?
   createdById String
   /// When set, this row mirrors a mass-audience Webinar on the hub calendar.

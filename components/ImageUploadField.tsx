@@ -16,7 +16,8 @@ type UploadFolder =
   | "group-images"
   | "shop-images"
   | "progression-images"
-  | "social-planner";
+  | "social-planner"
+  | "calendar-event-images";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -50,6 +51,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "social-planner": {
     dimensions: "1080\u00D71350px (4:5) or 1080\u00D71920px (9:16)",
     hint: "TikTok photo posts. The R2 domain must be verified in TikTok\u2019s developer portal for Direct Post.",
+  },
+  "calendar-event-images": {
+    dimensions: "1280\u00D7720px (16:9)",
+    hint: "Shows as a banner on the event page and as a thumbnail on the calendar.",
   },
 };
 

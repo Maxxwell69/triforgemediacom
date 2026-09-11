@@ -7,8 +7,11 @@ import LocalWhen from "@/components/LocalWhen";
 import { getUserGroupIds } from "@/lib/groups";
 import RsvpButton from "@/components/calendar/RsvpButton";
 import CalendarEventProfiles from "@/components/calendar/CalendarEventProfiles";
+import CalendarEventPhotoForm from "@/components/calendar/CalendarEventPhotoForm";
+import EventLocation from "@/components/calendar/EventLocation";
 import { calendarKindLabel } from "@/lib/calendarEventTypes";
 import { calendarMemberLabel } from "@/lib/calendar";
+import { isAdminRole } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +55,8 @@ export default async function CalendarEventPage({
   }
 
   const alreadyRsvpd = event.attendees.some((a) => a.userId === user.id);
+  const canEditPhoto =
+    !event.webinarId && (event.createdById === user.id || isAdminRole(user.role));
 
   return (
     <main className="relative flex-1 overflow-hidden px-4 py-10 sm:px-6">
@@ -68,10 +73,19 @@ export default async function CalendarEventPage({
         </Link>
 
         <div className="glass mt-4 overflow-hidden rounded-2xl">
-          <div
-            className="h-1.5 w-full"
-            style={{ backgroundColor: event.group?.color || "#FD4802" }}
-          />
+          {event.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.imageUrl}
+              alt=""
+              className="h-52 w-full object-cover sm:h-64"
+            />
+          ) : (
+            <div
+              className="h-1.5 w-full"
+              style={{ backgroundColor: event.group?.color || "#FD4802" }}
+            />
+          )}
           <div className="p-6 sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md border border-cyan/35 bg-cyan/10 px-2 py-0.5 font-body text-[11px] font-semibold uppercase tracking-wide text-cyan">
@@ -97,9 +111,7 @@ export default async function CalendarEventPage({
                 endsAt={event.endsAt ? event.endsAt.toISOString() : null}
               />
             </p>
-            {event.location && (
-              <p className="mt-1 font-body text-sm text-off-white/50">{event.location}</p>
-            )}
+            {event.location && <EventLocation location={event.location} />}
             <p className="mt-1 font-body text-xs text-off-white/40">
               Hosted by {event.createdBy.name || event.createdBy.email}
               {" · "}
@@ -150,6 +162,10 @@ export default async function CalendarEventPage({
                 Calendar
               </Link>
             </div>
+
+            {canEditPhoto && (
+              <CalendarEventPhotoForm eventId={event.id} imageUrl={event.imageUrl} />
+            )}
           </div>
         </div>
       </div>

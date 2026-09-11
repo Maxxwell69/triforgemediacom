@@ -15,11 +15,12 @@ const ALLOWED_FOLDERS = new Set([
   "shop-images",
   "progression-images",
   "social-planner",
+  "calendar-event-images",
 ]);
 
 export async function POST(request: NextRequest) {
   const user = await getFreshSessionUser();
-  if (!user || !isAdminRole(user.role)) {
+  if (!user) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest) {
   }
   if (typeof folder !== "string" || !ALLOWED_FOLDERS.has(folder)) {
     return NextResponse.json({ error: "Invalid upload folder" }, { status: 400 });
+  }
+
+  const admin = isAdminRole(user.role);
+  if (!admin) {
+    if (folder !== "calendar-event-images" || user.status !== "ACTIVE") {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
   }
   // Chat images are ADMIN-only (not mods).
   if (folder === "chat-attachments" && user.role !== "ADMIN") {

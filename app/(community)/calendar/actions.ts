@@ -54,6 +54,7 @@ export async function createGroupCalendarEvent(
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt") || "",
     location: formData.get("location") || "",
+    imageUrl: formData.get("imageUrl") || "",
     groupId: formData.get("groupId") || "",
     featuredUserId: formData.get("featuredUserId") || "",
     opponentUserId: formData.get("opponentUserId") || "",
@@ -98,6 +99,7 @@ export async function createGroupCalendarEvent(
       startsAt,
       endsAt,
       location: parsed.data.location || null,
+      imageUrl: parsed.data.imageUrl || null,
       groupId: parsed.data.groupId,
       featuredUserId: profiles.featuredUserId,
       opponentUserId: profiles.opponentUserId,
@@ -108,6 +110,42 @@ export async function createGroupCalendarEvent(
 
   revalidateCalendar(event.id);
   return { error: null, eventId: event.id };
+}
+
+export async function updateCalendarEventImage(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const user = await requireActiveUser();
+  const eventId = String(formData.get("id") || "");
+  if (!eventId) return { error: "Event not found" };
+
+  const event = await prisma.calendarEvent.findUnique({
+    where: { id: eventId },
+    select: { createdById: true, webinarId: true },
+  });
+  if (!event || event.webinarId) return { error: "Event not found" };
+  if (event.createdById !== user.id && !isAdminRole(user.role)) {
+    return { error: "Not authorized" };
+  }
+
+  const imageUrl = String(formData.get("imageUrl") || "").trim();
+  if (imageUrl) {
+    try {
+      const parsed = new URL(imageUrl);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { error: "Event photo must be a valid image URL" };
+      }
+    } catch {
+      return { error: "Event photo must be a valid image URL" };
+    }
+  }
+
+  await prisma.calendarEvent.update({
+    where: { id: eventId },
+    data: { imageUrl: imageUrl || null },
+  });
+  revalidateCalendar(eventId);
+  return { error: null };
 }
 
 /** Staff availability — managed from Account for now (not the public calendar). */
