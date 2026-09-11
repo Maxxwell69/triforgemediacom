@@ -10,6 +10,7 @@ import {
   hubCampaignCategoryMeta,
   hubCampaignMemberSelect,
   hubCampaignStatusLabel,
+  isHubCampaignTaskForMember,
   requireHubCampaignsModule,
 } from "@/lib/hubCampaigns";
 import { getMemberAvatarUrl, getMemberDisplayName, getMemberInitial } from "@/lib/memberDisplay";
@@ -51,6 +52,10 @@ export default async function CampaignDetailPage({
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         include: {
           assignee: { select: hubCampaignMemberSelect },
+          completions: {
+            where: { userId: user.id },
+            select: { id: true },
+          },
         },
       },
     },
@@ -75,10 +80,11 @@ export default async function CampaignDetailPage({
     signupCount: campaign.signups.length,
     audience,
   });
-  const canLeave = !!mySignup && (campaign.status === "OPEN" || isAdmin);
+  const canLeave = !!mySignup && (campaign.status !== "ARCHIVED" || isAdmin);
   const canToggleTasks = isAdmin || !!mySignup;
   const meta = hubCampaignCategoryMeta(campaign.category);
-  const doneCount = campaign.tasks.filter((t) => t.status === "DONE").length;
+  const myTasks = campaign.tasks.filter((task) => isHubCampaignTaskForMember(task, user.id));
+  const doneCount = myTasks.filter((t) => t.completions.length > 0).length;
   const campaignId = campaign.id;
 
   return (
@@ -221,6 +227,10 @@ export default async function CampaignDetailPage({
           <h2 className="font-display text-2xl tracking-wide text-off-white/80">
             What we need to do
           </h2>
+          <p className="mt-1 font-body text-xs text-off-white/40">
+            Your checklist. Other members have their own — finishing yours does not close the
+            campaign.
+          </p>
           {campaign.description ? (
             <p className="mt-3 whitespace-pre-wrap font-body text-sm text-off-white/75">
               {campaign.description}
@@ -232,14 +242,16 @@ export default async function CampaignDetailPage({
           )}
 
           <div className="mt-6 flex flex-col gap-2">
-            {campaign.tasks.length === 0 ? (
+            {myTasks.length === 0 ? (
               <p className="font-body text-sm text-off-white/40">No tasks posted yet.</p>
             ) : (
               <>
                 <p className="font-body text-xs text-off-white/40">
-                  {doneCount}/{campaign.tasks.length} done
+                  {doneCount}/{myTasks.length} done
                 </p>
-                {campaign.tasks.map((task) => (
+                {myTasks.map((task) => {
+                  const done = task.completions.length > 0;
+                  return (
                   <div
                     key={task.id}
                     className="flex items-start gap-3 rounded-xl border border-off-white/10 px-3 py-3"
@@ -253,9 +265,9 @@ export default async function CampaignDetailPage({
                       >
                         <button
                           type="submit"
-                          aria-label={task.status === "DONE" ? "Mark to do" : "Mark done"}
+                          aria-label={done ? "Mark to do" : "Mark done"}
                           className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border ${
-                            task.status === "DONE"
+                            done
                               ? "border-cyan bg-cyan text-charcoal"
                               : "border-off-white/30 text-transparent"
                           }`}
@@ -266,18 +278,18 @@ export default async function CampaignDetailPage({
                     ) : (
                       <span
                         className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border ${
-                          task.status === "DONE"
+                          done
                             ? "border-cyan bg-cyan text-charcoal"
                             : "border-off-white/30"
                         }`}
                       >
-                        {task.status === "DONE" ? "✓" : ""}
+                        {done ? "✓" : ""}
                       </span>
                     )}
                     <div className="min-w-0">
                       <p
                         className={`font-body text-sm font-medium ${
-                          task.status === "DONE"
+                          done
                             ? "text-off-white/45 line-through"
                             : "text-off-white"
                         }`}
@@ -296,7 +308,8 @@ export default async function CampaignDetailPage({
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>

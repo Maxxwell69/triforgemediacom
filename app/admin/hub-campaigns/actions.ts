@@ -13,6 +13,7 @@ import {
   hubCampaignTaskSchema,
 } from "@/lib/validations/hubCampaign";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
+import { clearHubCampaignMemberWork } from "@/lib/hubCampaigns";
 
 async function requireAdmin() {
   if (!hubHas("hubCampaigns")) {
@@ -162,6 +163,7 @@ export async function setHubCampaignSignup(
     });
   } else {
     await prisma.hubCampaignSignup.deleteMany({ where: { campaignId, userId } });
+    await clearHubCampaignMemberWork(campaignId, userId);
   }
   revalidateCampaign(campaignId);
 }

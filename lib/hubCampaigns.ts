@@ -88,6 +88,50 @@ export function canJoinHubCampaign(
   return true;
 }
 
+export function hubCampaignJoinBlockReason(
+  campaign: {
+    status: HubCampaignStatus;
+    capacity: number | null;
+    audienceType: HubCampaignAudienceType;
+    audienceTagId: string | null;
+    audienceBadgeId: string | null;
+  },
+  ctx: {
+    isAdmin: boolean;
+    signedUp: boolean;
+    signupCount: number;
+    audience: HubCampaignAudienceKeys;
+  }
+) {
+  if (ctx.signedUp) return "You're already signed up. Leave first if you want a different spot.";
+  if (campaign.status !== "OPEN") return "This campaign is not open for signups";
+  if (!ctx.isAdmin && !isEligibleForHubCampaign(campaign, ctx.audience)) {
+    return "You're not in the audience for this campaign";
+  }
+  if (campaign.capacity != null && ctx.signupCount >= campaign.capacity) {
+    return "This campaign is full. If someone leaves, a spot opens.";
+  }
+  return null;
+}
+
+/** Tasks everyone on the campaign should do, plus any assigned to this member. */
+export function isHubCampaignTaskForMember(
+  task: { assigneeId: string | null },
+  userId: string
+) {
+  return !task.assigneeId || task.assigneeId === userId;
+}
+
+export async function clearHubCampaignMemberWork(campaignId: string, userId: string) {
+  await prisma.hubCampaignTaskCompletion.deleteMany({
+    where: { userId, task: { campaignId } },
+  });
+  await prisma.hubCampaignTask.updateMany({
+    where: { campaignId, assigneeId: userId },
+    data: { assigneeId: null },
+  });
+}
+
 export const hubCampaignMemberSelect = {
   id: true,
   name: true,
