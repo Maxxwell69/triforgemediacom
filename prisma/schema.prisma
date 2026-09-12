@@ -179,6 +179,9 @@ model User {
   suggestionRead             SuggestionRead?
   socialPlannerAccounts      SocialPlannerAccount[]
   socialPlannerItemsCreated  SocialPlannerItem[]     @relation("SocialPlannerItemCreatedBy")
+  onboardingProgress         UserOnboardingProgress[]
+  onboardingAssigned         UserOnboardingProgress[] @relation("OnboardingAssignedBy")
+  onboardingLogs             OnboardingDismissalLog[]
 }
 
 // ---------- Application / invite flow ----------
@@ -2768,4 +2771,99 @@ model SocialPlannerPublishAttempt {
   item SocialPlannerItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId, startedAt])
+}
+
+// ---------- Member onboarding checklist (optional SKU) ----------
+// Separate from /onboarding profile setup. Singleton config per hub DB.
+
+enum OnboardingTrackScope {
+  ALL
+  CN
+  MN
+}
+
+enum OnboardingActionType {
+  LINK
+  CONFIRM
+  COURSE_LINK
+  CUSTOM
+}
+
+enum OnboardingProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DISMISSED
+  COMPLETED
+}
+
+enum OnboardingLogAction {
+  DISMISSED
+  REOPENED
+}
+
+model OnboardingModule {
+  id                      String   @id @default("default")
+  enabled                 Boolean  @default(true)
+  dismissalDisclaimerText String   @default("Dismissing this means you may miss required steps, including course requirements. Admins can see that you dismissed this.")
+  requiredCourseIds       String[] @default([])
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  steps         OnboardingStep[]
+  progress      UserOnboardingProgress[]
+  dismissalLogs OnboardingDismissalLog[]
+}
+
+model OnboardingStep {
+  id           String               @id @default(cuid())
+  moduleId     String
+  order        Int                  @default(0)
+  trackScope   OnboardingTrackScope @default(ALL)
+  title        String
+  description  String?
+  actionType   OnboardingActionType @default(CONFIRM)
+  actionTarget String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  module OnboardingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId, order])
+}
+
+model UserOnboardingProgress {
+  id                          String                    @id @default(cuid())
+  userId                      String
+  moduleId                    String
+  status                      OnboardingProgressStatus  @default(IN_PROGRESS)
+  completedStepIds            String[]                  @default([])
+  dismissedAt                 DateTime?
+  dismissedDisclaimerAccepted Boolean                   @default(false)
+  assignedById                String?
+  assignedAt                  DateTime?
+  completedAt                 DateTime?
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module     OnboardingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  assignedBy User?            @relation("OnboardingAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, moduleId])
+  @@index([status])
+  @@index([moduleId, status])
+}
+
+model OnboardingDismissalLog {
+  id        String             @id @default(cuid())
+  userId    String
+  moduleId  String
+  action    OnboardingLogAction
+  createdAt DateTime           @default(now())
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module OnboardingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([moduleId, createdAt])
 }

@@ -43,6 +43,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "core",
       },
       {
+        href: "/admin/onboarding",
+        label: "Onboarding",
+        description: "Member checklist steps, required courses, dismiss disclaimer",
+        sku: "onboardingChecklist",
+      },
+      {
         href: "/admin/import",
         label: "Import",
         description: "GHL / roster import tools",

@@ -15,6 +15,10 @@ import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
+import { hubHas } from "@/lib/hub/modules";
+import { ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
+import { onboardingStatusLabel } from "@/lib/onboarding/engine";
+import type { OnboardingProgressStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +27,23 @@ const statusStyles: Record<string, string> = {
   INVITED: "text-off-white/50",
   BANNED: "text-orange",
   PENDING_APPLICATION: "text-off-white/50",
+};
+
+const ONBOARDING_FILTERS = [
+  { value: null, label: "All onboarding" },
+  { value: "NOT_STARTED", label: "Not started" },
+  { value: "IN_PROGRESS", label: "In progress" },
+  { value: "DISMISSED", label: "Dismissed" },
+  { value: "COMPLETED", label: "Completed" },
+] as const;
+
+type OnboardingFilter = (typeof ONBOARDING_FILTERS)[number]["value"];
+
+const ONBOARDING_PILL: Record<OnboardingProgressStatus | "NOT_STARTED", string> = {
+  NOT_STARTED: "border-off-white/20 text-off-white/45",
+  IN_PROGRESS: "border-orange/40 text-orange",
+  DISMISSED: "border-off-white/30 text-off-white/60",
+  COMPLETED: "border-cyan/40 text-cyan",
 };
 
 const ROLE_FILTERS = [
@@ -48,15 +69,25 @@ const ROLE_SORT: Record<UserRole, number> = {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: { track?: string; q?: string; role?: string; effect?: string };
+  searchParams?: { track?: string; q?: string; role?: string; effect?: string; onboarding?: string };
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
+  const showOnboarding = hubHas("onboardingChecklist");
   const trackFilter =
     searchParams?.track === "CN" || searchParams?.track === "MN"
       ? searchParams.track
       : null;
   const effectFilter = searchParams?.effect === "1" || searchParams?.effect === "true";
+  const onboardingParam = (searchParams?.onboarding || "").toUpperCase();
+  const onboardingFilter: OnboardingFilter =
+    showOnboarding &&
+    (onboardingParam === "NOT_STARTED" ||
+      onboardingParam === "IN_PROGRESS" ||
+      onboardingParam === "DISMISSED" ||
+      onboardingParam === "COMPLETED")
+      ? onboardingParam
+      : null;
   const roleParam = (searchParams?.role || "").toUpperCase();
   const roleFilter: RoleFilter =
     roleParam === "STAFF" ||
@@ -84,6 +115,14 @@ export default async function AdminUsersPage({
 
   if (effectFilter) {
     where.effect = true;
+  }
+
+  if (onboardingFilter === "NOT_STARTED") {
+    where.onboardingProgress = { none: { moduleId: ONBOARDING_MODULE_ID } };
+  } else if (onboardingFilter) {
+    where.onboardingProgress = {
+      some: { moduleId: ONBOARDING_MODULE_ID, status: onboardingFilter },
+    };
   }
 
   if (trackFilter) {
@@ -148,6 +187,10 @@ export default async function AdminUsersPage({
         application: { select: { answers: true } },
         tiktokStatsSnapshot: { select: { uniqueId: true } },
         profile: { select: { socialLinks: true, username: true } },
+        onboardingProgress: {
+          where: { moduleId: ONBOARDING_MODULE_ID },
+          select: { status: true },
+        },
       },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
@@ -168,15 +211,18 @@ export default async function AdminUsersPage({
     track?: "CN" | "MN" | null;
     role?: RoleFilter;
     effect?: boolean;
+    onboarding?: OnboardingFilter;
     includeQ?: boolean;
   }) {
     const params = new URLSearchParams();
     const track = opts.track === undefined ? trackFilter : opts.track;
     const role = opts.role === undefined ? roleFilter : opts.role;
     const effect = opts.effect === undefined ? effectFilter : opts.effect;
+    const onboarding = opts.onboarding === undefined ? onboardingFilter : opts.onboarding;
     if (track) params.set("track", track);
     if (role) params.set("role", role);
     if (effect) params.set("effect", "1");
+    if (onboarding) params.set("onboarding", onboarding);
     if (opts.includeQ !== false && q) params.set("q", q);
     const qs = params.toString();
     return qs ? `/admin/users?${qs}` : "/admin/users";
@@ -196,6 +242,7 @@ export default async function AdminUsersPage({
             : ""}
         {trackFilter ? ` · ${trackFilter}` : ""}
         {effectFilter ? " · Effect" : ""}
+        {onboardingFilter ? ` · ${onboardingStatusLabel(onboardingFilter)}` : ""}
         {q ? ` matching “${q}”` : ""}
       </p>
 
@@ -207,6 +254,7 @@ export default async function AdminUsersPage({
         {trackFilter && <input type="hidden" name="track" value={trackFilter} />}
         {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
         {effectFilter && <input type="hidden" name="effect" value="1" />}
+        {onboardingFilter && <input type="hidden" name="onboarding" value={onboardingFilter} />}
         <input
           type="search"
           name="q"
@@ -284,6 +332,27 @@ export default async function AdminUsersPage({
         </Link>
       </div>
 
+      {showOnboarding && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {ONBOARDING_FILTERS.map((opt) => {
+            const active = onboardingFilter === opt.value;
+            return (
+              <Link
+                key={opt.label}
+                href={listHref({ onboarding: opt.value })}
+                className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold transition ${
+                  active
+                    ? "border-orange bg-orange/20 text-orange"
+                    : "border-off-white/15 text-off-white/50 hover:border-off-white/30 hover:text-off-white/80"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mt-8">
         <AddMemberForm />
       </div>
@@ -356,6 +425,15 @@ export default async function AdminUsersPage({
                   >
                     {user.status}
                   </span>
+                  {showOnboarding && (
+                    <span
+                      className={`rounded-full border px-2 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide ${
+                        ONBOARDING_PILL[user.onboardingProgress?.[0]?.status ?? "NOT_STARTED"]
+                      }`}
+                    >
+                      {onboardingStatusLabel(user.onboardingProgress?.[0]?.status ?? "NOT_STARTED")}
+                    </span>
+                  )}
                   {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
                   {user.role === "ADMIN" && (
                     <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />

@@ -47,6 +47,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
     label: "Social Planner",
     description: "Draft and schedule TikTok videos and LIVE reminders; auto-publish at the planned time",
   },
+  {
+    id: "onboardingChecklist",
+    kind: "optional",
+    label: "Onboarding checklist",
+    description: "Admin-editable member onboarding steps, required courses, and dismiss/reopen",
+  },
   { id: "booking", kind: "optional", label: "Staff booking", description: "Public booking pages" },
   {
     id: "email",

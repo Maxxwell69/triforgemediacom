@@ -100,5 +100,8 @@ export async function completeOnboarding(
     fireCampaignEventSafe({ type: "MEMBER_JOINED", userId: user.id });
   }
 
+  const { ensureOnboardingProgress } = await import("@/lib/onboarding/engine");
+  await ensureOnboardingProgress(user.id);
+
   redirect("/home");
 }
