@@ -18,6 +18,8 @@ export const POINT_DEFAULTS = {
   streak30: 300,
   microDailyCap: 50,
   standardDailyCap: 100,
+  onboardingStep: 10,
+  onboardingComplete: 50,
 } as const;
 
 export async function awardXpOnce(

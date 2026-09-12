@@ -61,6 +61,17 @@ export default function OnboardingStepCreateForm() {
           className={`${fieldClass} mt-1`}
         />
       </label>
+      <label className="font-body text-sm text-off-white/70">
+        XP for completing this step
+        <input
+          name="xpReward"
+          type="number"
+          min={0}
+          max={10000}
+          defaultValue={10}
+          className={`${fieldClass} mt-1`}
+        />
+      </label>
       {state?.error && (
         <p className="rounded-lg border border-orange/30 bg-orange/10 px-3 py-2 font-body text-sm text-orange">
           {state.error}

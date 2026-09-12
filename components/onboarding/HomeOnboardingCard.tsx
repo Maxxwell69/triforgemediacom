@@ -13,16 +13,19 @@ export type HomeOnboardingStep = {
   description: string | null;
   href: string | null;
   done: boolean;
+  xpReward: number;
 };
 
 export default function HomeOnboardingCard({
   steps,
   disclaimer,
   requiredCourses,
+  completionXpReward,
 }: {
   steps: HomeOnboardingStep[];
   disclaimer: string;
   requiredCourses: { done: number; total: number };
+  completionXpReward: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [dismissOpen, setDismissOpen] = useState(false);
@@ -67,6 +70,7 @@ export default function HomeOnboardingCard({
             {requiredCourses.total > 0
               ? ` · ${requiredCourses.done}/${requiredCourses.total} required course${requiredCourses.total === 1 ? "" : "s"}`
               : ""}
+            {completionXpReward > 0 ? ` · +${completionXpReward} XP when finished` : ""}
           </p>
         </div>
         <button
@@ -107,6 +111,11 @@ export default function HomeOnboardingCard({
                   }`}
                 >
                   {step.title}
+                  {step.xpReward > 0 && (
+                    <span className="ml-2 font-body text-xs font-semibold text-cyan no-underline">
+                      +{step.xpReward} XP
+                    </span>
+                  )}
                 </p>
                 {step.description && (
                   <p className="mt-0.5 font-body text-xs text-off-white/45">{step.description}</p>

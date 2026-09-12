@@ -23,11 +23,13 @@ export default function OnboardingSettingsForm({
   enabled,
   disclaimer,
   requiredCourseIds,
+  completionXpReward,
   courses,
 }: {
   enabled: boolean;
   disclaimer: string;
   requiredCourseIds: string[];
+  completionXpReward: number;
   courses: { id: string; title: string }[];
 }) {
   const [state, formAction] = useFormState<OnboardingFormState, FormData>(
@@ -41,6 +43,17 @@ export default function OnboardingSettingsForm({
       <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
         <input type="checkbox" name="enabled" defaultChecked={enabled} className="accent-orange" />
         Show the checklist to members (SKU must also be on)
+      </label>
+      <label className="font-body text-sm text-off-white/70">
+        XP bonus when the whole checklist is finished
+        <input
+          name="completionXpReward"
+          type="number"
+          min={0}
+          max={10000}
+          defaultValue={completionXpReward}
+          className={`${fieldClass} mt-1`}
+        />
       </label>
       <label className="font-body text-sm text-off-white/70">
         Dismiss disclaimer

@@ -113,9 +113,11 @@ export default async function HomePage() {
                 description: step.description,
                 href: stepHref(step),
                 done: onboarding.completedStepIds.includes(step.id),
+                xpReward: step.xpReward,
               }))}
               disclaimer={onboarding.config.dismissalDisclaimerText}
               requiredCourses={onboardingCourses}
+              completionXpReward={onboarding.config.completionXpReward}
             />
           </div>
         )}

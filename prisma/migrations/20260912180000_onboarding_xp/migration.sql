@@ -1,0 +1,9 @@
+-- AlterEnum
+ALTER TYPE "XPSource" ADD VALUE 'ONBOARDING_STEP';
+ALTER TYPE "XPSource" ADD VALUE 'ONBOARDING_COMPLETE';
+
+-- AlterTable
+ALTER TABLE "OnboardingModule" ADD COLUMN "completionXpReward" INTEGER NOT NULL DEFAULT 50;
+
+-- AlterTable
+ALTER TABLE "OnboardingStep" ADD COLUMN "xpReward" INTEGER NOT NULL DEFAULT 10;
