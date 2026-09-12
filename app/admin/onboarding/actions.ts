@@ -10,7 +10,6 @@ import {
   onboardingStepSchema,
 } from "@/lib/validations/onboardingChecklist";
 import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
-import { assignOnboardingProgress } from "@/lib/onboarding/engine";
 
 async function requireAdmin() {
   if (!hubHas("onboardingChecklist")) {
@@ -88,7 +87,9 @@ export async function createOnboardingStep(formData: FormData) {
   revalidateOnboarding();
 }
 
-export async function updateOnboardingStep(stepId: string, formData: FormData) {
+export async function updateOnboardingStep(formData: FormData) {
+  const stepId = String(formData.get("stepId") || "");
+  if (!stepId) throw new Error("Step is required");
   await requireAdmin();
   const parsed = onboardingStepSchema.safeParse({
     title: formData.get("title"),
@@ -113,14 +114,19 @@ export async function updateOnboardingStep(stepId: string, formData: FormData) {
   revalidateOnboarding();
 }
 
-export async function deleteOnboardingStep(stepId: string) {
+export async function deleteOnboardingStep(formData: FormData) {
   await requireAdmin();
+  const stepId = String(formData.get("stepId") || "");
+  if (!stepId) throw new Error("Step is required");
   await prisma.onboardingStep.delete({ where: { id: stepId } });
   revalidateOnboarding();
 }
 
-export async function moveOnboardingStep(stepId: string, direction: "up" | "down") {
+export async function moveOnboardingStep(formData: FormData) {
   await requireAdmin();
+  const stepId = String(formData.get("stepId") || "");
+  const direction = formData.get("direction") === "down" ? "down" : "up";
+  if (!stepId) throw new Error("Step is required");
   const onboardingModule = await getOrCreateOnboardingModule();
   const index = onboardingModule.steps.findIndex((s) => s.id === stepId);
   if (index < 0) throw new Error("Step not found");
@@ -135,8 +141,3 @@ export async function moveOnboardingStep(stepId: string, direction: "up" | "down
   revalidateOnboarding();
 }
 
-export async function assignMemberOnboarding(userId: string) {
-  const admin = await requireAdmin();
-  await assignOnboardingProgress(userId, admin.id);
-  revalidateOnboarding(userId);
-}

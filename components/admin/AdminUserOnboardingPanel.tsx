@@ -1,5 +1,5 @@
-import { assignMemberOnboarding } from "@/app/admin/onboarding/actions";
-import { onboardingStatusLabel } from "@/lib/onboarding/engine";
+import { assignMemberOnboarding } from "@/app/admin/onboarding/assign-actions";
+import { onboardingStatusLabel } from "@/lib/onboarding/labels";
 import type { OnboardingLogAction, OnboardingProgressStatus } from "@prisma/client";
 
 type Step = { id: string; title: string };
@@ -64,7 +64,8 @@ export default function AdminUserOnboardingPanel({
         </div>
       </div>
 
-      <form action={assignMemberOnboarding.bind(null, userId)} className="mt-4">
+      <form action={assignMemberOnboarding} className="mt-4">
+        <input type="hidden" name="userId" value={userId} />
         <button
           type="submit"
           className="rounded-lg border border-orange/40 px-4 py-2 font-body text-xs font-semibold text-orange transition hover:bg-orange/10"

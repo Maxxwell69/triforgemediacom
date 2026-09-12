@@ -63,7 +63,7 @@ export default async function HomePage() {
     : null;
   const onboardingCourses =
     onboarding?.progress?.status === "IN_PROGRESS"
-      ? await requiredCourseProgress(user.id, onboarding.module.requiredCourseIds)
+      ? await requiredCourseProgress(user.id, onboarding.config.requiredCourseIds)
       : null;
 
   let campaignStat: string | null = null;
@@ -114,7 +114,7 @@ export default async function HomePage() {
                 href: stepHref(step),
                 done: onboarding.completedStepIds.includes(step.id),
               }))}
-              disclaimer={onboarding.module.dismissalDisclaimerText}
+              disclaimer={onboarding.config.dismissalDisclaimerText}
               requiredCourses={onboardingCourses}
             />
           </div>

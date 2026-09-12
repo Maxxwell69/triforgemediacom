@@ -17,7 +17,7 @@ import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityTog
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import { hubHas } from "@/lib/hub/modules";
 import { ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
-import { onboardingStatusLabel } from "@/lib/onboarding/engine";
+import { onboardingStatusLabel } from "@/lib/onboarding/labels";
 import type { OnboardingProgressStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
