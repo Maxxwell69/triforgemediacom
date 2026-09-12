@@ -28,7 +28,9 @@ import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
 import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLevel";
 import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
+import AdminUserOnboardingPanel from "@/components/admin/AdminUserOnboardingPanel";
 import { hubHas } from "@/lib/hub/modules";
+import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +91,8 @@ export default async function AdminUserDetailPage({
   const insightsStatus = searchParams?.insights;
   const insightsMessage = searchParams?.insights_message;
 
-  const [user, allGroups, allTags, allBadges, insights, liveCount, lastLive] = await Promise.all([
+  const showOnboarding = hubHas("onboardingChecklist");
+  const [user, allGroups, allTags, allBadges, insights, liveCount, lastLive, onboardingModule] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.userId },
       include: {
@@ -116,6 +119,15 @@ export default async function AdminUserDetailPage({
           take: 20,
         },
         xpEvents: { orderBy: { createdAt: "desc" }, take: 25 },
+        onboardingProgress: {
+          where: { moduleId: ONBOARDING_MODULE_ID },
+          include: { assignedBy: { select: { name: true, email: true } } },
+        },
+        onboardingLogs: {
+          where: { moduleId: ONBOARDING_MODULE_ID },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
@@ -131,6 +143,7 @@ export default async function AdminUserDetailPage({
       orderBy: { startedAt: "desc" },
       select: { startedAt: true },
     }),
+    showOnboarding ? getOrCreateOnboardingModule() : Promise.resolve(null),
   ]);
 
   if (!user) notFound();
@@ -465,6 +478,15 @@ export default async function AdminUserDetailPage({
           </div>
         )}
       </section>
+
+      {showOnboarding && onboardingModule && (
+        <AdminUserOnboardingPanel
+          userId={user.id}
+          progress={user.onboardingProgress[0] ?? null}
+          steps={onboardingModule.steps.map((s) => ({ id: s.id, title: s.title }))}
+          logs={user.onboardingLogs}
+        />
+      )}
 
       {/* Application */}
       {user.application && (

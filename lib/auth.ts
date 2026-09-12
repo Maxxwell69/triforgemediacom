@@ -95,6 +95,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
             })
             .catch((err) => console.error("first-login campaign skipped:", err));
+          void import("@/lib/onboarding/engine")
+            .then(({ ensureOnboardingProgress }) => ensureOnboardingProgress(user.id))
+            .catch((err) => console.error("first-login onboarding skipped:", err));
         }
 
         return {

@@ -5,15 +5,20 @@ import { hasPersonalTasksAccess } from "@/lib/personalTasks";
 import { isAdminRole } from "@/lib/rbac";
 import AccountFeatureLink from "@/components/account/AccountFeatureLink";
 import AccountPageShell from "@/components/account/AccountPageShell";
+import AccountOnboardingCard from "@/components/onboarding/AccountOnboardingCard";
+import { loadMemberOnboarding } from "@/lib/onboarding/engine";
+import { hubHas } from "@/lib/hub/modules";
 
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
   const isStaff = isAdminRole(user.role);
-  const [points, tikTaskAccess, personalTasksAccess] = await Promise.all([
+  const [points, tikTaskAccess, personalTasksAccess, onboarding] = await Promise.all([
     getUserPointsTotal(user.id),
     hasTikTaskAccess(user.id),
     hasPersonalTasksAccess(user.id),
+    hubHas("onboardingChecklist") ? loadMemberOnboarding(user.id) : Promise.resolve(null),
   ]);
+  const onboardingStatus = onboarding?.progress?.status;
 
   return (
     <AccountPageShell
@@ -43,6 +48,9 @@ export default async function AccountPage() {
         Features
       </h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {(onboardingStatus === "IN_PROGRESS" || onboardingStatus === "DISMISSED") && (
+          <AccountOnboardingCard status={onboardingStatus} />
+        )}
         {tikTaskAccess && (
           <AccountFeatureLink
             href="/apps/tiktask"

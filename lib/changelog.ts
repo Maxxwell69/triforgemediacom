@@ -161,9 +161,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Admins publish campaigns for everyone or a tag/badge audience. Members sign up from the campaign window, can leave and rejoin, and each person has their own to-do checklist.",
     since: "3.169",
   },
+  {
+    name: "Onboarding checklist",
+    tagline: "First-login steps & required courses",
+    description:
+      "Optional Create Hub SKU: admin-editable member checklist with CN/MN track scopes, required course gates, dismiss with disclaimer, and reopen from Account.",
+    since: "3.182",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.182",
+    date: "September 12, 2026",
+    title: "Member onboarding checklist",
+    summary:
+      "Optional hub module for a first-login checklist: admin-editable steps, required courses, dismiss with a disclaimer, and reopen from Account.",
+    items: [
+      {
+        kind: "feature",
+        text: "Onboarding checklist SKU: Home card for new members, dismiss/reopen, and course-gated complete",
+      },
+      {
+        kind: "feature",
+        text: "Admin Onboarding page to edit steps, track scope, required courses, and disclaimer",
+      },
+      {
+        kind: "feature",
+        text: "Users list onboarding status filter plus Assign/Reset on a member profile",
+      },
+    ],
+  },
   {
     version: "3.181",
     date: "September 11, 2026",

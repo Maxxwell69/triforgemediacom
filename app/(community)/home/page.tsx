@@ -11,6 +11,8 @@ import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
 import VideoEmbed from "@/components/VideoEmbed";
 import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
+import { loadMemberOnboarding, requiredCourseProgress, stepHref } from "@/lib/onboarding/engine";
+import HomeOnboardingCard from "@/components/onboarding/HomeOnboardingCard";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,14 @@ export default async function HomePage() {
   const firstName = (user.name || user.email || "there").split(" ")[0].split("@")[0];
   const showProgress = await canSeeMemberProgressNav(user.role);
 
+  const onboarding = hubHas("onboardingChecklist")
+    ? await loadMemberOnboarding(user.id)
+    : null;
+  const onboardingCourses =
+    onboarding?.progress?.status === "IN_PROGRESS"
+      ? await requiredCourseProgress(user.id, onboarding.module.requiredCourseIds)
+      : null;
+
   let campaignStat: string | null = null;
   if (hubHas("hubCampaigns")) {
     try {
@@ -93,6 +103,22 @@ export default async function HomePage() {
           🔥 {profile.streakCount} day streak {" \u00b7 "} {points} XP {" \u00b7 "} here&apos;s
           what&apos;s happening.
         </p>
+
+        {onboarding?.progress?.status === "IN_PROGRESS" && onboardingCourses && (
+          <div className="mt-8">
+            <HomeOnboardingCard
+              steps={onboarding.steps.map((step) => ({
+                id: step.id,
+                title: step.title,
+                description: step.description,
+                href: stepHref(step),
+                done: onboarding.completedStepIds.includes(step.id),
+              }))}
+              disclaimer={onboarding.module.dismissalDisclaimerText}
+              requiredCourses={onboardingCourses}
+            />
+          </div>
+        )}
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <DashboardCard
