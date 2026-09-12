@@ -1,4 +1,4 @@
-import type { OnboardingProgressStatus } from "@prisma/client";
+import type { OnboardingKind, OnboardingProgressStatus } from "@prisma/client";
 
 export function onboardingStatusLabel(status: OnboardingProgressStatus | "NOT_STARTED") {
   switch (status) {
@@ -10,5 +10,16 @@ export function onboardingStatusLabel(status: OnboardingProgressStatus | "NOT_ST
       return "Completed";
     default:
       return "Not started";
+  }
+}
+
+export function onboardingKindLabel(kind: OnboardingKind) {
+  switch (kind) {
+    case "GETTING_STARTED":
+      return "Getting started";
+    case "CAMPAIGN":
+      return "Campaign follow-through";
+    default:
+      return "Custom path";
   }
 }

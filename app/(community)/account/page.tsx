@@ -6,7 +6,7 @@ import { isAdminRole } from "@/lib/rbac";
 import AccountFeatureLink from "@/components/account/AccountFeatureLink";
 import AccountPageShell from "@/components/account/AccountPageShell";
 import AccountOnboardingCard from "@/components/onboarding/AccountOnboardingCard";
-import { loadMemberOnboarding } from "@/lib/onboarding/engine";
+import { loadMemberOnboardings } from "@/lib/onboarding/engine";
 import { hubHas } from "@/lib/hub/modules";
 
 export default async function AccountPage() {
@@ -16,9 +16,11 @@ export default async function AccountPage() {
     getUserPointsTotal(user.id),
     hasTikTaskAccess(user.id),
     hasPersonalTasksAccess(user.id),
-    hubHas("onboardingChecklist") ? loadMemberOnboarding(user.id) : Promise.resolve(null),
+    hubHas("onboardingChecklist") ? loadMemberOnboardings(user.id) : Promise.resolve([]),
   ]);
-  const onboardingStatus = onboarding?.progress?.status;
+  const accountOnboarding = onboarding.filter(
+    (card) => card.progress.status === "IN_PROGRESS" || card.progress.status === "DISMISSED"
+  );
 
   return (
     <AccountPageShell
@@ -48,9 +50,14 @@ export default async function AccountPage() {
         Features
       </h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {(onboardingStatus === "IN_PROGRESS" || onboardingStatus === "DISMISSED") && (
-          <AccountOnboardingCard status={onboardingStatus} />
-        )}
+        {accountOnboarding.map((card) => (
+          <AccountOnboardingCard
+            key={card.config.id}
+            moduleId={card.config.id}
+            title={card.config.title}
+            status={card.progress.status === "DISMISSED" ? "DISMISSED" : "IN_PROGRESS"}
+          />
+        ))}
         {tikTaskAccess && (
           <AccountFeatureLink
             href="/apps/tiktask"

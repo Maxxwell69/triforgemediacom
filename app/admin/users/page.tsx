@@ -16,8 +16,8 @@ import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import { hubHas } from "@/lib/hub/modules";
-import { ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
 import { onboardingStatusLabel } from "@/lib/onboarding/labels";
+import { summarizeOnboardingStatus } from "@/lib/onboarding/engine";
 import type { OnboardingProgressStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -118,11 +118,9 @@ export default async function AdminUsersPage({
   }
 
   if (onboardingFilter === "NOT_STARTED") {
-    where.onboardingProgress = { none: { moduleId: ONBOARDING_MODULE_ID } };
+    where.onboardingProgress = { none: {} };
   } else if (onboardingFilter) {
-    where.onboardingProgress = {
-      some: { moduleId: ONBOARDING_MODULE_ID, status: onboardingFilter },
-    };
+    where.onboardingProgress = { some: { status: onboardingFilter } };
   }
 
   if (trackFilter) {
@@ -188,7 +186,6 @@ export default async function AdminUsersPage({
         tiktokStatsSnapshot: { select: { uniqueId: true } },
         profile: { select: { socialLinks: true, username: true } },
         onboardingProgress: {
-          where: { moduleId: ONBOARDING_MODULE_ID },
           select: { status: true },
         },
       },
@@ -428,10 +425,10 @@ export default async function AdminUsersPage({
                   {showOnboarding && (
                     <span
                       className={`rounded-full border px-2 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide ${
-                        ONBOARDING_PILL[user.onboardingProgress?.[0]?.status ?? "NOT_STARTED"]
+                        ONBOARDING_PILL[summarizeOnboardingStatus(user.onboardingProgress)]
                       }`}
                     >
-                      {onboardingStatusLabel(user.onboardingProgress?.[0]?.status ?? "NOT_STARTED")}
+                      {onboardingStatusLabel(summarizeOnboardingStatus(user.onboardingProgress))}
                     </span>
                   )}
                   {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}

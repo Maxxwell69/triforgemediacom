@@ -165,12 +165,29 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     name: "Onboarding checklist",
     tagline: "First-login steps & required courses",
     description:
-      "Optional Create Hub SKU: admin-editable member checklist with CN/MN track scopes, required course gates, dismiss with disclaimer, and reopen from Account.",
+      "Optional Create Hub SKU: named checklists (Getting Started, campaign follow-through, or custom), admin-editable steps, required course gates, dismiss with disclaimer, and reopen from Account.",
     since: "3.182",
   },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.184",
+    date: "September 12, 2026",
+    title: "Multiple onboarding paths",
+    summary:
+      "Admins can create more than one checklist — Getting Started, campaign follow-through, or any custom path — and assign each to members.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin Onboarding now lists named checklists you can create and edit separately",
+      },
+      {
+        kind: "feature",
+        text: "Mark a checklist to auto-assign on first login, or assign any path from a member profile",
+      },
+    ],
+  },
   {
     version: "3.183",
     date: "September 12, 2026",

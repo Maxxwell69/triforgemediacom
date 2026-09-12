@@ -11,7 +11,7 @@ import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
 import VideoEmbed from "@/components/VideoEmbed";
 import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
-import { loadMemberOnboarding, requiredCourseProgress, stepHref } from "@/lib/onboarding/engine";
+import { loadMemberOnboardings, requiredCourseProgress, stepHref } from "@/lib/onboarding/engine";
 import HomeOnboardingCard from "@/components/onboarding/HomeOnboardingCard";
 
 export const dynamic = "force-dynamic";
@@ -58,13 +58,12 @@ export default async function HomePage() {
   const firstName = (user.name || user.email || "there").split(" ")[0].split("@")[0];
   const showProgress = await canSeeMemberProgressNav(user.role);
 
-  const onboarding = hubHas("onboardingChecklist")
-    ? await loadMemberOnboarding(user.id)
-    : null;
-  const onboardingCourses =
-    onboarding?.progress?.status === "IN_PROGRESS"
-      ? await requiredCourseProgress(user.id, onboarding.config.requiredCourseIds)
-      : null;
+  const onboardingCards = hubHas("onboardingChecklist")
+    ? (await loadMemberOnboardings(user.id)).filter((card) => card.progress.status === "IN_PROGRESS")
+    : [];
+  const onboardingCourseStats = await Promise.all(
+    onboardingCards.map((card) => requiredCourseProgress(user.id, card.config.requiredCourseIds))
+  );
 
   let campaignStat: string | null = null;
   if (hubHas("hubCampaigns")) {
@@ -104,21 +103,26 @@ export default async function HomePage() {
           what&apos;s happening.
         </p>
 
-        {onboarding?.progress?.status === "IN_PROGRESS" && onboardingCourses && (
-          <div className="mt-8">
-            <HomeOnboardingCard
-              steps={onboarding.steps.map((step) => ({
-                id: step.id,
-                title: step.title,
-                description: step.description,
-                href: stepHref(step),
-                done: onboarding.completedStepIds.includes(step.id),
-                xpReward: step.xpReward,
-              }))}
-              disclaimer={onboarding.config.dismissalDisclaimerText}
-              requiredCourses={onboardingCourses}
-              completionXpReward={onboarding.config.completionXpReward}
-            />
+        {onboardingCards.length > 0 && (
+          <div className="mt-8 flex flex-col gap-4">
+            {onboardingCards.map((card, index) => (
+              <HomeOnboardingCard
+                key={card.config.id}
+                moduleId={card.config.id}
+                title={card.config.title}
+                steps={card.steps.map((step) => ({
+                  id: step.id,
+                  title: step.title,
+                  description: step.description,
+                  href: stepHref(step),
+                  done: card.completedStepIds.includes(step.id),
+                  xpReward: step.xpReward,
+                }))}
+                disclaimer={card.config.dismissalDisclaimerText}
+                requiredCourses={onboardingCourseStats[index] ?? { done: 0, total: 0 }}
+                completionXpReward={card.config.completionXpReward}
+              />
+            ))}
           </div>
         )}
 

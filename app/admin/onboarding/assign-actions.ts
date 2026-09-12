@@ -24,8 +24,9 @@ export async function assignMemberOnboarding(formData: FormData) {
       throw new Error("Not authorized");
     }
     const userId = String(formData.get("userId") || "");
-    if (!userId) throw new Error("User is required");
-    await assignOnboardingProgress(userId, admin.id);
+    const moduleId = String(formData.get("moduleId") || "");
+    if (!userId || !moduleId) throw new Error("User and checklist are required");
+    await assignOnboardingProgress(userId, admin.id, moduleId);
     revalidatePath("/admin/onboarding");
     revalidatePath("/admin/users");
     revalidatePath("/home");

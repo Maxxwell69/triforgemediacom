@@ -30,7 +30,7 @@ import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLe
 import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
 import AdminUserOnboardingPanel from "@/components/admin/AdminUserOnboardingPanel";
 import { hubHas } from "@/lib/hub/modules";
-import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
+import { listOnboardingPrograms } from "@/lib/onboarding/config";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +94,7 @@ export default async function AdminUserDetailPage({
   const insightsMessage = searchParams?.insights_message;
 
   const showOnboarding = hubHas("onboardingChecklist");
-  const [user, allGroups, allTags, allBadges, insights, liveCount, lastLive, onboardingModule] = await Promise.all([
+  const [user, allGroups, allTags, allBadges, insights, liveCount, lastLive, onboardingPrograms] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.userId },
       include: {
@@ -121,13 +121,15 @@ export default async function AdminUserDetailPage({
         },
         xpEvents: { orderBy: { createdAt: "desc" }, take: 25 },
         onboardingProgress: {
-          where: { moduleId: ONBOARDING_MODULE_ID },
-          include: { assignedBy: { select: { name: true, email: true } } },
+          include: {
+            assignedBy: { select: { name: true, email: true } },
+            module: { select: { title: true, kind: true, steps: { select: { id: true, title: true } } } },
+          },
         },
         onboardingLogs: {
-          where: { moduleId: ONBOARDING_MODULE_ID },
           orderBy: { createdAt: "desc" },
-          take: 10,
+          take: 12,
+          include: { module: { select: { title: true } } },
         },
       },
     }),
@@ -144,7 +146,7 @@ export default async function AdminUserDetailPage({
       orderBy: { startedAt: "desc" },
       select: { startedAt: true },
     }),
-    showOnboarding ? getOrCreateOnboardingModule() : Promise.resolve(null),
+    showOnboarding ? listOnboardingPrograms() : Promise.resolve([]),
   ]);
 
   if (!user) notFound();
@@ -462,11 +464,16 @@ export default async function AdminUserDetailPage({
         )}
       </section>
 
-      {showOnboarding && onboardingModule && (
+      {showOnboarding && (
         <AdminUserOnboardingPanel
           userId={user.id}
-          progress={user.onboardingProgress[0] ?? null}
-          steps={onboardingModule.steps.map((s) => ({ id: s.id, title: s.title }))}
+          programs={onboardingPrograms.map((program) => ({
+            id: program.id,
+            title: program.title,
+            kind: program.kind,
+            enabled: program.enabled,
+          }))}
+          progressRows={user.onboardingProgress}
           logs={user.onboardingLogs}
         />
       )}

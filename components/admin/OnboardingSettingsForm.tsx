@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { updateOnboardingSettings, type OnboardingFormState } from "@/app/admin/onboarding/actions";
+import type { OnboardingKind } from "@prisma/client";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
@@ -20,12 +21,22 @@ function SubmitButton() {
 }
 
 export default function OnboardingSettingsForm({
+  programId,
+  title,
+  description,
+  kind,
+  assignOnFirstLogin,
   enabled,
   disclaimer,
   requiredCourseIds,
   completionXpReward,
   courses,
 }: {
+  programId: string;
+  title: string;
+  description: string;
+  kind: OnboardingKind;
+  assignOnFirstLogin: boolean;
   enabled: boolean;
   disclaimer: string;
   requiredCourseIds: string[];
@@ -40,9 +51,40 @@ export default function OnboardingSettingsForm({
   return (
     <form action={formAction} className="glass mt-10 flex flex-col gap-4 rounded-2xl p-6">
       <h2 className="font-display text-xl tracking-wide text-off-white/80">Settings</h2>
+      <input type="hidden" name="programId" value={programId} />
+      <label className="font-body text-sm text-off-white/70">
+        Name
+        <input name="title" required defaultValue={title} className={`${fieldClass} mt-1`} />
+      </label>
+      <label className="font-body text-sm text-off-white/70">
+        Description
+        <textarea
+          name="description"
+          rows={2}
+          defaultValue={description}
+          className={`${fieldClass} mt-1`}
+        />
+      </label>
+      <label className="font-body text-sm text-off-white/70">
+        Type
+        <select name="kind" defaultValue={kind} className={`${fieldClass} mt-1`}>
+          <option value="GETTING_STARTED">Getting started (new members)</option>
+          <option value="CAMPAIGN">Campaign follow-through</option>
+          <option value="CUSTOM">Custom path</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+        <input
+          type="checkbox"
+          name="assignOnFirstLogin"
+          defaultChecked={assignOnFirstLogin}
+          className="accent-orange"
+        />
+        Give this to new members on first login
+      </label>
       <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
         <input type="checkbox" name="enabled" defaultChecked={enabled} className="accent-orange" />
-        Show the checklist to members (SKU must also be on)
+        Show this checklist to assigned members
       </label>
       <label className="font-body text-sm text-off-white/70">
         XP bonus when the whole checklist is finished

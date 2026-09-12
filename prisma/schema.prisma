@@ -2775,8 +2775,14 @@ model SocialPlannerPublishAttempt {
   @@index([itemId, startedAt])
 }
 
-// ---------- Member onboarding checklist (optional SKU) ----------
-// Separate from /onboarding profile setup. Singleton config per hub DB.
+// ---------- Member onboarding checklists (optional SKU) ----------
+// Separate from /onboarding profile setup. Multiple named programs per hub.
+
+enum OnboardingKind {
+  GETTING_STARTED
+  CAMPAIGN
+  CUSTOM
+}
 
 enum OnboardingTrackScope {
   ALL
@@ -2804,13 +2810,17 @@ enum OnboardingLogAction {
 }
 
 model OnboardingModule {
-  id                      String   @id @default("default")
-  enabled                 Boolean  @default(true)
-  dismissalDisclaimerText String   @default("Dismissing this means you may miss required steps, including course requirements. Admins can see that you dismissed this.")
-  requiredCourseIds       String[] @default([])
-  completionXpReward      Int      @default(50)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                      String         @id @default(cuid())
+  title                   String
+  description             String?
+  kind                    OnboardingKind @default(CUSTOM)
+  assignOnFirstLogin      Boolean        @default(false)
+  enabled                 Boolean        @default(true)
+  dismissalDisclaimerText String         @default("Dismissing this means you may miss required steps, including course requirements. Admins can see that you dismissed this.")
+  requiredCourseIds       String[]       @default([])
+  completionXpReward      Int            @default(50)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
   steps         OnboardingStep[]
   progress      UserOnboardingProgress[]
