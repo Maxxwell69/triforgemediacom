@@ -16,7 +16,7 @@ const fieldClass =
 
 export default async function AdminOnboardingPage() {
   requireOnboardingModule();
-  const [module, courses] = await Promise.all([
+  const [onboardingModule, courses] = await Promise.all([
     getOrCreateOnboardingModule(),
     prisma.course.findMany({ orderBy: { title: "asc" }, select: { id: true, title: true } }),
   ]);
@@ -37,7 +37,7 @@ export default async function AdminOnboardingPage() {
           <input
             type="checkbox"
             name="enabled"
-            defaultChecked={module.enabled}
+            defaultChecked={onboardingModule.enabled}
             className="accent-orange"
           />
           Show the checklist to members (SKU must also be on)
@@ -48,7 +48,7 @@ export default async function AdminOnboardingPage() {
             name="dismissalDisclaimerText"
             required
             rows={3}
-            defaultValue={module.dismissalDisclaimerText}
+            defaultValue={onboardingModule.dismissalDisclaimerText}
             className={`${fieldClass} mt-1`}
           />
         </label>
@@ -70,7 +70,7 @@ export default async function AdminOnboardingPage() {
                   type="checkbox"
                   name="requiredCourseIds"
                   value={course.id}
-                  defaultChecked={module.requiredCourseIds.includes(course.id)}
+                  defaultChecked={onboardingModule.requiredCourseIds.includes(course.id)}
                   className="accent-orange"
                 />
                 {course.title}
@@ -142,12 +142,12 @@ export default async function AdminOnboardingPage() {
         </form>
 
         <div className="mt-4 flex flex-col gap-3">
-          {module.steps.length === 0 && (
+          {onboardingModule.steps.length === 0 && (
             <p className="glass rounded-xl p-4 font-body text-sm text-off-white/40">
               No steps yet. Add the first one above.
             </p>
           )}
-          {module.steps.map((step, index) => (
+          {onboardingModule.steps.map((step, index) => (
             <div key={step.id} className="glass flex flex-col gap-3 rounded-xl p-4">
               <form action={updateOnboardingStep.bind(null, step.id)} className="flex flex-col gap-2">
                 <input name="title" required defaultValue={step.title} className={fieldClass} />
@@ -196,7 +196,7 @@ export default async function AdminOnboardingPage() {
                 <form action={moveOnboardingStep.bind(null, step.id, "down")}>
                   <button
                     type="submit"
-                    disabled={index === module.steps.length - 1}
+                    disabled={index === onboardingModule.steps.length - 1}
                     className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/60 disabled:opacity-30"
                   >
                     Down

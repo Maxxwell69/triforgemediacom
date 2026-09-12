@@ -62,7 +62,7 @@ export async function updateOnboardingSettings(formData: FormData) {
 
 export async function createOnboardingStep(formData: FormData) {
   await requireAdmin();
-  const module = await getOrCreateOnboardingModule();
+  const onboardingModule = await getOrCreateOnboardingModule();
   const parsed = onboardingStepSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
@@ -73,10 +73,10 @@ export async function createOnboardingStep(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid step");
   }
-  const last = module.steps[module.steps.length - 1];
+  const last = onboardingModule.steps[onboardingModule.steps.length - 1];
   await prisma.onboardingStep.create({
     data: {
-      moduleId: module.id,
+      moduleId: onboardingModule.id,
       order: (last?.order ?? 0) + 1,
       title: parsed.data.title,
       description: parsed.data.description?.trim() || null,
@@ -121,13 +121,13 @@ export async function deleteOnboardingStep(stepId: string) {
 
 export async function moveOnboardingStep(stepId: string, direction: "up" | "down") {
   await requireAdmin();
-  const module = await getOrCreateOnboardingModule();
-  const index = module.steps.findIndex((s) => s.id === stepId);
+  const onboardingModule = await getOrCreateOnboardingModule();
+  const index = onboardingModule.steps.findIndex((s) => s.id === stepId);
   if (index < 0) throw new Error("Step not found");
   const swapWith = direction === "up" ? index - 1 : index + 1;
-  if (swapWith < 0 || swapWith >= module.steps.length) return;
-  const a = module.steps[index];
-  const b = module.steps[swapWith];
+  if (swapWith < 0 || swapWith >= onboardingModule.steps.length) return;
+  const a = onboardingModule.steps[index];
+  const b = onboardingModule.steps[swapWith];
   await prisma.$transaction([
     prisma.onboardingStep.update({ where: { id: a.id }, data: { order: b.order } }),
     prisma.onboardingStep.update({ where: { id: b.id }, data: { order: a.order } }),
