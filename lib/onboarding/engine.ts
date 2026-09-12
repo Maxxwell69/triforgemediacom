@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserNetworkTrack, type NetworkTrack } from "@/lib/mnCn";
 import { onboardingEnabled } from "@/lib/onboarding/access";
 import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
+import { awardXpOnce } from "@/lib/xp";
 
 export function visibleOnboardingSteps<
   T extends { trackScope: OnboardingTrackScope },
@@ -65,19 +66,43 @@ export async function syncCourseLinkedSteps(
   return Array.from(next);
 }
 
+async function awardStepXp(
+  userId: string,
+  step: { id: string; title: string; xpReward: number }
+) {
+  if (step.xpReward <= 0) return;
+  await awardXpOnce(prisma, {
+    userId,
+    amount: step.xpReward,
+    source: "ONBOARDING_STEP",
+    refId: step.id,
+    note: step.title,
+  });
+}
+
 async function tryCompleteProgress(
   userId: string,
   completedStepIds: string[],
   requiredCourseIds: string[],
-  visibleStepIds: string[]
+  visibleStepIds: string[],
+  completionXpReward: number
 ) {
   const allStepsDone = visibleStepIds.every((id) => completedStepIds.includes(id));
   const coursesDone = await requiredCoursesCompleted(userId, requiredCourseIds);
   if (!allStepsDone || !coursesDone) return false;
-  await prisma.userOnboardingProgress.update({
+  const progress = await prisma.userOnboardingProgress.update({
     where: { userId_moduleId: { userId, moduleId: ONBOARDING_MODULE_ID } },
     data: { status: "COMPLETED", completedAt: new Date() },
   });
+  if (completionXpReward > 0) {
+    await awardXpOnce(prisma, {
+      userId,
+      amount: completionXpReward,
+      source: "ONBOARDING_COMPLETE",
+      refId: progress.id,
+      note: "Onboarding checklist complete",
+    });
+  }
   return true;
 }
 
@@ -150,18 +175,25 @@ export async function loadMemberOnboarding(userId: string) {
   const visible = visibleOnboardingSteps(onboardingModule.steps, track);
   const synced = await syncCourseLinkedSteps(userId, visible, progress.completedStepIds);
   if (synced.length !== progress.completedStepIds.length || synced.some((id) => !progress.completedStepIds.includes(id))) {
+    const newlyDone = synced.filter((id) => !progress.completedStepIds.includes(id));
     await prisma.userOnboardingProgress.update({
       where: { id: progress.id },
       data: { completedStepIds: synced },
     });
     progress.completedStepIds = synced;
+    if (progress.status === "IN_PROGRESS") {
+      for (const step of visible.filter((s) => newlyDone.includes(s.id))) {
+        await awardStepXp(userId, step);
+      }
+    }
   }
   if (progress.status === "IN_PROGRESS") {
     const completed = await tryCompleteProgress(
       userId,
       synced,
       onboardingModule.requiredCourseIds,
-      visible.map((s) => s.id)
+      visible.map((s) => s.id),
+      onboardingModule.completionXpReward
     );
     if (completed) progress.status = "COMPLETED";
   }
@@ -186,11 +218,15 @@ export async function toggleOnboardingStep(userId: string, stepId: string, done:
     where: { id: loaded.progress.id },
     data: { completedStepIds, status: "IN_PROGRESS", completedAt: null },
   });
+  if (done) {
+    await awardStepXp(userId, step);
+  }
   await tryCompleteProgress(
     userId,
     completedStepIds,
     loaded.config.requiredCourseIds,
-    loaded.steps.map((s) => s.id)
+    loaded.steps.map((s) => s.id),
+    loaded.config.completionXpReward
   );
 }
 

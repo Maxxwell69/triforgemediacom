@@ -71,6 +71,17 @@ export default async function AdminOnboardingPage() {
                   placeholder="Path, URL, or course id"
                   className={fieldClass}
                 />
+                <label className="font-body text-xs text-off-white/60">
+                  XP
+                  <input
+                    name="xpReward"
+                    type="number"
+                    min={0}
+                    max={10000}
+                    defaultValue={step.xpReward}
+                    className={`${fieldClass} mt-1`}
+                  />
+                </label>
                 <button
                   type="submit"
                   className="self-start rounded-lg bg-cyan/90 px-3 py-1.5 font-body text-xs font-semibold text-charcoal"
@@ -120,6 +131,7 @@ export default async function AdminOnboardingPage() {
         enabled={onboardingModule.enabled}
         disclaimer={onboardingModule.dismissalDisclaimerText}
         requiredCourseIds={onboardingModule.requiredCourseIds}
+        completionXpReward={onboardingModule.completionXpReward}
         courses={courses}
       />
     </main>

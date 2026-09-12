@@ -172,6 +172,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.183",
+    date: "September 12, 2026",
+    title: "Onboarding XP",
+    summary:
+      "Checklist steps and finishing the whole onboarding list can award XP, with amounts set in Admin.",
+    items: [
+      {
+        kind: "feature",
+        text: "Each onboarding step can award XP when checked off, once per member",
+      },
+      {
+        kind: "feature",
+        text: "Admins set per-step XP and a completion bonus on the Onboarding page",
+      },
+    ],
+  },
+  {
     version: "3.182",
     date: "September 12, 2026",
     title: "Member onboarding checklist",

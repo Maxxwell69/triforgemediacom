@@ -56,6 +56,7 @@ function parseStep(formData: FormData) {
     trackScope: fieldString(formData, "trackScope") || "ALL",
     actionType: fieldString(formData, "actionType") || "CONFIRM",
     actionTarget: fieldString(formData, "actionTarget"),
+    xpReward: fieldString(formData, "xpReward") || "10",
   });
 }
 
@@ -70,6 +71,7 @@ export async function updateOnboardingSettings(
       enabled: formData.get("enabled") ? "on" : "false",
       dismissalDisclaimerText: fieldString(formData, "dismissalDisclaimerText"),
       requiredCourseIds: formData.getAll("requiredCourseIds").filter((v): v is string => typeof v === "string"),
+      completionXpReward: fieldString(formData, "completionXpReward") || "50",
     });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message || "Invalid settings" };
@@ -80,6 +82,7 @@ export async function updateOnboardingSettings(
         enabled: parsed.data.enabled === "on" || parsed.data.enabled === "true",
         dismissalDisclaimerText: parsed.data.dismissalDisclaimerText,
         requiredCourseIds: parsed.data.requiredCourseIds ?? [],
+        completionXpReward: parsed.data.completionXpReward,
       },
     });
     revalidateOnboarding();
@@ -110,6 +113,7 @@ export async function createOnboardingStep(
         trackScope: parsed.data.trackScope,
         actionType: parsed.data.actionType,
         actionTarget: parsed.data.actionTarget?.trim() || null,
+        xpReward: parsed.data.xpReward,
       },
     });
     revalidateOnboarding();
@@ -137,6 +141,7 @@ export async function updateOnboardingStep(formData: FormData) {
         trackScope: parsed.data.trackScope,
         actionType: parsed.data.actionType,
         actionTarget: parsed.data.actionTarget?.trim() || null,
+        xpReward: parsed.data.xpReward,
       },
     });
     revalidateOnboarding();

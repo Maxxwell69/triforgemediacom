@@ -60,6 +60,8 @@ const XP_SOURCE_LABELS: Record<string, string> = {
   REWARD_REFUND: "Reward refunded",
   COURSE_COMPLETION: "Course completed",
   SOCIAL_SHARE: "Social share",
+  ONBOARDING_STEP: "Onboarding step",
+  ONBOARDING_COMPLETE: "Onboarding complete",
 };
 
 function formatDate(date: Date | null): string {

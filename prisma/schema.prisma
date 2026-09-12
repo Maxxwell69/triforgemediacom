@@ -791,6 +791,8 @@ enum XPSource {
   SKILL_UNLOCK
   MISSION_COMPLETION
   STREAK_BONUS
+  ONBOARDING_STEP
+  ONBOARDING_COMPLETE
 }
 
 model XPEvent {
@@ -2806,6 +2808,7 @@ model OnboardingModule {
   enabled                 Boolean  @default(true)
   dismissalDisclaimerText String   @default("Dismissing this means you may miss required steps, including course requirements. Admins can see that you dismissed this.")
   requiredCourseIds       String[] @default([])
+  completionXpReward      Int      @default(50)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -2823,6 +2826,7 @@ model OnboardingStep {
   description  String?
   actionType   OnboardingActionType @default(CONFIRM)
   actionTarget String?
+  xpReward     Int                  @default(10)
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 

@@ -11,6 +11,7 @@ export const onboardingModuleSettingsSchema = z.object({
     .min(8, "Disclaimer must be at least 8 characters")
     .max(2000),
   requiredCourseIds: z.array(z.string().trim().min(1)).max(50).optional(),
+  completionXpReward: z.coerce.number().int().min(0).max(10000),
 });
 
 export const onboardingStepSchema = z
@@ -20,6 +21,7 @@ export const onboardingStepSchema = z
     trackScope: z.enum(onboardingTrackScopeOptions),
     actionType: z.enum(onboardingActionTypeOptions),
     actionTarget: z.string().trim().max(400).optional().or(z.literal("")),
+    xpReward: z.coerce.number().int().min(0).max(10000),
   })
   .superRefine((data, ctx) => {
     const target = (data.actionTarget || "").trim();
