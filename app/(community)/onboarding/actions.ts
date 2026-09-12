@@ -22,17 +22,20 @@ export async function toggleMemberOnboardingStep(stepId: string, done: boolean) 
   revalidateMember();
 }
 
-export async function dismissMemberOnboarding() {
+export async function dismissMemberOnboarding(moduleId: string) {
   const user = await requireUser();
   if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
-  await dismissOnboarding(user.id);
+  if (!moduleId) throw new Error("Checklist is required");
+  await dismissOnboarding(user.id, moduleId);
   revalidateMember();
 }
 
-export async function reopenMemberOnboarding() {
+export async function reopenMemberOnboarding(formData: FormData) {
   const user = await requireUser();
   if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
-  await reopenOnboarding(user.id);
+  const moduleId = String(formData.get("moduleId") || "");
+  if (!moduleId) throw new Error("Checklist is required");
+  await reopenOnboarding(user.id, moduleId);
   revalidateMember();
   redirect("/home");
 }

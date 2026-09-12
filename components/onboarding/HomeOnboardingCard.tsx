@@ -17,11 +17,15 @@ export type HomeOnboardingStep = {
 };
 
 export default function HomeOnboardingCard({
+  moduleId,
+  title,
   steps,
   disclaimer,
   requiredCourses,
   completionXpReward,
 }: {
+  moduleId: string;
+  title: string;
   steps: HomeOnboardingStep[];
   disclaimer: string;
   requiredCourses: { done: number; total: number };
@@ -50,7 +54,7 @@ export default function HomeOnboardingCard({
     setError(null);
     startTransition(async () => {
       try {
-        await dismissMemberOnboarding();
+        await dismissMemberOnboarding(moduleId);
         setDismissOpen(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not dismiss");
@@ -63,7 +67,7 @@ export default function HomeOnboardingCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl tracking-wide">
-            GETTING <span className="text-gradient">STARTED</span>
+            {title}
           </h2>
           <p className="mt-1 font-body text-sm text-off-white/60">
             {doneCount}/{steps.length} step{steps.length === 1 ? "" : "s"} done

@@ -19,7 +19,7 @@ function SubmitButton() {
   );
 }
 
-export default function OnboardingStepCreateForm() {
+export default function OnboardingStepCreateForm({ programId }: { programId: string }) {
   const [state, formAction] = useFormState<OnboardingFormState, FormData>(
     createOnboardingStep,
     null
@@ -31,6 +31,7 @@ export default function OnboardingStepCreateForm() {
       action={formAction}
       className="glass mt-4 flex flex-col gap-3 rounded-2xl p-6"
     >
+      <input type="hidden" name="programId" value={programId} />
       <h3 className="font-display text-lg tracking-wide text-off-white/80">Add step</h3>
       <input name="title" required placeholder="Step title" className={fieldClass} />
       <textarea name="description" rows={2} placeholder="Optional details" className={fieldClass} />

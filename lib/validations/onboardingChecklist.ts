@@ -1,9 +1,22 @@
 import { z } from "zod";
 
+export const onboardingKindOptions = ["GETTING_STARTED", "CAMPAIGN", "CUSTOM"] as const;
 export const onboardingTrackScopeOptions = ["ALL", "CN", "MN"] as const;
 export const onboardingActionTypeOptions = ["LINK", "CONFIRM", "COURSE_LINK", "CUSTOM"] as const;
 
+export const onboardingProgramSchema = z.object({
+  title: z.string().trim().min(2, "Name must be at least 2 characters").max(80),
+  description: z.string().trim().max(400).optional().or(z.literal("")),
+  kind: z.enum(onboardingKindOptions),
+  assignOnFirstLogin: z.enum(["on", "true", "false"]).optional(),
+});
+
 export const onboardingModuleSettingsSchema = z.object({
+  programId: z.string().trim().min(1),
+  title: z.string().trim().min(2, "Name must be at least 2 characters").max(80),
+  description: z.string().trim().max(400).optional().or(z.literal("")),
+  kind: z.enum(onboardingKindOptions),
+  assignOnFirstLogin: z.enum(["on", "true", "false"]).optional(),
   enabled: z.enum(["on", "true", "false"]).optional(),
   dismissalDisclaimerText: z
     .string()

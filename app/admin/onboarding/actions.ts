@@ -1,15 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { hubHas } from "@/lib/hub/modules";
 import {
   onboardingModuleSettingsSchema,
+  onboardingProgramSchema,
   onboardingStepSchema,
 } from "@/lib/validations/onboardingChecklist";
-import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
+import { DEFAULT_ONBOARDING_DISCLAIMER, getOnboardingProgram } from "@/lib/onboarding/config";
 
 export type OnboardingFormState = { error?: string; ok?: string } | null;
 
@@ -41,11 +43,12 @@ async function requireAdmin() {
   return dbUser;
 }
 
-function revalidateOnboarding(userId?: string) {
+function revalidateOnboarding(programId?: string, userId?: string) {
   revalidatePath("/admin/onboarding");
   revalidatePath("/admin/users");
   revalidatePath("/home");
   revalidatePath("/account");
+  if (programId) revalidatePath(`/admin/onboarding/${programId}`);
   if (userId) revalidatePath(`/admin/users/${userId}`);
 }
 
@@ -60,14 +63,65 @@ function parseStep(formData: FormData) {
   });
 }
 
+export async function createOnboardingProgram(
+  _prev: OnboardingFormState,
+  formData: FormData
+): Promise<OnboardingFormState> {
+  try {
+    await requireAdmin();
+    const parsed = onboardingProgramSchema.safeParse({
+      title: fieldString(formData, "title"),
+      description: fieldString(formData, "description"),
+      kind: fieldString(formData, "kind") || "CUSTOM",
+      assignOnFirstLogin: formData.get("assignOnFirstLogin") ? "on" : "false",
+    });
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || "Invalid checklist" };
+    }
+    const created = await prisma.onboardingModule.create({
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description?.trim() || null,
+        kind: parsed.data.kind,
+        assignOnFirstLogin:
+          parsed.data.assignOnFirstLogin === "on" || parsed.data.assignOnFirstLogin === "true",
+        enabled: true,
+        dismissalDisclaimerText: DEFAULT_ONBOARDING_DISCLAIMER,
+      },
+    });
+    revalidateOnboarding(created.id);
+    redirect(`/admin/onboarding/${created.id}`);
+  } catch (err) {
+    if (err && typeof err === "object" && "digest" in err) throw err;
+    return actionError(err, "Could not create checklist");
+  }
+}
+
+export async function deleteOnboardingProgram(formData: FormData) {
+  try {
+    await requireAdmin();
+    const programId = fieldString(formData, "programId");
+    if (!programId) return;
+    await prisma.onboardingModule.delete({ where: { id: programId } });
+    revalidateOnboarding();
+  } catch (err) {
+    console.error("deleteOnboardingProgram failed:", err);
+  }
+  redirect("/admin/onboarding");
+}
+
 export async function updateOnboardingSettings(
   _prev: OnboardingFormState,
   formData: FormData
 ): Promise<OnboardingFormState> {
   try {
     await requireAdmin();
-    await getOrCreateOnboardingModule();
     const parsed = onboardingModuleSettingsSchema.safeParse({
+      programId: fieldString(formData, "programId"),
+      title: fieldString(formData, "title"),
+      description: fieldString(formData, "description"),
+      kind: fieldString(formData, "kind") || "CUSTOM",
+      assignOnFirstLogin: formData.get("assignOnFirstLogin") ? "on" : "false",
       enabled: formData.get("enabled") ? "on" : "false",
       dismissalDisclaimerText: fieldString(formData, "dismissalDisclaimerText"),
       requiredCourseIds: formData.getAll("requiredCourseIds").filter((v): v is string => typeof v === "string"),
@@ -77,15 +131,20 @@ export async function updateOnboardingSettings(
       return { error: parsed.error.issues[0]?.message || "Invalid settings" };
     }
     await prisma.onboardingModule.update({
-      where: { id: ONBOARDING_MODULE_ID },
+      where: { id: parsed.data.programId },
       data: {
+        title: parsed.data.title,
+        description: parsed.data.description?.trim() || null,
+        kind: parsed.data.kind,
+        assignOnFirstLogin:
+          parsed.data.assignOnFirstLogin === "on" || parsed.data.assignOnFirstLogin === "true",
         enabled: parsed.data.enabled === "on" || parsed.data.enabled === "true",
         dismissalDisclaimerText: parsed.data.dismissalDisclaimerText,
         requiredCourseIds: parsed.data.requiredCourseIds ?? [],
         completionXpReward: parsed.data.completionXpReward,
       },
     });
-    revalidateOnboarding();
+    revalidateOnboarding(parsed.data.programId);
     return { ok: "Settings saved." };
   } catch (err) {
     return actionError(err, "Could not save settings");
@@ -98,15 +157,17 @@ export async function createOnboardingStep(
 ): Promise<OnboardingFormState> {
   try {
     await requireAdmin();
-    const onboardingModule = await getOrCreateOnboardingModule();
+    const programId = fieldString(formData, "programId");
+    const program = await getOnboardingProgram(programId);
+    if (!program) return { error: "Checklist not found" };
     const parsed = parseStep(formData);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message || "Invalid step" };
     }
-    const last = onboardingModule.steps[onboardingModule.steps.length - 1];
+    const last = program.steps[program.steps.length - 1];
     await prisma.onboardingStep.create({
       data: {
-        moduleId: onboardingModule.id,
+        moduleId: program.id,
         order: (last?.order ?? 0) + 1,
         title: parsed.data.title,
         description: parsed.data.description?.trim() || null,
@@ -116,7 +177,7 @@ export async function createOnboardingStep(
         xpReward: parsed.data.xpReward,
       },
     });
-    revalidateOnboarding();
+    revalidateOnboarding(program.id);
     return { ok: "Step added." };
   } catch (err) {
     return actionError(err, "Could not add step");
@@ -133,7 +194,7 @@ export async function updateOnboardingStep(formData: FormData) {
       console.error("updateOnboardingStep invalid:", parsed.error.issues[0]?.message);
       return;
     }
-    await prisma.onboardingStep.update({
+    const updated = await prisma.onboardingStep.update({
       where: { id: stepId },
       data: {
         title: parsed.data.title,
@@ -144,7 +205,7 @@ export async function updateOnboardingStep(formData: FormData) {
         xpReward: parsed.data.xpReward,
       },
     });
-    revalidateOnboarding();
+    revalidateOnboarding(updated.moduleId);
   } catch (err) {
     console.error("updateOnboardingStep failed:", err);
   }
@@ -155,8 +216,8 @@ export async function deleteOnboardingStep(formData: FormData) {
     await requireAdmin();
     const stepId = fieldString(formData, "stepId");
     if (!stepId) return;
-    await prisma.onboardingStep.delete({ where: { id: stepId } });
-    revalidateOnboarding();
+    const step = await prisma.onboardingStep.delete({ where: { id: stepId } });
+    revalidateOnboarding(step.moduleId);
   } catch (err) {
     console.error("deleteOnboardingStep failed:", err);
   }
@@ -168,18 +229,21 @@ export async function moveOnboardingStep(formData: FormData) {
     const stepId = fieldString(formData, "stepId");
     const direction = fieldString(formData, "direction") === "down" ? "down" : "up";
     if (!stepId) return;
-    const onboardingModule = await getOrCreateOnboardingModule();
-    const index = onboardingModule.steps.findIndex((s) => s.id === stepId);
+    const current = await prisma.onboardingStep.findUnique({ where: { id: stepId } });
+    if (!current) return;
+    const program = await getOnboardingProgram(current.moduleId);
+    if (!program) return;
+    const index = program.steps.findIndex((s) => s.id === stepId);
     if (index < 0) return;
     const swapWith = direction === "up" ? index - 1 : index + 1;
-    if (swapWith < 0 || swapWith >= onboardingModule.steps.length) return;
-    const a = onboardingModule.steps[index];
-    const b = onboardingModule.steps[swapWith];
+    if (swapWith < 0 || swapWith >= program.steps.length) return;
+    const a = program.steps[index];
+    const b = program.steps[swapWith];
     await prisma.$transaction([
       prisma.onboardingStep.update({ where: { id: a.id }, data: { order: b.order } }),
       prisma.onboardingStep.update({ where: { id: b.id }, data: { order: a.order } }),
     ]);
-    revalidateOnboarding();
+    revalidateOnboarding(program.id);
   } catch (err) {
     console.error("moveOnboardingStep failed:", err);
   }

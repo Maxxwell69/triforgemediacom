@@ -45,7 +45,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       {
         href: "/admin/onboarding",
         label: "Onboarding",
-        description: "Member checklist steps, required courses, dismiss disclaimer",
+        description: "Named checklists: Getting Started, campaigns, custom paths",
         sku: "onboardingChecklist",
       },
       {
