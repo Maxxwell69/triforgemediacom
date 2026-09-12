@@ -98,12 +98,12 @@ async function tryCompleteProgress(
 export async function ensureOnboardingProgress(userId: string) {
   if (!onboardingEnabled()) return null;
   try {
-    const module = await getOrCreateOnboardingModule();
-    if (!module.enabled) return null;
+    const onboardingModule = await getOrCreateOnboardingModule();
+    if (!onboardingModule.enabled) return null;
     return prisma.userOnboardingProgress.upsert({
-      where: { userId_moduleId: { userId, moduleId: module.id } },
+      where: { userId_moduleId: { userId, moduleId: onboardingModule.id } },
       update: {},
-      create: { userId, moduleId: module.id, status: "IN_PROGRESS" },
+      create: { userId, moduleId: onboardingModule.id, status: "IN_PROGRESS" },
     });
   } catch (err) {
     console.error("ensureOnboardingProgress skipped:", err);
@@ -113,13 +113,13 @@ export async function ensureOnboardingProgress(userId: string) {
 
 export async function assignOnboardingProgress(userId: string, adminId: string) {
   if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
-  const module = await getOrCreateOnboardingModule();
-  if (!module.enabled) throw new Error("Onboarding is turned off for this hub");
+  const onboardingModule = await getOrCreateOnboardingModule();
+  if (!onboardingModule.enabled) throw new Error("Onboarding is turned off for this hub");
   return prisma.userOnboardingProgress.upsert({
-    where: { userId_moduleId: { userId, moduleId: module.id } },
+    where: { userId_moduleId: { userId, moduleId: onboardingModule.id } },
     create: {
       userId,
-      moduleId: module.id,
+      moduleId: onboardingModule.id,
       status: "IN_PROGRESS",
       assignedById: adminId,
       assignedAt: new Date(),
@@ -142,17 +142,25 @@ export async function assignOnboardingProgress(userId: string, adminId: string) 
 
 export async function loadMemberOnboarding(userId: string) {
   if (!onboardingEnabled()) return null;
-  const module = await getOrCreateOnboardingModule();
-  if (!module.enabled) return null;
+  const onboardingModule = await getOrCreateOnboardingModule();
+  if (!onboardingModule.enabled) return null;
   const [progress, track] = await Promise.all([
     prisma.userOnboardingProgress.findUnique({
-      where: { userId_moduleId: { userId, moduleId: module.id } },
+      where: { userId_moduleId: { userId, moduleId: onboardingModule.id } },
     }),
     getUserNetworkTrack(userId),
   ]);
-  if (!progress) return { module, progress: null, track, steps: [], completedStepIds: [] as string[] };
+  if (!progress) {
+    return {
+      module: onboardingModule,
+      progress: null,
+      track,
+      steps: [],
+      completedStepIds: [] as string[],
+    };
+  }
 
-  const visible = visibleOnboardingSteps(module.steps, track);
+  const visible = visibleOnboardingSteps(onboardingModule.steps, track);
   const synced = await syncCourseLinkedSteps(userId, visible, progress.completedStepIds);
   if (synced.length !== progress.completedStepIds.length || synced.some((id) => !progress.completedStepIds.includes(id))) {
     await prisma.userOnboardingProgress.update({
@@ -165,13 +173,13 @@ export async function loadMemberOnboarding(userId: string) {
     const completed = await tryCompleteProgress(
       userId,
       synced,
-      module.requiredCourseIds,
+      onboardingModule.requiredCourseIds,
       visible.map((s) => s.id)
     );
     if (completed) progress.status = "COMPLETED";
   }
 
-  return { module, progress, track, steps: visible, completedStepIds: synced };
+  return { module: onboardingModule, progress, track, steps: visible, completedStepIds: synced };
 }
 
 export async function toggleOnboardingStep(userId: string, stepId: string, done: boolean) {
