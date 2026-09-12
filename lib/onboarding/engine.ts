@@ -2,13 +2,12 @@ import "server-only";
 
 import type {
   OnboardingActionType,
-  OnboardingProgressStatus,
   OnboardingStep,
   OnboardingTrackScope,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUserNetworkTrack, type NetworkTrack } from "@/lib/mnCn";
-import { onboardingEnabled } from "@/lib/onboarding/module";
+import { onboardingEnabled } from "@/lib/onboarding/access";
 import { getOrCreateOnboardingModule, ONBOARDING_MODULE_ID } from "@/lib/onboarding/config";
 
 export function visibleOnboardingSteps<
@@ -17,18 +16,6 @@ export function visibleOnboardingSteps<
   return steps.filter((step) => step.trackScope === "ALL" || (track && step.trackScope === track));
 }
 
-export function onboardingStatusLabel(status: OnboardingProgressStatus | "NOT_STARTED") {
-  switch (status) {
-    case "IN_PROGRESS":
-      return "In progress";
-    case "DISMISSED":
-      return "Dismissed";
-    case "COMPLETED":
-      return "Completed";
-    default:
-      return "Not started";
-  }
-}
 
 export function stepHref(step: {
   actionType: OnboardingActionType;
@@ -152,7 +139,7 @@ export async function loadMemberOnboarding(userId: string) {
   ]);
   if (!progress) {
     return {
-      module: onboardingModule,
+      config: onboardingModule,
       progress: null,
       track,
       steps: [],
@@ -179,7 +166,7 @@ export async function loadMemberOnboarding(userId: string) {
     if (completed) progress.status = "COMPLETED";
   }
 
-  return { module: onboardingModule, progress, track, steps: visible, completedStepIds: synced };
+  return { config: onboardingModule, progress, track, steps: visible, completedStepIds: synced };
 }
 
 export async function toggleOnboardingStep(userId: string, stepId: string, done: boolean) {
@@ -202,7 +189,7 @@ export async function toggleOnboardingStep(userId: string, stepId: string, done:
   await tryCompleteProgress(
     userId,
     completedStepIds,
-    loaded.module.requiredCourseIds,
+    loaded.config.requiredCourseIds,
     loaded.steps.map((s) => s.id)
   );
 }
@@ -222,7 +209,7 @@ export async function dismissOnboarding(userId: string) {
       },
     }),
     prisma.onboardingDismissalLog.create({
-      data: { userId, moduleId: loaded.module.id, action: "DISMISSED" },
+      data: { userId, moduleId: loaded.config.id, action: "DISMISSED" },
     }),
   ]);
 }
@@ -243,7 +230,7 @@ export async function reopenOnboarding(userId: string) {
       },
     }),
     prisma.onboardingDismissalLog.create({
-      data: { userId, moduleId: loaded.module.id, action: "REOPENED" },
+      data: { userId, moduleId: loaded.config.id, action: "REOPENED" },
     }),
   ]);
 }

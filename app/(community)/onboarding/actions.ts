@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
-import { onboardingEnabled } from "@/lib/onboarding/module";
+import { onboardingEnabled } from "@/lib/onboarding/access";
 import {
   dismissOnboarding,
   reopenOnboarding,

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireOnboardingModule } from "@/lib/onboarding/module";
+import { requireOnboardingModule } from "@/lib/onboarding/access";
 import { getOrCreateOnboardingModule } from "@/lib/onboarding/config";
 import {
   createOnboardingStep,
@@ -31,62 +31,7 @@ export default async function AdminOnboardingPage() {
         automatically; existing members only if you assign it.
       </p>
 
-      <form action={updateOnboardingSettings} className="glass mt-8 flex flex-col gap-4 rounded-2xl p-6">
-        <h2 className="font-display text-xl tracking-wide text-off-white/80">Settings</h2>
-        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
-          <input
-            type="checkbox"
-            name="enabled"
-            defaultChecked={onboardingModule.enabled}
-            className="accent-orange"
-          />
-          Show the checklist to members (SKU must also be on)
-        </label>
-        <label className="font-body text-sm text-off-white/70">
-          Dismiss disclaimer
-          <textarea
-            name="dismissalDisclaimerText"
-            required
-            rows={3}
-            defaultValue={onboardingModule.dismissalDisclaimerText}
-            className={`${fieldClass} mt-1`}
-          />
-        </label>
-        <fieldset>
-          <legend className="font-body text-sm text-off-white/70">Required courses</legend>
-          <p className="mt-1 font-body text-xs text-off-white/40">
-            Checklist cannot complete until these courses are finished.
-          </p>
-          <div className="mt-2 flex flex-col gap-1.5">
-            {courses.length === 0 && (
-              <p className="font-body text-xs text-off-white/40">No courses yet.</p>
-            )}
-            {courses.map((course) => (
-              <label
-                key={course.id}
-                className="flex items-center gap-2 font-body text-sm text-off-white/75"
-              >
-                <input
-                  type="checkbox"
-                  name="requiredCourseIds"
-                  value={course.id}
-                  defaultChecked={onboardingModule.requiredCourseIds.includes(course.id)}
-                  className="accent-orange"
-                />
-                {course.title}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <button
-          type="submit"
-          className="self-start rounded-lg bg-orange px-5 py-2 font-body text-sm font-semibold text-off-white shadow-glow"
-        >
-          Save settings
-        </button>
-      </form>
-
-      <section className="mt-10">
+      <section className="mt-8">
         <h2 className="font-display text-2xl tracking-wide text-off-white/80">Steps</h2>
         <p className="mt-1 font-body text-sm text-off-white/50">
           ALL steps show to everyone. CN / MN steps only show for that track.
@@ -128,11 +73,6 @@ export default async function AdminOnboardingPage() {
               className={`${fieldClass} mt-1`}
             />
           </label>
-          {courses.length > 0 && (
-            <p className="font-body text-xs text-off-white/40">
-              Course ids: {courses.map((c) => `${c.title} → ${c.id}`).join(" · ")}
-            </p>
-          )}
           <button
             type="submit"
             className="self-start rounded-lg bg-cyan/90 px-4 py-2 font-body text-sm font-semibold text-charcoal"
@@ -144,12 +84,13 @@ export default async function AdminOnboardingPage() {
         <div className="mt-4 flex flex-col gap-3">
           {onboardingModule.steps.length === 0 && (
             <p className="glass rounded-xl p-4 font-body text-sm text-off-white/40">
-              No steps yet. Add the first one above.
+              No steps yet. Add the first one above — that is what members see on Home.
             </p>
           )}
           {onboardingModule.steps.map((step, index) => (
             <div key={step.id} className="glass flex flex-col gap-3 rounded-xl p-4">
-              <form action={updateOnboardingStep.bind(null, step.id)} className="flex flex-col gap-2">
+              <form action={updateOnboardingStep} className="flex flex-col gap-2">
+                <input type="hidden" name="stepId" value={step.id} />
                 <input name="title" required defaultValue={step.title} className={fieldClass} />
                 <textarea
                   name="description"
@@ -184,7 +125,9 @@ export default async function AdminOnboardingPage() {
                 </button>
               </form>
               <div className="flex flex-wrap gap-2">
-                <form action={moveOnboardingStep.bind(null, step.id, "up")}>
+                <form action={moveOnboardingStep}>
+                  <input type="hidden" name="stepId" value={step.id} />
+                  <input type="hidden" name="direction" value="up" />
                   <button
                     type="submit"
                     disabled={index === 0}
@@ -193,7 +136,9 @@ export default async function AdminOnboardingPage() {
                     Up
                   </button>
                 </form>
-                <form action={moveOnboardingStep.bind(null, step.id, "down")}>
+                <form action={moveOnboardingStep}>
+                  <input type="hidden" name="stepId" value={step.id} />
+                  <input type="hidden" name="direction" value="down" />
                   <button
                     type="submit"
                     disabled={index === onboardingModule.steps.length - 1}
@@ -202,7 +147,8 @@ export default async function AdminOnboardingPage() {
                     Down
                   </button>
                 </form>
-                <form action={deleteOnboardingStep.bind(null, step.id)}>
+                <form action={deleteOnboardingStep}>
+                  <input type="hidden" name="stepId" value={step.id} />
                   <button
                     type="submit"
                     className="rounded-lg border border-orange/30 px-3 py-1.5 font-body text-xs font-semibold text-orange"
@@ -215,6 +161,61 @@ export default async function AdminOnboardingPage() {
           ))}
         </div>
       </section>
+
+      <form action={updateOnboardingSettings} className="glass mt-10 flex flex-col gap-4 rounded-2xl p-6">
+        <h2 className="font-display text-xl tracking-wide text-off-white/80">Settings</h2>
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="enabled"
+            defaultChecked={onboardingModule.enabled}
+            className="accent-orange"
+          />
+          Show the checklist to members (SKU must also be on)
+        </label>
+        <label className="font-body text-sm text-off-white/70">
+          Dismiss disclaimer
+          <textarea
+            name="dismissalDisclaimerText"
+            required
+            rows={3}
+            defaultValue={onboardingModule.dismissalDisclaimerText}
+            className={`${fieldClass} mt-1`}
+          />
+        </label>
+        <fieldset>
+          <legend className="font-body text-sm text-off-white/70">Required courses</legend>
+          <p className="mt-1 font-body text-xs text-off-white/40">
+            Checklist cannot complete until these courses are finished.
+          </p>
+          <div className="mt-2 max-h-56 overflow-y-auto flex flex-col gap-1.5 pr-1">
+            {courses.length === 0 && (
+              <p className="font-body text-xs text-off-white/40">No courses yet.</p>
+            )}
+            {courses.map((course) => (
+              <label
+                key={course.id}
+                className="flex items-center gap-2 font-body text-sm text-off-white/75"
+              >
+                <input
+                  type="checkbox"
+                  name="requiredCourseIds"
+                  value={course.id}
+                  defaultChecked={onboardingModule.requiredCourseIds.includes(course.id)}
+                  className="accent-orange"
+                />
+                {course.title}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <button
+          type="submit"
+          className="self-start rounded-lg bg-orange px-5 py-2 font-body text-sm font-semibold text-off-white shadow-glow"
+        >
+          Save settings
+        </button>
+      </form>
     </main>
   );
 }
