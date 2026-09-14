@@ -10,7 +10,7 @@ import type {
 import { prisma } from "@/lib/prisma";
 import { getUserNetworkTrack, type NetworkTrack } from "@/lib/mnCn";
 import { isAdminRole } from "@/lib/rbac";
-import { onboardingEnabled } from "@/lib/onboarding/access";
+import { onboardingEnabled, onboardingLive } from "@/lib/onboarding/access";
 import { getOnboardingProgram, listFirstLoginPrograms } from "@/lib/onboarding/config";
 import {
   MEMBER_MENU_IDS,
@@ -129,7 +129,7 @@ async function tryCompleteProgress(
 
 /** New-member trigger: assign every enabled first-login program if no row exists. */
 export async function ensureOnboardingProgress(userId: string) {
-  if (!onboardingEnabled()) return null;
+  if (!(await onboardingLive())) return null;
   try {
     const programs = await listFirstLoginPrograms();
     const created = [];
@@ -194,7 +194,7 @@ export type MemberOnboardingCard = {
 };
 
 export async function loadMemberOnboardings(userId: string): Promise<MemberOnboardingCard[]> {
-  if (!onboardingEnabled()) return [];
+  if (!(await onboardingLive())) return [];
   const [progressRows, track] = await Promise.all([
     prisma.userOnboardingProgress.findMany({ where: { userId } }),
     getUserNetworkTrack(userId),
@@ -369,7 +369,7 @@ async function isCourseFullyComplete(userId: string, courseId: string) {
 
 /** Check off in-progress COURSE_LINK steps when the member actually finishes that course. */
 export async function applyCourseCompletionToOnboarding(userId: string, courseId: string) {
-  if (!onboardingEnabled() || !courseId) return;
+  if (!(await onboardingLive()) || !courseId) return;
   try {
     if (!(await isCourseFullyComplete(userId, courseId))) return;
     const [rows, track] = await Promise.all([
@@ -465,7 +465,7 @@ export async function getOnboardingMenuLock(
   userId: string,
   role: UserRole | undefined | null
 ): Promise<Set<string> | null> {
-  if (!onboardingEnabled() || isAdminRole(role)) return null;
+  if (!(await onboardingLive()) || isAdminRole(role)) return null;
   try {
     const rows = await prisma.userOnboardingProgress.findMany({
       where: {

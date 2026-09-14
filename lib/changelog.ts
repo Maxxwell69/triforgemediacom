@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.191",
+    date: "September 14, 2026",
+    title: "Onboarding activate switch",
+    summary:
+      "Admins can build checklists first. Members only see onboarding after you hit Activate.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Onboarding: Activate / Deactivate so first-login lists stay off until you are ready",
+      },
+    ],
+  },
+  {
     version: "3.190",
     date: "September 14, 2026",
     title: "Interview take-spot and booking",
