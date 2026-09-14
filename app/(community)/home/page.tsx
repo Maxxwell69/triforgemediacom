@@ -11,7 +11,7 @@ import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
 import VideoEmbed from "@/components/VideoEmbed";
 import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
-import { loadMemberOnboardings, requiredCourseProgress, stepHref, getOnboardingMenuLock } from "@/lib/onboarding/engine";
+import { loadMemberOnboardings, loadRequiredCourseLinks, stepHref, getOnboardingMenuLock } from "@/lib/onboarding/engine";
 import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import HomeOnboardingCard from "@/components/onboarding/HomeOnboardingCard";
 
@@ -66,9 +66,26 @@ export default async function HomePage() {
   const onboardingCards = hubHas("onboardingChecklist")
     ? (await loadMemberOnboardings(user.id)).filter((card) => card.progress.status === "IN_PROGRESS")
     : [];
-  const onboardingCourseStats = await Promise.all(
-    onboardingCards.map((card) => requiredCourseProgress(user.id, card.config.requiredCourseIds))
+  const onboardingCourseLinks = await Promise.all(
+    onboardingCards.map((card) => loadRequiredCourseLinks(user.id, card.config.requiredCourseIds))
   );
+  const courseIdsFromSteps = Array.from(
+    new Set(
+      onboardingCards.flatMap((card) =>
+        card.steps
+          .filter((step) => step.actionType === "COURSE_LINK" && step.actionTarget)
+          .map((step) => step.actionTarget as string)
+      )
+    )
+  );
+  const stepCourses =
+    courseIdsFromSteps.length > 0
+      ? await prisma.course.findMany({
+          where: { id: { in: courseIdsFromSteps } },
+          select: { id: true, title: true },
+        })
+      : [];
+  const stepCourseTitle = new Map(stepCourses.map((course) => [course.id, course.title]));
 
   let campaignStat: string | null = null;
   if (hubHas("hubCampaigns")) {
@@ -120,12 +137,17 @@ export default async function HomePage() {
                   title: step.title,
                   description: step.description,
                   href: stepHref(step),
+                  courseTitle:
+                    step.actionType === "COURSE_LINK" && step.actionTarget
+                      ? stepCourseTitle.get(step.actionTarget) ?? null
+                      : null,
                   done: card.completedStepIds.includes(step.id),
                   xpReward: step.xpReward,
                 }))}
                 disclaimer={card.config.dismissalDisclaimerText}
-                requiredCourses={onboardingCourseStats[index] ?? { done: 0, total: 0 }}
+                requiredCourses={onboardingCourseLinks[index] ?? []}
                 completionXpReward={card.config.completionXpReward}
+                explainerVideoUrl={card.config.explainerVideoUrl}
               />
             ))}
           </div>

@@ -327,6 +327,24 @@ export async function requiredCourseProgress(userId: string, courseIds: string[]
   return { done, total: courseIds.length };
 }
 
+export async function loadRequiredCourseLinks(userId: string, courseIds: string[]) {
+  if (courseIds.length === 0) return [];
+  const [courses, doneIds] = await Promise.all([
+    prisma.course.findMany({
+      where: { id: { in: courseIds } },
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+    completedCourseIds(userId, courseIds),
+  ]);
+  return courses.map((course) => ({
+    id: course.id,
+    title: course.title,
+    href: `/learn/${course.id}`,
+    done: doneIds.has(course.id),
+  }));
+}
+
 export function summarizeOnboardingStatus(
   rows: { status: "NOT_STARTED" | "IN_PROGRESS" | "DISMISSED" | "COMPLETED" }[]
 ) {

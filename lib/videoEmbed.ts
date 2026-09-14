@@ -48,6 +48,23 @@ export function getVideoEmbedUrl(rawUrl: string | null | undefined): string | nu
   return null;
 }
 
+/** True when the URL looks like a direct video file we can play with <video>. */
+export function isDirectVideoUrl(rawUrl: string | null | undefined): boolean {
+  if (!rawUrl) return false;
+  try {
+    const url = new URL(rawUrl.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    return /\.(mp4|webm|mov)(\?|#|$)/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+export function isPlayableVideoUrl(rawUrl: string | null | undefined): boolean {
+  if (!rawUrl) return false;
+  return Boolean(getVideoEmbedUrl(rawUrl) || isDirectVideoUrl(rawUrl));
+}
+
 export type SanitizedIframe = {
   src: string;
   width?: string;

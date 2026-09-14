@@ -172,6 +172,40 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.187",
+    date: "September 14, 2026",
+    title: "Onboarding course steps",
+    summary:
+      "Admins pick a course from a dropdown when a checklist step opens a course, and members get a button to open that course.",
+    items: [
+      {
+        kind: "feature",
+        text: "Choosing Open a course on an onboarding step shows a dropdown of hub courses instead of a course id",
+      },
+      {
+        kind: "feature",
+        text: "Members can click Open [course] on Home to go straight to each selected course",
+      },
+    ],
+  },
+  {
+    version: "3.186",
+    date: "September 14, 2026",
+    title: "Onboarding explainer video",
+    summary:
+      "Each checklist can show an explainer video under its title — upload a file or paste YouTube or Vimeo.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin Onboarding settings let you upload or link an explainer video under the checklist name",
+      },
+      {
+        kind: "feature",
+        text: "Assigned members see that video on Home under the checklist title",
+      },
+    ],
+  },
+  {
     version: "3.185",
     date: "September 14, 2026",
     title: "Onboarding menu lock",

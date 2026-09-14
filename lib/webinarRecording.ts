@@ -1,15 +1,6 @@
-import { getVideoEmbedUrl } from "@/lib/videoEmbed";
+import { getVideoEmbedUrl, isDirectVideoUrl } from "@/lib/videoEmbed";
 
-/** True when the URL looks like a direct video file we can play with <video>. */
-export function isDirectVideoUrl(rawUrl: string): boolean {
-  try {
-    const url = new URL(rawUrl.trim());
-    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
-    return /\.(mp4|webm|mov)(\?|#|$)/i.test(url.pathname);
-  } catch {
-    return false;
-  }
-}
+export { isDirectVideoUrl } from "@/lib/videoEmbed";
 
 export type RecordingPlayback =
   | { kind: "embed"; src: string }

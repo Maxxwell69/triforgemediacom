@@ -7,6 +7,7 @@ import {
   ALLOWED_VIDEO_EXTENSIONS,
   MAX_SHOP_FILE_BYTES,
   MAX_SOCIAL_PLANNER_VIDEO_BYTES,
+  MAX_ONBOARDING_VIDEO_BYTES,
   MAX_UPLOAD_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
 } from "@/lib/uploadConstraints";
@@ -282,6 +283,41 @@ export async function createPresignedSocialPlannerUpload(opts: {
   const { bucketName, publicUrl } = getBucketConfig();
   const client = getR2Client();
   const key = `social-planner/${randomUUID()}.${extension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: opts.contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 60 * 60 });
+
+  return {
+    uploadUrl,
+    publicUrl: `${publicUrl}/${key}`,
+    key,
+  };
+}
+
+/** Presigned PUT for onboarding explainer videos (browser uploads directly to R2). */
+export async function createPresignedOnboardingVideoUpload(opts: {
+  programId: string;
+  contentType: string;
+  fileSize: number;
+}) {
+  const programId = opts.programId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!programId) throw new Error("Invalid checklist");
+  const extension = ALLOWED_VIDEO_EXTENSIONS[opts.contentType];
+  if (!extension) {
+    throw new Error("Unsupported video type. Use MP4, WebM, or MOV.");
+  }
+  if (opts.fileSize <= 0 || opts.fileSize > MAX_ONBOARDING_VIDEO_BYTES) {
+    throw new Error("File is too large. Max size for explainer videos is 250MB.");
+  }
+
+  const { bucketName, publicUrl } = getBucketConfig();
+  const client = getR2Client();
+  const key = `onboarding-videos/${programId}/${randomUUID()}.${extension}`;
 
   const command = new PutObjectCommand({
     Bucket: bucketName,

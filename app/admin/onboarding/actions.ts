@@ -13,6 +13,7 @@ import {
 } from "@/lib/validations/onboardingChecklist";
 import { DEFAULT_ONBOARDING_DISCLAIMER, getOnboardingProgram } from "@/lib/onboarding/config";
 import { MEMBER_MENU_IDS } from "@/lib/onboarding/menu";
+import { isPlayableVideoUrl } from "@/lib/videoEmbed";
 
 export type OnboardingFormState = { error?: string; ok?: string } | null;
 
@@ -128,10 +129,20 @@ export async function updateOnboardingSettings(
       dismissalDisclaimerText: fieldString(formData, "dismissalDisclaimerText"),
       requiredCourseIds: formData.getAll("requiredCourseIds").filter((v): v is string => typeof v === "string"),
       allowedMenuIds: formData.getAll("allowedMenuIds").filter((v): v is string => typeof v === "string"),
+      explainerVideoUrl: fieldString(formData, "explainerVideoUrl"),
       completionXpReward: fieldString(formData, "completionXpReward") || "50",
     });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message || "Invalid settings" };
+    }
+    let explainerVideoUrl = parsed.data.explainerVideoUrl?.trim() || "";
+    if (explainerVideoUrl && !/^https?:\/\//i.test(explainerVideoUrl)) {
+      explainerVideoUrl = `https://${explainerVideoUrl}`;
+    }
+    if (explainerVideoUrl && !isPlayableVideoUrl(explainerVideoUrl)) {
+      return {
+        error: "Paste a YouTube or Vimeo link, upload an MP4, or leave the video blank.",
+      };
     }
     await prisma.onboardingModule.update({
       where: { id: parsed.data.programId },
@@ -145,6 +156,7 @@ export async function updateOnboardingSettings(
         dismissalDisclaimerText: parsed.data.dismissalDisclaimerText,
         requiredCourseIds: parsed.data.requiredCourseIds ?? [],
         allowedMenuIds: (parsed.data.allowedMenuIds ?? []).filter((id) => MEMBER_MENU_IDS.has(id)),
+        explainerVideoUrl: explainerVideoUrl || null,
         completionXpReward: parsed.data.completionXpReward,
       },
     });

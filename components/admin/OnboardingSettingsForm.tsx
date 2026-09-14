@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { updateOnboardingSettings, type OnboardingFormState } from "@/app/admin/onboarding/actions";
 import type { OnboardingKind } from "@prisma/client";
 import { MEMBER_MENU_ITEMS, SELECTABLE_MEMBER_MENU_ITEMS } from "@/lib/onboarding/menu";
+import OnboardingExplainerVideoField from "@/components/admin/OnboardingExplainerVideoField";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
@@ -32,6 +33,7 @@ export default function OnboardingSettingsForm({
   requiredCourseIds,
   completionXpReward,
   allowedMenuIds,
+  explainerVideoUrl,
   courses,
 }: {
   programId: string;
@@ -44,6 +46,7 @@ export default function OnboardingSettingsForm({
   requiredCourseIds: string[];
   completionXpReward: number;
   allowedMenuIds: string[];
+  explainerVideoUrl: string;
   courses: { id: string; title: string }[];
 }) {
   const [state, formAction] = useFormState<OnboardingFormState, FormData>(
@@ -59,6 +62,7 @@ export default function OnboardingSettingsForm({
         Name
         <input name="title" required defaultValue={title} className={`${fieldClass} mt-1`} />
       </label>
+      <OnboardingExplainerVideoField programId={programId} defaultValue={explainerVideoUrl} />
       <label className="font-body text-sm text-off-white/70">
         Description
         <textarea

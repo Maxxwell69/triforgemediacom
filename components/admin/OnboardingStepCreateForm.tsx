@@ -2,6 +2,9 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { createOnboardingStep, type OnboardingFormState } from "@/app/admin/onboarding/actions";
+import OnboardingStepActionFields, {
+  type OnboardingCourseOption,
+} from "@/components/admin/OnboardingStepActionFields";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
@@ -19,7 +22,13 @@ function SubmitButton() {
   );
 }
 
-export default function OnboardingStepCreateForm({ programId }: { programId: string }) {
+export default function OnboardingStepCreateForm({
+  programId,
+  courses,
+}: {
+  programId: string;
+  courses: OnboardingCourseOption[];
+}) {
   const [state, formAction] = useFormState<OnboardingFormState, FormData>(
     createOnboardingStep,
     null
@@ -44,24 +53,8 @@ export default function OnboardingStepCreateForm({ programId }: { programId: str
             <option value="MN">MN only</option>
           </select>
         </label>
-        <label className="font-body text-sm text-off-white/70">
-          Action
-          <select name="actionType" defaultValue="CONFIRM" className={`${fieldClass} mt-1`}>
-            <option value="CONFIRM">Confirm / check off</option>
-            <option value="LINK">Open a link</option>
-            <option value="COURSE_LINK">Open a course</option>
-            <option value="CUSTOM">Custom path</option>
-          </select>
-        </label>
+        <OnboardingStepActionFields courses={courses} />
       </div>
-      <label className="font-body text-sm text-off-white/70">
-        Target (needed for a link or course — leave blank to just check off)
-        <input
-          name="actionTarget"
-          placeholder="/account/profile, https://…, or a course id"
-          className={`${fieldClass} mt-1`}
-        />
-      </label>
       <label className="font-body text-sm text-off-white/70">
         XP for completing this step
         <input
