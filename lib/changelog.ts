@@ -172,6 +172,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.190",
+    date: "September 14, 2026",
+    title: "Interview take-spot and booking",
+    summary:
+      "Taking an interview spot joins the campaign without crashing, then members book a time from the staff booking page attached to that campaign.",
+    items: [
+      {
+        kind: "fix",
+        text: "Take spot on a hub campaign now claims the numbered seat and stays on the campaign instead of the error page",
+      },
+      {
+        kind: "feature",
+        text: "Interview campaigns can attach a staff booking page; after you take a spot, Book time opens that calendar",
+      },
+    ],
+  },
+  {
     version: "3.189",
     date: "September 14, 2026",
     title: "Course steps check off",

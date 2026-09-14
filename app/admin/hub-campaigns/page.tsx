@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { requireHubCampaignsModule, hubCampaignCategoryMeta, hubCampaignStatusLabel } from "@/lib/hubCampaigns";
+import { requireHubCampaignsModule, hubCampaignCategoryMeta, hubCampaignStatusLabel, listActiveHubCampaignBookingPages } from "@/lib/hubCampaigns";
 import { createHubCampaign } from "./actions";
 import HubCampaignForm from "@/components/admin/HubCampaignForm";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminHubCampaignsPage() {
   requireHubCampaignsModule();
 
-  const [campaigns, tags, badges] = await Promise.all([
+  const [campaigns, tags, badges, bookingPages] = await Promise.all([
     prisma.hubCampaign.findMany({
       where: { status: { not: "ARCHIVED" } },
       orderBy: { updatedAt: "desc" },
@@ -21,6 +21,7 @@ export default async function AdminHubCampaignsPage() {
     }),
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listActiveHubCampaignBookingPages(),
   ]);
 
   return (
@@ -39,6 +40,7 @@ export default async function AdminHubCampaignsPage() {
           action={createHubCampaign}
           tags={tags}
           badges={badges}
+          bookingPages={bookingPages}
           submitLabel="Create campaign"
         />
       </div>

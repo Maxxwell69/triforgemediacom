@@ -7,6 +7,7 @@ import {
   canJoinHubCampaign,
   canSeeHubCampaign,
   getUserCampaignAudience,
+  hubCampaignBookingPage,
   hubCampaignCategoryMeta,
   hubCampaignMemberSelect,
   hubCampaignStatusLabel,
@@ -36,6 +37,10 @@ export default async function CampaignDetailPage({
   const campaign = await prisma.hubCampaign.findUnique({
     where: { id: params.campaignId },
     include: {
+      createdBy: {
+        select: { bookingPage: { select: { id: true, slug: true, isActive: true } } },
+      },
+      bookingPage: { select: { id: true, slug: true, isActive: true } },
       audienceTag: { select: { name: true, color: true } },
       audienceBadge: { select: { name: true } },
       signups: {
@@ -43,12 +48,18 @@ export default async function CampaignDetailPage({
         include: {
           user: { select: hubCampaignMemberSelect },
           slot: { select: { startsAt: true, endsAt: true, network: true, position: true } },
+          appointment: { select: { startsAt: true, endsAt: true, status: true } },
         },
       },
       slots: {
         orderBy: [{ startsAt: "asc" }, { position: "asc" }],
         include: {
-          signup: { include: { user: { select: hubCampaignMemberSelect } } },
+          signup: {
+            include: {
+              user: { select: hubCampaignMemberSelect },
+              appointment: { select: { startsAt: true, endsAt: true, status: true } },
+            },
+          },
         },
       },
       tasks: {
@@ -94,6 +105,7 @@ export default async function CampaignDetailPage({
   const myTasks = campaign.tasks.filter((task) => isHubCampaignTaskForMember(task, user.id));
   const doneCount = myTasks.filter((t) => t.completions.length > 0).length;
   const campaignId = campaign.id;
+  const bookingPage = hubCampaignBookingPage(campaign);
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -196,14 +208,35 @@ export default async function CampaignDetailPage({
               Interview spots
             </h2>
             <p className="mt-1 font-body text-xs text-off-white/40">
-              Sign up to take the next open spot. Booked names show here.
+              Take a numbered spot to join. Then book a time from this campaign&apos;s booking page.
             </p>
             <div className="mt-4">
               <InterviewSpotsBoard
                 campaignId={campaign.id}
                 currentUserId={user.id}
                 canClaim={canClaimSpot && campaign.status !== "ARCHIVED"}
-                slots={campaign.slots}
+                bookingEnabled={!!bookingPage}
+                slots={campaign.slots.map((slot) => ({
+                  id: slot.id,
+                  startsAt: slot.startsAt.toISOString(),
+                  endsAt: slot.endsAt.toISOString(),
+                  network: slot.network,
+                  position: slot.position,
+                  signup: slot.signup
+                    ? {
+                        userId: slot.signup.userId,
+                        user: slot.signup.user,
+                        appointment:
+                          slot.signup.appointment && slot.signup.appointment.status === "CONFIRMED"
+                            ? {
+                                startsAt: slot.signup.appointment.startsAt.toISOString(),
+                                endsAt: slot.signup.appointment.endsAt.toISOString(),
+                                status: slot.signup.appointment.status,
+                              }
+                            : null,
+                      }
+                    : null,
+                }))}
               />
             </div>
           </section>
@@ -331,11 +364,16 @@ export default async function CampaignDetailPage({
                         {interviewNetworkLabel(signup.slot.network)
                           ? `${interviewNetworkLabel(signup.slot.network)} · `
                           : ""}
-                        Spot {signup.slot.position} ·{" "}
-                        <LocalWhen
-                          startsAt={signup.slot.startsAt.toISOString()}
-                          endsAt={signup.slot.endsAt.toISOString()}
-                        />
+                        Spot {signup.slot.position}
+                        {signup.appointment?.status === "CONFIRMED" ? (
+                          <>
+                            {" · "}
+                            <LocalWhen
+                              startsAt={signup.appointment.startsAt.toISOString()}
+                              endsAt={signup.appointment.endsAt.toISOString()}
+                            />
+                          </>
+                        ) : null}
                       </span>
                     )}
                   </span>

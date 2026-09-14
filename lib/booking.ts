@@ -322,18 +322,30 @@ export async function listOpenSlotsForPage(
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 }
 
+const activeBookingPageInclude = {
+  weeklyWindows: { orderBy: [{ dayOfWeek: "asc" as const }, { startMinute: "asc" as const }] },
+  meetingTypes: {
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
+  },
+  openSlots: { orderBy: { startsAt: "asc" as const } },
+  dateOverrides: {
+    orderBy: { localDate: "asc" as const },
+    include: { windows: { orderBy: { startMinute: "asc" as const } } },
+  },
+  host: { select: { id: true, name: true, email: true } },
+};
+
 export async function getActiveBookingPageBySlug(slug: string) {
   return prisma.bookingPage.findFirst({
     where: { slug, isActive: true },
-    include: {
-      weeklyWindows: { orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }] },
-      meetingTypes: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
-      openSlots: { orderBy: { startsAt: "asc" } },
-      dateOverrides: {
-        orderBy: { localDate: "asc" },
-        include: { windows: { orderBy: { startMinute: "asc" } } },
-      },
-      host: { select: { id: true, name: true, email: true } },
-    },
+    include: activeBookingPageInclude,
+  });
+}
+
+export async function getActiveBookingPageById(id: string) {
+  return prisma.bookingPage.findFirst({
+    where: { id, isActive: true },
+    include: activeBookingPageInclude,
   });
 }

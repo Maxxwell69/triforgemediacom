@@ -24,6 +24,7 @@ export const hubCampaignSchema = z
     audienceTagId: z.string().trim().optional().or(z.literal("")),
     audienceBadgeId: z.string().trim().optional().or(z.literal("")),
     capacity: z.string().trim().optional().or(z.literal("")),
+    bookingPageId: z.string().trim().optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (data.audienceType === "TAG" && !data.audienceTagId) {

@@ -179,3 +179,31 @@ export function audienceWhere(campaign: {
   }
   return base;
 }
+
+export async function listActiveHubCampaignBookingPages() {
+  const pages = await prisma.bookingPage.findMany({
+    where: { isActive: true },
+    orderBy: { title: "asc" },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      host: { select: { name: true, email: true } },
+    },
+  });
+  return pages.map((page) => ({
+    id: page.id,
+    name: `${page.title} · ${page.host.name?.trim() || page.slug}`,
+  }));
+}
+
+export function hubCampaignBookingPage(
+  campaign: {
+    bookingPage?: { id: string; slug: string; isActive: boolean } | null;
+    createdBy?: { bookingPage?: { id: string; slug: string; isActive: boolean } | null } | null;
+  }
+) {
+  if (campaign.bookingPage?.isActive) return campaign.bookingPage;
+  if (campaign.createdBy?.bookingPage?.isActive) return campaign.createdBy.bookingPage;
+  return null;
+}

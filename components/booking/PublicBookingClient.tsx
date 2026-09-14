@@ -25,6 +25,10 @@ type Props = {
   slots: OpenSlot[];
   meetingTypes: PublicMeetingType[];
   remindHourBefore: boolean;
+  lockedGuest?: { name: string; email: string };
+  bookFn?: (formData: FormData) => Promise<{ error: string | null; guestJoinUrl?: string }>;
+  doneHref?: string;
+  doneLabel?: string;
 };
 
 export default function PublicBookingClient({
@@ -37,12 +41,17 @@ export default function PublicBookingClient({
   slots,
   meetingTypes,
   remindHourBefore,
+  lockedGuest,
+  bookFn,
+  doneHref,
+  doneLabel,
 }: Props) {
   const [typeId, setTypeId] = useState<string | null>(meetingTypes[0]?.id ?? null);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<OpenSlot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [doneUrl, setDoneUrl] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const activeType = meetingTypes.find((t) => t.id === typeId) ?? null;
@@ -70,19 +79,29 @@ export default function PublicBookingClient({
 
   const daySlots = days.find((d) => d.key === dayKey)?.slots ?? [];
 
-  if (doneUrl) {
+  if (done) {
     return (
       <div className="glass rounded-2xl p-8 text-center">
         <h2 className="font-display text-3xl tracking-wide text-gradient">You&apos;re booked</h2>
         <p className="mt-3 font-body text-sm text-off-white/60">
           Confirmation emails are on the way with your meeting room link.
         </p>
-        <a
-          href={doneUrl}
-          className="mt-6 inline-block rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow"
-        >
-          Open meeting room
-        </a>
+        {doneUrl ? (
+          <a
+            href={doneUrl}
+            className="mt-6 inline-block rounded-lg bg-orange px-6 py-2.5 font-body text-sm font-semibold text-off-white shadow-glow"
+          >
+            Open meeting room
+          </a>
+        ) : null}
+        {doneHref ? (
+          <a
+            href={doneHref}
+            className={`block font-body text-sm text-cyan hover:underline ${doneUrl ? "mt-3" : "mt-6"}`}
+          >
+            {doneLabel || "Back"}
+          </a>
+        ) : null}
       </div>
     );
   }
@@ -190,11 +209,14 @@ export default function PublicBookingClient({
             formData.set("startsAt", selected.startsAt);
             if (typeId) formData.set("meetingTypeId", typeId);
             startTransition(async () => {
-              const result = await bookAppointment(slug, formData);
+              const result = bookFn
+                ? await bookFn(formData)
+                : await bookAppointment(slug, formData);
               if (result.error) setError(result.error);
               else {
                 setError(null);
                 setDoneUrl(result.guestJoinUrl ?? null);
+                setDone(true);
               }
             });
           }}
@@ -203,14 +225,26 @@ export default function PublicBookingClient({
           <p className="font-body text-xs text-off-white/45">
             Booking {activeTitle} · {selected.label} ({timezone})
           </p>
-          <input name="bookerName" required placeholder="Your name" className={fieldClass} />
-          <input
-            name="bookerEmail"
-            type="email"
-            required
-            placeholder="Email"
-            className={fieldClass}
-          />
+          {lockedGuest ? (
+            <>
+              <input type="hidden" name="bookerName" value={lockedGuest.name} />
+              <input type="hidden" name="bookerEmail" value={lockedGuest.email} />
+              <p className="font-body text-sm text-off-white/70">
+                Booking as {lockedGuest.name} ({lockedGuest.email})
+              </p>
+            </>
+          ) : (
+            <>
+              <input name="bookerName" required placeholder="Your name" className={fieldClass} />
+              <input
+                name="bookerEmail"
+                type="email"
+                required
+                placeholder="Email"
+                className={fieldClass}
+              />
+            </>
+          )}
           <textarea
             name="notes"
             rows={2}

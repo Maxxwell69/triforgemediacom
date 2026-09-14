@@ -10,9 +10,17 @@ import {
   clearHubCampaignMemberWork,
   getUserCampaignAudience,
   hubCampaignJoinBlockReason,
+  hubCampaignBookingPage,
   isHubCampaignTaskForMember,
 } from "@/lib/hubCampaigns";
 import { claimNextOpenInterviewSlot } from "@/lib/hubCampaignSlots";
+import { bookAppointment } from "@/app/book/actions";
+
+export type CampaignFormState = { error?: string } | null;
+
+function actionError(err: unknown, fallback: string): CampaignFormState {
+  return { error: err instanceof Error && err.message ? err.message : fallback };
+}
 
 async function requireMember() {
   if (!hubHas("hubCampaigns")) {
@@ -24,7 +32,7 @@ async function requireMember() {
   }
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, role: true, status: true },
+    select: { id: true, role: true, status: true, name: true, email: true },
   });
   if (!dbUser || dbUser.status !== "ACTIVE") {
     throw new Error("Not authorized");
@@ -91,87 +99,149 @@ export async function joinHubCampaign(campaignId: string) {
   revalidateCampaign(campaignId);
 }
 
-export async function joinHubCampaignSlot(campaignId: string, slotId: string) {
-  const user = await requireMember();
-  const audience = await getUserCampaignAudience(user.id);
-  const campaign = await prisma.hubCampaign.findUnique({
-    where: { id: campaignId },
-    include: { _count: { select: { signups: true } } },
-  });
-  if (!campaign) throw new Error("Campaign not found");
-  if (campaign.category !== "INTERVIEWS") {
-    throw new Error("This campaign does not use interview times");
-  }
-
-  const existing = await prisma.hubCampaignSignup.findUnique({
-    where: { campaignId_userId: { campaignId, userId: user.id } },
-  });
-  const isAdmin = isAdminRole(user.role);
-  if (
-    !canSeeHubCampaign(campaign, { isAdmin, signedUp: !!existing, audience })
-  ) {
-    throw new Error("You cannot join this campaign");
-  }
-  const joiningFresh = !existing;
-  if (joiningFresh) {
-    const joinBlock = hubCampaignJoinBlockReason(campaign, {
-      isAdmin,
-      signedUp: false,
-      signupCount: campaign._count.signups,
-      audience,
-    });
-    if (joinBlock) throw new Error(joinBlock);
-  }
-  if (existing && campaign.status === "ARCHIVED" && !isAdmin) {
-    throw new Error("This campaign is archived");
-  }
-
-  const slot = await prisma.hubCampaignSlot.findFirst({
-    where: { id: slotId, campaignId },
-    include: { signup: { select: { userId: true } } },
-  });
-  if (!slot) throw new Error("That time is no longer available");
-  if (slot.signup && slot.signup.userId !== user.id) {
-    throw new Error("Someone already booked that time");
-  }
-  if (slot.startsAt.getTime() < Date.now()) {
-    throw new Error("That time has already passed");
-  }
-
+export async function joinHubCampaignSlot(
+  _prev: CampaignFormState,
+  formData: FormData
+): Promise<CampaignFormState> {
   try {
-    await prisma.$transaction(async (tx) => {
-      const taken = await tx.hubCampaignSignup.findUnique({
-        where: { slotId: slot.id },
-        select: { userId: true },
-      });
-      if (taken && taken.userId !== user.id) {
-        throw new Error("Someone already booked that time");
-      }
-      if (existing) {
-        await tx.hubCampaignSignup.update({
-          where: { id: existing.id },
-          data: { slotId: slot.id },
-        });
-        return;
-      }
-      await tx.hubCampaignSignup.create({
-        data: { campaignId, userId: user.id, slotId: slot.id },
-      });
+    const campaignId = String(formData.get("campaignId") || "");
+    const slotId = String(formData.get("slotId") || "");
+    if (!campaignId || !slotId) return { error: "That spot is no longer available." };
+
+    const user = await requireMember();
+    const audience = await getUserCampaignAudience(user.id);
+    const campaign = await prisma.hubCampaign.findUnique({
+      where: { id: campaignId },
+      include: { _count: { select: { signups: true } } },
     });
-  } catch (err) {
-    if (err instanceof Error) {
-      if (
-        err.message === "Someone already booked that time" ||
-        err.message.startsWith("This campaign") ||
-        err.message.startsWith("You're already") ||
-        err.message.startsWith("You're not")
-      ) {
-        throw err;
-      }
+    if (!campaign) return { error: "Campaign not found" };
+    if (campaign.category !== "INTERVIEWS") {
+      return { error: "This campaign does not use interview spots" };
     }
-    throw new Error("That time was just taken. Pick another.");
+
+    const existing = await prisma.hubCampaignSignup.findUnique({
+      where: { campaignId_userId: { campaignId, userId: user.id } },
+    });
+    const isAdmin = isAdminRole(user.role);
+    if (!canSeeHubCampaign(campaign, { isAdmin, signedUp: !!existing, audience })) {
+      return { error: "You cannot join this campaign" };
+    }
+    const joiningFresh = !existing;
+    if (joiningFresh) {
+      const joinBlock = hubCampaignJoinBlockReason(campaign, {
+        isAdmin,
+        signedUp: false,
+        signupCount: campaign._count.signups,
+        audience,
+      });
+      if (joinBlock) return { error: joinBlock };
+    }
+    if (existing && campaign.status === "ARCHIVED" && !isAdmin) {
+      return { error: "This campaign is archived" };
+    }
+
+    const slot = await prisma.hubCampaignSlot.findFirst({
+      where: { id: slotId, campaignId },
+      include: { signup: { select: { userId: true } } },
+    });
+    if (!slot) return { error: "That spot is no longer available" };
+    if (slot.signup && slot.signup.userId !== user.id) {
+      return { error: "Someone already took that spot" };
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const taken = await tx.hubCampaignSignup.findUnique({
+          where: { slotId: slot.id },
+          select: { userId: true },
+        });
+        if (taken && taken.userId !== user.id) {
+          throw new Error("Someone already took that spot");
+        }
+        if (existing) {
+          await tx.hubCampaignSignup.update({
+            where: { id: existing.id },
+            data: { slotId: slot.id },
+          });
+          return;
+        }
+        await tx.hubCampaignSignup.create({
+          data: { campaignId, userId: user.id, slotId: slot.id },
+        });
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "Someone already took that spot") {
+        return { error: err.message };
+      }
+      return { error: "That spot was just taken. Pick another." };
+    }
+    revalidateCampaign(campaignId);
+    return null;
+  } catch (err) {
+    return actionError(err, "Couldn't take that spot. Try again.");
   }
-  revalidateCampaign(campaignId);
+}
+
+export async function bookHubCampaignInterview(
+  campaignId: string,
+  formData: FormData
+): Promise<{ error: string | null; guestJoinUrl?: string }> {
+  try {
+    const user = await requireMember();
+    const campaign = await prisma.hubCampaign.findUnique({
+      where: { id: campaignId },
+      select: {
+        id: true,
+        category: true,
+        status: true,
+        bookingPage: { select: { id: true, slug: true, isActive: true } },
+        createdBy: { select: { bookingPage: { select: { id: true, slug: true, isActive: true } } } },
+        signups: {
+          where: { userId: user.id },
+          select: {
+            id: true,
+            appointment: { select: { id: true, status: true } },
+          },
+        },
+      },
+    });
+    if (!campaign || campaign.category !== "INTERVIEWS") {
+      return { error: "This campaign does not use interview booking." };
+    }
+    if (campaign.status === "ARCHIVED" && !isAdminRole(user.role)) {
+      return { error: "This campaign is archived." };
+    }
+    const booking = hubCampaignBookingPage(campaign);
+    if (!booking) {
+      return { error: "This campaign does not have a booking page yet." };
+    }
+    const signup = campaign.signups[0];
+    if (!signup) {
+      return { error: "Take a spot first, then pick a time." };
+    }
+    if (signup.appointment?.status === "CONFIRMED") {
+      return { error: "You already booked a time for this campaign." };
+    }
+
+    formData.set("bookerName", user.name?.trim() || user.email);
+    formData.set("bookerEmail", user.email);
+
+    const result = await bookAppointment(booking.slug, formData);
+    if (result.error || !result.appointmentId) {
+      return { error: result.error || "Couldn't book that time. Try another." };
+    }
+
+    await prisma.hubCampaignSignup.update({
+      where: { id: signup.id },
+      data: { appointmentId: result.appointmentId },
+    });
+    revalidateCampaign(campaignId);
+    return { error: null, guestJoinUrl: result.guestJoinUrl };
+  } catch (err) {
+    return {
+      error: err instanceof Error && err.message ? err.message : "Couldn't book that time.",
+    };
+  }
 }
 
 export async function leaveHubCampaign(campaignId: string) {

@@ -38,7 +38,8 @@ export default function InterviewSlotAdmin({
         Interview spots
       </h2>
       <p className="mt-1 font-body text-sm text-off-white/50">
-        Set the time, network, and how many spots. Members who sign up take the next open one.
+        Set the time, network, and how many spots. Members take a numbered spot, then book a time
+        from the campaign&apos;s booking page.
       </p>
       <div className="glass mt-4 flex flex-col gap-4 rounded-2xl p-6">
         <form
