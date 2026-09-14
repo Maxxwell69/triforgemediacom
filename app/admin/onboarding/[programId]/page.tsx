@@ -6,6 +6,7 @@ import { getOnboardingProgram } from "@/lib/onboarding/config";
 import { deleteOnboardingProgram, deleteOnboardingStep, moveOnboardingStep, updateOnboardingStep } from "../actions";
 import OnboardingStepCreateForm from "@/components/admin/OnboardingStepCreateForm";
 import OnboardingSettingsForm from "@/components/admin/OnboardingSettingsForm";
+import OnboardingStepActionFields from "@/components/admin/OnboardingStepActionFields";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,10 @@ export default async function AdminOnboardingProgramPage({
   requireOnboardingModule();
   const [program, courses] = await Promise.all([
     getOnboardingProgram(params.programId),
-    prisma.course.findMany({ orderBy: { title: "asc" }, select: { id: true, title: true } }),
+    prisma.course.findMany({
+      orderBy: [{ isPublished: "desc" }, { title: "asc" }],
+      select: { id: true, title: true, isPublished: true },
+    }),
   ]);
   if (!program) notFound();
 
@@ -43,7 +47,7 @@ export default async function AdminOnboardingProgramPage({
           ALL steps show to everyone. CN / MN steps only show for that track.
         </p>
 
-        <OnboardingStepCreateForm programId={program.id} />
+        <OnboardingStepCreateForm programId={program.id} courses={courses} />
 
         <div className="mt-4 flex flex-col gap-3">
           {program.steps.length === 0 && (
@@ -68,19 +72,12 @@ export default async function AdminOnboardingProgramPage({
                     <option value="CN">CN only</option>
                     <option value="MN">MN only</option>
                   </select>
-                  <select name="actionType" defaultValue={step.actionType} className={fieldClass}>
-                    <option value="CONFIRM">Confirm / check off</option>
-                    <option value="LINK">Open a link</option>
-                    <option value="COURSE_LINK">Open a course</option>
-                    <option value="CUSTOM">Custom path</option>
-                  </select>
+                  <OnboardingStepActionFields
+                    courses={courses}
+                    defaultActionType={step.actionType}
+                    defaultActionTarget={step.actionTarget}
+                  />
                 </div>
-                <input
-                  name="actionTarget"
-                  defaultValue={step.actionTarget ?? ""}
-                  placeholder="Path, URL, or course id"
-                  className={fieldClass}
-                />
                 <label className="font-body text-xs text-off-white/60">
                   XP
                   <input
@@ -148,6 +145,7 @@ export default async function AdminOnboardingProgramPage({
         requiredCourseIds={program.requiredCourseIds}
         completionXpReward={program.completionXpReward}
         allowedMenuIds={program.allowedMenuIds}
+        explainerVideoUrl={program.explainerVideoUrl ?? ""}
         courses={courses}
       />
 

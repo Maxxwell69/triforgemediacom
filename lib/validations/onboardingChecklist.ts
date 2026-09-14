@@ -25,6 +25,7 @@ export const onboardingModuleSettingsSchema = z.object({
     .max(2000),
   requiredCourseIds: z.array(z.string().trim().min(1)).max(50).optional(),
   allowedMenuIds: z.array(z.string().trim().min(1)).max(40).optional(),
+  explainerVideoUrl: z.string().trim().max(800).optional().or(z.literal("")),
   completionXpReward: z.coerce.number().int().min(0).max(10000),
 });
 

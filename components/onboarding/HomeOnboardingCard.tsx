@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import VideoEmbed from "@/components/VideoEmbed";
 import {
   dismissMemberOnboarding,
   toggleMemberOnboardingStep,
@@ -12,8 +13,16 @@ export type HomeOnboardingStep = {
   title: string;
   description: string | null;
   href: string | null;
+  courseTitle?: string | null;
   done: boolean;
   xpReward: number;
+};
+
+export type HomeOnboardingCourse = {
+  id: string;
+  title: string;
+  href: string;
+  done: boolean;
 };
 
 export default function HomeOnboardingCard({
@@ -23,13 +32,15 @@ export default function HomeOnboardingCard({
   disclaimer,
   requiredCourses,
   completionXpReward,
+  explainerVideoUrl,
 }: {
   moduleId: string;
   title: string;
   steps: HomeOnboardingStep[];
   disclaimer: string;
-  requiredCourses: { done: number; total: number };
+  requiredCourses: HomeOnboardingCourse[];
   completionXpReward: number;
+  explainerVideoUrl?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [dismissOpen, setDismissOpen] = useState(false);
@@ -37,6 +48,9 @@ export default function HomeOnboardingCard({
   const [error, setError] = useState<string | null>(null);
 
   const doneCount = steps.filter((s) => s.done).length;
+  const requiredDone = requiredCourses.filter((course) => course.done).length;
+  const stepCourseHrefs = new Set(steps.map((step) => step.href).filter(Boolean));
+  const extraRequiredCourses = requiredCourses.filter((course) => !stepCourseHrefs.has(course.href));
 
   function onToggle(stepId: string, done: boolean) {
     setError(null);
@@ -71,8 +85,8 @@ export default function HomeOnboardingCard({
           </h2>
           <p className="mt-1 font-body text-sm text-off-white/60">
             {doneCount}/{steps.length} step{steps.length === 1 ? "" : "s"} done
-            {requiredCourses.total > 0
-              ? ` · ${requiredCourses.done}/${requiredCourses.total} required course${requiredCourses.total === 1 ? "" : "s"}`
+            {requiredCourses.length > 0
+              ? ` · ${requiredDone}/${requiredCourses.length} required course${requiredCourses.length === 1 ? "" : "s"}`
               : ""}
             {completionXpReward > 0 ? ` · +${completionXpReward} XP when finished` : ""}
           </p>
@@ -85,6 +99,12 @@ export default function HomeOnboardingCard({
           Dismiss
         </button>
       </div>
+
+      {explainerVideoUrl ? (
+        <div className="mt-4 max-w-2xl">
+          <VideoEmbed url={explainerVideoUrl} />
+        </div>
+      ) : null}
 
       {error && <p className="mt-3 font-body text-sm text-orange">{error}</p>}
 
@@ -127,15 +147,35 @@ export default function HomeOnboardingCard({
                 {step.href && (
                   <Link
                     href={step.href}
-                    className="mt-1 inline-block font-body text-xs font-semibold text-cyan hover:underline"
+                    className="mt-2 inline-flex items-center rounded-lg border border-cyan/40 bg-cyan/10 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/15"
                   >
-                    Open →
+                    {step.courseTitle ? `Open ${step.courseTitle}` : "Open"} →
                   </Link>
                 )}
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {extraRequiredCourses.length > 0 && (
+        <div className="mt-4">
+          <p className="font-body text-xs font-semibold uppercase tracking-wide text-off-white/40">
+            Required courses
+          </p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {extraRequiredCourses.map((course) => (
+              <li key={course.id}>
+                <Link
+                  href={course.href}
+                  className="inline-flex items-center rounded-lg border border-cyan/40 bg-cyan/10 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/15"
+                >
+                  {course.done ? `Review ${course.title}` : `Open ${course.title}`} →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {dismissOpen && (

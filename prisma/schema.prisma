@@ -2821,6 +2821,8 @@ model OnboardingModule {
   /// Member sidebar ids from lib/onboarding/menu.ts. Empty = no extra restriction.
   /// While this checklist is IN_PROGRESS, members only see these items (plus Dashboard / Account / Notifications).
   allowedMenuIds          String[]       @default([])
+  /// YouTube/Vimeo URL or uploaded MP4 shown under the checklist title.
+  explainerVideoUrl       String?
   completionXpReward      Int            @default(50)
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
