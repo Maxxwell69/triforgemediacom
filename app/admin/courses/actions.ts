@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { checkCourseCompletion, sendCourseCompletionEmails } from "@/lib/learning";
+import { applyCourseCompletionToOnboarding } from "@/lib/onboarding/engine";
 import { awardLessonCompletionXp } from "@/lib/xp";
 import { hubHas } from "@/lib/hub/modules";
 import { parseProgressionSpecialty } from "@/lib/progression/tracks";
@@ -574,6 +575,7 @@ export async function reviewSubmission(
     return null;
   });
   await sendCourseCompletionEmails(submission.userId, lesson.courseId, award);
+  await applyCourseCompletionToOnboarding(submission.userId, lesson.courseId);
   const { evaluateProgression } = await import("@/lib/progression/engine");
   await evaluateProgression(submission.userId);
 

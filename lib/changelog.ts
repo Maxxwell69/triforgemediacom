@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.189",
+    date: "September 14, 2026",
+    title: "Course steps check off",
+    summary:
+      "Finishing a course on a checklist now checks that step and can complete the list without waiting for a later Home visit.",
+    items: [
+      {
+        kind: "fix",
+        text: "Marking the last lesson complete or passing the course quiz updates the matching onboarding step right away",
+      },
+    ],
+  },
+  {
     version: "3.188",
     date: "September 14, 2026",
     title: "Onboarding reset sticks",

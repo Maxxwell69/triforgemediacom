@@ -1,5 +1,6 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
 import type {
   OnboardingActionType,
   OnboardingStep,
@@ -336,6 +337,88 @@ export async function reopenOnboarding(userId: string, moduleId: string) {
       data: { userId, moduleId: loaded.config.id, action: "REOPENED" },
     }),
   ]);
+}
+
+async function isCourseFullyComplete(userId: string, courseId: string) {
+  const lessons = await prisma.lesson.findMany({
+    where: { courseId },
+    select: { id: true },
+  });
+  if (lessons.length === 0) return false;
+  const completedCount = await prisma.lessonProgress.count({
+    where: {
+      userId,
+      lessonId: { in: lessons.map((lesson) => lesson.id) },
+      completedAt: { not: null },
+    },
+  });
+  if (completedCount < lessons.length) return false;
+  const quiz = await prisma.quiz.findUnique({
+    where: { courseId },
+    select: { id: true },
+  });
+  if (quiz) {
+    const passed = await prisma.quizAttempt.findFirst({
+      where: { userId, quizId: quiz.id, passed: true },
+      select: { id: true },
+    });
+    if (!passed) return false;
+  }
+  return true;
+}
+
+/** Check off in-progress COURSE_LINK steps when the member actually finishes that course. */
+export async function applyCourseCompletionToOnboarding(userId: string, courseId: string) {
+  if (!onboardingEnabled() || !courseId) return;
+  try {
+    if (!(await isCourseFullyComplete(userId, courseId))) return;
+    const [rows, track] = await Promise.all([
+      prisma.userOnboardingProgress.findMany({
+        where: { userId, status: "IN_PROGRESS", module: { enabled: true } },
+        include: {
+          module: { include: { steps: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] } } },
+        },
+      }),
+      getUserNetworkTrack(userId),
+    ]);
+    let changed = false;
+    for (const progress of rows) {
+      const visible = visibleOnboardingSteps(progress.module.steps, track);
+      const matching = visible.filter(
+        (step) => step.actionType === "COURSE_LINK" && step.actionTarget === courseId
+      );
+      if (matching.length === 0) continue;
+      const next = new Set(progress.completedStepIds);
+      const newlyDone = matching.filter((step) => !next.has(step.id));
+      for (const step of newlyDone) next.add(step.id);
+      const completedStepIds = Array.from(next);
+      if (newlyDone.length > 0) {
+        await prisma.userOnboardingProgress.update({
+          where: { id: progress.id },
+          data: { completedStepIds },
+        });
+        for (const step of newlyDone) {
+          await awardStepXp(userId, step);
+        }
+        changed = true;
+      }
+      const completed = await tryCompleteProgress(
+        userId,
+        progress.moduleId,
+        completedStepIds,
+        progress.module.requiredCourseIds,
+        visible.map((step) => step.id),
+        progress.module.completionXpReward
+      );
+      if (completed) changed = true;
+    }
+    if (changed) {
+      revalidatePath("/home");
+      revalidatePath("/account");
+    }
+  } catch (err) {
+    console.error("applyCourseCompletionToOnboarding skipped:", err);
+  }
 }
 
 export async function requiredCourseProgress(userId: string, courseIds: string[]) {
