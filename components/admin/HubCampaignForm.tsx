@@ -32,6 +32,7 @@ export type HubCampaignFormInitial = {
   audienceTagId: string;
   audienceBadgeId: string;
   capacity: string;
+  bookingPageId: string;
 };
 
 function toLocalInput(iso: string | null) {
@@ -46,6 +47,7 @@ export default function HubCampaignForm({
   action,
   tags,
   badges,
+  bookingPages = [],
   initial,
   submitLabel,
   campaignId,
@@ -53,6 +55,7 @@ export default function HubCampaignForm({
   action: (formData: FormData) => void | Promise<void>;
   tags: Option[];
   badges: Option[];
+  bookingPages?: Option[];
   initial?: HubCampaignFormInitial;
   submitLabel: string;
   campaignId?: string;
@@ -185,11 +188,36 @@ export default function HubCampaignForm({
             </label>
           </div>
           <p className="font-body text-xs text-off-white/40">
-            Members who sign up take the next open spot. You can add more times from the campaign
-            page.
+            Members take a numbered spot, then book a time from the attached booking page.
           </p>
         </>
       )}
+
+      {isInterview && (
+        <label className="font-body text-sm text-off-white/70">
+          Booking page
+          <select
+            name="bookingPageId"
+            defaultValue={initial?.bookingPageId ?? ""}
+            className={`${fieldClass} mt-1`}
+          >
+            <option value="">
+              {bookingPages.length === 0
+                ? "No active booking pages"
+                : "Use my booking page (if I have one)"}
+            </option>
+            {bookingPages.map((page) => (
+              <option key={page.id} value={page.id}>
+                {page.name}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block font-body text-xs text-off-white/40">
+            After someone takes a spot, they pick a time from this staff booking calendar.
+          </span>
+        </label>
+      )}
+      {!isInterview && <input type="hidden" name="bookingPageId" value="" />}
 
       <input
         name="location"

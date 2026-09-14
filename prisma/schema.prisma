@@ -1735,6 +1735,7 @@ model BookingPage {
   openSlots     BookingOpenSlot[]
   dateOverrides BookingDateOverride[]
   appointments  Appointment[]
+  hubCampaigns  HubCampaign[]
 }
 
 /// Recurring weekly open hours in the host's timezone (minutes from local midnight).
@@ -1839,6 +1840,7 @@ model Appointment {
   host        User                @relation("AppointmentHost", fields: [hostUserId], references: [id], onDelete: Cascade)
   meetingType BookingMeetingType? @relation(fields: [meetingTypeId], references: [id], onDelete: SetNull)
   webinar     Webinar?            @relation(fields: [webinarId], references: [id], onDelete: SetNull)
+  hubCampaignSignup HubCampaignSignup?
 
   @@index([hostUserId, startsAt])
   @@index([bookingPageId, startsAt])
@@ -2591,18 +2593,22 @@ model HubCampaign {
   audienceBadgeId String?
   capacity        Int?
   createdById     String
+  /// Staff booking page members use after they take an interview spot.
+  bookingPageId   String?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
   createdBy     User                @relation("HubCampaignCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   audienceTag   Tag?                @relation(fields: [audienceTagId], references: [id], onDelete: SetNull)
   audienceBadge Badge?              @relation(fields: [audienceBadgeId], references: [id], onDelete: SetNull)
+  bookingPage   BookingPage?        @relation(fields: [bookingPageId], references: [id], onDelete: SetNull)
   signups       HubCampaignSignup[]
   tasks         HubCampaignTask[]
   slots         HubCampaignSlot[]
 
   @@index([status, category])
   @@index([startsAt])
+  @@index([bookingPageId])
 }
 
 /// Admin-posted interview spots. Signup claims the next open one.
@@ -2626,13 +2632,15 @@ model HubCampaignSignup {
   id         String   @id @default(cuid())
   campaignId String
   userId     String
-  note       String?
-  slotId     String?  @unique
-  joinedAt   DateTime @default(now())
+  note          String?
+  slotId        String?  @unique
+  appointmentId String?  @unique
+  joinedAt      DateTime @default(now())
 
-  campaign HubCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  slot     HubCampaignSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  campaign    HubCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot        HubCampaignSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  appointment Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@unique([campaignId, userId])
   @@index([userId])

@@ -70,6 +70,7 @@ function parseCampaignForm(formData: FormData) {
     audienceTagId: formData.get("audienceTagId"),
     audienceBadgeId: formData.get("audienceBadgeId"),
     capacity: formData.get("capacity"),
+    bookingPageId: formData.get("bookingPageId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid campaign");
@@ -97,12 +98,46 @@ function parseCampaignForm(formData: FormData) {
     audienceTagId: audienceType === "TAG" ? parsed.data.audienceTagId || null : null,
     audienceBadgeId: audienceType === "BADGE" ? parsed.data.audienceBadgeId || null : null,
     capacity: capacityRaw ? Number(capacityRaw) : null,
+    bookingPageId: parsed.data.bookingPageId?.trim() || null,
   };
+}
+
+async function resolveCampaignBookingPageId(
+  category: string,
+  requestedId: string | null,
+  hostUserId: string
+) {
+  if (category !== "INTERVIEWS") return null;
+  const id =
+    requestedId ||
+    (
+      await prisma.bookingPage.findFirst({
+        where: { hostUserId, isActive: true },
+        select: { id: true },
+      })
+    )?.id ||
+    null;
+  if (!id) return null;
+  const page = await prisma.bookingPage.findFirst({
+    where: { id, isActive: true },
+    select: { id: true },
+  });
+  if (!page) throw new Error("Pick an active staff booking page");
+  return page.id;
 }
 
 export async function createHubCampaign(formData: FormData) {
   const session = await requireAdmin();
   const data = parseCampaignForm(formData);
+  const { bookingPageId: requestedBookingPageId, ...campaignFields } = data;
+  const bookingPageId =
+    data.category === "INTERVIEWS"
+      ? await resolveCampaignBookingPageId(
+          "INTERVIEWS",
+          requestedBookingPageId,
+          session.user.id
+        )
+      : null;
 
   let interviewBatch: {
     startsAt: Date;
@@ -139,7 +174,8 @@ export async function createHubCampaign(formData: FormData) {
   const campaign = await prisma.$transaction(async (tx) => {
     const created = await tx.hubCampaign.create({
       data: {
-        ...data,
+        ...campaignFields,
+        bookingPageId,
         createdById: session.user.id,
       },
     });
@@ -157,10 +193,21 @@ export async function createHubCampaign(formData: FormData) {
 }
 
 export async function updateHubCampaign(formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const id = String(formData.get("id") || "");
   if (!id) throw new Error("Missing campaign");
   const data = parseCampaignForm(formData);
+  const { bookingPageId: requestedBookingPageId, ...campaignFields } = data;
+  const bookingPageId =
+    data.category === "INTERVIEWS"
+      ? requestedBookingPageId
+        ? await resolveCampaignBookingPageId(
+            "INTERVIEWS",
+            requestedBookingPageId,
+            session.user.id
+          )
+        : null
+      : null;
   const payload =
     data.category === "INTERVIEWS"
       ? {
@@ -174,8 +221,9 @@ export async function updateHubCampaign(formData: FormData) {
           audienceType: data.audienceType,
           audienceTagId: data.audienceTagId,
           audienceBadgeId: data.audienceBadgeId,
+          bookingPageId,
         }
-      : data;
+      : { ...campaignFields, bookingPageId: null };
 
   await prisma.hubCampaign.update({
     where: { id },

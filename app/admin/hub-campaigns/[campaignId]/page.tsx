@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   audienceWhere,
+  hubCampaignBookingPage,
   hubCampaignCategoryMeta,
   hubCampaignMemberSelect,
+  listActiveHubCampaignBookingPages,
   requireHubCampaignsModule,
 } from "@/lib/hubCampaigns";
 import {
@@ -34,10 +36,12 @@ export default async function AdminHubCampaignDetailPage({
 }) {
   requireHubCampaignsModule();
 
-  const [campaign, tags, badges] = await Promise.all([
+  const [campaign, tags, badges, bookingPages] = await Promise.all([
     prisma.hubCampaign.findUnique({
       where: { id: params.campaignId },
       include: {
+        createdBy: { select: { bookingPage: { select: { id: true, slug: true, isActive: true } } } },
+        bookingPage: { select: { id: true, slug: true, isActive: true } },
         audienceTag: { select: { id: true, name: true } },
         audienceBadge: { select: { id: true, name: true } },
         signups: {
@@ -62,6 +66,7 @@ export default async function AdminHubCampaignDetailPage({
     }),
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listActiveHubCampaignBookingPages(),
   ]);
 
   if (!campaign) notFound();
@@ -113,6 +118,7 @@ export default async function AdminHubCampaignDetailPage({
             action={updateHubCampaign}
             tags={tags}
             badges={badges}
+            bookingPages={bookingPages}
             campaignId={campaign.id}
             submitLabel="Save campaign"
             initial={{
@@ -127,6 +133,7 @@ export default async function AdminHubCampaignDetailPage({
               audienceTagId: campaign.audienceTagId ?? "",
               audienceBadgeId: campaign.audienceBadgeId ?? "",
               capacity: campaign.capacity != null ? String(campaign.capacity) : "",
+              bookingPageId: campaign.bookingPageId ?? "",
             }}
           />
           <form action={archiveAction} className="mt-4">
@@ -139,6 +146,13 @@ export default async function AdminHubCampaignDetailPage({
           </form>
         </div>
       </section>
+
+      {isInterviewCampaign(campaign.category) && !hubCampaignBookingPage(campaign) && (
+        <p className="mt-6 rounded-xl border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+          Attach a staff booking page in Settings so members can pick a time after they take a
+          spot.
+        </p>
+      )}
 
       {isInterviewCampaign(campaign.category) && (
         <InterviewSlotAdmin

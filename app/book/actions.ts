@@ -36,7 +36,7 @@ function publicHostDisplayName(host: { name: string | null; email: string }): st
 export async function bookAppointment(
   slug: string,
   formData: FormData
-): Promise<{ error: string | null; guestJoinUrl?: string }> {
+): Promise<{ error: string | null; guestJoinUrl?: string; appointmentId?: string }> {
   const ip = clientIpFromHeaders();
   const ipLimit = checkRateLimit(`book:ip:${ip}`, 12, 60 * 60 * 1000);
   if (ipLimit.limited) {
@@ -218,5 +218,5 @@ export async function bookAppointment(
     console.error("Appointment email failed", appointmentId, err);
   }
 
-  return { error: null, guestJoinUrl };
+  return { error: null, guestJoinUrl, appointmentId };
 }
