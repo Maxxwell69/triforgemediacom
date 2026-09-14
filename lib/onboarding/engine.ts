@@ -4,11 +4,17 @@ import type {
   OnboardingActionType,
   OnboardingStep,
   OnboardingTrackScope,
+  UserRole,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUserNetworkTrack, type NetworkTrack } from "@/lib/mnCn";
+import { isAdminRole } from "@/lib/rbac";
 import { onboardingEnabled } from "@/lib/onboarding/access";
 import { getOnboardingProgram, listFirstLoginPrograms } from "@/lib/onboarding/config";
+import {
+  MEMBER_MENU_IDS,
+  ONBOARDING_ALWAYS_MENU_IDS,
+} from "@/lib/onboarding/menu";
 import { awardXpOnce } from "@/lib/xp";
 
 export function visibleOnboardingSteps<
@@ -328,4 +334,39 @@ export function summarizeOnboardingStatus(
   if (rows.some((row) => row.status === "DISMISSED")) return "DISMISSED" as const;
   if (rows.some((row) => row.status === "COMPLETED")) return "COMPLETED" as const;
   return "NOT_STARTED" as const;
+}
+
+/**
+ * When a member has an in-progress checklist with allowedMenuIds set,
+ * they only see those member-menu items until they finish or dismiss.
+ * Staff (admin/mod) are never locked. Empty allowedMenuIds = no extra restriction.
+ */
+export async function getOnboardingMenuLock(
+  userId: string,
+  role: UserRole | undefined | null
+): Promise<Set<string> | null> {
+  if (!onboardingEnabled() || isAdminRole(role)) return null;
+  try {
+    const rows = await prisma.userOnboardingProgress.findMany({
+      where: {
+        userId,
+        status: "IN_PROGRESS",
+        module: { enabled: true },
+      },
+      select: { module: { select: { allowedMenuIds: true } } },
+    });
+    const restricting = rows.filter((row) => row.module.allowedMenuIds.length > 0);
+    if (restricting.length === 0) return null;
+
+    const allowed = new Set<string>(ONBOARDING_ALWAYS_MENU_IDS);
+    for (const row of restricting) {
+      for (const id of row.module.allowedMenuIds) {
+        if (MEMBER_MENU_IDS.has(id)) allowed.add(id);
+      }
+    }
+    return allowed;
+  } catch (err) {
+    console.error("getOnboardingMenuLock skipped:", err);
+    return null;
+  }
 }

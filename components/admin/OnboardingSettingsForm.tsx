@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { updateOnboardingSettings, type OnboardingFormState } from "@/app/admin/onboarding/actions";
 import type { OnboardingKind } from "@prisma/client";
+import { MEMBER_MENU_ITEMS, SELECTABLE_MEMBER_MENU_ITEMS } from "@/lib/onboarding/menu";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none focus:border-cyan/60";
@@ -30,6 +31,7 @@ export default function OnboardingSettingsForm({
   disclaimer,
   requiredCourseIds,
   completionXpReward,
+  allowedMenuIds,
   courses,
 }: {
   programId: string;
@@ -41,6 +43,7 @@ export default function OnboardingSettingsForm({
   disclaimer: string;
   requiredCourseIds: string[];
   completionXpReward: number;
+  allowedMenuIds: string[];
   courses: { id: string; title: string }[];
 }) {
   const [state, formAction] = useFormState<OnboardingFormState, FormData>(
@@ -129,6 +132,41 @@ export default function OnboardingSettingsForm({
                 className="accent-orange"
               />
               {course.title}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend className="font-body text-sm text-off-white/70">Member menu while in progress</legend>
+        <p className="mt-1 font-body text-xs text-off-white/40">
+          Assigned members (Recruit / Member / Creator) only see the items you check until they
+          finish or dismiss this checklist. Leave all unchecked for the full member menu. Dashboard,
+          Account, and Notifications stay available so they can complete the list. If a step opens
+          Learn, Chat, or another page, check that item too. Admins and mods are not limited.
+        </p>
+        <div className="mt-2 flex flex-col gap-1.5">
+          {MEMBER_MENU_ITEMS.filter((item) => item.always).map((item) => (
+            <label
+              key={item.id}
+              className="flex items-center gap-2 font-body text-sm text-off-white/45"
+            >
+              <input type="checkbox" defaultChecked disabled className="accent-orange" />
+              {item.label} (always on)
+            </label>
+          ))}
+          {SELECTABLE_MEMBER_MENU_ITEMS.map((item) => (
+            <label
+              key={item.id}
+              className="flex items-center gap-2 font-body text-sm text-off-white/75"
+            >
+              <input
+                type="checkbox"
+                name="allowedMenuIds"
+                value={item.id}
+                defaultChecked={allowedMenuIds.includes(item.id)}
+                className="accent-orange"
+              />
+              {item.label}
             </label>
           ))}
         </div>
