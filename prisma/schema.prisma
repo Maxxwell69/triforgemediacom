@@ -2815,6 +2815,9 @@ model OnboardingModule {
   enabled                 Boolean        @default(true)
   dismissalDisclaimerText String         @default("Dismissing this means you may miss required steps, including course requirements. Admins can see that you dismissed this.")
   requiredCourseIds       String[]       @default([])
+  /// Member sidebar ids from lib/onboarding/menu.ts. Empty = no extra restriction.
+  /// While this checklist is IN_PROGRESS, members only see these items (plus Dashboard / Account / Notifications).
+  allowedMenuIds          String[]       @default([])
   completionXpReward      Int            @default(50)
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt

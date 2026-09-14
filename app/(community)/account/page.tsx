@@ -6,18 +6,21 @@ import { isAdminRole } from "@/lib/rbac";
 import AccountFeatureLink from "@/components/account/AccountFeatureLink";
 import AccountPageShell from "@/components/account/AccountPageShell";
 import AccountOnboardingCard from "@/components/onboarding/AccountOnboardingCard";
-import { loadMemberOnboardings } from "@/lib/onboarding/engine";
+import { loadMemberOnboardings, getOnboardingMenuLock } from "@/lib/onboarding/engine";
+import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import { hubHas } from "@/lib/hub/modules";
 
 export default async function AccountPage() {
   const { user, profile } = await requireProfile();
   const isStaff = isAdminRole(user.role);
-  const [points, tikTaskAccess, personalTasksAccess, onboarding] = await Promise.all([
+  const [points, tikTaskAccess, personalTasksAccess, onboarding, menuLock] = await Promise.all([
     getUserPointsTotal(user.id),
     hasTikTaskAccess(user.id),
     hasPersonalTasksAccess(user.id),
     hubHas("onboardingChecklist") ? loadMemberOnboardings(user.id) : Promise.resolve([]),
+    hubHas("onboardingChecklist") ? getOnboardingMenuLock(user.id, user.role) : Promise.resolve(null),
   ]);
+  const canMenu = (id: string) => canSeeOnboardingMenuItem(menuLock, id);
   const accountOnboarding = onboarding.filter(
     (card) => card.progress.status === "IN_PROGRESS" || card.progress.status === "DISMISSED"
   );
@@ -58,7 +61,7 @@ export default async function AccountPage() {
             status={card.progress.status === "DISMISSED" ? "DISMISSED" : "IN_PROGRESS"}
           />
         ))}
-        {tikTaskAccess && (
+        {tikTaskAccess && canMenu("tiktask") && (
           <AccountFeatureLink
             href="/apps/tiktask"
             title="TikTask"
@@ -66,7 +69,7 @@ export default async function AccountPage() {
             accent="cyan"
           />
         )}
-        {personalTasksAccess && (
+        {personalTasksAccess && canMenu("personalTasks") && (
           <AccountFeatureLink
             href="/apps/tasks"
             title="My Tasks"
@@ -74,12 +77,14 @@ export default async function AccountPage() {
             accent="cyan"
           />
         )}
+        {canMenu("calendar") && (
         <AccountFeatureLink
           href="/calendar"
           title="Calendar"
           description="See scheduled hub meetings, events, and webinars."
           accent="cyan"
         />
+        )}
         {isStaff && (
           <>
             <AccountFeatureLink
@@ -96,12 +101,14 @@ export default async function AccountPage() {
             />
           </>
         )}
+        {canMenu("live") && (
         <AccountFeatureLink
           href="/account/insights"
           title="Creator Insights"
           description="Private TikTok stats and live status for your account."
           accent="orange"
         />
+        )}
         <AccountFeatureLink
           href="/account/profile"
           title="Profile"

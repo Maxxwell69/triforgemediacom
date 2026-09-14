@@ -44,15 +44,21 @@ export default auth((req) => {
         const dest = role === "MOD" ? "/admin" : "/home";
         return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
       }
-      return;
-    }
-    const isAllowed = role === "ADMIN" || role === "MOD";
-    if (!isAllowed) {
-      const loginUrl = new URL("/signin", req.nextUrl.origin);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
+    } else {
+      const isAllowed = role === "ADMIN" || role === "MOD";
+      if (!isAllowed) {
+        const loginUrl = new URL("/signin", req.nextUrl.origin);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
     }
   }
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 });
 
 export const config = {

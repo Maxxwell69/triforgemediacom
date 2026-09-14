@@ -37,6 +37,9 @@ import { hubHas } from "@/lib/hub/modules";
 import NotificationBell from "@/components/NotificationBell";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
+import { getOnboardingMenuLock } from "@/lib/onboarding/engine";
+import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
+import OnboardingMenuGate from "@/components/onboarding/OnboardingMenuGate";
 
 async function countUnreadHubNotifications(userId: string): Promise<number> {
   try {
@@ -74,6 +77,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     homeGroup,
     showProgress,
     allGroups,
+    menuLock,
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
@@ -120,6 +124,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       },
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
+    getOnboardingMenuLock(user.id, user.role),
   ]);
 
   const accessible = allChannels.filter(
@@ -127,6 +132,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   const isAdmin = isAdminRole(user.role);
+  const canMenu = (id: string) => canSeeOnboardingMenuItem(menuLock, id);
+  const showGroupChrome = canMenu("groups") || canMenu("chat");
   // Network categories (showInList=false) stay out of the rail / active-space switcher.
   const listableGroups = allGroups.filter((g) => g.isHome || g.showInList);
   const allowedGroupIds = isAdmin
@@ -181,9 +188,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
     spaces.find((g) => g.id === activeGroupId) ??
     (homeGroupId ? spaces.find((g) => g.id === homeGroupId) ?? null : null);
 
-  const rail = (
+  const rail = showGroupChrome ? (
     <GroupServerRail spaces={spaces} activeGroupId={activeGroupId} />
-  );
+  ) : undefined;
 
   const sidebar = (
     <>
@@ -191,7 +198,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <Logo height={22} href="/home" />
       </div>
 
-      {/* Active group + channels sit above the hub menu */}
+      {showGroupChrome && (
       <div className="mb-4">
         <ChannelSidebar
           space={
@@ -211,25 +218,28 @@ export default async function AppShell({ children }: { children: React.ReactNode
           }))}
         />
       </div>
+      )}
 
       <div className="mb-4 border-t border-off-white/10 pt-4">
         <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">
           Menu
         </p>
         <div className="flex flex-col gap-0.5">
-          <Link
-            href="/groups"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Groups
-          </Link>
+          {canMenu("groups") && (
+            <Link
+              href="/groups"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Groups
+            </Link>
+          )}
           <Link
             href="/home"
             className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
           >
             Dashboard
           </Link>
-          {hubHas("tiktokInsights") && (
+          {canMenu("live") && hubHas("tiktokInsights") && (
             <Link
               href="/live"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
@@ -237,7 +247,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Live
             </Link>
           )}
-          {showMyProjects && hubHas("projects") && (
+          {canMenu("projects") && showMyProjects && hubHas("projects") && (
             <Link
               href="/apps/projects"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -245,7 +255,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Projects
             </Link>
           )}
-          {personalTasksAccess && hubHas("personalTasks") && (
+          {canMenu("personalTasks") && personalTasksAccess && hubHas("personalTasks") && (
             <Link
               href="/apps/tasks"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -253,7 +263,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               My Tasks
             </Link>
           )}
-          {hubHas("hubCampaigns") && (
+          {canMenu("campaigns") && hubHas("hubCampaigns") && (
             <Link
               href="/campaigns"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -261,7 +271,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Campaigns
             </Link>
           )}
-          {hubHas("calendar") && (
+          {canMenu("calendar") && hubHas("calendar") && (
             <Link
               href="/calendar"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -269,13 +279,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Calendar
             </Link>
           )}
-          <Link
-            href="/members"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Members
-          </Link>
-          {showProgress && (
+          {canMenu("members") && (
+            <Link
+              href="/members"
+              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+            >
+              Members
+            </Link>
+          )}
+          {canMenu("progress") && showProgress && (
             <Link
               href="/progress"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -283,7 +295,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Progress
             </Link>
           )}
-          {hubHas("shop") && (
+          {canMenu("shop") && hubHas("shop") && (
             <Link
               href="/shop"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -291,7 +303,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Shop
             </Link>
           )}
-          {hubHas("rewards") && (
+          {canMenu("rewards") && hubHas("rewards") && (
             <Link
               href="/rewards"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -299,7 +311,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Rewards
             </Link>
           )}
-          {hubHas("learning") && (
+          {canMenu("learn") && hubHas("learning") && (
             <Link
               href="/learn"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -307,7 +319,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Learn
             </Link>
           )}
-          {hubHas("webinars") && (
+          {canMenu("webinars") && hubHas("webinars") && (
             <Link
               href="/webinars"
               className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
@@ -315,13 +327,13 @@ export default async function AppShell({ children }: { children: React.ReactNode
               Webinars
             </Link>
           )}
-          {hubHas("hubBug") && (
+          {canMenu("hubBug") && hubHas("hubBug") && (
             <HubBugNavLink initialCount={hubBugUnread} />
           )}
-          {hubHas("support") && (
+          {canMenu("support") && hubHas("support") && (
             <SupportNavLink initialCount={supportUnread} />
           )}
-          {hubHas("support") && (
+          {canMenu("suggestions") && hubHas("support") && (
             <SuggestionNavLink initialCount={suggestionUnread} />
           )}
           <Link
@@ -341,7 +353,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
               </span>
             ) : null}
           </Link>
-          {tikTaskAccess && hubHas("tiktask") && (
+          {canMenu("tiktask") && tikTaskAccess && hubHas("tiktask") && (
             <Link
               href="/apps/tiktask"
               className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"
@@ -386,6 +398,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       showAdminFab={isAdmin}
       headerRight={<NotificationBell unread={unreadNotifications} />}
     >
+      <OnboardingMenuGate userId={user.id} role={user.role} allowedIds={menuLock} />
       <EnsureDefaultHomeGroup
         homeGroupId={homeGroup?.id ?? null}
         hasCookie={Boolean(activeGroupCookie)}

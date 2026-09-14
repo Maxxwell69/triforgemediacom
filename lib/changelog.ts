@@ -172,6 +172,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.185",
+    date: "September 14, 2026",
+    title: "Onboarding menu lock",
+    summary:
+      "Each checklist can limit the member sidebar so people on that path only see the pages you pick until they finish.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin Onboarding settings let you choose which member menu items are visible while a checklist is in progress",
+      },
+      {
+        kind: "feature",
+        text: "Assigned members are sent back to Dashboard if they open a page that is not on that list; the full menu returns when they complete or dismiss",
+      },
+    ],
+  },
+  {
     version: "3.184",
     date: "September 12, 2026",
     title: "Multiple onboarding paths",

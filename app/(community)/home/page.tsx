@@ -11,7 +11,8 @@ import { canSeeMemberProgressNav } from "@/lib/progression/access";
 import { loadHubAnnouncement } from "@/lib/announcement";
 import VideoEmbed from "@/components/VideoEmbed";
 import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
-import { loadMemberOnboardings, requiredCourseProgress, stepHref } from "@/lib/onboarding/engine";
+import { loadMemberOnboardings, requiredCourseProgress, stepHref, getOnboardingMenuLock } from "@/lib/onboarding/engine";
+import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import HomeOnboardingCard from "@/components/onboarding/HomeOnboardingCard";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,11 @@ export default async function HomePage() {
   }
 
   const firstName = (user.name || user.email || "there").split(" ")[0].split("@")[0];
-  const showProgress = await canSeeMemberProgressNav(user.role);
+  const [showProgress, menuLock] = await Promise.all([
+    canSeeMemberProgressNav(user.role),
+    hubHas("onboardingChecklist") ? getOnboardingMenuLock(user.id, user.role) : Promise.resolve(null),
+  ]);
+  const canMenu = (id: string) => canSeeOnboardingMenuItem(menuLock, id);
 
   const onboardingCards = hubHas("onboardingChecklist")
     ? (await loadMemberOnboardings(user.id)).filter((card) => card.progress.status === "IN_PROGRESS")
@@ -127,16 +132,18 @@ export default async function HomePage() {
         )}
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <DashboardCard
-            href="/channels"
-            icon="💬"
-            title="Chat"
-            description="Jump into the conversation with the community."
-            stat={`${visibleChannelCount} channel${visibleChannelCount === 1 ? "" : "s"}`}
-            accent="cyan"
-          />
+          {canMenu("chat") && (
+            <DashboardCard
+              href="/channels"
+              icon="💬"
+              title="Chat"
+              description="Jump into the conversation with the community."
+              stat={`${visibleChannelCount} channel${visibleChannelCount === 1 ? "" : "s"}`}
+              accent="cyan"
+            />
+          )}
 
-          {tikTaskAccess && (
+          {canMenu("tiktask") && tikTaskAccess && (
             <DashboardCard
               href="/apps/tiktask"
               icon="⚡"
@@ -147,24 +154,28 @@ export default async function HomePage() {
             />
           )}
 
-          <DashboardCard
-            href="/learn"
-            icon="🎓"
-            title="Learning Center"
-            description="Courses, lessons, quizzes, and certificates."
-            stat={`${completedCourseCount} course${completedCourseCount === 1 ? "" : "s"} completed`}
-            accent="cyan"
-          />
+          {canMenu("learn") && (
+            <DashboardCard
+              href="/learn"
+              icon="🎓"
+              title="Learning Center"
+              description="Courses, lessons, quizzes, and certificates."
+              stat={`${completedCourseCount} course${completedCourseCount === 1 ? "" : "s"} completed`}
+              accent="cyan"
+            />
+          )}
 
-          <DashboardCard
-            href="/webinars"
-            icon="🎥"
-            title="Webinars"
-            description="Join live sessions with the TriForge team."
-            accent="orange"
-          />
+          {canMenu("webinars") && (
+            <DashboardCard
+              href="/webinars"
+              icon="🎥"
+              title="Webinars"
+              description="Join live sessions with the TriForge team."
+              accent="orange"
+            />
+          )}
 
-          {hubHas("hubCampaigns") && (
+          {canMenu("campaigns") && hubHas("hubCampaigns") && (
             <DashboardCard
               href="/campaigns"
               icon="🎯"
@@ -175,7 +186,7 @@ export default async function HomePage() {
             />
           )}
 
-          {showProgress && (
+          {canMenu("progress") && showProgress && (
             <DashboardCard
               href="/progress"
               icon="🛤️"
@@ -185,7 +196,7 @@ export default async function HomePage() {
             />
           )}
 
-          {hubHas("shop") && (
+          {canMenu("shop") && hubHas("shop") && (
             <DashboardCard
               href="/shop"
               icon="🛍️"
@@ -195,7 +206,7 @@ export default async function HomePage() {
             />
           )}
 
-          {hubHas("support") && (
+          {canMenu("support") && hubHas("support") && (
             <DashboardCard
               href="/support"
               icon="🎧"
@@ -205,7 +216,7 @@ export default async function HomePage() {
             />
           )}
 
-          {hubHas("support") && (
+          {canMenu("suggestions") && hubHas("support") && (
             <DashboardCard
               href="/suggestions"
               icon="💡"
@@ -215,31 +226,37 @@ export default async function HomePage() {
             />
           )}
 
-          <DashboardCard
-            href="/rewards"
-            icon="🎁"
-            title="Rewards"
-            description="Spend points on perks — or check the XP leaderboard."
-            stat={`${points} points available`}
-            accent="orange"
-          />
+          {canMenu("rewards") && (
+            <DashboardCard
+              href="/rewards"
+              icon="🎁"
+              title="Rewards"
+              description="Spend points on perks — or check the XP leaderboard."
+              stat={`${points} points available`}
+              accent="orange"
+            />
+          )}
 
-          <DashboardCard
-            href="/groups"
-            icon="🏠"
-            title="Groups"
-            description="Home hub plus inviteable spaces."
-            accent="cyan"
-          />
+          {canMenu("groups") && (
+            <DashboardCard
+              href="/groups"
+              icon="🏠"
+              title="Groups"
+              description="Home hub plus inviteable spaces."
+              accent="cyan"
+            />
+          )}
 
-          <DashboardCard
-            href="/members"
-            icon="👥"
-            title="Members"
-            description="See who else is in the community."
-            stat={`${memberCount} active member${memberCount === 1 ? "" : "s"}`}
-            accent="cyan"
-          />
+          {canMenu("members") && (
+            <DashboardCard
+              href="/members"
+              icon="👥"
+              title="Members"
+              description="See who else is in the community."
+              stat={`${memberCount} active member${memberCount === 1 ? "" : "s"}`}
+              accent="cyan"
+            />
+          )}
 
           <DashboardCard
             href="/account"
@@ -265,7 +282,7 @@ export default async function HomePage() {
           )}
         </div>
 
-        <CompanySocialPanel />
+        {!menuLock && <CompanySocialPanel />}
       </div>
     </main>
   );

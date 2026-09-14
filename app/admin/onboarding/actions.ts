@@ -12,6 +12,7 @@ import {
   onboardingStepSchema,
 } from "@/lib/validations/onboardingChecklist";
 import { DEFAULT_ONBOARDING_DISCLAIMER, getOnboardingProgram } from "@/lib/onboarding/config";
+import { MEMBER_MENU_IDS } from "@/lib/onboarding/menu";
 
 export type OnboardingFormState = { error?: string; ok?: string } | null;
 
@@ -48,6 +49,7 @@ function revalidateOnboarding(programId?: string, userId?: string) {
   revalidatePath("/admin/users");
   revalidatePath("/home");
   revalidatePath("/account");
+  revalidatePath("/", "layout");
   if (programId) revalidatePath(`/admin/onboarding/${programId}`);
   if (userId) revalidatePath(`/admin/users/${userId}`);
 }
@@ -125,6 +127,7 @@ export async function updateOnboardingSettings(
       enabled: formData.get("enabled") ? "on" : "false",
       dismissalDisclaimerText: fieldString(formData, "dismissalDisclaimerText"),
       requiredCourseIds: formData.getAll("requiredCourseIds").filter((v): v is string => typeof v === "string"),
+      allowedMenuIds: formData.getAll("allowedMenuIds").filter((v): v is string => typeof v === "string"),
       completionXpReward: fieldString(formData, "completionXpReward") || "50",
     });
     if (!parsed.success) {
@@ -141,6 +144,7 @@ export async function updateOnboardingSettings(
         enabled: parsed.data.enabled === "on" || parsed.data.enabled === "true",
         dismissalDisclaimerText: parsed.data.dismissalDisclaimerText,
         requiredCourseIds: parsed.data.requiredCourseIds ?? [],
+        allowedMenuIds: (parsed.data.allowedMenuIds ?? []).filter((id) => MEMBER_MENU_IDS.has(id)),
         completionXpReward: parsed.data.completionXpReward,
       },
     });

@@ -24,6 +24,7 @@ export const onboardingModuleSettingsSchema = z.object({
     .min(8, "Disclaimer must be at least 8 characters")
     .max(2000),
   requiredCourseIds: z.array(z.string().trim().min(1)).max(50).optional(),
+  allowedMenuIds: z.array(z.string().trim().min(1)).max(40).optional(),
   completionXpReward: z.coerce.number().int().min(0).max(10000),
 });
 

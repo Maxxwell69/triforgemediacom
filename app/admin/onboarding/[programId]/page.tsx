@@ -147,6 +147,7 @@ export default async function AdminOnboardingProgramPage({
         disclaimer={program.dismissalDisclaimerText}
         requiredCourseIds={program.requiredCourseIds}
         completionXpReward={program.completionXpReward}
+        allowedMenuIds={program.allowedMenuIds}
         courses={courses}
       />
 
