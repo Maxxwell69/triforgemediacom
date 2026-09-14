@@ -2814,6 +2814,13 @@ enum OnboardingLogAction {
   REOPENED
 }
 
+/// Singleton (id = "default"). Members do not see checklists until this is active.
+model OnboardingSettings {
+  id        String   @id
+  active    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
 model OnboardingModule {
   id                      String         @id @default(cuid())
   title                   String

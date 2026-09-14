@@ -14,6 +14,7 @@ import {
 import { DEFAULT_ONBOARDING_DISCLAIMER, getOnboardingProgram } from "@/lib/onboarding/config";
 import { MEMBER_MENU_IDS } from "@/lib/onboarding/menu";
 import { isPlayableVideoUrl } from "@/lib/videoEmbed";
+import { ONBOARDING_SETTINGS_ID } from "@/lib/onboarding/access";
 
 export type OnboardingFormState = { error?: string; ok?: string } | null;
 
@@ -64,6 +65,21 @@ function parseStep(formData: FormData) {
     actionTarget: fieldString(formData, "actionTarget"),
     xpReward: fieldString(formData, "xpReward") || "10",
   });
+}
+
+export async function setOnboardingLive(active: boolean): Promise<OnboardingFormState> {
+  try {
+    await requireAdmin();
+    await prisma.onboardingSettings.upsert({
+      where: { id: ONBOARDING_SETTINGS_ID },
+      create: { id: ONBOARDING_SETTINGS_ID, active },
+      update: { active },
+    });
+    revalidateOnboarding();
+    return { ok: active ? "Onboarding is live for members." : "Onboarding is off for members." };
+  } catch (err) {
+    return actionError(err, "Could not update onboarding");
+  }
 }
 
 export async function createOnboardingProgram(

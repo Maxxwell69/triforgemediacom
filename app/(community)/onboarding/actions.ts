@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
-import { onboardingEnabled } from "@/lib/onboarding/access";
+import { onboardingLive } from "@/lib/onboarding/access";
 import {
   dismissOnboarding,
   reopenOnboarding,
@@ -17,14 +17,14 @@ function revalidateMember() {
 
 export async function toggleMemberOnboardingStep(stepId: string, done: boolean) {
   const user = await requireUser();
-  if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
+  if (!(await onboardingLive())) throw new Error("Onboarding is not live yet");
   await toggleOnboardingStep(user.id, stepId, done);
   revalidateMember();
 }
 
 export async function dismissMemberOnboarding(moduleId: string) {
   const user = await requireUser();
-  if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
+  if (!(await onboardingLive())) throw new Error("Onboarding is not live yet");
   if (!moduleId) throw new Error("Checklist is required");
   await dismissOnboarding(user.id, moduleId);
   revalidateMember();
@@ -32,7 +32,7 @@ export async function dismissMemberOnboarding(moduleId: string) {
 
 export async function reopenMemberOnboarding(formData: FormData) {
   const user = await requireUser();
-  if (!onboardingEnabled()) throw new Error("Onboarding is not enabled");
+  if (!(await onboardingLive())) throw new Error("Onboarding is not live yet");
   const moduleId = String(formData.get("moduleId") || "");
   if (!moduleId) throw new Error("Checklist is required");
   await reopenOnboarding(user.id, moduleId);

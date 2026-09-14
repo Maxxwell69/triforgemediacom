@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { requireOnboardingModule } from "@/lib/onboarding/access";
+import { getOnboardingSettings, requireOnboardingModule } from "@/lib/onboarding/access";
 import { listOnboardingPrograms } from "@/lib/onboarding/config";
 import { onboardingKindLabel } from "@/lib/onboarding/labels";
 import OnboardingProgramCreateForm from "@/components/admin/OnboardingProgramCreateForm";
+import OnboardingLiveToggle from "@/components/admin/OnboardingLiveToggle";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOnboardingPage() {
   requireOnboardingModule();
-  const programs = await listOnboardingPrograms();
+  const [programs, settings] = await Promise.all([
+    listOnboardingPrograms(),
+    getOnboardingSettings(),
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -19,6 +23,8 @@ export default async function AdminOnboardingPage() {
         Create different checklists — Getting Started for new members, campaign follow-through,
         or any custom path. Assign them from a member profile.
       </p>
+
+      <OnboardingLiveToggle active={settings.active} />
 
       <OnboardingProgramCreateForm />
 
