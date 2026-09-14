@@ -11,6 +11,7 @@ import {
   sendCourseCompletionEmails,
 } from "@/lib/learning";
 import { awardLessonCompletionXp, awardQuizPassXp } from "@/lib/xp";
+import { applyCourseCompletionToOnboarding } from "@/lib/onboarding/engine";
 import { canAccessCourse, getUserGroupIds } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
 
@@ -76,6 +77,7 @@ export async function markLessonComplete(lessonId: string) {
     return checkCourseCompletion(tx, user.id, lesson.courseId);
   });
   await sendCourseCompletionEmails(user.id, lesson.courseId, award);
+  await applyCourseCompletionToOnboarding(user.id, lesson.courseId);
   const { evaluateProgression } = await import("@/lib/progression/engine");
   await evaluateProgression(user.id);
   revalidatePath("/progress");
@@ -182,6 +184,9 @@ export async function submitQuizAttempt(
     return null;
   });
   await sendCourseCompletionEmails(user.id, courseId, award);
+  if (passed) {
+    await applyCourseCompletionToOnboarding(user.id, courseId);
+  }
   const { evaluateProgression } = await import("@/lib/progression/engine");
   await evaluateProgression(user.id);
   revalidatePath("/progress");
