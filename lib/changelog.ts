@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.188",
+    date: "September 14, 2026",
+    title: "Onboarding reset sticks",
+    summary:
+      "Assign / Reset on a member profile clears the checklist again, even if they already finished the linked courses.",
+    items: [
+      {
+        kind: "fix",
+        text: "Course steps no longer auto-check from older course completions after an admin resets the checklist",
+      },
+    ],
+  },
+  {
     version: "3.187",
     date: "September 14, 2026",
     title: "Onboarding course steps",

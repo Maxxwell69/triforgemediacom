@@ -42,10 +42,20 @@ async function requiredCoursesCompleted(userId: string, courseIds: string[]) {
   return done >= courseIds.length;
 }
 
-async function completedCourseIds(userId: string, courseIds: string[]) {
+async function completedCourseIds(
+  userId: string,
+  courseIds: string[],
+  since?: Date | null
+) {
   if (courseIds.length === 0) return new Set<string>();
   const rows = await prisma.enrollment.findMany({
-    where: { userId, courseId: { in: courseIds }, completedAt: { not: null } },
+    where: {
+      userId,
+      courseId: { in: courseIds },
+      completedAt: since
+        ? { gte: since }
+        : { not: null },
+    },
     select: { courseId: true },
   });
   return new Set(rows.map((row) => row.courseId));
@@ -54,7 +64,9 @@ async function completedCourseIds(userId: string, courseIds: string[]) {
 export async function syncCourseLinkedSteps(
   userId: string,
   steps: OnboardingStep[],
-  completedStepIds: string[]
+  completedStepIds: string[],
+  /** After admin Assign/Reset, ignore course completions from before this time. */
+  since?: Date | null
 ) {
   const courseSteps = steps.filter(
     (step) => step.actionType === "COURSE_LINK" && step.actionTarget
@@ -62,7 +74,8 @@ export async function syncCourseLinkedSteps(
   if (courseSteps.length === 0) return completedStepIds;
   const doneCourses = await completedCourseIds(
     userId,
-    courseSteps.map((step) => step.actionTarget as string)
+    courseSteps.map((step) => step.actionTarget as string),
+    since
   );
   const next = new Set(completedStepIds);
   for (const step of courseSteps) {
@@ -93,6 +106,7 @@ async function tryCompleteProgress(
   visibleStepIds: string[],
   completionXpReward: number
 ) {
+  if (visibleStepIds.length === 0) return false;
   const allStepsDone = visibleStepIds.every((id) => completedStepIds.includes(id));
   const coursesDone = await requiredCoursesCompleted(userId, requiredCourseIds);
   if (!allStepsDone || !coursesDone) return false;
@@ -197,7 +211,12 @@ export async function loadMemberOnboardings(userId: string): Promise<MemberOnboa
     const progress = progressRows.find((row) => row.moduleId === program.id);
     if (!progress) continue;
     const visible = visibleOnboardingSteps(program.steps, track);
-    const synced = await syncCourseLinkedSteps(userId, visible, progress.completedStepIds);
+    const synced = await syncCourseLinkedSteps(
+      userId,
+      visible,
+      progress.completedStepIds,
+      progress.assignedAt
+    );
     if (
       synced.length !== progress.completedStepIds.length ||
       synced.some((id) => !progress.completedStepIds.includes(id))
