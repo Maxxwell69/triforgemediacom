@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.194",
+    date: "September 15, 2026",
+    title: "Create Hub sales page",
+    summary:
+      "An unlisted public page for pitching a community hub — what creators use it for, and what operators can turn on.",
+    items: [
+      {
+        kind: "feature",
+        text: "Secret public page at /create-a-hub (not in the site menu, no search index) for Create Hub partner pitches",
+      },
+    ],
+  },
+  {
     version: "3.193",
     date: "September 15, 2026",
     title: "Webinar camera start",
