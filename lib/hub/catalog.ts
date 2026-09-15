@@ -78,6 +78,12 @@ export const FLAGSHIP_SKUS: HubSku[] = [
     description: "/live, network dashboard, Creator Insights (tik.tools)",
   },
   {
+    id: "agencyLiveReports",
+    kind: "flagship",
+    label: "Agency LIVE reports",
+    description: "Monthly LIVE analytics roster, per-creator reports, and admin notes (Hub 0 only)",
+  },
+  {
     id: "ghlImport",
     kind: "flagship",
     label: "GHL / roster import",

@@ -37,6 +37,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "core",
       },
       {
+        href: "/admin/live-reports",
+        label: "LIVE reports",
+        description: "Agency monthly LIVE analytics per creator, with admin notes",
+        sku: "agencyLiveReports",
+      },
+      {
         href: "/admin/users",
         label: "Users",
         description: "Roles, bans, TikTok links, groups & tags",

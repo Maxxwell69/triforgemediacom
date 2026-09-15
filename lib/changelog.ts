@@ -168,9 +168,37 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Optional Create Hub SKU: named checklists (Getting Started, campaign follow-through, or custom), admin-editable steps, required course gates, dismiss with disclaimer, and reopen from Account.",
     since: "3.182",
   },
+  {
+    name: "Agency LIVE reports",
+    tagline: "Monthly analytics + admin notes",
+    description:
+      "Hub 0 only: a hand-picked LIVE roster, per-creator monthly reports laid out like Creator Studio analytics, and shared admin notes. Not available on Create Hub.",
+    since: "3.192",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.192",
+    date: "September 15, 2026",
+    title: "Agency monthly LIVE reports",
+    summary:
+      "Admins can add creators to an agency LIVE roster, run a month, and leave notes — Hub 0 only, never a Create Hub option.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → LIVE reports: add people by hand, open a creator, pick a month, and run a screenshot-style report",
+      },
+      {
+        kind: "feature",
+        text: "Diamonds, gifts, and gifters from tik.tools agency events; LIVE streams, duration, and valid go-LIVE days from hub sessions",
+      },
+      {
+        kind: "feature",
+        text: "Shared admin notes on each person + month; re-running overwrites metrics and keeps the thread",
+      },
+    ],
+  },
   {
     version: "3.191",
     date: "September 14, 2026",

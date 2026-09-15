@@ -371,3 +371,141 @@ export async function bulkCheckLive(uniqueIds: string[]): Promise<TikToolsBulkLi
     };
   });
 }
+
+async function tiktoolsRequest(
+  path: string,
+  opts?: {
+    method?: "GET" | "POST";
+    params?: Record<string, string>;
+    body?: unknown;
+  }
+): Promise<unknown> {
+  const url = new URL(`${API_BASE}${path}`);
+  for (const [k, v] of Object.entries(opts?.params ?? {})) {
+    if (v) url.searchParams.set(k, v);
+  }
+  const method = opts?.method ?? "GET";
+  const res = await fetch(url.toString(), {
+    method,
+    headers: {
+      "x-api-key": apiKey(),
+      ...(opts?.body != null ? { "Content-Type": "application/json" } : {}),
+    },
+    body: opts?.body != null ? JSON.stringify(opts.body) : undefined,
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    status_code?: number;
+    error?: string | { message?: string };
+    message?: string;
+    ok?: boolean;
+  };
+  if (!res.ok) {
+    const msg =
+      (typeof data.error === "string" && data.error) ||
+      (typeof data.error === "object" && data.error?.message) ||
+      data.message ||
+      `tik.tools request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  if (typeof data.status_code === "number" && data.status_code !== 0) {
+    throw new Error(data.message || `tik.tools status_code ${data.status_code}`);
+  }
+  return data;
+}
+
+export type TikToolsAgencyEventSummary = {
+  creator: string;
+  days: number;
+  gifts: { events: number; diamonds: number; uniqueGifters: number };
+  battles: { total: number; wins: number };
+  chat: { messages: number; uniqueChatters: number };
+  activity: { likes: number; joins: number };
+};
+
+function num(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export async function fetchAgencyEventSummary(
+  uniqueId: string,
+  days: number
+): Promise<TikToolsAgencyEventSummary> {
+  const lookback = Math.min(90, Math.max(1, Math.round(days)));
+  const raw = (await tiktoolsRequest("/webcast/agency/events", {
+    params: {
+      creator: uniqueId.replace(/^@/, ""),
+      type: "summary",
+      days: String(lookback),
+    },
+  })) as {
+    creator?: string;
+    days?: number;
+    gifts?: { events?: number; diamonds?: number; uniqueGifters?: number };
+    battles?: { total?: number; wins?: number };
+    chat?: { messages?: number; uniqueChatters?: number };
+    activity?: { likes?: number; joins?: number };
+    data?: {
+      gifts?: { events?: number; diamonds?: number; uniqueGifters?: number };
+      battles?: { total?: number; wins?: number };
+      chat?: { messages?: number; uniqueChatters?: number };
+      activity?: { likes?: number; joins?: number };
+    };
+  };
+
+  const payload = raw.data ?? raw;
+  return {
+    creator: (raw.creator || uniqueId).replace(/^@/, "").toLowerCase(),
+    days: num(raw.days) || lookback,
+    gifts: {
+      events: num(payload.gifts?.events),
+      diamonds: num(payload.gifts?.diamonds),
+      uniqueGifters: num(payload.gifts?.uniqueGifters),
+    },
+    battles: {
+      total: num(payload.battles?.total),
+      wins: num(payload.battles?.wins),
+    },
+    chat: {
+      messages: num(payload.chat?.messages),
+      uniqueChatters: num(payload.chat?.uniqueChatters),
+    },
+    activity: {
+      likes: num(payload.activity?.likes),
+      joins: num(payload.activity?.joins),
+    },
+  };
+}
+
+const AGENCY_LIST_NAME = "TriForge Agency";
+
+export async function ensureAgencyListMember(uniqueId: string): Promise<void> {
+  const handle = uniqueId.replace(/^@/, "").toLowerCase();
+  if (!handle) return;
+
+  let listId = (process.env.TIKTOOLS_AGENCY_LIST_ID || "").trim();
+  if (!listId) {
+    const listsRaw = (await tiktoolsRequest("/webcast/agency/lists")) as {
+      lists?: Array<{ id?: string; name?: string }>;
+    };
+    const existing = (listsRaw.lists ?? []).find(
+      (list) => (list.name || "").trim().toLowerCase() === AGENCY_LIST_NAME.toLowerCase()
+    );
+    if (existing?.id) {
+      listId = existing.id;
+    } else {
+      const created = (await tiktoolsRequest("/webcast/agency/lists", {
+        method: "POST",
+        body: { name: AGENCY_LIST_NAME },
+      })) as { id?: string };
+      if (!created.id) throw new Error("Could not create tik.tools agency list");
+      listId = created.id;
+    }
+  }
+
+  await tiktoolsRequest("/webcast/agency/list/members", {
+    method: "POST",
+    body: { id: listId, uniqueId: handle, action: "add" },
+  });
+}
