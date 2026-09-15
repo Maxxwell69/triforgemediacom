@@ -497,7 +497,6 @@ export default function WebinarRoom({
   const [needsAppleTap, setNeedsAppleTap] = useState(false);
   const [appleUnlocked, setAppleUnlocked] = useState(false);
   const backHref = leaveHref || "/webinars";
-  const canPublish = role === "HOST" || role === "SPEAKER";
 
   useEffect(() => {
     const next = new Room({
@@ -632,7 +631,6 @@ export default function WebinarRoom({
   }
 
   return (
-    <LiveKitRoom
     <LiveKitRoom
       room={room}
       token={token}
