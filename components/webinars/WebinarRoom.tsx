@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   LiveKitRoom,
@@ -10,7 +10,7 @@ import {
   useRoomContext,
   useParticipants,
 } from "@livekit/components-react";
-import { Room, RoomEvent, DisconnectReason } from "livekit-client";
+import { ConnectionState, DisconnectReason, Room, RoomEvent, VideoPresets } from "livekit-client";
 import { isAppleWebinarClient } from "@/lib/webinarApple";
 import {
   WebinarApplePublishPrompt,
@@ -161,10 +161,13 @@ function AudienceControls({
 
   useEffect(() => {
     const onPerms = () => {
-      const canPub = !!localParticipant.permissions?.canPublish;
+      // Hosts keep host UI even if LiveKit briefly reports canPublish=false
+      // during connect — flipping HOST→AUDIENCE remounts the room and kills camera.
+      if (role === "HOST") return;
+      const canPub = localParticipant.permissions?.canPublish === true;
       if (canPub && role === "AUDIENCE") {
         onRoleChange("SPEAKER");
-      } else if (!canPub && (role === "SPEAKER" || role === "HOST")) {
+      } else if (!canPub && role === "SPEAKER") {
         onRoleChange("AUDIENCE");
       }
     };
@@ -217,6 +220,85 @@ function AudienceControls({
         {raised ? "Hand raised — waiting for host" : raising ? "Raising…" : "Raise hand"}
       </button>
       {error && <p className="mt-1 font-body text-xs text-orange">{error}</p>}
+    </div>
+  );
+}
+
+/** Start mic then camera after connect so getUserMedia isn't racing in parallel. */
+function PublishLocalMedia({ canPublish }: { canPublish: boolean }) {
+  const room = useRoomContext();
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const startingRef = useRef(false);
+
+  const enableMedia = useCallback(async () => {
+    if (!canPublish) return;
+    if (isAppleWebinarClient()) return;
+    if (room.state !== ConnectionState.Connected) return;
+    if (room.localParticipant.permissions?.canPublish === false) return;
+    if (startingRef.current) return;
+    startingRef.current = true;
+
+    setMediaError(null);
+    try {
+      try {
+        if (!room.localParticipant.isMicrophoneEnabled) {
+          await room.localParticipant.setMicrophoneEnabled(true);
+        }
+      } catch (err) {
+        console.error("webinar microphone failed:", err);
+        setMediaError("Microphone didn't start. Click the mic button below to retry.");
+      }
+
+      try {
+        if (!room.localParticipant.isCameraEnabled) {
+          await room.localParticipant.setCameraEnabled(true);
+        }
+      } catch (err) {
+        console.error("webinar camera failed:", err);
+        setMediaError(
+          "Camera timed out. Close other apps using the camera, then retry — or use the camera button below."
+        );
+      }
+    } finally {
+      startingRef.current = false;
+    }
+  }, [canPublish, room]);
+
+  useEffect(() => {
+    if (!canPublish) return;
+    const run = () => {
+      void enableMedia();
+    };
+    if (room.state === ConnectionState.Connected) run();
+    room.on(RoomEvent.Connected, run);
+    const onDeviceError = (error: Error) => {
+      console.error("webinar media device error:", error);
+      setMediaError(error.message || "Camera or microphone failed to start.");
+    };
+    room.on(RoomEvent.MediaDevicesError, onDeviceError);
+    return () => {
+      room.off(RoomEvent.Connected, run);
+      room.off(RoomEvent.MediaDevicesError, onDeviceError);
+    };
+  }, [canPublish, room, enableMedia]);
+
+  if (!mediaError) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="font-body text-xs text-orange">{mediaError}</p>
+      <button
+        type="button"
+        disabled={retrying}
+        onClick={() => {
+          setRetrying(true);
+          void enableMedia().finally(() => setRetrying(false));
+        }}
+        className="rounded border border-orange/40 px-2 py-0.5 font-body text-xs font-semibold text-orange hover:bg-orange/10 disabled:opacity-50"
+      >
+        {retrying ? "Retrying…" : "Retry camera"}
+      </button>
     </div>
   );
 }
@@ -323,14 +405,17 @@ function RoomChrome({
                 End webinar
               </button>
             )}
-            <WebinarApplePublishPrompt canPublish={canPublish} />
-            <AudienceControls
-              webinarId={webinarId}
-              role={role}
-              onRoleChange={onRoleChange}
-              guestMode={guestMode}
-              guestJoinToken={guestJoinToken}
-            />
+            <div className="flex max-w-full flex-col items-end gap-1">
+              <WebinarApplePublishPrompt canPublish={canPublish} />
+              <AudienceControls
+                webinarId={webinarId}
+                role={role}
+                onRoleChange={onRoleChange}
+                guestMode={guestMode}
+                guestJoinToken={guestJoinToken}
+              />
+              <PublishLocalMedia canPublish={canPublish} />
+            </div>
           </div>
         </div>
 
@@ -418,6 +503,7 @@ export default function WebinarRoom({
     const next = new Room({
       adaptiveStream: false,
       dynacast: true,
+      videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
       audioCaptureDefaults: {
         echoCancellation: true,
         noiseSuppression: true,
@@ -482,10 +568,9 @@ export default function WebinarRoom({
   }
 
   function handleRoleChange(next: WebinarParticipantRole) {
+    // Stage invite/revoke already updates LiveKit publish rights in-room.
+    // Fetching a new token remounts LiveKitRoom and aborts camera start.
     setRole(next);
-    if (next === "SPEAKER" || next === "AUDIENCE") {
-      void fetchToken();
-    }
   }
 
   if (loading || !room) {
@@ -548,15 +633,20 @@ export default function WebinarRoom({
 
   return (
     <LiveKitRoom
+    <LiveKitRoom
       room={room}
       token={token}
       serverUrl={serverUrl}
       connect
-      audio={!needsAppleTap && canPublish}
-      video={!needsAppleTap && canPublish}
+      audio={false}
+      video={false}
       onConnected={() => {
         if (needsAppleTap) void room.startAudio();
       }}
+      onError={(err) => console.error("LiveKit room error:", err)}
+      onMediaDeviceFailure={(failure) =>
+        console.error("LiveKit media device failure:", failure)
+      }
       data-lk-theme="default"
       className="flex h-full min-h-0 max-h-full flex-1 flex-col overflow-hidden bg-charcoal"
     >
