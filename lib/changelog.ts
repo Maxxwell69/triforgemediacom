@@ -179,6 +179,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.193",
+    date: "September 15, 2026",
+    title: "Webinar camera start",
+    summary:
+      "Host camera no longer times out on join because mic and camera start one after the other, and the room stays connected if publish rights flicker.",
+    items: [
+      {
+        kind: "fix",
+        text: "Webinar room waits for the mic before starting the camera, and shows a retry if getUserMedia times out",
+      },
+      {
+        kind: "fix",
+        text: "Raising someone to the stage no longer remounts LiveKit (that was aborting camera publish mid-flight)",
+      },
+    ],
+  },
+  {
     version: "3.192",
     date: "September 15, 2026",
     title: "Agency monthly LIVE reports",
