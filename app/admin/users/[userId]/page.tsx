@@ -10,6 +10,7 @@ import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
 import UserTagsEditor from "@/components/admin/UserTagsEditor";
 import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
+import InviteToForgeButton from "@/components/admin/InviteToForgeButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
@@ -254,6 +255,11 @@ export default async function AdminUserDetailPage({
           >
             {user.status}
           </span>
+          {!user.platformAccess ? (
+            <span className="rounded border border-orange/40 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
+              Client hub only
+            </span>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-off-white/10 pt-4">
@@ -263,6 +269,9 @@ export default async function AdminUserDetailPage({
           </div>
           <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
           {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
+          {!user.platformAccess && user.status !== "BANNED" ? (
+            <InviteToForgeButton userId={user.id} />
+          ) : null}
           {user.role === "ADMIN" && (
             <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
           )}

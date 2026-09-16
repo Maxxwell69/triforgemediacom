@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
 /**
  * Sessions are JWTs that can live for weeks — role/status are only stamped
@@ -13,13 +15,27 @@ export async function getFreshSessionUser() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const dbUser = await prisma.user.findUnique({
+  const identity = await getControlPrisma().user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, status: true, platformAccess: true },
+  });
+  if (!identity || identity.status === "BANNED") return null;
+
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "platform") {
+    if (!identity.platformAccess) return null;
+    return { ...session.user, role: identity.role, status: identity.status };
+  }
+
+  if (ctx.kind !== "client" || !ctx.prisma) return null;
+
+  const tenantUser = await ctx.prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true, status: true },
   });
-  if (!dbUser || dbUser.status === "BANNED") return null;
+  if (!tenantUser || tenantUser.status === "BANNED") return null;
 
-  return { ...session.user, role: dbUser.role, status: dbUser.status };
+  return { ...session.user, role: tenantUser.role, status: tenantUser.status };
 }
 
 export async function requireUser() {
@@ -67,7 +83,8 @@ export async function requireAdminPage() {
  */
 export async function requireSuperAdminPage() {
   const user = await requireAdminPage();
-  if (user.role !== "ADMIN") {
+  const ctx = await getRequestHubContext();
+  if (ctx.kind !== "platform" || !isTrueAdmin(user.role)) {
     notFound();
   }
   const allow = (process.env.SUPERADMIN_EMAILS || "")

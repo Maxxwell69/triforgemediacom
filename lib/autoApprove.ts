@@ -31,7 +31,7 @@ export async function autoApproveApplication(applicationId: string): Promise<boo
     }),
     prisma.user.update({
       where: { id: application.userId },
-      data: { status: "INVITED" },
+      data: { status: "INVITED", platformAccess: true },
     }),
   ]);
 

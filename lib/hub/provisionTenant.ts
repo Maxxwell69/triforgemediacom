@@ -1,9 +1,10 @@
 import "server-only";
 
 import { spawn } from "node:child_process";
-import { prisma } from "@/lib/prisma";
+import { controlPrisma } from "@/lib/prismaControl";
 import { tenantSchemaName, withSchema } from "@/lib/hub/schemaUrl";
 import { pingTenantSchema } from "@/lib/hub/tenantPrisma";
+import { seedTenantDefaults } from "@/lib/hub/seedTenant";
 
 const MIGRATE_TIMEOUT_MS = 180_000;
 
@@ -56,7 +57,7 @@ export async function provisionTenantSchema(slug: string): Promise<{
   }
 
   try {
-    await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+    await controlPrisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
   } catch (err) {
     console.error("create tenant schema failed", schema, err);
     return { error: "Couldn't create the hub schema on Postgres. Check database permissions." };
@@ -78,6 +79,10 @@ export async function provisionTenantSchema(slug: string): Promise<{
         "Schema was created but the app couldn't open it. Try Provision again, or check Railway logs.",
     };
   }
+
+  await seedTenantDefaults(schema).catch((err) => {
+    console.error("tenant seed after provision failed", schema, err);
+  });
 
   return { error: null, schema };
 }

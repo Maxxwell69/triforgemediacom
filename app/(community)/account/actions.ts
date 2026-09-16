@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { onboardingSchema } from "@/lib/validations/onboarding";
 import {
   changeEmailSchema,
@@ -166,7 +167,8 @@ export async function changePassword(
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const identity = getControlPrisma();
+  const dbUser = await identity.user.findUnique({ where: { id: user.id } });
   if (!dbUser?.passwordHash) {
     return { error: "No password is set for this account." };
   }
@@ -177,7 +179,7 @@ export async function changePassword(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  await identity.user.update({ where: { id: user.id }, data: { passwordHash } });
 
   return { success: true };
 }
@@ -201,7 +203,8 @@ export async function changeEmail(
 
   const { newEmail, currentPassword } = parsed.data;
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const identity = getControlPrisma();
+  const dbUser = await identity.user.findUnique({ where: { id: user.id } });
   if (!dbUser?.passwordHash) {
     return { error: "No password is set for this account." };
   }
@@ -215,12 +218,13 @@ export async function changeEmail(
     return { error: "That's already your current email." };
   }
 
-  const taken = await prisma.user.findUnique({ where: { email: newEmail } });
+  const taken = await identity.user.findUnique({ where: { email: newEmail } });
   if (taken) {
     return { error: "That email is already in use." };
   }
 
-  await prisma.user.update({ where: { id: user.id }, data: { email: newEmail } });
+  await identity.user.update({ where: { id: user.id }, data: { email: newEmail } });
+  await prisma.user.update({ where: { id: user.id }, data: { email: newEmail } }).catch(() => {});
 
   try {
     await sendEmailChangedNotice(dbUser.email, newEmail, dbUser.name || "there");

@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { UserRole, UserStatus } from "@prisma/client";
-import { getTenantPrisma } from "@/lib/hub/tenantPrisma";
+import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 export async function ensureTenantMember(opts: {
   tenantDbName: string;
@@ -21,6 +21,7 @@ export async function ensureTenantMember(opts: {
         status: opts.status,
       },
     });
+    await copyControlProfile(opts.user.id, db);
     return byId.id;
   }
 
@@ -34,6 +35,7 @@ export async function ensureTenantMember(opts: {
         status: opts.status,
       },
     });
+    await copyControlProfile(byEmail.id, db);
     return byEmail.id;
   }
 
@@ -48,5 +50,34 @@ export async function ensureTenantMember(opts: {
       passwordHash: null,
     },
   });
+  await copyControlProfile(opts.user.id, db);
   return opts.user.id;
+}
+
+async function copyControlProfile(
+  userId: string,
+  db: ReturnType<typeof getTenantPrisma>
+) {
+  const existing = await db.profile.findUnique({ where: { userId } });
+  if (existing) return;
+  const source = await getControlPrisma().profile.findUnique({ where: { userId } });
+  if (!source) return;
+  try {
+    await db.profile.create({
+      data: {
+        userId,
+        platform: source.platform,
+        goals: source.goals ?? {},
+        bio: source.bio,
+        socialLinks: source.socialLinks ?? undefined,
+        pinnedTiktokVideoUrl: source.pinnedTiktokVideoUrl,
+        phone: source.phone,
+        country: source.country,
+        showRealName: source.showRealName,
+        username: source.username,
+      },
+    });
+  } catch (err) {
+    console.error("copy control profile skipped", userId, err);
+  }
 }

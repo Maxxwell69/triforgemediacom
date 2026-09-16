@@ -5,7 +5,25 @@ import { hostnameFromHeaders, resolveHubHost } from "@/lib/hub/host";
 
 const { auth } = NextAuth(authConfig);
 
-function clientHubGate(req: NextRequest) {
+const CLIENT_BLOCKED_PREFIXES = [
+  "/superadmin",
+  "/apply",
+  "/create-a-hub",
+  "/updates",
+  "/api/apply",
+  "/api/cron",
+];
+
+function isAuthLanding(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/signin" ||
+    pathname === "/login" ||
+    pathname.startsWith("/signup")
+  );
+}
+
+function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) {
   const resolved = resolveHubHost(hostnameFromHeaders(req.headers));
   if (resolved.kind !== "client") return null;
 
@@ -15,14 +33,33 @@ function clientHubGate(req: NextRequest) {
   if (pathname.startsWith("/api/auth")) return null;
   if (pathname.startsWith("/hub-host/")) return null;
 
-  // Never expose Hub 0 APIs (auth, cron, booking, chat) on a client hostname.
-  if (pathname.startsWith("/api/")) {
+  if (CLIENT_BLOCKED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.rewrite(url);
+  if (
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password")
+  ) {
+    return null;
+  }
+
+  if (isAuthLanding(pathname)) {
+    if (req.auth && (pathname === "/" || pathname === "/signin" || pathname === "/login")) {
+      return NextResponse.redirect(new URL("/home", req.nextUrl.origin));
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  if (!req.auth) {
+    const loginUrl = new URL("/signin", req.nextUrl.origin);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return null;
 }
 
 export default auth((req) => {

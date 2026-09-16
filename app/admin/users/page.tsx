@@ -12,6 +12,7 @@ import UserTagsEditor from "@/components/admin/UserTagsEditor";
 import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
 import AddMemberForm from "@/components/admin/AddMemberForm";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
+import InviteToForgeButton from "@/components/admin/InviteToForgeButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
@@ -415,6 +416,11 @@ export default async function AdminUsersPage({
                         {user.role}
                       </span>
                     )}
+                    {!user.platformAccess ? (
+                      <span className="ml-2 rounded border border-orange/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange">
+                        Client hub only
+                      </span>
+                    ) : null}
                   </Link>
                   <p className="truncate font-body text-sm text-off-white/50">{user.email}</p>
                   {signupHandle && (
@@ -442,6 +448,9 @@ export default async function AdminUsersPage({
                     </span>
                   )}
                   {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
+                  {!user.platformAccess && user.status !== "BANNED" ? (
+                    <InviteToForgeButton userId={user.id} />
+                  ) : null}
                   {user.role === "ADMIN" && (
                     <AdminAlertsToggle userId={user.id} receivesAlerts={user.receivesAdminAlerts} />
                   )}

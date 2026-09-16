@@ -24,3 +24,8 @@ export function clientHubInviteUrl(slug: string, token: string) {
 export function clientHubSignInUrl(slug: string) {
   return `https://${clientHubPublicHost(slug)}/signin`;
 }
+
+export function hub0SignInUrl() {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/signin`;
+}

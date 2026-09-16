@@ -50,7 +50,7 @@ export async function completeSignup(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: application.userId },
-      data: { passwordHash, status: "ACTIVE" },
+      data: { passwordHash, status: "ACTIVE", platformAccess: true },
     }),
     prisma.application.update({
       where: { id: application.id },

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { PrismaClient } from "@prisma/client";
-import { prisma as controlPrisma } from "@/lib/prisma";
+import { controlPrisma } from "@/lib/prismaControl";
 import { isTenantSchemaName, tenantDatasourceUrl } from "@/lib/hub/schemaUrl";
 
 const globalForTenant = globalThis as unknown as {

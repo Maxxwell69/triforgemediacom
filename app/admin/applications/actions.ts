@@ -52,7 +52,7 @@ export async function approveApplication(formData: FormData) {
 
   await prisma.user.update({
     where: { id: application.userId },
-    data: { status: "INVITED" },
+    data: { status: "INVITED", platformAccess: true },
   });
 
   await sendInviteEmail(

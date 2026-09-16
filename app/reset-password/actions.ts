@@ -2,7 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { resetPasswordSchema } from "@/lib/validations/passwordReset";
 
 export type ResetPasswordState = { error: string } | null;
@@ -23,6 +23,7 @@ export async function completePasswordReset(
 
   const { token, password } = parsed.data;
 
+  const prisma = getControlPrisma();
   const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } });
 
   if (

@@ -172,6 +172,44 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.202",
+    date: "September 15, 2026",
+    title: "Client hubs open the real app",
+    summary:
+      "After you sign in on a provisioned Create Hub hostname, you land in that hub’s member app and admin — not a placeholder.",
+    items: [
+      {
+        kind: "feature",
+        text: "Signed-in visits to {slug}.hub.triforgemedia.com go to Home, with that hub’s own database and enabled modules",
+      },
+      {
+        kind: "improve",
+        text: "Core channels are seeded on provision so chat has somewhere to live when the Chat SKU is on",
+      },
+    ],
+  },
+  {
+    version: "3.201",
+    date: "September 15, 2026",
+    title: "Forge Hub stays invite-only",
+    summary:
+      "A Create Hub invite does not open TriForge Hub. Client-hub people keep their community login until they also receive a Forge invite.",
+    items: [
+      {
+        kind: "fix",
+        text: "Signing in at hub.triforgemedia.com is blocked unless the account has Forge access",
+      },
+      {
+        kind: "feature",
+        text: "Admins can invite an existing client-hub person to Forge Hub (Users list, Add member, or application approve)",
+      },
+      {
+        kind: "improve",
+        text: "Directory and sign-in copy make the two invites explicit",
+      },
+    ],
+  },
+  {
     version: "3.200",
     date: "September 15, 2026",
     title: "Staff access on every Create Hub",
