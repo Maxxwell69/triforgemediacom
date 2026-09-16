@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import Link from "next/link";
 
 const inputClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60";
@@ -46,7 +45,7 @@ export default function ClientHubSignInForm({
       return;
     }
 
-    window.location.assign("/");
+    window.location.assign("/home");
   }
 
   return (
@@ -125,12 +124,12 @@ export function ClientHubShell({
       <header className="relative z-20 flex items-center justify-between px-6 py-5 sm:px-10">
         <p className="font-display text-2xl tracking-wide text-off-white">{name}</p>
         {signInHref ? (
-          <Link
+          <a
             href={signInHref}
             className="rounded-lg border border-off-white/15 px-3 py-2 font-body text-sm font-semibold text-off-white/90 transition hover:border-cyan/50 hover:text-cyan"
           >
             Sign in
-          </Link>
+          </a>
         ) : null}
       </header>
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-12">

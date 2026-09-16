@@ -64,8 +64,8 @@ export default async function HubsDirectoryPage() {
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {mine.map((row) => (
                 <li key={row.id}>
-                  <Link
-                    href={clientHubPublicUrl(row.clientHub.slug)}
+                  <a
+                    href={`${clientHubPublicUrl(row.clientHub.slug)}/home`}
                     className="glass block rounded-2xl p-5 transition hover:border-cyan/40"
                   >
                     <p className="font-display text-2xl tracking-wide text-off-white">
@@ -77,7 +77,7 @@ export default async function HubsDirectoryPage() {
                     <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-cyan/80">
                       {row.status === "INVITED" ? "Invite pending" : "Joined"} · {row.role}
                     </p>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -97,8 +97,8 @@ export default async function HubsDirectoryPage() {
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {hubs.map((hub) => (
                 <li key={hub.id}>
-                  <Link
-                    href={hub.href}
+                  <a
+                    href={hub.provisioned ? `${hub.href}/home` : hub.href}
                     className="block rounded-2xl border border-off-white/10 px-5 py-5 transition hover:border-cyan/40"
                   >
                     <p className="font-display text-2xl tracking-wide text-off-white">{hub.name}</p>
@@ -106,7 +106,7 @@ export default async function HubsDirectoryPage() {
                     <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-off-white/35">
                       {hub.provisioned ? "Live" : "Reserved"}
                     </p>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig } from "@/lib/auth.config";
-import { hostnameFromHeaders, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, publicOriginFromHeaders, resolveHubHost } from "@/lib/hub/host";
 
 const { auth } = NextAuth(authConfig);
 
@@ -21,6 +21,15 @@ function isAuthLanding(pathname: string) {
     pathname === "/login" ||
     pathname.startsWith("/signup")
   );
+}
+
+/** AUTH_URL makes nextUrl.origin the apex host even on {slug}.hub.… requests. */
+function requestOrigin(req: NextRequest) {
+  return publicOriginFromHeaders(req.headers) || req.nextUrl.origin;
+}
+
+function atOrigin(req: NextRequest, path: string) {
+  return new URL(path, `${requestOrigin(req)}/`);
 }
 
 function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) {
@@ -46,15 +55,14 @@ function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) 
 
   if (isAuthLanding(pathname)) {
     if (req.auth && (pathname === "/" || pathname === "/signin" || pathname === "/login")) {
-      return NextResponse.redirect(new URL("/home", req.nextUrl.origin));
+      return NextResponse.redirect(atOrigin(req, "/home"));
     }
-    const url = req.nextUrl.clone();
-    url.pathname = `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`;
+    const url = atOrigin(req, `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`);
     return NextResponse.rewrite(url);
   }
 
   if (!req.auth) {
-    const loginUrl = new URL("/signin", req.nextUrl.origin);
+    const loginUrl = atOrigin(req, "/signin");
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -73,19 +81,19 @@ export default auth((req) => {
   if (isStaffRoute) {
     const role = req.auth?.user?.role;
     if (!req.auth) {
-      const loginUrl = new URL("/signin", req.nextUrl.origin);
+      const loginUrl = atOrigin(req, "/signin");
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
     if (pathname.startsWith("/superadmin")) {
       if (role !== "ADMIN") {
         const dest = role === "MOD" ? "/admin" : "/home";
-        return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
+        return NextResponse.redirect(atOrigin(req, dest));
       }
     } else {
       const isAllowed = role === "ADMIN" || role === "MOD";
       if (!isAllowed) {
-        const loginUrl = new URL("/signin", req.nextUrl.origin);
+        const loginUrl = atOrigin(req, "/signin");
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }

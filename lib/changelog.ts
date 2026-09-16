@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.204",
+    date: "September 15, 2026",
+    title: "Client hubs stay on their own hostname",
+    summary:
+      "Opening a Create Hub from the directory no longer dumps you back into TriForge Hub home.",
+    items: [
+      {
+        kind: "fix",
+        text: "Signed-in redirects on {slug}.hub.triforgemedia.com stay on that host instead of AUTH_URL (hub.triforgemedia.com)",
+      },
+    ],
+  },
+  {
     version: "3.203",
     date: "September 15, 2026",
     title: "Fix Railway image build",

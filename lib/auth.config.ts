@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { resolveHubHost } from "@/lib/hub/host";
 
 /**
  * Edge-safe Auth.js config: no Prisma adapter, no bcrypt, no DB calls.
@@ -16,6 +17,19 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
+    redirect({ url, baseUrl }) {
+      if (url.startsWith("/") && !url.startsWith("//")) {
+        return `${baseUrl}${url}`;
+      }
+      try {
+        const dest = new URL(url, baseUrl);
+        if (dest.origin === baseUrl) return dest.toString();
+        if (resolveHubHost(dest.hostname).kind === "client") return dest.toString();
+      } catch {
+        // Fall through to AUTH_URL.
+      }
+      return baseUrl;
+    },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
