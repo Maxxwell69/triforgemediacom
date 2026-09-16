@@ -121,6 +121,25 @@ export function buildInviteEmail(name: string, url: string): EmailContent {
   };
 }
 
+export function buildClientHubInviteEmail(hubName: string, url: string): EmailContent {
+  const safeHub = escapeHtml(hubName);
+  return {
+    subject: `You're invited to run ${hubName}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Your hub is ready</h1>
+      <p style="line-height:1.6;">You've been invited as the admin for <strong>${safeHub}</strong>.</p>
+      <p style="line-height:1.6;">This is not the TriForge Hub. Set your password on your community's own login.</p>
+      ${button(url, "Set up your admin account")}
+      <p style="color:rgba(245,245,245,0.45);font-size:12px;">If the button doesn't work, copy this link: ${escapeHtml(url)}</p>
+    `),
+  };
+}
+
+export async function sendClientHubInviteEmail(to: string, hubName: string, url: string) {
+  const { subject, html } = buildClientHubInviteEmail(hubName, url);
+  await send(to, subject, html);
+}
+
 export async function sendInviteEmail(to: string, name: string, url: string) {
   const { subject, html } = await resolveEditableEmail(
     "invite",

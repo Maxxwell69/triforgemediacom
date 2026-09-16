@@ -12,6 +12,7 @@ function clientHubGate(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/_next")) return null;
   if (pathname === "/api/health" || pathname.startsWith("/api/health/")) return null;
+  if (pathname.startsWith("/api/auth")) return null;
   if (pathname.startsWith("/hub-host/")) return null;
 
   // Never expose Hub 0 APIs (auth, cron, booking, chat) on a client hostname.
