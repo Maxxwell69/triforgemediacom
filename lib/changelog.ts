@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.206",
+    date: "September 15, 2026",
+    title: "Dashboard matches the module menu",
+    summary:
+      "Turning a module off removes it from Home as well as the sidebar — including TikTask and Webinars.",
+    items: [
+      {
+        kind: "fix",
+        text: "Home dashboard cards now use the same Create Hub module switches as the member menu",
+      },
+    ],
+  },
+  {
     version: "3.205",
     date: "September 15, 2026",
     title: "Keep your profile when a hub is given to you",

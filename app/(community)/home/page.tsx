@@ -50,7 +50,7 @@ export default async function HomePage() {
   const completedCourseCount = enrollments.filter((e) => e.completedAt).length;
 
   let tikTaskStat: string | null = null;
-  if (tikTaskAccess) {
+  if (tikTaskAccess && hubHas("tiktask")) {
     const tasks = await getOrGenerateTodayTasks(profile.userId, profile);
     const doneCount = tasks.filter((t) => t.status === "DONE").length;
     tikTaskStat = `${doneCount}/${tasks.length} done today`;
@@ -154,7 +154,7 @@ export default async function HomePage() {
         )}
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {canMenu("chat") && (
+          {canMenu("chat") && hubHas("chat") && (
             <DashboardCard
               href="/channels"
               icon="💬"
@@ -165,7 +165,7 @@ export default async function HomePage() {
             />
           )}
 
-          {canMenu("tiktask") && tikTaskAccess && (
+          {canMenu("tiktask") && tikTaskAccess && hubHas("tiktask") && (
             <DashboardCard
               href="/apps/tiktask"
               icon="⚡"
@@ -176,7 +176,7 @@ export default async function HomePage() {
             />
           )}
 
-          {canMenu("learn") && (
+          {canMenu("learn") && hubHas("learning") && (
             <DashboardCard
               href="/learn"
               icon="🎓"
@@ -187,7 +187,7 @@ export default async function HomePage() {
             />
           )}
 
-          {canMenu("webinars") && (
+          {canMenu("webinars") && hubHas("webinars") && (
             <DashboardCard
               href="/webinars"
               icon="🎥"
@@ -248,7 +248,7 @@ export default async function HomePage() {
             />
           )}
 
-          {canMenu("rewards") && (
+          {canMenu("rewards") && hubHas("rewards") && (
             <DashboardCard
               href="/rewards"
               icon="🎁"
@@ -304,7 +304,7 @@ export default async function HomePage() {
           )}
         </div>
 
-        {!menuLock && <CompanySocialPanel />}
+        {!menuLock && hubHas("companySocial") && <CompanySocialPanel />}
       </div>
     </main>
   );
