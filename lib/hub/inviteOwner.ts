@@ -1,7 +1,12 @@
 import "server-only";
 
 import { sendClientHubInviteEmail } from "@/lib/email";
-import { clientHubInviteUrl, generateInviteToken, inviteTokenExpiry } from "@/lib/invite";
+import {
+  clientHubInviteUrl,
+  clientHubSignInUrl,
+  generateInviteToken,
+  inviteTokenExpiry,
+} from "@/lib/invite";
 import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 
 export async function inviteClientHubOwner(hubId: string): Promise<{ error: string | null }> {
@@ -27,8 +32,26 @@ export async function inviteClientHubOwner(hubId: string): Promise<{ error: stri
   });
 
   const existingMembership = user?.hubMemberships[0];
+  if (existingMembership?.status === "BANNED") {
+    return { error: "That email is banned on this hub." };
+  }
   if (existingMembership?.status === "ACTIVE") {
-    return { error: "That owner already joined this hub. They can sign in with their existing login." };
+    const url = clientHubSignInUrl(hub.slug);
+    try {
+      await sendClientHubInviteEmail(email, hub.name, url);
+    } catch (err) {
+      console.error("client hub owner ready email failed", hub.slug, err);
+      return {
+        error: `They already have access, but the email failed (${
+          err instanceof Error ? err.message : "unknown error"
+        }). They can sign in at ${url}.`,
+      };
+    }
+    await control.clientHub.update({
+      where: { id: hub.id },
+      data: { adminInvitedAt: new Date() },
+    });
+    return { error: null };
   }
 
   if (!user) {

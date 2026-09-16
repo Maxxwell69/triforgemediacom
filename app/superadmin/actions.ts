@@ -16,6 +16,7 @@ import {
 } from "@/lib/hub/clientHubs";
 import { provisionTenantSchema } from "@/lib/hub/provisionTenant";
 import { inviteClientHubOwner } from "@/lib/hub/inviteOwner";
+import { grantPlatformAdminsHubAccess } from "@/lib/hub/staffAccess";
 
 function cookieOpts() {
   return {
@@ -163,6 +164,31 @@ export async function provisionClientHubDatabaseAction(
     },
   });
 
+  try {
+    await grantPlatformAdminsHubAccess(hub.id);
+  } catch (err) {
+    console.error("staff access grant after provision failed", hub.slug, err);
+  }
+
+  revalidatePath("/superadmin");
+  revalidatePath(`/superadmin/${hubId}`);
+  return { error: null };
+}
+
+export async function grantHubStaffAccessAction(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireSuperAdminPage();
+  const hubId = String(formData.get("hubId") || "");
+  if (!hubId) return { error: "Missing hub." };
+
+  const hub = await prisma.clientHub.findUnique({ where: { id: hubId } });
+  if (!hub) return { error: "Hub not found." };
+  if (!hub.tenantDbAt) {
+    return { error: "Provision the hub database before granting staff access." };
+  }
+
+  await grantPlatformAdminsHubAccess(hub.id);
   revalidatePath("/superadmin");
   revalidatePath(`/superadmin/${hubId}`);
   return { error: null };

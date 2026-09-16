@@ -9,6 +9,7 @@ import {
   toggleHubSetupStepAction,
   provisionClientHubDatabaseAction,
   inviteClientHubOwnerAction,
+  grantHubStaffAccessAction,
 } from "@/app/superadmin/actions";
 
 const fieldClass =
@@ -32,10 +33,19 @@ export default function HubSetupForm({
   hub,
   optional,
   tenantPing,
+  hubHref,
+  staff,
 }: {
   hub: HubFields;
   optional: HubSku[];
   tenantPing?: { ok: true; schema: string } | { ok: false; error: string } | null;
+  hubHref: string;
+  staff: Array<{
+    id: string;
+    email: string;
+    name: string | null;
+    membershipStatus: string | null;
+  }>;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +82,7 @@ export default function HubSetupForm({
             <input name="slug" required defaultValue={hub.slug} className={fieldClass} />
           </label>
           <label className="block font-body text-xs uppercase tracking-wide text-off-white/40">
-            Client admin email
+            Client owner email
             <input
               name="email"
               type="email"
@@ -81,6 +91,10 @@ export default function HubSetupForm({
               className={fieldClass}
             />
           </label>
+          <p className="-mt-2 font-body text-[11px] text-off-white/40">
+            The community’s owner. TriForge Hub 0 ADMINs get staff access automatically — do
+            not use this field to add yourselves.
+          </p>
           <label className="block font-body text-xs uppercase tracking-wide text-off-white/40">
             Notes
             <textarea name="notes" rows={2} defaultValue={hub.notes ?? ""} className={fieldClass} />
@@ -119,6 +133,69 @@ export default function HubSetupForm({
         </button>
         {error ? <p className="font-body text-sm text-orange">{error}</p> : null}
       </form>
+
+      <section className="glass rounded-2xl p-6">
+        <h2 className="font-display text-xl tracking-wide text-off-white">TriForge staff</h2>
+        <p className="mt-1 font-body text-xs text-off-white/45">
+          Every Hub 0 ADMIN can open this hub with their Forge login. They are support
+          access, not the client owner. After provision they also show under Your hubs.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {staff.length === 0 ? (
+            <li className="font-body text-sm text-off-white/45">
+              No Hub 0 ADMIN accounts found.
+            </li>
+          ) : null}
+          {staff.map((row) => (
+            <li
+              key={row.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-off-white/10 px-3 py-2"
+            >
+              <div>
+                <p className="font-body text-sm text-off-white">{row.name || row.email}</p>
+                <p className="font-body text-[11px] text-off-white/45">{row.email}</p>
+              </div>
+              <p className="font-body text-[11px] uppercase tracking-wide text-cyan/80">
+                {row.membershipStatus === "ACTIVE"
+                  ? "Can sign in"
+                  : row.membershipStatus === "INVITED"
+                    ? "Invite pending"
+                    : hub.tenantDbAt
+                      ? "Needs grant"
+                      : "After provision"}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={pending || !hub.tenantDbAt}
+            onClick={() => {
+              const data = new FormData();
+              data.set("hubId", hub.id);
+              start(async () => {
+                const result = await grantHubStaffAccessAction(data);
+                setError(result.error);
+                if (!result.error) router.refresh();
+              });
+            }}
+            className="rounded-lg border border-orange/40 bg-orange/15 px-3 py-1.5 font-body text-xs text-orange hover:border-orange/70 disabled:opacity-50"
+          >
+            {pending ? "Granting…" : "Grant staff access"}
+          </button>
+          {hub.tenantDbAt ? (
+            <a
+              href={hubHref}
+              target="_blank"
+              rel="noreferrer"
+              className="font-body text-xs text-cyan hover:underline"
+            >
+              Open {hub.slug}.hub.triforgemedia.com
+            </a>
+          ) : null}
+        </div>
+      </section>
 
       <section className="glass rounded-2xl p-6">
         <h2 className="font-display text-xl tracking-wide text-off-white">Next setup steps</h2>

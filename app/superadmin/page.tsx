@@ -35,9 +35,9 @@ export default async function SuperAdminHubsPage() {
         CREATE <span className="text-gradient">HUB</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        Save the hub record first, then open it and click Provision to create that hub’s
-        empty database schema. Test this on staging — it uses this environment’s Postgres,
-        not Hub 0 production members.
+        Save the hub record, provision its database, then email the client owner. Every Hub 0
+        ADMIN can sign into that hub with their Forge login after provision — you do not
+        invite yourselves.
       </p>
 
       {hubs.length > 0 ? (
