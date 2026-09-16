@@ -106,8 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (membership?.status === "BANNED") {
             return null;
           }
-          if (!membership) {
-            if (!ctx.hub.tenantDbName) return null;
+          if (ctx.hub.tenantDbName) {
             const joined = await joinClientHubAsFan({
               userId: user.id,
               clientHubId: ctx.hub.id,
@@ -119,6 +118,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
               },
             });
+          } else if (!membership) {
+            return null;
           }
           if (!membership || membership.status === "BANNED") {
             return null;

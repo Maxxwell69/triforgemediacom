@@ -23,23 +23,31 @@ export async function joinClientHubAsFan(opts: {
     where: { userId_clientHubId: { userId: user.id, clientHubId: opts.clientHubId } },
   });
   if (existing?.status === "BANNED") return "banned";
-  if (existing) return "already";
 
   await ensureControlProfile(user.id);
-  await control.hubMembership.create({
-    data: {
-      userId: user.id,
-      clientHubId: opts.clientHubId,
-      role: "FAN",
-      status: "ACTIVE",
-    },
-  });
-  await ensureTenantMember({
+  const membership =
+    existing ??
+    (await control.hubMembership.create({
+      data: {
+        userId: user.id,
+        clientHubId: opts.clientHubId,
+        role: "FAN",
+        status: "ACTIVE",
+      },
+    }));
+
+  const tenantUserId = await ensureTenantMember({
     tenantDbName: opts.tenantDbName,
     user,
-    role: "FAN",
+    role: membership.role,
     status: "ACTIVE",
   });
+  if (tenantUserId !== user.id) {
+    await control.hubMembership.update({
+      where: { id: membership.id },
+      data: { tenantUserId },
+    });
+  }
   await ensureUserInHomeGroup(user.id).catch(() => {});
-  return "joined";
+  return existing ? "already" : "joined";
 }
