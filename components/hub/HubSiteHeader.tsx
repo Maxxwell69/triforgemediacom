@@ -4,6 +4,7 @@ import Logo from "@/components/Logo";
 const links = [
   { href: "/#inside", label: "Inside the Hub" },
   { href: "/#programs", label: "Programs" },
+  { href: "/hubs", label: "Hubs" },
   { href: "/updates", label: "Updates" },
   { href: "/apply", label: "Apply" },
 ];

@@ -15,6 +15,7 @@ export const RESERVED_HUB_SLUGS = new Set([
   "triforge",
   "triforgemedia",
   "root",
+  "hubs",
 ]);
 
 export type SetupStepId = "dns" | "tls" | "database" | "invite";
@@ -49,7 +50,7 @@ export const HUB_SETUP_STEPS: HubSetupStep[] = [
     id: "invite",
     field: "adminInvitedAt",
     label: "Invite client admin",
-    how: "Creates an admin in this hub’s database and emails a signup link to {slug}.hub.triforgemedia.com — not Hub 0.",
+    how: "Emails a signup link on {slug}.hub.triforgemedia.com. Same login as Hub 0 if they already have one; otherwise they set a password once.",
   },
 ];
 

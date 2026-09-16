@@ -128,7 +128,7 @@ export function buildClientHubInviteEmail(hubName: string, url: string): EmailCo
     html: layout(`
       <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Your hub is ready</h1>
       <p style="line-height:1.6;">You've been invited as the admin for <strong>${safeHub}</strong>.</p>
-      <p style="line-height:1.6;">This is not the TriForge Hub. Set your password on your community's own login.</p>
+      <p style="line-height:1.6;">This is not the TriForge Hub. If you already have a Forge or hub login, use that password. If this is your first hub, you will set a password once.</p>
       ${button(url, "Set up your admin account")}
       <p style="color:rgba(245,245,245,0.45);font-size:12px;">If the button doesn't work, copy this link: ${escapeHtml(url)}</p>
     `),

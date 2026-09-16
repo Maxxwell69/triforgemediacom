@@ -8,12 +8,13 @@ export type MemberMenuItem = {
   always?: boolean;
 };
 
-export const ONBOARDING_ALWAYS_MENU_IDS = ["home", "account", "notifications"] as const;
+export const ONBOARDING_ALWAYS_MENU_IDS = ["home", "account", "notifications", "hubs"] as const;
 
 export const MEMBER_MENU_ITEMS: readonly MemberMenuItem[] = [
   { id: "home", label: "Dashboard", prefixes: ["/home"], always: true },
   { id: "account", label: "Account", prefixes: ["/account"], always: true },
   { id: "notifications", label: "Notifications", prefixes: ["/notifications"], always: true },
+  { id: "hubs", label: "Hubs", prefixes: ["/hubs"], always: true },
   { id: "groups", label: "Groups", prefixes: ["/groups"] },
   { id: "chat", label: "Chat", prefixes: ["/channels", "/dms"] },
   { id: "live", label: "Live", prefixes: ["/live"] },

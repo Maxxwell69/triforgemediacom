@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
-import { getControlPrisma, getTenantPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
+import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
+import { findHubInviteByToken } from "@/lib/hub/membership";
 import ClientHubSignInForm, { ClientHubShell } from "@/components/hub/ClientHubGate";
 import ClientHubSignupForm from "@/components/hub/ClientHubSignupForm";
 
@@ -38,7 +39,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
 
   const hub = await getControlPrisma().clientHub.findUnique({
     where: { slug: params.slug },
-    select: { name: true, slug: true, tenantDbAt: true, tenantDbName: true },
+    select: { id: true, name: true, slug: true, tenantDbAt: true, tenantDbName: true },
   });
 
   const tenantReady = !!(hub?.tenantDbName && hub.tenantDbAt);
@@ -62,32 +63,34 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
 
   if (isSignup) {
     const token = searchParams?.token;
-    let validEmail: string | null = null;
-    if (token && hub.tenantDbName && canAuth) {
-      const application = await getTenantPrisma(hub.tenantDbName).application.findUnique({
-        where: { inviteToken: token },
-        include: { user: true },
-      });
-      const isValid =
-        !!application &&
-        application.status === "APPROVED" &&
-        application.user.status === "INVITED" &&
-        (!application.inviteTokenExpiresAt || application.inviteTokenExpiresAt.getTime() > Date.now());
-      if (isValid) validEmail = application.user.email;
-    }
+    const invite = token && canAuth ? await findHubInviteByToken(token, hub.id) : null;
+    const hasPassword = !!invite?.user.passwordHash;
 
     return (
       <ClientHubShell name={hub.name} signInHref="/signin">
         <p className="mb-3 text-xs uppercase tracking-[0.3em] text-cyan">{hub.name}</p>
         <h1 className="mb-2 text-center font-display text-5xl tracking-wide sm:text-6xl">
-          SET UP <span className="text-gradient">YOUR ACCOUNT</span>
+          {hasPassword ? (
+            <>
+              JOIN <span className="text-gradient">{hub.name.toUpperCase()}</span>
+            </>
+          ) : (
+            <>
+              SET UP <span className="text-gradient">YOUR ACCOUNT</span>
+            </>
+          )}
         </h1>
-        {validEmail && token ? (
+        {invite && token && hasPassword ? (
+          <p className="max-w-md text-center font-body text-sm text-off-white/55">
+            {invite.user.email} already has a login. Sign in with that password to join {hub.name}.
+            You will not land in the TriForge Hub unless you also have access there.
+          </p>
+        ) : invite && token ? (
           <>
             <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
-              Choose a password for your {hub.name} admin login. This is not the TriForge Hub.
+              Choose a password once. The same login will work on any other hub that invites you.
             </p>
-            <ClientHubSignupForm token={token} email={validEmail} />
+            <ClientHubSignupForm token={token} email={invite.user.email} />
           </>
         ) : (
           <p className="max-w-md text-center font-body text-sm text-off-white/55">

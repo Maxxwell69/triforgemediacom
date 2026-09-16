@@ -2,10 +2,11 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
-import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+import { activateHubMembership } from "@/lib/hub/membership";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
@@ -37,10 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (ctx.kind === "unknown-client" || ctx.kind === "client-unprovisioned") {
           return null;
         }
-        const db: PrismaClient = ctx.prisma;
         const isClientHub = ctx.kind === "client";
+        const control = getControlPrisma();
 
-        const user = await db.user.findUnique({
+        const user = await control.user.findUnique({
           where: { email: email.toLowerCase() },
           select: {
             id: true,
@@ -52,6 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             failedLoginAttempts: true,
             lockedUntil: true,
             lastLoginAt: true,
+            platformAccess: true,
           },
         });
 
@@ -61,9 +63,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (user.status === "BANNED") return null;
 
-        // Locked out from too many recent failed attempts — reject without
-        // even checking the password, and without revealing the lockout
-        // state to the caller (same generic failure as wrong credentials).
         if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
           return null;
         }
@@ -73,7 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!valid) {
           const attempts = user.failedLoginAttempts + 1;
           const lock = attempts >= MAX_FAILED_LOGIN_ATTEMPTS;
-          await db.user.update({
+          await control.user.update({
             where: { id: user.id },
             data: {
               failedLoginAttempts: lock ? 0 : attempts,
@@ -83,9 +82,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        let role = user.role;
+        let status = user.status;
+
+        if (isClientHub && ctx.hub) {
+          const membership = await control.hubMembership.findUnique({
+            where: {
+              userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
+            },
+          });
+          if (!membership || membership.status === "BANNED") {
+            return null;
+          }
+          if (membership.status === "INVITED") {
+            await activateHubMembership(membership.id);
+          }
+          role = membership.role;
+          status = "ACTIVE";
+        } else if (!user.platformAccess) {
+          return null;
+        }
+
         const now = new Date();
         const wasFirstLogin = !user.lastLoginAt;
-        await db.user.update({
+        await control.user.update({
           where: { id: user.id },
           data: {
             failedLoginAttempts: 0,
@@ -96,7 +116,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (wasFirstLogin) {
-          void db.user
+          void control.user
             .update({ where: { id: user.id }, data: { firstLoginAt: now } })
             .catch((err) => console.error("firstLoginAt update skipped:", err));
           if (!isClientHub) {
@@ -115,8 +135,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
-          status: user.status,
+          role,
+          status,
         };
       },
     }),

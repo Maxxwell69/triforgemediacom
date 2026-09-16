@@ -337,6 +337,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
             <SuggestionNavLink initialCount={suggestionUnread} />
           )}
           <Link
+            href="/hubs"
+            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
+          >
+            Hubs
+          </Link>
+          <Link
             href="/account"
             className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
           >

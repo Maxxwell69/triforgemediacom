@@ -13,6 +13,9 @@ export default function HubSiteFooter() {
           </p>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 font-body text-sm text-off-white/45">
+          <Link href="/hubs" className="transition hover:text-cyan">
+            Hubs
+          </Link>
           <Link href="/signin" className="transition hover:text-cyan">
             Sign in
           </Link>
