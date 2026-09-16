@@ -113,6 +113,12 @@ export const FLAGSHIP_SKUS: HubSku[] = [
     label: "Creator Progression",
     description: "Admin-editable levels, missions, certs, skills, and progress tree",
   },
+  {
+    id: "streamingKit",
+    kind: "flagship",
+    label: "Streaming kit",
+    description: "/streaming-kit overlays, logos, and brand downloads (Hub 0 only)",
+  },
 ];
 
 export const ALL_SKUS: HubSku[] = [...CORE_SKUS, ...OPTIONAL_SKUS, ...FLAGSHIP_SKUS];
