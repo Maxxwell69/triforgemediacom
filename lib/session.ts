@@ -7,6 +7,7 @@ import { publicOriginFromHeaders } from "@/lib/hub/host";
 import { copyControlProfileToTenant, ensureTenantMember } from "@/lib/hub/ensureTenantMember";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+import type { UserRole, UserStatus } from "@prisma/client";
 
 function redirectHere(path: string): never {
   const origin = publicOriginFromHeaders(headers());
@@ -44,11 +45,10 @@ export async function getFreshSessionUser() {
   if (!membership || membership.status === "BANNED") return null;
 
   const lookupIds = [membership.tenantUserId, session.user.id].filter(
-    (id): id is string => !!id
+    (id, index, all): id is string => !!id && all.indexOf(id) === index
   );
-  let tenantUser: { id: string; role: typeof membership.role; status: typeof identity.status } | null =
-    null;
-  for (const id of [...new Set(lookupIds)]) {
+  let tenantUser: { id: string; role: UserRole; status: UserStatus } | null = null;
+  for (const id of lookupIds) {
     tenantUser = await ctx.prisma.user.findUnique({
       where: { id },
       select: { id: true, role: true, status: true },
