@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: { slug: string; rest?: string[] };
-  searchParams?: { token?: string; welcome?: string };
+  searchParams?: { token?: string; welcome?: string; email?: string };
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -102,8 +102,12 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
         </h1>
         {invite && token && hasPassword ? (
           <p className="max-w-md text-center font-body text-sm text-off-white/55">
-            {invite.user.email} already has a login. Sign in with that password to join {hub.name}.
-            You will not land in the TriForge Hub unless you also have access there.
+            {invite.user.email} already has a login.{" "}
+            <a href="/signin" className="text-cyan hover:underline">
+              Sign in
+            </a>{" "}
+            with that password to join {hub.name}. You will not land in the TriForge Hub unless you
+            also have access there.
           </p>
         ) : invite && token ? (
           <>
@@ -139,6 +143,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
           hubName={hub.name}
           enabled={canAuth}
           welcome={searchParams?.welcome === "1"}
+          defaultEmail={searchParams?.email}
         />
         {canAuth ? (
           <p className="mt-6 font-body text-sm text-off-white/45">

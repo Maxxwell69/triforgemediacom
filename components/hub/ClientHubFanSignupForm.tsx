@@ -26,7 +26,20 @@ export default function ClientHubFanSignupForm({ hubName }: { hubName: string })
     <form action={formAction} className="glass flex w-full max-w-sm flex-col gap-5 rounded-2xl p-8">
       {state?.error ? (
         <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
-          {state.error}
+          {state.href ? (
+            <>
+              That email already has a login.{" "}
+              <a
+                href={state.href}
+                className="font-semibold underline decoration-orange/70 underline-offset-2 hover:text-off-white"
+              >
+                {state.hrefLabel ?? "Sign in"}
+              </a>{" "}
+              — if you’re on the network, your profile comes with you as a fan.
+            </>
+          ) : (
+            state.error
+          )}
         </p>
       ) : null}
       <label className="flex flex-col gap-1.5">
