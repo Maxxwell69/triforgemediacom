@@ -179,6 +179,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.208",
+    date: "September 15, 2026",
+    title: "Public fan signup on Create Hub",
+    summary:
+      "Anyone can create a Fan account on a live client hub. Network emails keep their existing profile. Admins can promote Fans to Superfan or Member.",
+    items: [
+      {
+        kind: "feature",
+        text: "Public Create Hub signup joins as Fan; an existing Forge/hub login signs in and brings that profile",
+      },
+      {
+        kind: "feature",
+        text: "Fan and Superfan roles on client hubs, with a fans chat seeded below member channels",
+      },
+    ],
+  },
+  {
     version: "3.207",
     date: "September 15, 2026",
     title: "Client hub admins invite their members",

@@ -2,8 +2,9 @@ import "server-only";
 
 import { getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
-const DEFAULT_CHANNELS: { name: string; description: string; minRole: "MEMBER" | "CREATOR" | "MOD" }[] =
+const DEFAULT_CHANNELS: { name: string; description: string; minRole: "FAN" | "MEMBER" | "CREATOR" | "MOD" }[] =
   [
+    { name: "fans", description: "Open chat for fans and superfans", minRole: "FAN" },
     { name: "general", description: "General community chat", minRole: "MEMBER" },
     { name: "wins", description: "Share your wins, big or small", minRole: "MEMBER" },
     { name: "creator-lounge", description: "Creators-only discussion", minRole: "CREATOR" },

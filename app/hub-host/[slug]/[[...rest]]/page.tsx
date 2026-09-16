@@ -6,6 +6,7 @@ import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { findHubInviteByToken } from "@/lib/hub/membership";
 import ClientHubSignInForm, { ClientHubShell } from "@/components/hub/ClientHubGate";
 import ClientHubSignupForm from "@/components/hub/ClientHubSignupForm";
+import ClientHubFanSignupForm from "@/components/hub/ClientHubFanSignupForm";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,24 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
 
   if (isSignup) {
     const token = searchParams?.token;
-    const invite = token && canAuth ? await findHubInviteByToken(token, hub.id) : null;
+    if (!token) {
+      return (
+        <ClientHubShell name={hub.name} signInHref="/signin">
+          <p className="mb-3 text-xs uppercase tracking-[0.3em] text-cyan">{hub.name}</p>
+          <h1 className="mb-2 text-center font-display text-5xl tracking-wide sm:text-6xl">
+            JOIN AS A <span className="text-gradient">FAN</span>
+          </h1>
+          <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
+            {!canAuth
+              ? "This hub isn’t open for signup yet."
+              : `Create an account for ${hub.name}. If your email is already on the TriForge network, your profile comes with you. Admins can later promote fans to Superfan or Member.`}
+          </p>
+          {canAuth ? <ClientHubFanSignupForm hubName={hub.name} /> : null}
+        </ClientHubShell>
+      );
+    }
+
+    const invite = canAuth ? await findHubInviteByToken(token, hub.id) : null;
     const hasPassword = !!invite?.user.passwordHash;
 
     return (
@@ -122,6 +140,14 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
           enabled={canAuth}
           welcome={searchParams?.welcome === "1"}
         />
+        {canAuth ? (
+          <p className="mt-6 font-body text-sm text-off-white/45">
+            New here?{" "}
+            <a href="/signup" className="text-cyan hover:underline">
+              Create a fan account
+            </a>
+          </p>
+        ) : null}
       </ClientHubShell>
     );
   }
@@ -140,11 +166,19 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
         {!hub.tenantDbAt
           ? "This hub is reserved. The database hasn’t been provisioned yet, so members can’t sign in."
           : canAuth
-            ? "This hub is live and private. Sign in if you were invited. Admins invite members from Admin → Users."
+            ? "This hub is live. Sign in with your login, or create a fan account. If your email is already on the TriForge network, your profile comes with you."
             : "This hub is reserved, but the app couldn’t open its database yet. Ask TriForge to check provision."}
       </p>
       {canAuth ? (
-        <ClientHubSignInForm hubName={hub.name} enabled />
+        <>
+          <ClientHubSignInForm hubName={hub.name} enabled />
+          <p className="mt-6 font-body text-sm text-off-white/45">
+            New here?{" "}
+            <a href="/signup" className="text-cyan hover:underline">
+              Create a fan account
+            </a>
+          </p>
+        </>
       ) : null}
     </ClientHubShell>
   );

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, CLIENT_ASSIGNABLE_ROLES, PLATFORM_ASSIGNABLE_ROLES } from "@/lib/rbac";
 import { pointsAdjustmentSchema } from "@/lib/validations/points";
 import { addMemberSchema } from "@/lib/validations/addMember";
 import { adminSetPasswordSchema } from "@/lib/validations/account";
@@ -17,8 +17,6 @@ import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
 import type { UserRole } from "@prisma/client";
-
-const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER", "RECRUIT"];
 
 async function requireAdmin() {
   const session = await auth();
@@ -43,7 +41,8 @@ async function requireAdmin() {
 export async function updateUserRole(userId: string, role: string) {
   const session = await requireAdmin();
 
-  if (!VALID_ROLES.includes(role as UserRole)) {
+  const allowed = isClientHubRequest() ? CLIENT_ASSIGNABLE_ROLES : PLATFORM_ASSIGNABLE_ROLES;
+  if (!allowed.includes(role as UserRole)) {
     throw new Error("Invalid role");
   }
   if (userId === session.user.id) {
@@ -65,6 +64,13 @@ export async function updateUserRole(userId: string, role: string) {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { role: role as UserRole } });
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "client" && ctx.hub) {
+    await getControlPrisma().hubMembership.updateMany({
+      where: { userId, clientHubId: ctx.hub.id },
+      data: { role: role as UserRole },
+    });
+  }
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
 }
