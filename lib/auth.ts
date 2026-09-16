@@ -98,7 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             });
             if (staffResult === "banned") return null;
           }
-          const membership = await control.hubMembership.findUnique({
+          let membership = await control.hubMembership.findUnique({
             where: {
               userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
             },
@@ -114,22 +114,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               tenantDbName: ctx.hub.tenantDbName,
             });
             if (joined === "banned") return null;
+            membership = await control.hubMembership.findUnique({
+              where: {
+                userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
+              },
+            });
           }
-          const liveMembership =
-            membership && membership.status !== "BANNED"
-              ? membership
-              : await control.hubMembership.findUnique({
-                  where: {
-                    userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
-                  },
-                });
-          if (!liveMembership || liveMembership.status === "BANNED") {
+          if (!membership || membership.status === "BANNED") {
             return null;
           }
-          if (liveMembership.status === "INVITED") {
-            await activateHubMembership(liveMembership.id);
+          if (membership.status === "INVITED") {
+            await activateHubMembership(membership.id);
           }
-          role = liveMembership.role;
+          role = membership.role;
           status = "ACTIVE";
         } else if (!user.platformAccess) {
           throw new PlatformInviteRequired();
