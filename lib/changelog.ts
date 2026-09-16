@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.212",
+    date: "September 16, 2026",
+    title: "Fix client hub login image build",
+    summary:
+      "Staging and production builds compile again after the client-hub login loop fix.",
+    items: [
+      {
+        kind: "fix",
+        text: "Client-hub session lookup no longer uses Set iteration that fails next build on Railway",
+      },
+    ],
+  },
+  {
     version: "3.211",
     date: "September 16, 2026",
     title: "Fix client hub login redirect loop",
