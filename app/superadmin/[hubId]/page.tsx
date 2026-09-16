@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { requireSuperAdminPage } from "@/lib/session";
@@ -6,11 +7,13 @@ import { OPTIONAL_SKUS } from "@/lib/hub/catalog";
 import { clientHubPublicUrl } from "@/lib/hub/directory";
 import { listPlatformHubStaff } from "@/lib/hub/staffAccess";
 import HubSetupForm from "@/components/superadmin/HubSetupForm";
+import SuperAdminSubnav from "@/components/superadmin/SuperAdminSubnav";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminHubPage({ params }: { params: { hubId: string } }) {
   await requireSuperAdminPage();
+  const pathname = headers().get("x-pathname") || `/superadmin/${params.hubId}`;
   const control = getControlPrisma();
   const hub = await control.clientHub.findUnique({ where: { id: params.hubId } });
   if (!hub) notFound();
@@ -36,6 +39,7 @@ export default async function SuperAdminHubPage({ params }: { params: { hubId: s
       <Link href="/superadmin" className="font-body text-sm text-off-white/50 hover:text-off-white">
         ← Create Hub
       </Link>
+      <SuperAdminSubnav pathname={pathname} />
       <h1 className="mt-3 font-display text-5xl tracking-wide">
         {hub.name.toUpperCase()}
       </h1>

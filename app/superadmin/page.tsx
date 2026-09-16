@@ -1,33 +1,41 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdminPage } from "@/lib/session";
 import { CORE_SKUS, OPTIONAL_SKUS, FLAGSHIP_SKUS } from "@/lib/hub/catalog";
 import { getEnabledSkuIds } from "@/lib/hub/modules";
 import { defaultClientSkuIds, nextSetupStep } from "@/lib/hub/clientHubs";
+import { loadCreateHubDataSheet, formatSheetBytes, formatSheetMinutes } from "@/lib/hub/dataSheet";
 import SuperAdminModuleForm from "@/components/superadmin/SuperAdminModuleForm";
 import CreateHubForm from "@/components/superadmin/CreateHubForm";
+import SuperAdminSubnav from "@/components/superadmin/SuperAdminSubnav";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function SuperAdminHubsPage() {
   await requireSuperAdminPage();
   const initialEnabled = Array.from(getEnabledSkuIds());
-  const hubs = await prisma.clientHub.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      clientAdminEmail: true,
-      dnsCnameAt: true,
-      railwayDomainAt: true,
-      tenantDbAt: true,
-      adminInvitedAt: true,
-    },
-  });
+  const pathname = headers().get("x-pathname") || "/superadmin";
+  const [hubs, sheet] = await Promise.all([
+    prisma.clientHub.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        clientAdminEmail: true,
+        dnsCnameAt: true,
+        railwayDomainAt: true,
+        tenantDbAt: true,
+        adminInvitedAt: true,
+      },
+    }),
+    loadCreateHubDataSheet(),
+  ]);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-6 py-16">
       <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
         Admin only · not shown to members or mods
       </p>
@@ -39,6 +47,56 @@ export default async function SuperAdminHubsPage() {
         ADMIN can sign into that hub with their Forge login after provision — you do not
         invite yourselves.
       </p>
+      <SuperAdminSubnav pathname={pathname} />
+
+      <section className="mt-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl tracking-wide text-off-white/80">Data sheet</h2>
+            <p className="mt-1 font-body text-xs text-off-white/45">
+              Members and live kit use for {sheet.monthLabel} (UTC). Bandwidth is the shared
+              LiveKit Cloud project, attached per hub when Analytics is on.
+            </p>
+          </div>
+          <Link href="/superadmin/usage" className="font-body text-sm text-cyan hover:underline">
+            Open full sheet
+          </Link>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="glass rounded-2xl p-4">
+            <p className="font-body text-[11px] uppercase tracking-wide text-off-white/40">
+              Active members
+            </p>
+            <p className="mt-1 font-display text-3xl text-off-white">
+              {sheet.totals.membersActive.toLocaleString()}
+            </p>
+          </div>
+          <div className="glass rounded-2xl p-4">
+            <p className="font-body text-[11px] uppercase tracking-wide text-off-white/40">
+              Live kit min
+            </p>
+            <p className="mt-1 font-display text-3xl text-off-white">
+              {formatSheetMinutes(sheet.totals.estimatedMinutesThisMonth)}
+            </p>
+          </div>
+          <div className="glass rounded-2xl p-4">
+            <p className="font-body text-[11px] uppercase tracking-wide text-off-white/40">
+              Bandwidth 7d
+            </p>
+            <p className="mt-1 font-display text-3xl text-off-white">
+              {formatSheetBytes(sheet.totals.bandwidthBytes7d)}
+            </p>
+          </div>
+          <div className="glass rounded-2xl p-4">
+            <p className="font-body text-[11px] uppercase tracking-wide text-off-white/40">
+              Live now
+            </p>
+            <p className="mt-1 font-display text-3xl text-orange">
+              {sheet.totals.liveParticipants.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </section>
 
       {hubs.length > 0 ? (
         <section className="mt-8">
