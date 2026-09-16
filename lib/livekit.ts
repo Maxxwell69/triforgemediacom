@@ -74,6 +74,10 @@ function getRoomService() {
   return new RoomServiceClient(httpUrl, apiKey, apiSecret);
 }
 
+export async function listLiveKitRooms() {
+  return getRoomService().listRooms();
+}
+
 /** Grant or revoke publish rights for a participant already in the room. */
 export async function setParticipantPublish(opts: {
   roomName: string;

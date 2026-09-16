@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.217",
+    date: "September 16, 2026",
+    title: "Create Hub data sheet",
+    summary:
+      "Hub 0 Create Hub now has a data sheet: members per hub, live kit minutes, and bandwidth from the shared LiveKit project.",
+    items: [
+      {
+        kind: "feature",
+        text: "Create Hub → Data sheet lists Hub 0 and every client hub with active/invited members, webinar joins, estimated live kit minutes, and 7-day bandwidth when Analytics is configured",
+      },
+    ],
+  },
+  {
     version: "3.216",
     date: "September 16, 2026",
     title: "Hub directory profiles",
