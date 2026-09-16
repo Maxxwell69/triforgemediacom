@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.203",
+    date: "September 15, 2026",
+    title: "Fix Railway image build",
+    summary:
+      "Production builds no longer fail when compiling the email template editor after client hubs started using request-aware Prisma.",
+    items: [
+      {
+        kind: "fix",
+        text: "Keep Prisma and next/headers off the client bundle so Railway can build the Docker image",
+      },
+    ],
+  },
+  {
     version: "3.202",
     date: "September 15, 2026",
     title: "Client hubs open the real app",

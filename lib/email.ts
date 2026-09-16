@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { resolveEditableEmail } from "@/lib/emailTemplates";
+import { resolveEditableEmail } from "@/lib/emailTemplatesResolve";
 import {
   broadcastUnsubscribeApiUrl,
   broadcastUnsubscribePageUrl,

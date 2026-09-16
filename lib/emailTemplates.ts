@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { button, escapeHtml, layout, SAMPLE_APP_URL, type EmailContent } from "@/lib/emailLayout";
 
 export type EmailTemplateKey =
@@ -349,20 +348,6 @@ export function renderTemplateContent(
     subject,
     html: wrapsInLayout ? layout(body) : body,
   };
-}
-
-export async function resolveEditableEmail(
-  key: EmailTemplateKey,
-  vars: TemplateVars,
-  fallback: () => EmailContent
-): Promise<EmailContent> {
-  const def = getTemplateDef(key);
-  if (!def) return fallback();
-
-  const row = await prisma.emailTemplate.findUnique({ where: { key } });
-  if (!row) return fallback();
-
-  return renderTemplateContent(def, row.subject, row.bodyHtml, row.wrapsInLayout, vars);
 }
 
 /** Sample vars for admin preview of a template. */
