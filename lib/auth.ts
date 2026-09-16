@@ -2,8 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
@@ -31,7 +33,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
+        const ctx = await getRequestHubContext();
+        if (ctx.kind === "unknown-client" || ctx.kind === "client-unprovisioned") {
+          return null;
+        }
+        const db: PrismaClient = ctx.prisma;
+        const isClientHub = ctx.kind === "client";
+
+        const user = await db.user.findUnique({
           where: { email: email.toLowerCase() },
           select: {
             id: true,
@@ -64,7 +73,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!valid) {
           const attempts = user.failedLoginAttempts + 1;
           const lock = attempts >= MAX_FAILED_LOGIN_ATTEMPTS;
-          await prisma.user.update({
+          await db.user.update({
             where: { id: user.id },
             data: {
               failedLoginAttempts: lock ? 0 : attempts,
@@ -76,7 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const now = new Date();
         const wasFirstLogin = !user.lastLoginAt;
-        await prisma.user.update({
+        await db.user.update({
           where: { id: user.id },
           data: {
             failedLoginAttempts: 0,
@@ -87,17 +96,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (wasFirstLogin) {
-          void prisma.user
+          void db.user
             .update({ where: { id: user.id }, data: { firstLoginAt: now } })
             .catch((err) => console.error("firstLoginAt update skipped:", err));
-          void import("@/lib/campaigns/engine")
-            .then(({ fireCampaignEventSafe }) => {
-              fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
-            })
-            .catch((err) => console.error("first-login campaign skipped:", err));
-          void import("@/lib/onboarding/engine")
-            .then(({ ensureOnboardingProgress }) => ensureOnboardingProgress(user.id))
-            .catch((err) => console.error("first-login onboarding skipped:", err));
+          if (!isClientHub) {
+            void import("@/lib/campaigns/engine")
+              .then(({ fireCampaignEventSafe }) => {
+                fireCampaignEventSafe({ type: "FIRST_LOGIN", userId: user.id });
+              })
+              .catch((err) => console.error("first-login campaign skipped:", err));
+            void import("@/lib/onboarding/engine")
+              .then(({ ensureOnboardingProgress }) => ensureOnboardingProgress(user.id))
+              .catch((err) => console.error("first-login onboarding skipped:", err));
+          }
         }
 
         return {

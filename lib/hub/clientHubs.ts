@@ -49,7 +49,7 @@ export const HUB_SETUP_STEPS: HubSetupStep[] = [
     id: "invite",
     field: "adminInvitedAt",
     label: "Invite client admin",
-    how: "Send a hub invite to the client admin email. Sending is not wired yet — check this when you’ve invited them.",
+    how: "Creates an admin in this hub’s database and emails a signup link to {slug}.hub.triforgemedia.com — not Hub 0.",
   },
 ];
 

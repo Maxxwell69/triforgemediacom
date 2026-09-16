@@ -15,6 +15,7 @@ import {
   type SetupStepId,
 } from "@/lib/hub/clientHubs";
 import { provisionTenantSchema } from "@/lib/hub/provisionTenant";
+import { inviteClientHubOwner } from "@/lib/hub/inviteOwner";
 
 function cookieOpts() {
   return {
@@ -165,4 +166,16 @@ export async function provisionClientHubDatabaseAction(
   revalidatePath("/superadmin");
   revalidatePath(`/superadmin/${hubId}`);
   return { error: null };
+}
+
+export async function inviteClientHubOwnerAction(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireSuperAdminPage();
+  const hubId = String(formData.get("hubId") || "");
+  if (!hubId) return { error: "Missing hub." };
+  const result = await inviteClientHubOwner(hubId);
+  revalidatePath("/superadmin");
+  revalidatePath(`/superadmin/${hubId}`);
+  return result;
 }

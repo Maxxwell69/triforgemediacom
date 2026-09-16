@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { HubSku } from "@/lib/hub/catalog";
 import { HUB_SETUP_STEPS } from "@/lib/hub/clientHubs";
-import { saveClientHubAction, toggleHubSetupStepAction, provisionClientHubDatabaseAction } from "@/app/superadmin/actions";
+import {
+  saveClientHubAction,
+  toggleHubSetupStepAction,
+  provisionClientHubDatabaseAction,
+  inviteClientHubOwnerAction,
+} from "@/app/superadmin/actions";
 
 const fieldClass =
   "mt-1 w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
@@ -132,6 +137,7 @@ export default function HubSetupForm({
             const complete = done[step.id];
             const how = step.how.replaceAll("{slug}", hub.slug);
             const isDatabase = step.id === "database";
+            const isInvite = step.id === "invite";
             return (
               <li
                 key={step.id}
@@ -172,6 +178,23 @@ export default function HubSetupForm({
                       className="shrink-0 rounded-lg border border-orange/40 bg-orange/15 px-3 py-1.5 font-body text-xs text-orange hover:border-orange/70 disabled:opacity-50"
                     >
                       {pending && !complete ? "Provisioning…" : complete ? "Provisioned" : "Provision"}
+                    </button>
+                  ) : isInvite ? (
+                    <button
+                      type="button"
+                      disabled={pending || !hub.tenantDbAt}
+                      onClick={() => {
+                        const data = new FormData();
+                        data.set("hubId", hub.id);
+                        start(async () => {
+                          const result = await inviteClientHubOwnerAction(data);
+                          setError(result.error);
+                          if (!result.error) router.refresh();
+                        });
+                      }}
+                      className="shrink-0 rounded-lg border border-orange/40 bg-orange/15 px-3 py-1.5 font-body text-xs text-orange hover:border-orange/70 disabled:opacity-50"
+                    >
+                      {pending ? "Sending…" : complete ? "Resend invite" : "Send invite"}
                     </button>
                   ) : (
                     <button

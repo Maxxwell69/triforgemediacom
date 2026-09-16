@@ -172,6 +172,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.197",
+    date: "September 15, 2026",
+    title: "Create Hub owner invites",
+    summary:
+      "Superadmin can email a hub owner a signup link on their own hostname. They set a password and sign in against that hub’s database — not Hub 0.",
+    items: [
+      {
+        kind: "feature",
+        text: "Send / resend invite creates an admin in the tenant schema and emails {slug}.hub.triforgemedia.com/signup",
+      },
+      {
+        kind: "feature",
+        text: "Client hub signup and sign-in use that hub’s database; /api/auth is allowed on the client hostname",
+      },
+    ],
+  },
+  {
     version: "3.196",
     date: "September 15, 2026",
     title: "Create Hub sales visuals",

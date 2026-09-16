@@ -6,22 +6,65 @@ import Link from "next/link";
 const inputClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60";
 
-export default function ClientHubSignInForm({ hubName }: { hubName: string }) {
+export default function ClientHubSignInForm({
+  hubName,
+  enabled,
+  welcome,
+}: {
+  hubName: string;
+  enabled: boolean;
+  welcome?: boolean;
+}) {
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMessage(
-      `${hubName} isn't open for sign-in yet. Your admin will send an invite when this hub is ready.`
-    );
+    if (!enabled) {
+      setMessage(
+        `${hubName} isn't open for sign-in yet. Your admin will send an invite when this hub is ready.`
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    setMessage(null);
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const { signIn } = await import("next-auth/react");
+    const res = await signIn("credentials", {
+      email: data.get("email"),
+      password: data.get("password"),
+      redirect: false,
+    });
+    setSubmitting(false);
+
+    if (res?.error) {
+      setError("Invalid email or password.");
+      return;
+    }
+
+    window.location.assign("/");
   }
 
   return (
     <div className="w-full max-w-sm">
       <form onSubmit={handleSubmit} className="glass flex flex-col gap-5 rounded-2xl p-8">
+        {welcome && !error ? (
+          <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
+            Account created — sign in to continue.
+          </p>
+        ) : null}
         {message ? (
           <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 font-body text-sm text-cyan">
             {message}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
+            {error}
           </p>
         ) : null}
         <label className="flex flex-col gap-1.5">
@@ -48,9 +91,10 @@ export default function ClientHubSignInForm({ hubName }: { hubName: string }) {
         </label>
         <button
           type="submit"
-          className="mt-2 rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
+          disabled={submitting}
+          className="mt-2 rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Sign in
+          {submitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
       <p className="mt-6 text-center font-body text-sm text-off-white/40">
