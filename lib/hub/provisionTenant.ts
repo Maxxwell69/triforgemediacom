@@ -2,26 +2,12 @@ import "server-only";
 
 import { spawn } from "node:child_process";
 import { prisma } from "@/lib/prisma";
+import { tenantSchemaName, withSchema } from "@/lib/hub/schemaUrl";
+import { pingTenantSchema } from "@/lib/hub/tenantPrisma";
 
-const SCHEMA_RE = /^hub_[a-z0-9_]+$/;
 const MIGRATE_TIMEOUT_MS = 180_000;
 
-export function tenantSchemaName(slug: string) {
-  const name = `hub_${slug.replace(/-/g, "_")}`;
-  if (!SCHEMA_RE.test(name)) {
-    throw new Error("Invalid hub slug for a database schema.");
-  }
-  return name;
-}
-
-function withSchema(databaseUrl: string, schema: string) {
-  const stripped = databaseUrl
-    .replace(/([?&])schema=[^&]*/gi, "$1")
-    .replace(/[?&]$/, "")
-    .replace(/\?&/, "?");
-  const join = stripped.includes("?") ? "&" : "?";
-  return `${stripped}${join}schema=${encodeURIComponent(schema)}`;
-}
+export { tenantSchemaName };
 
 function redact(text: string) {
   return text
@@ -81,6 +67,15 @@ export async function provisionTenantSchema(slug: string): Promise<{
     console.error("tenant migrate deploy failed", schema, migrate.log);
     return {
       error: "Schema was created but migrations failed. Try Provision again, or check Railway logs.",
+    };
+  }
+
+  const ping = await pingTenantSchema(schema);
+  if (!ping.ok) {
+    console.error("tenant schema ping after provision failed", schema, ping.error);
+    return {
+      error:
+        "Schema was created but the app couldn't open it. Try Provision again, or check Railway logs.",
     };
   }
 

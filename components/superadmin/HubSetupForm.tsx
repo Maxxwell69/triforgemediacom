@@ -26,9 +26,11 @@ type HubFields = {
 export default function HubSetupForm({
   hub,
   optional,
+  tenantPing,
 }: {
   hub: HubFields;
   optional: HubSku[];
+  tenantPing?: { ok: true; schema: string } | { ok: false; error: string } | null;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +148,11 @@ export default function HubSetupForm({
                     {isDatabase && hub.tenantDbName ? (
                       <p className="mt-1 font-body text-[11px] text-cyan/80">
                         Schema {hub.tenantDbName}
+                        {tenantPing
+                          ? tenantPing.ok
+                            ? " — app can open this schema"
+                            : ` — ${tenantPing.error}`
+                          : ""}
                       </p>
                     ) : null}
                   </div>
