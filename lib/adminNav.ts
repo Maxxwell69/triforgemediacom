@@ -4,6 +4,8 @@ export type AdminNavLink = {
   description?: string;
   /** Catalog SKU; omitted or "core" = always shown on every hub. */
   sku?: string;
+  /** Hide on Hub 0 — Create Hub tenant admins only. */
+  clientOnly?: boolean;
 };
 
 export type AdminNavSection = {
@@ -347,6 +349,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     description: "Public updates and company social",
     links: [
       {
+        href: "/admin/hub-profile",
+        label: "Hub profile",
+        description: "Directory image, description, and public/private listing",
+        sku: "core",
+        clientOnly: true,
+      },
+      {
         href: "/updates",
         label: "Updates",
         description: "Public changelog and programs",
@@ -378,12 +387,16 @@ export function linkSku(link: AdminNavLink): string {
 /** Drop links whose SKU is hidden; drop empty sections. Pass hubHas from the server. */
 export function filterAdminNavSections(
   sections: AdminNavSection[],
-  has: (sku: string) => boolean
+  has: (sku: string) => boolean,
+  options?: { clientHub?: boolean }
 ): AdminNavSection[] {
   return sections
     .map((section) => ({
       ...section,
-      links: section.links.filter((link) => has(linkSku(link))),
+      links: section.links.filter((link) => {
+        if (link.clientOnly && !options?.clientHub) return false;
+        return has(linkSku(link));
+      }),
     }))
     .filter((section) => section.links.length > 0);
 }

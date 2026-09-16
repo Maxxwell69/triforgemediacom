@@ -13,6 +13,8 @@ export type DirectoryHub = {
   href: string;
   createdAt: Date;
   provisioned: boolean;
+  description: string | null;
+  imageUrl: string | null;
 };
 
 export function clientHubPublicUrl(slug: string) {
@@ -21,6 +23,7 @@ export function clientHubPublicUrl(slug: string) {
 
 export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
   const hubs = await getControlPrisma().clientHub.findMany({
+    where: { directoryPublic: true, tenantDbAt: { not: null } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -28,6 +31,8 @@ export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
       slug: true,
       createdAt: true,
       tenantDbAt: true,
+      directoryDescription: true,
+      directoryImageUrl: true,
     },
   });
   return hubs.map((hub) => ({
@@ -38,6 +43,8 @@ export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
     href: clientHubPublicUrl(hub.slug),
     createdAt: hub.createdAt,
     provisioned: !!hub.tenantDbAt,
+    description: hub.directoryDescription,
+    imageUrl: hub.directoryImageUrl,
   }));
 }
 
@@ -58,7 +65,15 @@ export async function listMyHubMemberships(userId: string) {
       role: true,
       status: true,
       clientHub: {
-        select: { id: true, name: true, slug: true, tenantDbAt: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          tenantDbAt: true,
+          directoryPublic: true,
+          directoryDescription: true,
+          directoryImageUrl: true,
+        },
       },
     },
   });

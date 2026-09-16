@@ -17,7 +17,9 @@ export default async function AdminDashboardPage() {
   const user = await requireAdminPage();
   const showTiktok = hubHas("tiktokInsights");
   const showApplications = hubHas("applications");
-  const navSections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
+  const navSections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas, {
+    clientHub: isClientHubRequest(),
+  });
 
   const [pendingCount, userCount, liveCount, networkCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),

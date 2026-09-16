@@ -8,7 +8,9 @@ import { isClientHubRequest } from "@/lib/hub/requestHost";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdminPage();
-  const sections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas);
+  const sections = filterAdminNavSections(ADMIN_NAV_SECTIONS, hubHas, {
+    clientHub: isClientHubRequest(),
+  });
 
   return (
     <div className="min-h-screen">
