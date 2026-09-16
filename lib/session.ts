@@ -1,9 +1,16 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
+import { publicOriginFromHeaders } from "@/lib/hub/host";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+
+function redirectHere(path: string): never {
+  const origin = publicOriginFromHeaders(headers());
+  redirect(origin ? `${origin}${path}` : path);
+}
 
 /**
  * Sessions are JWTs that can live for weeks — role/status are only stamped
@@ -41,7 +48,7 @@ export async function getFreshSessionUser() {
 export async function requireUser() {
   const user = await getFreshSessionUser();
   if (!user) {
-    redirect("/login");
+    redirectHere("/login");
   }
   return user;
 }
@@ -56,7 +63,7 @@ export async function requireProfile() {
 
   const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
   if (!profile) {
-    redirect("/onboarding");
+    redirectHere("/onboarding");
   }
 
   return { user, profile };
@@ -72,7 +79,7 @@ export async function requireProfile() {
 export async function requireAdminPage() {
   const user = await getFreshSessionUser();
   if (!user || !isAdminRole(user.role)) {
-    redirect("/login");
+    redirectHere("/login");
   }
   return user;
 }

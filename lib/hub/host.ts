@@ -20,6 +20,19 @@ export function hostnameFromHeaders(headers: {
 }
 
 /**
+ * Browser-facing origin for this request. Auth.js pins `req.nextUrl` to
+ * AUTH_URL (hub.triforgemedia.com), so never use that for client-hub redirects.
+ */
+export function publicOriginFromHeaders(headers: {
+  get(name: string): string | null;
+}): string | null {
+  const host = hostnameFromHeaders(headers);
+  if (!host) return null;
+  const proto = (headers.get("x-forwarded-proto") || "https").split(",")[0].trim() || "https";
+  return `${proto}://${host}`;
+}
+
+/**
  * Hub 0 stays on hub.triforgemedia.com, localhost, and Railway service domains.
  * `{slug}.hub.triforgemedia.com` is a client host — never serve Hub 0 there.
  * Reserved labels (staging, www, …) stay platform so staging.hub… is not a tenant.
