@@ -175,9 +175,33 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
       "Hub 0 only: a hand-picked LIVE roster, per-creator monthly reports laid out like Creator Studio analytics, and shared admin notes. Not available on Create Hub.",
     since: "3.192",
   },
+  {
+    name: "Streaming kit",
+    tagline: "Forge overlays for live",
+    description:
+      "Hub 0 only: logos, corner marks, nameplates, and camera frames as transparent PNGs, plus the creator guide — signed-in downloads from /streaming-kit.",
+    since: "3.214",
+  },
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.214",
+    date: "September 16, 2026",
+    title: "Creator streaming kit",
+    summary:
+      "Forge Hub members can open /streaming-kit for overlay files, brand rules, and the streaming guide — Hub 0 only.",
+    items: [
+      {
+        kind: "feature",
+        text: "New Streaming kit page with logos, corner marks, nameplates, camera frames, ZIP packs, and both PDFs",
+      },
+      {
+        kind: "program",
+        text: "Files download through a signed-in API so overlays are not sitting in public/; Create Hub tenants do not get this SKU",
+      },
+    ],
+  },
   {
     version: "3.213",
     date: "September 16, 2026",

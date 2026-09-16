@@ -205,6 +205,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "tiktokInsights",
       },
       {
+        href: "/streaming-kit",
+        label: "Streaming kit",
+        description: "Creator overlays, logos, and brand downloads",
+        sku: "streamingKit",
+      },
+      {
         href: "/admin/webinars",
         label: "Webinars",
         description: "Schedule and manage webinars",

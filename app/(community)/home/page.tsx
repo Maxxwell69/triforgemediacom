@@ -175,6 +175,16 @@ export default async function HomePage() {
             />
           )}
 
+          {canMenu("streamingKit") && hubHas("streamingKit") && (
+            <DashboardCard
+              href="/streaming-kit"
+              icon="🎬"
+              title="Streaming kit"
+              description="Forge logos, frames, and overlays for OBS and LIVE Studio."
+              accent="orange"
+            />
+          )}
+
           {canMenu("tiktask") && tikTaskAccess && hubHas("tiktask") && (
             <DashboardCard
               href="/apps/tiktask"
