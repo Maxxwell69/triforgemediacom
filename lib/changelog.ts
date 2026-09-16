@@ -179,6 +179,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.211",
+    date: "September 16, 2026",
+    title: "Fix client hub login redirect loop",
+    summary:
+      "Signing in on a client hub no longer bounces between /login and /home.",
+    items: [
+      {
+        kind: "fix",
+        text: "Client-hub /login no longer redirects in a loop when a session exists but that hub’s member row is missing",
+      },
+      {
+        kind: "fix",
+        text: "Logging into a client hub creates the tenant member (and Fan/Superfan enum on that hub schema) instead of sending you back to sign-in",
+      },
+    ],
+  },
+  {
     version: "3.210",
     date: "September 16, 2026",
     title: "Fan signup links to hub sign-in",

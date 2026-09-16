@@ -2,7 +2,7 @@ import "server-only";
 
 import { Prisma, type UserRole, type UserStatus } from "@prisma/client";
 import { seniorRole } from "@/lib/rbac";
-import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
+import { ensureTenantUserRoleValues, getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 export async function ensureTenantMember(opts: {
   tenantDbName: string;
@@ -10,6 +10,7 @@ export async function ensureTenantMember(opts: {
   role: UserRole;
   status: UserStatus;
 }): Promise<string> {
+  await ensureTenantUserRoleValues(opts.tenantDbName);
   const db = getTenantPrisma(opts.tenantDbName);
   const byId = await db.user.findUnique({ where: { id: opts.user.id } });
   if (byId) {

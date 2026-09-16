@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
 import { publicOriginFromHeaders } from "@/lib/hub/host";
-import { copyControlProfileToTenant } from "@/lib/hub/ensureTenantMember";
+import { copyControlProfileToTenant, ensureTenantMember } from "@/lib/hub/ensureTenantMember";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
@@ -25,7 +25,7 @@ export async function getFreshSessionUser() {
 
   const identity = await getControlPrisma().user.findUnique({
     where: { id: session.user.id },
-    select: { role: true, status: true, platformAccess: true },
+    select: { email: true, name: true, image: true, role: true, status: true, platformAccess: true },
   });
   if (!identity || identity.status === "BANNED") return null;
 
@@ -35,12 +35,53 @@ export async function getFreshSessionUser() {
     return { ...session.user, role: identity.role, status: identity.status };
   }
 
-  if (ctx.kind !== "client" || !ctx.prisma) return null;
+  if (ctx.kind !== "client" || !ctx.prisma || !ctx.hub) return null;
 
-  const tenantUser = await ctx.prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true, status: true },
+  const membership = await getControlPrisma().hubMembership.findUnique({
+    where: { userId_clientHubId: { userId: session.user.id, clientHubId: ctx.hub.id } },
+    select: { status: true, role: true, tenantUserId: true },
   });
+  if (!membership || membership.status === "BANNED") return null;
+
+  const lookupIds = [membership.tenantUserId, session.user.id].filter(
+    (id): id is string => !!id
+  );
+  let tenantUser: { id: string; role: typeof membership.role; status: typeof identity.status } | null =
+    null;
+  for (const id of [...new Set(lookupIds)]) {
+    tenantUser = await ctx.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true },
+    });
+    if (tenantUser) break;
+  }
+  if (!tenantUser) {
+    tenantUser = await ctx.prisma.user.findUnique({
+      where: { email: identity.email },
+      select: { id: true, role: true, status: true },
+    });
+  }
+  if (!tenantUser && ctx.hub.tenantDbName) {
+    try {
+      const tenantId = await ensureTenantMember({
+        tenantDbName: ctx.hub.tenantDbName,
+        user: {
+          id: session.user.id,
+          email: identity.email,
+          name: identity.name,
+          image: identity.image,
+        },
+        role: membership.role,
+        status: "ACTIVE",
+      });
+      tenantUser = await ctx.prisma.user.findUnique({
+        where: { id: tenantId },
+        select: { id: true, role: true, status: true },
+      });
+    } catch (err) {
+      console.error("heal tenant member on session failed", session.user.id, err);
+    }
+  }
   if (!tenantUser || tenantUser.status === "BANNED") return null;
 
   return { ...session.user, role: tenantUser.role, status: tenantUser.status };
@@ -49,14 +90,14 @@ export async function getFreshSessionUser() {
 export async function requireUser() {
   const user = await getFreshSessionUser();
   if (!user) {
-    redirectHere("/login");
+    redirectHere("/signin");
   }
   return user;
 }
 
 /**
  * Gate for modules that need a completed Profile (chat, TikTask). Redirects
- * to /login if unauthenticated, or /onboarding if the user hasn't set up
+ * to /signin if unauthenticated, or /onboarding if the user hasn't set up
  * their profile yet.
  */
 export async function requireProfile() {
@@ -66,7 +107,17 @@ export async function requireProfile() {
   if (!profile) {
     const ctx = await getRequestHubContext();
     if (ctx.kind === "client" && ctx.prisma) {
-      profile = await copyControlProfileToTenant(user.id, user.id, ctx.prisma);
+      const membership = await getControlPrisma().hubMembership.findUnique({
+        where: { userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id } },
+        select: { tenantUserId: true },
+      });
+      const tenantUserId = membership?.tenantUserId || user.id;
+      if (tenantUserId !== user.id) {
+        profile = await prisma.profile.findUnique({ where: { userId: tenantUserId } });
+      }
+      if (!profile) {
+        profile = await copyControlProfileToTenant(user.id, tenantUserId, ctx.prisma);
+      }
     }
   }
   if (!profile) {
@@ -86,7 +137,7 @@ export async function requireProfile() {
 export async function requireAdminPage() {
   const user = await getFreshSessionUser();
   if (!user || !isAdminRole(user.role)) {
-    redirectHere("/login");
+    redirectHere("/signin");
   }
   return user;
 }

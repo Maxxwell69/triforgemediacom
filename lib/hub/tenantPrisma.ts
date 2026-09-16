@@ -6,6 +6,7 @@ import { isTenantSchemaName, tenantDatasourceUrl } from "@/lib/hub/schemaUrl";
 
 const globalForTenant = globalThis as unknown as {
   tenantPrismaBySchema?: Map<string, PrismaClient>;
+  tenantRoleEnumPatched?: Set<string>;
 };
 
 function tenantClients() {
@@ -18,6 +19,31 @@ function tenantClients() {
 /** Hub 0 + Create Hub registry. Always the `public` schema. */
 export function getControlPrisma() {
   return controlPrisma;
+}
+
+/**
+ * Client hubs were provisioned before Fan/Superfan existed. Those enum values
+ * live per-schema, so Hub 0 migrations do not add them to hub_*.
+ */
+export async function ensureTenantUserRoleValues(schema: string) {
+  if (!isTenantSchemaName(schema)) return;
+  if (!globalForTenant.tenantRoleEnumPatched) {
+    globalForTenant.tenantRoleEnumPatched = new Set();
+  }
+  if (globalForTenant.tenantRoleEnumPatched.has(schema)) return;
+
+  const db = getTenantPrisma(schema);
+  try {
+    await db.$executeRawUnsafe(
+      `ALTER TYPE "${schema}"."UserRole" ADD VALUE IF NOT EXISTS 'SUPERFAN'`
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TYPE "${schema}"."UserRole" ADD VALUE IF NOT EXISTS 'FAN'`
+    );
+    globalForTenant.tenantRoleEnumPatched.add(schema);
+  } catch (err) {
+    console.error("tenant UserRole enum patch failed", schema, err);
+  }
 }
 
 /**
@@ -64,6 +90,7 @@ export async function pingTenantSchema(
       };
     }
     await db.$queryRaw`SELECT 1 FROM "_prisma_migrations" LIMIT 1`;
+    await ensureTenantUserRoleValues(schema);
     return { ok: true, schema };
   } catch (err) {
     console.error("tenant schema ping failed", schema, err);

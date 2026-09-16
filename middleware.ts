@@ -54,8 +54,13 @@ function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) 
   }
 
   if (isAuthLanding(pathname)) {
-    if (req.auth && (pathname === "/" || pathname === "/signin" || pathname === "/login")) {
+    if (req.auth && pathname === "/") {
       return NextResponse.redirect(atOrigin(req, "/home"));
+    }
+    if (pathname === "/login") {
+      const url = atOrigin(req, "/signin");
+      url.search = req.nextUrl.search;
+      return NextResponse.redirect(url);
     }
     const url = atOrigin(req, `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`);
     return NextResponse.rewrite(url);
