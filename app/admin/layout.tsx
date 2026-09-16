@@ -4,6 +4,7 @@ import SignOutButton from "@/components/SignOutButton";
 import { requireAdminPage } from "@/lib/session";
 import { ADMIN_NAV_SECTIONS, filterAdminNavSections } from "@/lib/adminNav";
 import { hubHas } from "@/lib/hub/modules";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdminPage();
@@ -17,7 +18,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SignOutButton />
         </div>
         <div className="mt-3">
-          <AdminNav sections={sections} showCreateHub={user.role === "ADMIN"} />
+          <AdminNav
+            sections={sections}
+            showCreateHub={user.role === "ADMIN" && !isClientHubRequest()}
+          />
         </div>
       </header>
       {children}

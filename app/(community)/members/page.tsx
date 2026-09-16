@@ -11,6 +11,7 @@ import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/li
 import { isOnline } from "@/lib/presence";
 import { isAdminRole } from "@/lib/rbac";
 import MemberAvatar from "@/components/MemberAvatar";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,7 @@ export default async function MembersPage({
   const members = await prisma.user.findMany({
     where: {
       status: "ACTIVE",
+      ...(isClientHubRequest() ? {} : { platformAccess: true }),
       profile: { isNot: null },
       hiddenFromDirectory: false,
       ...(activeTag ? tagFilterWhere(activeTag) : {}),

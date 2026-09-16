@@ -46,7 +46,12 @@ export default function SignInForm() {
     setSubmitting(false);
 
     if (res?.error) {
-      setError("Invalid email or password.");
+      const code = "code" in res ? String(res.code) : "";
+      setError(
+        code === "platform_invite_required"
+          ? "This login is for another community hub, not TriForge Hub. You need a separate Forge invite — apply below or wait for one."
+          : "Invalid email or password. A Create Hub invite does not open TriForge Hub."
+      );
       return;
     }
 
@@ -116,9 +121,10 @@ export default function SignInForm() {
       </form>
 
       <p className="mt-6 text-center font-body text-sm text-off-white/50">
-        No invite yet?{" "}
+        Invited to a creator community? Sign in on that hub’s own URL — it is not Forge access.
+        Need TriForge Hub?{" "}
         <Link href="/apply" className="text-cyan hover:underline">
-          Apply for access
+          Apply for a Forge invite
         </Link>
       </p>
     </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { forgotPasswordSchema } from "@/lib/validations/passwordReset";
 import { generateResetToken, resetPasswordUrl, RESET_TOKEN_TTL_MS } from "@/lib/passwordReset";
 import { sendPasswordResetEmail } from "@/lib/email";
@@ -31,6 +31,7 @@ export async function requestPasswordReset(
     return { sent: true };
   }
 
+  const prisma = getControlPrisma();
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Always report success either way — don't leak whether an email is registered.

@@ -34,20 +34,26 @@ export default async function HubsDirectoryPage() {
           HUBS
         </h1>
         <p className="mt-4 max-w-2xl font-body text-off-white/55">
-          Every Create Hub community on this platform. Sign in with the same login on any
-          hub you were invited to. The Forge Hub stays at hub.triforgemedia.com.
+          Every Create Hub community on this platform. An invite to one of these hubs does not
+          include TriForge Hub — that network stays invite-only.
         </p>
 
-        <Link
-          href="https://hub.triforgemedia.com"
-          className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4 transition hover:border-orange/60"
-        >
+        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4">
           <div>
             <p className="font-display text-2xl tracking-wide text-off-white">TriForge Hub</p>
-            <p className="font-body text-sm text-off-white/50">hub.triforgemedia.com — the Forge network</p>
+            <p className="font-body text-sm text-off-white/50">
+              hub.triforgemedia.com — Forge members only, separate invite
+            </p>
           </div>
-          <span className="font-body text-sm text-orange">Open</span>
-        </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            <Link href="/signin" className="font-body text-sm text-off-white/70 hover:text-cyan">
+              Sign in
+            </Link>
+            <Link href="/apply" className="font-body text-sm text-orange">
+              Apply
+            </Link>
+          </div>
+        </div>
 
         {mine.length > 0 ? (
           <section className="mt-14">

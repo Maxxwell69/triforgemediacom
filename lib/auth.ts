@@ -1,13 +1,16 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership } from "@/lib/hub/membership";
 import { ensureStaffHubMembership, isPlatformHubStaff } from "@/lib/hub/staffAccess";
+
+class PlatformInviteRequired extends CredentialsSignin {
+  code = "platform_invite_required";
+}
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
@@ -20,7 +23,7 @@ const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(getControlPrisma()),
   // Credentials provider requires JWT sessions (no database session strategy).
   session: { strategy: "jwt" },
   providers: [
@@ -108,7 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role = membership.role;
           status = "ACTIVE";
         } else if (!user.platformAccess) {
-          return null;
+          throw new PlatformInviteRequired();
         }
 
         const now = new Date();

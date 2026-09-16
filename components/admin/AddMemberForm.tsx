@@ -30,7 +30,8 @@ export default function AddMemberForm() {
     >
       <h2 className="font-display text-xl tracking-wide text-off-white/80">Add a member directly</h2>
       <p className="font-body text-xs text-off-white/50">
-        Skips the application queue &mdash; creates the account and emails an invite link right away.
+        Skips the application queue &mdash; creates the account and emails a Forge Hub invite.
+        If they already have a Create Hub login, this grants Forge access with the same password.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="name" required placeholder="Name" className={fieldClass} />

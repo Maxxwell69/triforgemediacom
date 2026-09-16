@@ -11,6 +11,9 @@ import { adminSetPasswordSchema } from "@/lib/validations/account";
 import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite";
 import { sendInviteEmail, sendPasswordResetEmail } from "@/lib/email";
 import { generateResetToken, resetPasswordUrl, RESET_TOKEN_TTL_MS } from "@/lib/passwordReset";
+import { grantForgeHubAccess } from "@/lib/hub/grantForgeAccess";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 import type { UserRole } from "@prisma/client";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MOD", "CREATOR", "MEMBER", "RECRUIT"];
@@ -160,8 +163,9 @@ export async function setUserPassword(
     return { error: "Only an admin can change another admin or mod password." };
   }
 
+  const identity = getControlPrisma();
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
-  await prisma.user.update({
+  await identity.user.update({
     where: { id: target.id },
     data: {
       passwordHash,
@@ -170,7 +174,7 @@ export async function setUserPassword(
       ...(target.status === "INVITED" ? { status: "ACTIVE" as const } : {}),
     },
   });
-  await prisma.passwordResetToken.deleteMany({
+  await identity.passwordResetToken.deleteMany({
     where: { userId: target.id, usedAt: null },
   });
 
@@ -185,7 +189,8 @@ export async function sendUserPasswordReset(
 ): Promise<AdminPasswordState> {
   const session = await requireAdmin();
 
-  const target = await prisma.user.findUnique({
+  const identity = getControlPrisma();
+  const target = await identity.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, name: true, role: true, status: true },
   });
@@ -201,7 +206,7 @@ export async function sendUserPasswordReset(
   }
 
   const token = generateResetToken();
-  await prisma.passwordResetToken.create({
+  await identity.passwordResetToken.create({
     data: {
       userId: target.id,
       token,
@@ -293,6 +298,12 @@ export async function addMemberDirectly(
   formData: FormData
 ): Promise<AddMemberState> {
   await requireAdmin();
+  if (isClientHubRequest()) {
+    return {
+      error:
+        "This Add member button invites people to TriForge Hub. Member invites for this community hub are next.",
+    };
+  }
 
   const parsed = addMemberSchema.safeParse({
     name: formData.get("name"),
@@ -305,7 +316,14 @@ export async function addMemberDirectly(
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return { error: "A user with that email already exists." };
+    if (existing.platformAccess) {
+      return { error: "A user with that email already exists." };
+    }
+    const granted = await grantForgeHubAccess(existing.id);
+    if (granted.error) return { error: granted.error };
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${existing.id}`);
+    return { success: true };
   }
 
   const token = generateInviteToken();
@@ -315,6 +333,7 @@ export async function addMemberDirectly(
       email,
       name,
       status: "INVITED",
+      platformAccess: true,
       application: {
         create: {
           answers: { name, addedDirectlyByAdmin: true },
@@ -353,6 +372,11 @@ export async function resendInvite(userId: string) {
   if (!user) throw new Error("User not found");
   if (user.status !== "INVITED") throw new Error("This user isn't in an invited state");
 
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { platformAccess: true },
+  });
+
   // Always issue a fresh token + expiry on resend rather than reusing a
   // possibly-expired one, so "resend" reliably gives the user a working link.
   const token = generateInviteToken();
@@ -378,6 +402,14 @@ export async function resendInvite(userId: string) {
   await sendInviteEmail(user.email, user.name || "there", inviteUrl(token));
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
+}
+
+export async function inviteUserToForgeHub(userId: string): Promise<{ error: string | null }> {
+  await requireAdmin();
+  const result = await grantForgeHubAccess(userId);
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return result;
 }
 
 export async function adjustUserPoints(formData: FormData) {

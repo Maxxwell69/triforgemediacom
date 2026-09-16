@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { findHubInviteByToken } from "@/lib/hub/membership";
@@ -125,19 +126,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
   }
 
   if (session?.user) {
-    return (
-      <ClientHubShell name={hub.name}>
-        <p className="mb-3 text-xs uppercase tracking-[0.3em] text-cyan">Signed in</p>
-        <h1 className="mb-3 text-center font-display text-5xl tracking-wide sm:text-6xl">
-          YOU&apos;RE IN
-        </h1>
-        <p className="max-w-md text-center font-body text-sm text-off-white/55">
-          {session.user.email} is the admin for {hub.name}. Your account lives in this hub’s
-          own database. The full member app on this hostname is next — you will not land in
-          the TriForge Hub from here.
-        </p>
-      </ClientHubShell>
-    );
+    redirect("/home");
   }
 
   return (

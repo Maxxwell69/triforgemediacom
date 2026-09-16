@@ -6,6 +6,7 @@ import { liveNotStaleWhere } from "@/lib/tiktokLive";
 import { requireAdminPage } from "@/lib/session";
 import { setAnnouncement, clearAnnouncement } from "./actions";
 import VideoEmbed from "@/components/VideoEmbed";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function AdminDashboardPage() {
       <p className="mt-2 font-body text-off-white/60">
         Jump into any admin area — sections match the nav dropdowns above.
       </p>
-      {user.role === "ADMIN" ? (
+      {user.role === "ADMIN" && !isClientHubRequest() ? (
         <p className="mt-3 font-body text-sm text-off-white/55">
           <Link href="/superadmin" className="text-cyan hover:underline">
             Create Hub

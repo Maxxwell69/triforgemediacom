@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Outfit } from "next/font/google";
 import VersionBadge from "@/components/VersionBadge";
+import { bindClientHubSkus } from "@/lib/hub/modules";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -21,11 +22,12 @@ export const metadata: Metadata = {
     "The invite-only home base for TriForge Media creators — chat, TikTask, and everything you need to grow.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await bindClientHubSkus();
   return (
     <html lang="en">
       <body
