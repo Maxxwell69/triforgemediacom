@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
+/**
+ * Hub 0 / control-plane client (`public` schema).
+ * Client hub member data: `getRequestPrisma()` or `getTenantPrisma()` in lib/hub.
+ */
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };

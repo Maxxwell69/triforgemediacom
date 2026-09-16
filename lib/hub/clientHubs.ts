@@ -43,7 +43,7 @@ export const HUB_SETUP_STEPS: HubSetupStep[] = [
     id: "database",
     field: "tenantDbAt",
     label: "Tenant database",
-    how: "Extra database on the existing Postgres (not a new Railway Postgres tile). Scripted next.",
+    how: "Creates a Postgres schema on this environment’s existing database and runs migrations. Hub 0 data stays in public.",
   },
   {
     id: "invite",

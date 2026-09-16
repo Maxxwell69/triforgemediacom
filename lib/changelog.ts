@@ -172,6 +172,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.195",
+    date: "September 15, 2026",
+    title: "Tenant Prisma for client hubs",
+    summary:
+      "The app can open a client hub’s own Postgres schema, verify it after provision, and keep Hub 0 on public.",
+    items: [
+      {
+        kind: "feature",
+        text: "Request-aware tenant Prisma: Hub 0 stays on public; a provisioned client hub uses hub_{slug}",
+      },
+      {
+        kind: "improve",
+        text: "Create Hub can provision a hub_{slug} schema on this environment and ping it before marking done",
+      },
+    ],
+  },
+  {
     version: "3.194",
     date: "September 15, 2026",
     title: "Create Hub sales page",

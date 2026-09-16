@@ -14,6 +14,7 @@ import {
   validateHubInput,
   type SetupStepId,
 } from "@/lib/hub/clientHubs";
+import { provisionTenantSchema } from "@/lib/hub/provisionTenant";
 
 function cookieOpts() {
   return {
@@ -123,6 +124,7 @@ export async function toggleHubSetupStepAction(formData: FormData) {
 
   const hub = await prisma.clientHub.findUnique({ where: { id: hubId } });
   if (!hub) return;
+  if (stepId === "database") return;
 
   const current = hub[step.field];
   await prisma.clientHub.update({
@@ -132,4 +134,35 @@ export async function toggleHubSetupStepAction(formData: FormData) {
 
   revalidatePath("/superadmin");
   revalidatePath(`/superadmin/${hubId}`);
+}
+
+export async function provisionClientHubDatabaseAction(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireSuperAdminPage();
+  const hubId = String(formData.get("hubId") || "");
+  if (!hubId) return { error: "Missing hub." };
+
+  const hub = await prisma.clientHub.findUnique({ where: { id: hubId } });
+  if (!hub) return { error: "Hub not found." };
+  if (hub.tenantDbAt && hub.tenantDbName) {
+    return { error: null };
+  }
+
+  const result = await provisionTenantSchema(hub.slug);
+  if (result.error || !result.schema) {
+    return { error: result.error || "Provisioning failed." };
+  }
+
+  await prisma.clientHub.update({
+    where: { id: hub.id },
+    data: {
+      tenantDbName: result.schema,
+      tenantDbAt: new Date(),
+    },
+  });
+
+  revalidatePath("/superadmin");
+  revalidatePath(`/superadmin/${hubId}`);
+  return { error: null };
 }

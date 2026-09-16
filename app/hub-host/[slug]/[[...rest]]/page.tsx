@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
+import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import ClientHubSignInForm, { ClientHubShell } from "@/components/hub/ClientHubGate";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const hub = await prisma.clientHub.findUnique({
+  const hub = await getControlPrisma().clientHub.findUnique({
     where: { slug: params.slug },
     select: { name: true },
   });
@@ -31,10 +31,13 @@ export default async function ClientHubHostPage({ params }: Props) {
   const rest = params.rest ?? [];
   const isSignIn = rest[0] === "signin" || rest[0] === "login";
 
-  const hub = await prisma.clientHub.findUnique({
+  const hub = await getControlPrisma().clientHub.findUnique({
     where: { slug: params.slug },
-    select: { name: true, slug: true },
+    select: { name: true, slug: true, tenantDbAt: true, tenantDbName: true },
   });
+
+  const tenantPing =
+    hub?.tenantDbName && hub.tenantDbAt ? await pingTenantSchema(hub.tenantDbName) : null;
 
   if (!hub) {
     return (
@@ -59,7 +62,11 @@ export default async function ClientHubHostPage({ params }: Props) {
           SIGN <span className="text-gradient">IN</span>
         </h1>
         <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
-          Member access for {hub.name}. This login is not the TriForge Hub.
+          {!hub.tenantDbAt
+            ? `${hub.name} is reserved, but its database isn’t provisioned yet. Sign-in will open after that.`
+            : tenantPing?.ok
+              ? `Member access for ${hub.name} uses this hub’s own database — not the TriForge Hub. Invites are next.`
+              : `${hub.name} has a database on file, but the app couldn’t open it yet. Ask TriForge to check provision.`}
         </p>
         <ClientHubSignInForm hubName={hub.name} />
       </ClientHubShell>
@@ -73,8 +80,11 @@ export default async function ClientHubHostPage({ params }: Props) {
         {hub.name.toUpperCase()}
       </h1>
       <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
-        This community is private. Sign in with the invite your admin sent — you won&apos;t
-        land in the TriForge Hub from here.
+        {!hub.tenantDbAt
+          ? "This hub is reserved. The database hasn’t been provisioned yet, so members can’t sign in."
+          : tenantPing?.ok
+            ? "This community is private. Its own database is reachable — not the TriForge Hub."
+            : "This hub is reserved, but the app couldn’t open its database yet. Ask TriForge to check provision."}
       </p>
     </ClientHubShell>
   );
