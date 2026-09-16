@@ -3,6 +3,8 @@ import "server-only";
 import { clientHubPublicHost } from "@/lib/hub/host";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
+export { hub0PublicUrl, hub0PublicHost } from "@/lib/hub/host";
+
 export type DirectoryHub = {
   id: string;
   name: string;
@@ -37,6 +39,14 @@ export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
     createdAt: hub.createdAt,
     provisioned: !!hub.tenantDbAt,
   }));
+}
+
+export async function userHasForgeHubAccess(userId: string) {
+  const user = await getControlPrisma().user.findUnique({
+    where: { id: userId },
+    select: { platformAccess: true, status: true },
+  });
+  return Boolean(user?.platformAccess && user.status !== "BANNED");
 }
 
 export async function listMyHubMemberships(userId: string) {

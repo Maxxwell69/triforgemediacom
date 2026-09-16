@@ -56,3 +56,16 @@ export function resolveHubHost(hostname: string): ResolvedHubHost {
 export function clientHubPublicHost(slug: string) {
   return `${slug}${CLIENT_HUB_SUFFIX}`;
 }
+
+/** Browser origin for Hub 0 (Forge Hub). Staging/local follow NEXT_PUBLIC_APP_URL. */
+export function hub0PublicUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
+export function hub0PublicHost() {
+  try {
+    return new URL(hub0PublicUrl()).host;
+  } catch {
+    return HUB0_HOST;
+  }
+}

@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.215",
+    date: "September 16, 2026",
+    title: "Hub 0 on the hubs directory",
+    summary:
+      "The /hubs list includes Hub 0 as a destination, so you can open TriForge Hub the same way you open a client community.",
+    items: [
+      {
+        kind: "improve",
+        text: "/hubs now lists Hub 0 in Your hubs (when you have Forge access) and in All hubs, linking to the Forge Hub home",
+      },
+    ],
+  },
+  {
     version: "3.214",
     date: "September 16, 2026",
     title: "Creator streaming kit",
