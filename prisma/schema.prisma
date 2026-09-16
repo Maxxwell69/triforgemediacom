@@ -2495,6 +2495,10 @@ model ClientHub {
   railwayDomainAt    DateTime?
   tenantDbAt         DateTime?
   adminInvitedAt     DateTime?
+  /// Off until the hub admin lists it on /hubs. Members still see it under Your hubs.
+  directoryPublic      Boolean @default(false)
+  directoryDescription String?
+  directoryImageUrl    String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   createdById        String?

@@ -17,7 +17,8 @@ type UploadFolder =
   | "shop-images"
   | "progression-images"
   | "social-planner"
-  | "calendar-event-images";
+  | "calendar-event-images"
+  | "hub-directory";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -55,6 +56,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "calendar-event-images": {
     dimensions: "1280\u00D7720px (16:9)",
     hint: "Shows as a banner on the event page and as a thumbnail on the calendar.",
+  },
+  "hub-directory": {
+    dimensions: "1280\u00D7720px (16:9)",
+    hint: "Shows as the cover on the public /hubs directory card.",
   },
 };
 

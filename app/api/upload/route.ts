@@ -16,6 +16,7 @@ const ALLOWED_FOLDERS = new Set([
   "progression-images",
   "social-planner",
   "calendar-event-images",
+  "hub-directory",
 ]);
 
 export async function POST(request: NextRequest) {

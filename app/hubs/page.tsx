@@ -54,6 +54,42 @@ function Hub0Card({
   );
 }
 
+function ClientHubCard({
+  name,
+  host,
+  href,
+  description,
+  imageUrl,
+  status,
+}: {
+  name: string;
+  host: string;
+  href: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="glass block overflow-hidden rounded-2xl transition hover:border-cyan/40"
+    >
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="" className="aspect-[16/9] w-full object-cover" />
+      ) : null}
+      <div className="p-5">
+        <p className="font-display text-2xl tracking-wide text-off-white">{name}</p>
+        {description ? (
+          <p className="mt-2 font-body text-sm text-off-white/60">{description}</p>
+        ) : null}
+        <p className="mt-1 font-body text-sm text-off-white/45">{host}</p>
+        <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-cyan/80">{status}</p>
+      </div>
+    </a>
+  );
+}
+
 export default async function HubsDirectoryPage() {
   const [hubs, session] = await Promise.all([listDirectoryHubs(), auth()]);
   const userId = session?.user?.id;
@@ -102,20 +138,16 @@ export default async function HubsDirectoryPage() {
               ) : null}
               {mine.map((row) => (
                 <li key={row.id}>
-                  <a
+                  <ClientHubCard
+                    name={row.clientHub.name}
+                    host={`${row.clientHub.slug}.hub.triforgemedia.com`}
                     href={`${clientHubPublicUrl(row.clientHub.slug)}/home`}
-                    className="glass block rounded-2xl p-5 transition hover:border-cyan/40"
-                  >
-                    <p className="font-display text-2xl tracking-wide text-off-white">
-                      {row.clientHub.name}
-                    </p>
-                    <p className="mt-1 font-body text-sm text-off-white/45">
-                      {row.clientHub.slug}.hub.triforgemedia.com
-                    </p>
-                    <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-cyan/80">
-                      {row.status === "INVITED" ? "Invite pending" : "Joined"} · {row.role}
-                    </p>
-                  </a>
+                    description={row.clientHub.directoryDescription}
+                    imageUrl={row.clientHub.directoryImageUrl}
+                    status={`${row.status === "INVITED" ? "Invite pending" : "Joined"} · ${row.role}${
+                      row.clientHub.directoryPublic ? "" : " · Private"
+                    }`}
+                  />
                 </li>
               ))}
             </ul>
@@ -127,6 +159,12 @@ export default async function HubsDirectoryPage() {
           <h2 className="mt-2 font-display text-3xl tracking-wide text-off-white">
             Communities
           </h2>
+          {hubs.length === 0 ? (
+            <p className="mt-6 font-body text-off-white/45">
+              No other public Create Hub communities yet. Hub admins list theirs from
+              Admin → Hub profile.
+            </p>
+          ) : null}
           <ul className="mt-6 grid gap-4 sm:grid-cols-2">
             <li>
               <a
@@ -142,16 +180,14 @@ export default async function HubsDirectoryPage() {
             </li>
             {hubs.map((hub) => (
               <li key={hub.id}>
-                <a
+                <ClientHubCard
+                  name={hub.name}
+                  host={hub.host}
                   href={hub.provisioned ? `${hub.href}/home` : hub.href}
-                  className="block rounded-2xl border border-off-white/10 px-5 py-5 transition hover:border-cyan/40"
-                >
-                  <p className="font-display text-2xl tracking-wide text-off-white">{hub.name}</p>
-                  <p className="mt-1 font-body text-sm text-off-white/45">{hub.host}</p>
-                  <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-off-white/35">
-                    {hub.provisioned ? "Live" : "Reserved"}
-                  </p>
-                </a>
+                  description={hub.description}
+                  imageUrl={hub.imageUrl}
+                  status={hub.provisioned ? "Live" : "Reserved"}
+                />
               </li>
             ))}
           </ul>

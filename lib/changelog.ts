@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.216",
+    date: "September 16, 2026",
+    title: "Hub directory profiles",
+    summary:
+      "Create Hub admins can set a directory image and description, then list the hub publicly or keep it private.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Hub profile: cover image, short description, and a public/private switch for /hubs",
+      },
+      {
+        kind: "improve",
+        text: "The public directory only shows hubs marked live; invited members still see private hubs under Your hubs",
+      },
+    ],
+  },
+  {
     version: "3.215",
     date: "September 16, 2026",
     title: "Hub 0 on the hubs directory",
