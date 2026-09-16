@@ -31,6 +31,7 @@ import AdminUserProgressionLevel from "@/components/admin/AdminUserProgressionLe
 import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
 import AdminUserOnboardingPanel from "@/components/admin/AdminUserOnboardingPanel";
 import { hubHas } from "@/lib/hub/modules";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 import { listOnboardingPrograms } from "@/lib/onboarding/config";
 
 export const dynamic = "force-dynamic";
@@ -90,6 +91,7 @@ export default async function AdminUserDetailPage({
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
+  const clientHub = isClientHubRequest();
   const canDm = await canInitiateDm(currentUserId, session!.user.role);
   const insightsStatus = searchParams?.insights;
   const insightsMessage = searchParams?.insights_message;
@@ -269,7 +271,7 @@ export default async function AdminUserDetailPage({
           </div>
           <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
           {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
-          {!user.platformAccess && user.status !== "BANNED" ? (
+          {!clientHub && !user.platformAccess && user.status !== "BANNED" ? (
             <InviteToForgeButton userId={user.id} />
           ) : null}
           {user.role === "ADMIN" && (
