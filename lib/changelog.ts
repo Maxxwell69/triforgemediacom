@@ -179,6 +179,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.196",
+    date: "September 15, 2026",
+    title: "Create Hub sales visuals",
+    summary:
+      "The unlisted Create Hub page now shows the product — home, Learning Center, ranks, and admin — in the pitch layout.",
+    items: [
+      {
+        kind: "improve",
+        text: "/create-a-hub uses the new product mockups for home, learning, progression, and admin",
+      },
+    ],
+  },
+  {
     version: "3.195",
     date: "September 15, 2026",
     title: "Tenant Prisma for client hubs",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import HubSiteFooter from "@/components/hub/HubSiteFooter";
@@ -9,6 +10,25 @@ export const metadata: Metadata = {
     "Unlisted sales page: stand up a private creator hub — chat, daily tasks, learning, webinars, booking, and admin — for your community.",
   robots: { index: false, follow: false },
 };
+
+const SHOTS = {
+  home: {
+    src: "/sales/create-hub/home.jpg",
+    alt: "Creator home dashboard with chat, TikTask, Learning Center, webinars, and track badges",
+  },
+  learn: {
+    src: "/sales/create-hub/learn.jpg",
+    alt: "Learning Center course catalog on a creator hub",
+  },
+  progress: {
+    src: "/sales/create-hub/progress.jpg",
+    alt: "Creator rank ladder and specializations for Gaming, LIVE Hosts, and Creator Network",
+  },
+  admin: {
+    src: "/sales/create-hub/admin.jpg",
+    alt: "Admin dashboard for applicants, members, tasks, and Create Hub setup",
+  },
+} as const;
 
 const CREATOR_USES = [
   {
@@ -74,6 +94,42 @@ const MODULES = [
   { name: "Directory", line: "Member profiles, groups, and tags." },
 ] as const;
 
+function Shot({
+  shot,
+  priority = false,
+  caption,
+}: {
+  shot: (typeof SHOTS)[keyof typeof SHOTS];
+  priority?: boolean;
+  caption?: string;
+}) {
+  return (
+    <figure className="relative">
+      <div
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] opacity-70 blur-2xl"
+        aria-hidden
+        style={{
+          background:
+            "radial-gradient(ellipse at 20% 50%, rgba(253,72,2,0.22), transparent 55%), radial-gradient(ellipse at 80% 50%, rgba(0,212,255,0.16), transparent 50%)",
+        }}
+      />
+      <Image
+        src={shot.src}
+        alt={shot.alt}
+        width={1024}
+        height={576}
+        priority={priority}
+        className="relative w-full rounded-2xl"
+      />
+      {caption ? (
+        <figcaption className="relative mt-3 text-center font-body text-xs uppercase tracking-[0.22em] text-off-white/40">
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
 export default function CreateAHubSalesPage() {
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden">
@@ -109,7 +165,7 @@ export default function CreateAHubSalesPage() {
         </Link>
       </header>
 
-      <section className="relative z-10 flex flex-col items-center px-6 pb-16 pt-10 text-center sm:px-10 sm:pt-16">
+      <section className="relative z-10 flex flex-col items-center px-6 pb-10 pt-10 text-center sm:px-10 sm:pt-16">
         <p className="mb-5 font-body text-xs uppercase tracking-[0.35em] text-cyan/90">
           Create Hub
         </p>
@@ -124,6 +180,9 @@ export default function CreateAHubSalesPage() {
         <p className="mt-4 max-w-xl font-body text-sm text-off-white/40">
           This page is not in the public menu. Send the link to people you are pitching.
         </p>
+        <div className="mx-auto mt-12 w-full max-w-5xl">
+          <Shot shot={SHOTS.home} priority caption="Home — one login for chat, tasks, learning, and LIVE" />
+        </div>
       </section>
 
       <section className="relative z-10 px-6 pb-16 sm:px-10">
@@ -142,23 +201,46 @@ export default function CreateAHubSalesPage() {
       </section>
 
       <section className="relative z-10 border-t border-off-white/10 px-6 py-20 sm:px-10">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan">For creators</p>
-          <h2 className="mt-3 max-w-xl font-display text-4xl tracking-wide text-off-white sm:text-5xl">
-            What they actually use it for.
-          </h2>
-          <p className="mt-4 max-w-2xl font-body text-off-white/55">
-            Not a brochure site. A daily place to show up, get coached, learn, go live,
-            and get recognized — without tab chaos.
-          </p>
-          <ul className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {CREATOR_USES.map((item) => (
-              <li key={item.name} className="border-t border-off-white/15 pt-5">
-                <h3 className="font-display text-2xl tracking-wide text-off-white">{item.name}</h3>
-                <p className="mt-2 font-body text-sm leading-relaxed text-off-white/50">{item.line}</p>
-              </li>
-            ))}
-          </ul>
+        <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan">For creators</p>
+            <h2 className="mt-3 font-display text-4xl tracking-wide text-off-white sm:text-5xl">
+              Train in the same place they go live.
+            </h2>
+            <p className="mt-4 font-body text-off-white/55">
+              Learning Center courses, quizzes, and certificates sit next to chat and
+              TikTask — not in a third LMS. New members get a checklist instead of a
+              scavenger hunt.
+            </p>
+          </div>
+          <Shot shot={SHOTS.learn} caption="Learning Center" />
+        </div>
+        <ul className="mx-auto mt-16 grid max-w-5xl gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {CREATOR_USES.map((item) => (
+            <li key={item.name} className="border-t border-off-white/15 pt-5">
+              <h3 className="font-display text-2xl tracking-wide text-off-white">{item.name}</h3>
+              <p className="mt-2 font-body text-sm leading-relaxed text-off-white/50">{item.line}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="relative z-10 border-t border-off-white/10 px-6 py-20 sm:px-10">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2">
+          <div className="lg:order-2">
+            <p className="text-xs uppercase tracking-[0.3em] text-orange">Progression</p>
+            <h2 className="mt-3 font-display text-4xl tracking-wide text-off-white sm:text-5xl">
+              Ranks, tracks, and a reason to stay.
+            </h2>
+            <p className="mt-4 font-body text-off-white/55">
+              Creators climb a visible ladder and pick a lane — Gaming, LIVE Hosts,
+              Creator Network — with missions and badges attached. Recognition lives
+              in the hub, not a spreadsheet.
+            </p>
+          </div>
+          <div className="lg:order-1">
+            <Shot shot={SHOTS.progress} caption="Ranks + specializations" />
+          </div>
         </div>
       </section>
 
@@ -168,6 +250,9 @@ export default function CreateAHubSalesPage() {
           <h2 className="mt-3 max-w-xl font-display text-4xl tracking-wide text-off-white sm:text-5xl">
             Run the community without a tool stack.
           </h2>
+          <div className="mt-10">
+            <Shot shot={SHOTS.admin} caption="Admin — applicants, members, tasks, Create Hub" />
+          </div>
           <ul className="mt-12 grid gap-8 sm:grid-cols-2">
             {OPERATOR_USES.map((item) => (
               <li key={item.name} className="glass rounded-2xl p-6">
