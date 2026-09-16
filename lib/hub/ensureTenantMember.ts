@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Prisma, type UserRole, type UserStatus } from "@prisma/client";
+import { seniorRole } from "@/lib/rbac";
 import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 export async function ensureTenantMember(opts: {
@@ -18,7 +19,7 @@ export async function ensureTenantMember(opts: {
         email: opts.user.email,
         name: opts.user.name,
         image: opts.user.image ?? undefined,
-        role: opts.role,
+        role: seniorRole(byId.role, opts.role),
         status: opts.status,
       },
     });
@@ -33,7 +34,7 @@ export async function ensureTenantMember(opts: {
       data: {
         name: opts.user.name,
         image: opts.user.image ?? undefined,
-        role: opts.role,
+        role: seniorRole(byEmail.role, opts.role),
         status: opts.status,
       },
     });
@@ -54,6 +55,16 @@ export async function ensureTenantMember(opts: {
   });
   await copyControlProfileToTenant(opts.user.id, opts.user.id, db);
   return opts.user.id;
+}
+
+/** Network people keep their Forge profile. Brand-new fans get a stub so they skip onboarding. */
+export async function ensureControlProfile(userId: string) {
+  const control = getControlPrisma();
+  const existing = await control.profile.findUnique({ where: { userId } });
+  if (existing) return existing;
+  return control.profile.create({
+    data: { userId, platform: "OTHER", goals: {} },
+  });
 }
 
 /** Copy Hub 0 profile into this hub. People given a hub should not set up a second one. */

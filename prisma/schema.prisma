@@ -53,6 +53,8 @@ enum UserRole {
   CREATOR
   MEMBER
   RECRUIT
+  SUPERFAN
+  FAN
 }
 
 enum UserStatus {

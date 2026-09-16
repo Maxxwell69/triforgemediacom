@@ -6,6 +6,7 @@ import { authConfig } from "@/lib/auth.config";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership } from "@/lib/hub/membership";
+import { joinClientHubAsFan } from "@/lib/hub/joinAsFan";
 import { ensureStaffHubMembership, isPlatformHubStaff } from "@/lib/hub/staffAccess";
 
 class PlatformInviteRequired extends CredentialsSignin {
@@ -102,13 +103,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
             },
           });
-          if (!membership || membership.status === "BANNED") {
+          if (membership?.status === "BANNED") {
             return null;
           }
-          if (membership.status === "INVITED") {
-            await activateHubMembership(membership.id);
+          if (!membership) {
+            if (!ctx.hub.tenantDbName) return null;
+            const joined = await joinClientHubAsFan({
+              userId: user.id,
+              clientHubId: ctx.hub.id,
+              tenantDbName: ctx.hub.tenantDbName,
+            });
+            if (joined === "banned") return null;
           }
-          role = membership.role;
+          const liveMembership =
+            membership && membership.status !== "BANNED"
+              ? membership
+              : await control.hubMembership.findUnique({
+                  where: {
+                    userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },
+                  },
+                });
+          if (!liveMembership || liveMembership.status === "BANNED") {
+            return null;
+          }
+          if (liveMembership.status === "INVITED") {
+            await activateHubMembership(liveMembership.id);
+          }
+          role = liveMembership.role;
           status = "ACTIVE";
         } else if (!user.platformAccess) {
           throw new PlatformInviteRequired();

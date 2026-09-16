@@ -2,10 +2,11 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
-import { signupSchema } from "@/lib/validations/signup";
+import { publicHubSignupSchema, signupSchema } from "@/lib/validations/signup";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership, findHubInviteByToken } from "@/lib/hub/membership";
+import { joinClientHubAsFan } from "@/lib/hub/joinAsFan";
 
 export async function completeClientHubSignup(
   _prevState: { error: string } | null,
@@ -43,6 +44,74 @@ export async function completeClientHubSignup(
     data: { passwordHash, status: "ACTIVE" },
   });
   await activateHubMembership(invite.id);
+
+  redirect("/signin?welcome=1");
+}
+
+export async function completePublicClientHubSignup(
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
+  const parsed = publicHubSignupSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const ctx = await getRequestHubContext();
+  if (ctx.kind !== "client" || !ctx.hub?.tenantDbName) {
+    return { error: "Open this page on the hub’s own URL to create a fan account." };
+  }
+
+  const { name, email, password } = parsed.data;
+  const control = getControlPrisma();
+  const existing = await control.user.findUnique({
+    where: { email },
+    select: { id: true, passwordHash: true, status: true },
+  });
+
+  if (existing?.status === "BANNED") {
+    return { error: "This email can’t join this hub." };
+  }
+  if (existing?.passwordHash) {
+    return {
+      error: "That email already has a login. Sign in — if you’re on the network, your profile comes with you as a fan.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user =
+    existing ??
+    (await control.user.create({
+      data: {
+        email,
+        name,
+        role: "MEMBER",
+        status: "ACTIVE",
+        platformAccess: false,
+        passwordHash,
+      },
+    }));
+
+  if (existing) {
+    await control.user.update({
+      where: { id: existing.id },
+      data: { passwordHash, status: "ACTIVE", name: name || undefined },
+    });
+  }
+
+  const joined = await joinClientHubAsFan({
+    userId: user.id,
+    clientHubId: ctx.hub.id,
+    tenantDbName: ctx.hub.tenantDbName,
+  });
+  if (joined === "banned") {
+    return { error: "This email can’t join this hub." };
+  }
 
   redirect("/signin?welcome=1");
 }

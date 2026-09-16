@@ -267,7 +267,12 @@ export default async function AdminUserDetailPage({
         <div className="flex flex-wrap items-center gap-3 border-t border-off-white/10 pt-4">
           <div className="flex items-center gap-2">
             <span className="font-body text-xs text-off-white/40">Role</span>
-            <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
+            <UserRoleSelect
+              userId={user.id}
+              currentRole={user.role}
+              disabled={isSelf}
+              clientHub={clientHub}
+            />
           </div>
           <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
           {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}

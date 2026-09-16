@@ -56,6 +56,8 @@ const ROLE_FILTERS = [
   { value: "CREATOR", label: "Creators" },
   { value: "MEMBER", label: "Members" },
   { value: "RECRUIT", label: "Recruits" },
+  { value: "SUPERFAN", label: "Superfans" },
+  { value: "FAN", label: "Fans" },
 ] as const;
 
 type RoleFilter = (typeof ROLE_FILTERS)[number]["value"];
@@ -66,6 +68,8 @@ const ROLE_SORT: Record<UserRole, number> = {
   CREATOR: 2,
   MEMBER: 3,
   RECRUIT: 4,
+  SUPERFAN: 5,
+  FAN: 6,
 };
 
 export default async function AdminUsersPage({
@@ -98,7 +102,9 @@ export default async function AdminUsersPage({
     roleParam === "MOD" ||
     roleParam === "CREATOR" ||
     roleParam === "MEMBER" ||
-    roleParam === "RECRUIT"
+    roleParam === "RECRUIT" ||
+    roleParam === "SUPERFAN" ||
+    roleParam === "FAN"
       ? roleParam
       : null;
   const q = (searchParams?.q || "").trim();
@@ -458,7 +464,12 @@ export default async function AdminUsersPage({
                   )}
                   <DirectoryVisibilityToggle userId={user.id} hidden={user.hiddenFromDirectory} />
                   <EffectCheckbox userId={user.id} effect={user.effect} />
-                  <UserRoleSelect userId={user.id} currentRole={user.role} disabled={isSelf} />
+                  <UserRoleSelect
+                    userId={user.id}
+                    currentRole={user.role}
+                    disabled={isSelf}
+                    clientHub={clientHub}
+                  />
                   <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
                 </div>
               </div>
