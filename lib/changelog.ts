@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.210",
+    date: "September 16, 2026",
+    title: "Fan signup links to hub sign-in",
+    summary:
+      "If an email already has a login, the client-hub fan form points people to that hub’s sign-in page.",
+    items: [
+      {
+        kind: "improve",
+        text: "Existing-login error on public fan signup now links to that hub’s /signin page",
+      },
+    ],
+  },
+  {
     version: "3.209",
     date: "September 16, 2026",
     title: "Fix Fan signup image build",

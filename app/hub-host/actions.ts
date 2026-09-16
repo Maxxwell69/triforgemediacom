@@ -8,10 +8,16 @@ import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership, findHubInviteByToken } from "@/lib/hub/membership";
 import { joinClientHubAsFan } from "@/lib/hub/joinAsFan";
 
+export type HubAuthFormState = {
+  error: string;
+  href?: string;
+  hrefLabel?: string;
+} | null;
+
 export async function completeClientHubSignup(
-  _prevState: { error: string } | null,
+  _prevState: HubAuthFormState,
   formData: FormData
-): Promise<{ error: string } | null> {
+): Promise<HubAuthFormState> {
   const parsed = signupSchema.safeParse({
     token: formData.get("token"),
     password: formData.get("password"),
@@ -34,7 +40,11 @@ export async function completeClientHubSignup(
   }
 
   if (invite.user.passwordHash) {
-    return { error: "You already have a login. Sign in with that password to join this hub." };
+    return {
+      error: "You already have a login. Sign in with that password to join this hub.",
+      href: "/signin",
+      hrefLabel: "Sign in",
+    };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -49,9 +59,9 @@ export async function completeClientHubSignup(
 }
 
 export async function completePublicClientHubSignup(
-  _prevState: { error: string } | null,
+  _prevState: HubAuthFormState,
   formData: FormData
-): Promise<{ error: string } | null> {
+): Promise<HubAuthFormState> {
   const parsed = publicHubSignupSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -79,7 +89,10 @@ export async function completePublicClientHubSignup(
   }
   if (existing?.passwordHash) {
     return {
-      error: "That email already has a login. Sign in — if you’re on the network, your profile comes with you as a fan.",
+      error:
+        "That email already has a login. Sign in — if you’re on the network, your profile comes with you as a fan.",
+      href: `/signin?email=${encodeURIComponent(email)}`,
+      hrefLabel: "Sign in",
     };
   }
 

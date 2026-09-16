@@ -9,10 +9,12 @@ export default function ClientHubSignInForm({
   hubName,
   enabled,
   welcome,
+  defaultEmail,
 }: {
   hubName: string;
   enabled: boolean;
   welcome?: boolean;
+  defaultEmail?: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function ClientHubSignInForm({
             type="email"
             required
             autoComplete="email"
+            defaultValue={defaultEmail}
             className={inputClass}
             placeholder="you@example.com"
           />

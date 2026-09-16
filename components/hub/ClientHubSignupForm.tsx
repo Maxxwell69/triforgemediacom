@@ -28,7 +28,20 @@ export default function ClientHubSignupForm({ token, email }: { token: string; e
 
       {state?.error && (
         <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 text-sm font-body text-orange">
-          {state.error}
+          {state.href ? (
+            <>
+              You already have a login.{" "}
+              <a
+                href={state.href}
+                className="font-semibold underline decoration-orange/70 underline-offset-2 hover:text-off-white"
+              >
+                {state.hrefLabel ?? "Sign in"}
+              </a>{" "}
+              with that password to join this hub.
+            </>
+          ) : (
+            state.error
+          )}
         </p>
       )}
 
