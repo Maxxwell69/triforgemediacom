@@ -50,7 +50,7 @@ export const HUB_SETUP_STEPS: HubSetupStep[] = [
     id: "invite",
     field: "adminInvitedAt",
     label: "Invite client admin",
-    how: "Emails a signup link on {slug}.hub.triforgemedia.com. Same login as Hub 0 if they already have one; otherwise they set a password once.",
+    how: "Emails the client owner a signup link on {slug}.hub.triforgemedia.com. Hub 0 ADMINs already have staff access — this invite is for the community’s owner, not TriForge staff.",
   },
 ];
 

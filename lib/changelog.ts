@@ -172,6 +172,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.200",
+    date: "September 15, 2026",
+    title: "Staff access on every Create Hub",
+    summary:
+      "Hub 0 admins can open any provisioned client hub with the same Forge login. The email invite is only for that community’s owner.",
+    items: [
+      {
+        kind: "feature",
+        text: "Provisioning a hub grants Active admin membership to every Hub 0 ADMIN",
+      },
+      {
+        kind: "feature",
+        text: "Signing in on a client hostname as a Hub 0 ADMIN also grants staff access if it was missing",
+      },
+      {
+        kind: "improve",
+        text: "Create Hub setup separates client-owner invite from TriForge staff access",
+      },
+    ],
+  },
+  {
     version: "3.199",
     date: "September 15, 2026",
     title: "Hubs directory",

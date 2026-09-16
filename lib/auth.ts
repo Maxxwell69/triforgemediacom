@@ -7,6 +7,7 @@ import { authConfig } from "@/lib/auth.config";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership } from "@/lib/hub/membership";
+import { ensureStaffHubMembership, isPlatformHubStaff } from "@/lib/hub/staffAccess";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
@@ -86,6 +87,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let status = user.status;
 
         if (isClientHub && ctx.hub) {
+          if (isPlatformHubStaff(user)) {
+            const staffResult = await ensureStaffHubMembership({
+              userId: user.id,
+              clientHubId: ctx.hub.id,
+            });
+            if (staffResult === "banned") return null;
+          }
           const membership = await control.hubMembership.findUnique({
             where: {
               userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id },

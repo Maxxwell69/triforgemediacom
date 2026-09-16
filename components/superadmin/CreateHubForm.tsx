@@ -53,7 +53,7 @@ export default function CreateHubForm({
           <input name="slug" required placeholder="acme" className={fieldClass} />
         </label>
         <label className="block font-body text-xs uppercase tracking-wide text-off-white/40">
-          Client admin email
+          Client owner email
           <input
             name="email"
             type="email"
@@ -62,6 +62,10 @@ export default function CreateHubForm({
             className={fieldClass}
           />
         </label>
+        <p className="font-body text-[11px] text-off-white/40">
+          The client owner — they get the invite email. Every Hub 0 ADMIN already gets staff
+          access after you provision.
+        </p>
         <label className="block font-body text-xs uppercase tracking-wide text-off-white/40">
           Notes
           <textarea name="notes" rows={2} placeholder="Optional" className={fieldClass} />

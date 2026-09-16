@@ -20,3 +20,7 @@ export function inviteUrl(token: string): string {
 export function clientHubInviteUrl(slug: string, token: string) {
   return `https://${clientHubPublicHost(slug)}/signup?token=${encodeURIComponent(token)}`;
 }
+
+export function clientHubSignInUrl(slug: string) {
+  return `https://${clientHubPublicHost(slug)}/signin`;
+}
