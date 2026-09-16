@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.209",
+    date: "September 16, 2026",
+    title: "Fix Fan signup image build",
+    summary:
+      "Staging and production builds compile again after adding Fan and Superfan roles.",
+    items: [
+      {
+        kind: "fix",
+        text: "Client-hub login no longer fails type-check when joining an existing network account as a Fan",
+      },
+    ],
+  },
+  {
     version: "3.208",
     date: "September 15, 2026",
     title: "Public fan signup on Create Hub",
