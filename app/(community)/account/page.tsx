@@ -101,7 +101,7 @@ export default async function AccountPage() {
             />
           </>
         )}
-        {canMenu("live") && (
+        {canMenu("live") && hubHas("tiktokInsights") && (
         <AccountFeatureLink
           href="/account/insights"
           title="Creator Insights"

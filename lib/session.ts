@@ -14,6 +14,19 @@ function redirectHere(path: string): never {
   redirect(origin ? `${origin}${path}` : path);
 }
 
+function redirectToSignIn(): never {
+  const pathname = headers().get("x-pathname") || "";
+  const safe =
+    pathname.startsWith("/") &&
+    !pathname.startsWith("//") &&
+    !pathname.startsWith("/signin") &&
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/hub-host/") &&
+    !pathname.startsWith("/api/");
+  const qs = safe ? `?callbackUrl=${encodeURIComponent(pathname)}` : "";
+  redirectHere(`/signin${qs}`);
+}
+
 /**
  * Sessions are JWTs that can live for weeks — role/status are only stamped
  * onto the token at login time. Re-checking against the database here means
@@ -90,7 +103,7 @@ export async function getFreshSessionUser() {
 export async function requireUser() {
   const user = await getFreshSessionUser();
   if (!user) {
-    redirectHere("/signin");
+    redirectToSignIn();
   }
   return user;
 }
@@ -137,7 +150,7 @@ export async function requireProfile() {
 export async function requireAdminPage() {
   const user = await getFreshSessionUser();
   if (!user || !isAdminRole(user.role)) {
-    redirectHere("/signin");
+    redirectToSignIn();
   }
   return user;
 }

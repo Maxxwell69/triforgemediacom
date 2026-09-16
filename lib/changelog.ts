@@ -179,6 +179,27 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.213",
+    date: "September 16, 2026",
+    title: "Keep Who’s Live on Hub 0",
+    summary:
+      "TikTok Live stays a Forge Hub feature, staging gets the same live poll as production, and sign-in returns you to the page you opened.",
+    items: [
+      {
+        kind: "fix",
+        text: "Who’s Live and Creator Insights stay on Hub 0 (tik.tools) instead of running against empty Create Hub databases",
+      },
+      {
+        kind: "fix",
+        text: "Staging now receives the TikTok live cron so Agency LIVE reports can record go-live sessions",
+      },
+      {
+        kind: "improve",
+        text: "Sign-in after /live (and other gated pages) returns to that page; dashboard includes Who’s Live when the module is on",
+      },
+    ],
+  },
+  {
     version: "3.212",
     date: "September 16, 2026",
     title: "Fix client hub login image build",
