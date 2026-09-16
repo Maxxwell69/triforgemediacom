@@ -165,6 +165,16 @@ export default async function HomePage() {
             />
           )}
 
+          {canMenu("live") && hubHas("tiktokInsights") && (
+            <DashboardCard
+              href="/live"
+              icon="🔴"
+              title="Who's Live"
+              description="Community creators currently live on TikTok."
+              accent="orange"
+            />
+          )}
+
           {canMenu("tiktask") && tikTaskAccess && hubHas("tiktask") && (
             <DashboardCard
               href="/apps/tiktask"

@@ -22,19 +22,23 @@ export default async function AdminDashboardPage() {
   const [pendingCount, userCount, liveCount, networkCount, announcement] = await Promise.all([
     prisma.application.count({ where: { status: "PENDING" } }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
-    prisma.tikTokStatsSnapshot.count({ where: liveNotStaleWhere() }),
-    prisma.user.count({
-      where: {
-        status: "ACTIVE",
-        hiddenFromDirectory: false,
-        OR: [
-          { tags: { some: { tag: { name: { equals: "CN", mode: "insensitive" } } } } },
-          { tags: { some: { tag: { name: { equals: "MN", mode: "insensitive" } } } } },
-          { groupMemberships: { some: { group: { name: { equals: "CN", mode: "insensitive" } } } } },
-          { groupMemberships: { some: { group: { name: { equals: "MN", mode: "insensitive" } } } } },
-        ],
-      },
-    }),
+    showTiktok
+      ? prisma.tikTokStatsSnapshot.count({ where: liveNotStaleWhere() })
+      : Promise.resolve(0),
+    showTiktok
+      ? prisma.user.count({
+          where: {
+            status: "ACTIVE",
+            hiddenFromDirectory: false,
+            OR: [
+              { tags: { some: { tag: { name: { equals: "CN", mode: "insensitive" } } } } },
+              { tags: { some: { tag: { name: { equals: "MN", mode: "insensitive" } } } } },
+              { groupMemberships: { some: { group: { name: { equals: "CN", mode: "insensitive" } } } } },
+              { groupMemberships: { some: { group: { name: { equals: "MN", mode: "insensitive" } } } } },
+            ],
+          },
+        })
+      : Promise.resolve(0),
     prisma.announcement.findUnique({ where: { id: "global" } }),
   ]);
 

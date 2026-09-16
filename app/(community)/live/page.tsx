@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { formatCount } from "@/lib/formatCount";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
+import { hubHas } from "@/lib/hub/modules";
 import { liveNotStaleWhere, refreshLiveRosterIfStale } from "@/lib/tiktokLive";
 import MemberAvatar from "@/components/MemberAvatar";
 
@@ -12,6 +14,7 @@ export const maxDuration = 60;
 
 export default async function LivePage() {
   await requireProfile();
+  if (!hubHas("tiktokInsights")) notFound();
 
   const { liveCheckedAt: lastCheckedAt } = await refreshLiveRosterIfStale();
 

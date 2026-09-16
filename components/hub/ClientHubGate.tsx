@@ -47,7 +47,10 @@ export default function ClientHubSignInForm({
       return;
     }
 
-    window.location.assign("/home");
+    const raw = new URLSearchParams(window.location.search).get("callbackUrl") || "/home";
+    const next =
+      raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("://") ? raw : "/home";
+    window.location.assign(next);
   }
 
   return (

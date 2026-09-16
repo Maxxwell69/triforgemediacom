@@ -6,7 +6,9 @@ import { ensureTikTokSocialLink, ensureTikTokStatsIfMissing } from "@/lib/tiktok
 import { loadCreatorInsights } from "@/lib/creatorInsights";
 import CreatorInsightsPanel from "@/components/CreatorInsightsPanel";
 import AccountPageShell from "@/components/account/AccountPageShell";
+import { hubHas } from "@/lib/hub/modules";
 import { refreshTikTokStatsAction } from "../actions";
+import { notFound } from "next/navigation";
 
 export default async function AccountInsightsPage({
   searchParams,
@@ -14,6 +16,7 @@ export default async function AccountInsightsPage({
   searchParams?: { tiktok?: string; tiktok_message?: string };
 }) {
   const { user, profile } = await requireProfile();
+  if (!hubHas("tiktokInsights")) notFound();
 
   await ensureTikTokSocialLink(user.id);
   await ensureTikTokStatsIfMissing(user.id).catch((err) => {
