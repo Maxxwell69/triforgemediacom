@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
 import { publicOriginFromHeaders } from "@/lib/hub/host";
+import { copyControlProfileToTenant } from "@/lib/hub/ensureTenantMember";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
@@ -61,7 +62,13 @@ export async function requireUser() {
 export async function requireProfile() {
   const user = await requireUser();
 
-  const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
+  let profile = await prisma.profile.findUnique({ where: { userId: user.id } });
+  if (!profile) {
+    const ctx = await getRequestHubContext();
+    if (ctx.kind === "client" && ctx.prisma) {
+      profile = await copyControlProfileToTenant(user.id, user.id, ctx.prisma);
+    }
+  }
   if (!profile) {
     redirectHere("/onboarding");
   }

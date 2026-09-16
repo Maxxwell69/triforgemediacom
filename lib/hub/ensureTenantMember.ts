@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { UserRole, UserStatus } from "@prisma/client";
+import { Prisma, type UserRole, type UserStatus } from "@prisma/client";
 import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 export async function ensureTenantMember(opts: {
@@ -17,11 +17,12 @@ export async function ensureTenantMember(opts: {
       data: {
         email: opts.user.email,
         name: opts.user.name,
+        image: opts.user.image ?? undefined,
         role: opts.role,
         status: opts.status,
       },
     });
-    await copyControlProfile(opts.user.id, db);
+    await copyControlProfileToTenant(opts.user.id, opts.user.id, db);
     return byId.id;
   }
 
@@ -31,11 +32,12 @@ export async function ensureTenantMember(opts: {
       where: { id: byEmail.id },
       data: {
         name: opts.user.name,
+        image: opts.user.image ?? undefined,
         role: opts.role,
         status: opts.status,
       },
     });
-    await copyControlProfile(byEmail.id, db);
+    await copyControlProfileToTenant(opts.user.id, byEmail.id, db);
     return byEmail.id;
   }
 
@@ -50,34 +52,54 @@ export async function ensureTenantMember(opts: {
       passwordHash: null,
     },
   });
-  await copyControlProfile(opts.user.id, db);
+  await copyControlProfileToTenant(opts.user.id, opts.user.id, db);
   return opts.user.id;
 }
 
-async function copyControlProfile(
-  userId: string,
+/** Copy Hub 0 profile into this hub. People given a hub should not set up a second one. */
+export async function copyControlProfileToTenant(
+  controlUserId: string,
+  tenantUserId: string,
   db: ReturnType<typeof getTenantPrisma>
 ) {
-  const existing = await db.profile.findUnique({ where: { userId } });
-  if (existing) return;
-  const source = await getControlPrisma().profile.findUnique({ where: { userId } });
-  if (!source) return;
+  const existing = await db.profile.findUnique({ where: { userId: tenantUserId } });
+  if (existing) return existing;
+
+  const source = await getControlPrisma().profile.findUnique({
+    where: { userId: controlUserId },
+  });
+  if (!source) return null;
+
+  const base = {
+    userId: tenantUserId,
+    platform: source.platform,
+    goals: source.goals ?? {},
+    bio: source.bio,
+    socialLinks: source.socialLinks ?? undefined,
+    pinnedTiktokVideoUrl: source.pinnedTiktokVideoUrl,
+    phone: source.phone,
+    country: source.country,
+    showRealName: source.showRealName,
+    streakCount: source.streakCount,
+    lastActiveAt: source.lastActiveAt,
+  };
+
   try {
-    await db.profile.create({
-      data: {
-        userId,
-        platform: source.platform,
-        goals: source.goals ?? {},
-        bio: source.bio,
-        socialLinks: source.socialLinks ?? undefined,
-        pinnedTiktokVideoUrl: source.pinnedTiktokVideoUrl,
-        phone: source.phone,
-        country: source.country,
-        showRealName: source.showRealName,
-        username: source.username,
-      },
+    return await db.profile.create({
+      data: { ...base, username: source.username },
     });
   } catch (err) {
-    console.error("copy control profile skipped", userId, err);
+    const uniqueClash =
+      err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+    if (uniqueClash) {
+      try {
+        return await db.profile.create({ data: { ...base, username: null } });
+      } catch (retryErr) {
+        console.error("copy control profile skipped", controlUserId, retryErr);
+        return db.profile.findUnique({ where: { userId: tenantUserId } });
+      }
+    }
+    console.error("copy control profile skipped", controlUserId, err);
+    return db.profile.findUnique({ where: { userId: tenantUserId } });
   }
 }
