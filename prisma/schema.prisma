@@ -80,6 +80,8 @@ model User {
   effect          Boolean  @default(false)
   /// Admin toggle: member can use the personal task list (self-assigned only). Default on for everyone.
   personalTasksEnabled Boolean @default(true)
+  /// False for accounts created only to join a client hub — they cannot sign in to Hub 0.
+  platformAccess Boolean @default(true)
   failedLoginAttempts Int @default(0) // reset to 0 on any successful login
   lockedUntil   DateTime? // null = not locked; future timestamp = login blocked until then
   lastLoginAt   DateTime? // set on each successful credentials login (admin visibility)
@@ -154,6 +156,7 @@ model User {
   progressionCategoryXp      ProgressionCategoryXp[]
   progressionMissionCompletions ProgressionMissionCompletion[]
   clientHubsCreated          ClientHub[]
+  hubMemberships             HubMembership[]
   progressionModuleCompletions ProgressionModuleCompletion[]
   progressionQuizAttempts    ProgressionQuizAttempt[]
   progressionCertsHeld       ProgressionCertificationHeld[]
@@ -2495,8 +2498,30 @@ model ClientHub {
   createdById        String?
 
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  memberships HubMembership[]
 
   @@index([createdById])
+}
+
+/// Access grant: one Hub 0 identity may join many client hubs. Password stays on User.
+model HubMembership {
+  id                   String     @id @default(cuid())
+  userId               String
+  clientHubId          String
+  role                 UserRole   @default(MEMBER)
+  status               UserStatus @default(INVITED)
+  inviteToken          String?    @unique
+  inviteTokenExpiresAt DateTime?
+  /// Tenant User.id when it differs from the central user (legacy tenant rows).
+  tenantUserId         String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientHub ClientHub @relation(fields: [clientHubId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientHubId])
+  @@index([clientHubId, status])
 }
 
 // ---------- Campaign automations (GHL-style trigger → email / notify) ----------

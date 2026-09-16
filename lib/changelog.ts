@@ -179,6 +179,40 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.199",
+    date: "September 15, 2026",
+    title: "Hubs directory",
+    summary:
+      "A public directory lists every Create Hub community, and signed-in members also see the hubs they were invited to.",
+    items: [
+      {
+        kind: "feature",
+        text: "Public /hubs directory (also in the site header, footer, and member menu)",
+      },
+      {
+        kind: "feature",
+        text: "Signed-in visitors see Your hubs — communities they were invited to or already joined",
+      },
+    ],
+  },
+  {
+    version: "3.198",
+    date: "September 15, 2026",
+    title: "One login across hubs",
+    summary:
+      "A person has one email and password. An invite only adds them to that hub — it does not create a second account.",
+    items: [
+      {
+        kind: "feature",
+        text: "Hub memberships live on the central Hub 0 identity; client hubs no longer store a separate password",
+      },
+      {
+        kind: "feature",
+        text: "Owner invite emails a link on the client host: new people set a password once, existing people sign in to join",
+      },
+    ],
+  },
+  {
     version: "3.197",
     date: "September 15, 2026",
     title: "Create Hub owner invites",

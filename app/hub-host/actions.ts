@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { signupSchema } from "@/lib/validations/signup";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+import { activateHubMembership, findHubInviteByToken } from "@/lib/hub/membership";
 
 export async function completeClientHubSignup(
   _prevState: { error: string } | null,
@@ -20,35 +22,27 @@ export async function completeClientHubSignup(
   }
 
   const ctx = await getRequestHubContext();
-  if (ctx.kind !== "client" || !ctx.prisma) {
+  if (ctx.kind !== "client" || !ctx.hub) {
     return { error: "Open this invite on your hub’s own URL — not hub.triforgemedia.com." };
   }
 
   const { token, password } = parsed.data;
-  const application = await ctx.prisma.application.findUnique({
-    where: { inviteToken: token },
-    include: { user: true },
-  });
-
-  const expired =
-    !!application?.inviteTokenExpiresAt && application.inviteTokenExpiresAt.getTime() <= Date.now();
-
-  if (!application || application.status !== "APPROVED" || application.user.status !== "INVITED" || expired) {
+  const invite = await findHubInviteByToken(token, ctx.hub.id);
+  if (!invite) {
     return { error: "This invite link is invalid, expired, or has already been used." };
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  if (invite.user.passwordHash) {
+    return { error: "You already have a login. Sign in with that password to join this hub." };
+  }
 
-  await ctx.prisma.$transaction([
-    ctx.prisma.user.update({
-      where: { id: application.userId },
-      data: { passwordHash, status: "ACTIVE" },
-    }),
-    ctx.prisma.application.update({
-      where: { id: application.id },
-      data: { inviteToken: null, inviteTokenExpiresAt: null },
-    }),
-  ]);
+  const passwordHash = await bcrypt.hash(password, 12);
+  const control = getControlPrisma();
+  await control.user.update({
+    where: { id: invite.user.id },
+    data: { passwordHash, status: "ACTIVE" },
+  });
+  await activateHubMembership(invite.id);
 
   redirect("/signin?welcome=1");
 }
