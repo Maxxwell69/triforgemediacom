@@ -1,13 +1,21 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { copyControlProfileToTenant } from "@/lib/hub/ensureTenantMember";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getApplicationContact } from "@/lib/profileContact";
 import OnboardingForm from "./OnboardingForm";
 
 export default async function OnboardingPage() {
   const user = await requireUser();
 
-  const existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
+  let existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
+  if (!existingProfile) {
+    const ctx = await getRequestHubContext();
+    if (ctx.kind === "client" && ctx.prisma) {
+      existingProfile = await copyControlProfileToTenant(user.id, user.id, ctx.prisma);
+    }
+  }
   if (existingProfile) {
     redirect("/home");
   }

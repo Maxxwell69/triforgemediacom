@@ -172,6 +172,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.205",
+    date: "September 15, 2026",
+    title: "Keep your profile when a hub is given to you",
+    summary:
+      "Opening a Create Hub uses your existing TriForge profile. You are not asked to set one up again.",
+    items: [
+      {
+        kind: "fix",
+        text: "Staff and invited owners skip profile onboarding on a client hub when they already have a Forge profile",
+      },
+    ],
+  },
+  {
     version: "3.204",
     date: "September 15, 2026",
     title: "Client hubs stay on their own hostname",
