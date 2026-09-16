@@ -19,7 +19,7 @@ function SubmitButton() {
   );
 }
 
-export default function AddMemberForm() {
+export default function AddMemberForm({ clientHub = false }: { clientHub?: boolean }) {
   const [state, formAction] = useFormState(addMemberDirectly, null);
 
   return (
@@ -28,10 +28,13 @@ export default function AddMemberForm() {
       action={formAction}
       className="glass flex flex-col gap-3 rounded-2xl p-6"
     >
-      <h2 className="font-display text-xl tracking-wide text-off-white/80">Add a member directly</h2>
+      <h2 className="font-display text-xl tracking-wide text-off-white/80">
+        {clientHub ? "Invite a member" : "Add a member directly"}
+      </h2>
       <p className="font-body text-xs text-off-white/50">
-        Skips the application queue &mdash; creates the account and emails a Forge Hub invite.
-        If they already have a Create Hub login, this grants Forge access with the same password.
+        {clientHub
+          ? "Emails an invite to this hub’s own URL. They will not get TriForge Hub access unless they are invited there separately."
+          : "Skips the application queue — creates the account and emails a Forge Hub invite. If they already have a Create Hub login, this grants Forge access with the same password."}
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="name" required placeholder="Name" className={fieldClass} />

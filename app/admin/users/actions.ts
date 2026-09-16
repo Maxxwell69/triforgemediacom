@@ -12,7 +12,9 @@ import { generateInviteToken, inviteTokenExpiry, inviteUrl } from "@/lib/invite"
 import { sendInviteEmail, sendPasswordResetEmail } from "@/lib/email";
 import { generateResetToken, resetPasswordUrl, RESET_TOKEN_TTL_MS } from "@/lib/passwordReset";
 import { grantForgeHubAccess } from "@/lib/hub/grantForgeAccess";
+import { inviteClientHubMember, resendClientHubMemberInvite } from "@/lib/hub/inviteMember";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
 import type { UserRole } from "@prisma/client";
 
@@ -298,13 +300,6 @@ export async function addMemberDirectly(
   formData: FormData
 ): Promise<AddMemberState> {
   await requireAdmin();
-  if (isClientHubRequest()) {
-    return {
-      error:
-        "This Add member button invites people to TriForge Hub. Member invites for this community hub are next.",
-    };
-  }
-
   const parsed = addMemberSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -313,6 +308,22 @@ export async function addMemberDirectly(
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
   const { name, email } = parsed.data;
+
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "client") {
+    if (!ctx.hub?.tenantDbName) {
+      return { error: "This hub’s database isn’t provisioned yet." };
+    }
+    const invited = await inviteClientHubMember({
+      name,
+      email,
+      clientHubId: ctx.hub.id,
+      tenantDbName: ctx.hub.tenantDbName,
+    });
+    if (invited.error) return { error: invited.error };
+    revalidatePath("/admin/users");
+    return { success: true };
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -365,6 +376,18 @@ export async function addMemberDirectly(
 export async function resendInvite(userId: string) {
   await requireAdmin();
 
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "client" && ctx.hub) {
+    const result = await resendClientHubMemberInvite({
+      userId,
+      clientHubId: ctx.hub.id,
+    });
+    if (result.error) throw new Error(result.error);
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return;
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { application: true },
@@ -406,6 +429,9 @@ export async function resendInvite(userId: string) {
 
 export async function inviteUserToForgeHub(userId: string): Promise<{ error: string | null }> {
   await requireAdmin();
+  if (isClientHubRequest()) {
+    return { error: "Forge Hub invites are sent from hub.triforgemedia.com, not from a client hub." };
+  }
   const result = await grantForgeHubAccess(userId);
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);

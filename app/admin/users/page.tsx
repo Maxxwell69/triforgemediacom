@@ -17,6 +17,7 @@ import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
 import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityToggle";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import { hubHas } from "@/lib/hub/modules";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
 import { onboardingStatusLabel } from "@/lib/onboarding/labels";
 import { summarizeOnboardingStatus } from "@/lib/onboarding/engine";
 import type { OnboardingProgressStatus } from "@prisma/client";
@@ -74,6 +75,7 @@ export default async function AdminUsersPage({
 }) {
   const session = await auth();
   const currentUserId = session!.user.id;
+  const clientHub = isClientHubRequest();
   const showOnboarding = hubHas("onboardingChecklist");
   const trackFilter =
     searchParams?.track === "CN" || searchParams?.track === "MN"
@@ -352,7 +354,7 @@ export default async function AdminUsersPage({
       )}
 
       <div className="mt-8">
-        <AddMemberForm />
+        <AddMemberForm clientHub={clientHub} />
       </div>
 
       <div className="mt-10 flex flex-col gap-2">
@@ -438,7 +440,7 @@ export default async function AdminUsersPage({
                     </span>
                   )}
                   {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
-                  {!user.platformAccess && user.status !== "BANNED" ? (
+                  {!clientHub && !user.platformAccess && user.status !== "BANNED" ? (
                     <InviteToForgeButton userId={user.id} />
                   ) : null}
                   {user.role === "ADMIN" && (

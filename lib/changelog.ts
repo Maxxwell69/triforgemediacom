@@ -179,6 +179,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.207",
+    date: "September 15, 2026",
+    title: "Client hub admins invite their members",
+    summary:
+      "A provisioned Create Hub is live. The hub admin invites people from Admin → Users; that email is for their community, not TriForge Hub.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Users → Invite a member emails a signup or sign-in link on {slug}.hub.triforgemedia.com",
+      },
+      {
+        kind: "improve",
+        text: "The public hub page says the community is live and includes sign-in",
+      },
+    ],
+  },
+  {
     version: "3.206",
     date: "September 15, 2026",
     title: "Dashboard matches the module menu",
