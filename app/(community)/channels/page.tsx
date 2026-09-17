@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessChannel, getUserGroupIds } from "@/lib/groups";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChannelsIndexPage() {
   const { user } = await requireProfile();
 

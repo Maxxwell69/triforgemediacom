@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
  */
 export function useScrollToLatest(
   scrollRef: RefObject<HTMLDivElement | null>,
-  bottomRef: RefObject<HTMLDivElement | null>,
+  _bottomRef: RefObject<HTMLDivElement | null>,
   deps: {
     roomKey: string;
     messageCount: number;
@@ -17,21 +17,16 @@ export function useScrollToLatest(
 ) {
   const pinnedRef = useRef(true);
 
-  const scrollToLatest = useCallback(
-    (behavior: ScrollBehavior = "auto") => {
-      const scroller = scrollRef.current;
-      const bottom = bottomRef.current;
-      if (!scroller) return;
-      if (bottom) {
-        bottom.scrollIntoView({ behavior, block: "end" });
-      }
-      scroller.scrollTop = scroller.scrollHeight;
-    },
-    [scrollRef, bottomRef]
-  );
+  const scrollToLatest = useCallback(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    // Only set scrollTop — scrollIntoView on a nested scroller jumps the
+    // whole iOS Safari viewport and can look like the chat crashed.
+    scroller.scrollTop = scroller.scrollHeight;
+  }, [scrollRef]);
 
   const scheduleScroll = useCallback(() => {
-    const run = () => scrollToLatest("auto");
+    const run = () => scrollToLatest();
     run();
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {

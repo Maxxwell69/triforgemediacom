@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatChatDateTime } from "@/lib/formatChatTime";
 
 type ChatMessage = {
   id: string;
@@ -390,10 +391,7 @@ export default function WebinarChat({
             <p className="font-body text-xs text-orange">
               You&apos;re muted in this chat
               {chatMutedUntil
-                ? ` until ${new Date(chatMutedUntil).toLocaleString([], {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}`
+                ? ` until ${formatChatDateTime(chatMutedUntil)}`
                 : ""}
               .
             </p>

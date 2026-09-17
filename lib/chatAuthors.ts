@@ -19,8 +19,18 @@ type AuthorRow = {
   progressionProfile?: { currentLevel: { name: string } | null } | null;
 };
 
+const UNKNOWN_AUTHOR = {
+  id: "unknown",
+  name: "Member",
+  image: null as string | null,
+  role: "MEMBER" as UserRole,
+  mutedUntil: null as Date | null,
+  progressionLevel: null as string | null,
+};
+
 /** Flatten a Prisma user include into the shape ChatView / DM expect. */
-export function toChatAuthor(user: AuthorRow) {
+export function toChatAuthor(user: AuthorRow | null | undefined) {
+  if (!user) return { ...UNKNOWN_AUTHOR };
   return {
     id: user.id,
     name: getChatDisplayName(user),

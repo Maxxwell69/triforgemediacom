@@ -11,6 +11,7 @@ import MessageContent from "@/components/chat/MessageContent";
 import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
+import { formatChatTime } from "@/lib/formatChatTime";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -85,7 +86,11 @@ export default function DmChatView({
   useEffect(() => {
     const interval = setInterval(async () => {
       const latest = messages[messages.length - 1];
-      const after = latest ? new Date(latest.createdAt).toISOString() : undefined;
+      let after: string | undefined;
+      if (latest?.createdAt) {
+        const latestAt = new Date(latest.createdAt);
+        if (!Number.isNaN(latestAt.getTime())) after = latestAt.toISOString();
+      }
       const url = `/api/dms/${conversationId}/messages${after ? `?after=${encodeURIComponent(after)}` : ""}`;
       try {
         const res = await fetch(url);
@@ -231,8 +236,8 @@ export default function DmChatView({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b border-off-white/10 px-6 py-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
         <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
           &larr; Direct messages
         </Link>
@@ -240,7 +245,7 @@ export default function DmChatView({
         <p className="font-body text-xs text-off-white/40">Private conversation</p>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {messages.length === 0 && (
           <p className="mt-8 text-center font-body text-sm text-off-white/40">
             No messages yet. Start the conversation.
@@ -273,11 +278,8 @@ export default function DmChatView({
                         {rank}
                       </span>
                     ) : null}
-                    <span className="font-body text-xs text-off-white/30">
-                      {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <span className="font-body text-xs text-off-white/30" suppressHydrationWarning>
+                      {formatChatTime(message.createdAt)}
                     </span>
                   </div>
                   <MessageContent content={message.content} />
@@ -293,7 +295,10 @@ export default function DmChatView({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="relative border-t border-off-white/10 px-6 py-4">
+      <form
+        onSubmit={handleSubmit}
+        className="relative shrink-0 border-t border-off-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         {error && <p className="mb-2 font-body text-xs text-orange">{error}</p>}
         {viewerIsMuted && (
           <p className="mb-2 font-body text-xs text-orange">You&apos;re muted and can&apos;t send.</p>
