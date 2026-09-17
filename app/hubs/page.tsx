@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   description: "Communities running on Create Hub — open a hub you were invited to, or browse the directory.",
 };
 
+/** Same 16:9 cover slot client hubs fill from Admin → Hub profile. */
+const HUB0_DIRECTORY_IMAGE = "/hubs/hub-0.jpg";
+
 function Hub0Card({
   featured,
   joined,
@@ -26,30 +29,41 @@ function Hub0Card({
   joined?: boolean;
 }) {
   const href = `${hub0PublicUrl()}/home`;
-  const className = featured
-    ? "flex items-center justify-between gap-4 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4 transition hover:border-orange/60"
-    : "glass block rounded-2xl p-5 transition hover:border-cyan/40";
-
   return (
-    <a href={href} className={className}>
-      <div>
-        <p className="font-display text-2xl tracking-wide text-off-white">Hub 0</p>
-        <p className="font-body text-sm text-off-white/50">
-          TriForge Hub · {hub0PublicHost()}
-        </p>
-        {joined ? (
-          <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-cyan/80">
-            Joined · Forge
+    <a
+      href={href}
+      className={
+        featured
+          ? "block overflow-hidden rounded-2xl border border-orange/30 bg-orange/10 transition hover:border-orange/60"
+          : "glass block overflow-hidden rounded-2xl transition hover:border-cyan/40"
+      }
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={HUB0_DIRECTORY_IMAGE}
+        alt="TriForge Media Community Hub"
+        className="aspect-[16/9] w-full object-cover"
+      />
+      <div className="flex items-center justify-between gap-4 p-5">
+        <div>
+          <p className="font-display text-2xl tracking-wide text-off-white">Hub 0</p>
+          <p className="mt-1 font-body text-sm text-off-white/50">
+            TriForge Hub · {hub0PublicHost()}
           </p>
-        ) : featured ? null : (
-          <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-off-white/35">
-            Live · Invite only
-          </p>
-        )}
+          {joined ? (
+            <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-cyan/80">
+              Joined · Forge
+            </p>
+          ) : (
+            <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-off-white/35">
+              Live · Invite only
+            </p>
+          )}
+        </div>
+        {featured ? (
+          <span className="shrink-0 font-body text-sm font-semibold text-orange">Open Hub 0</span>
+        ) : null}
       </div>
-      {featured ? (
-        <span className="shrink-0 font-body text-sm font-semibold text-orange">Open Hub 0</span>
-      ) : null}
     </a>
   );
 }
@@ -167,16 +181,7 @@ export default async function HubsDirectoryPage() {
           ) : null}
           <ul className="mt-6 grid gap-4 sm:grid-cols-2">
             <li>
-              <a
-                href={`${hub0PublicUrl()}/home`}
-                className="block rounded-2xl border border-orange/25 px-5 py-5 transition hover:border-orange/50"
-              >
-                <p className="font-display text-2xl tracking-wide text-off-white">Hub 0</p>
-                <p className="mt-1 font-body text-sm text-off-white/45">{hub0PublicHost()}</p>
-                <p className="mt-3 font-body text-xs uppercase tracking-[0.2em] text-off-white/35">
-                  Live · Invite only
-                </p>
-              </a>
+              <Hub0Card />
             </li>
             {hubs.map((hub) => (
               <li key={hub.id}>

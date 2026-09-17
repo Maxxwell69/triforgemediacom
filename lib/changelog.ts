@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.227",
+    date: "September 17, 2026",
+    title: "Hub 0 directory graphic",
+    summary:
+      "Hub 0 on /hubs now has a cover image like the other communities — the TriForge Media Community Hub graphic.",
+    items: [
+      {
+        kind: "improve",
+        text: "/hubs shows the Hub 0 cover on the featured card, Your hubs, and All hubs — same 16:9 slot as client directory images",
+      },
+    ],
+  },
+  {
     version: "3.226",
     date: "September 17, 2026",
     title: "iPhone Create Hub chat",
