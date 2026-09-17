@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.224",
+    date: "September 17, 2026",
+    title: "Profile photo",
+    summary:
+      "Members can upload a profile photo — it shows on their member card, chat, and the hub instead of initials or a TikTok picture.",
+    items: [
+      {
+        kind: "feature",
+        text: "Account → Profile: upload or paste a photo; remove it to fall back to TikTok when we have one",
+      },
+    ],
+  },
+  {
     version: "3.223",
     date: "September 17, 2026",
     title: "CN / MN switch sticks",
