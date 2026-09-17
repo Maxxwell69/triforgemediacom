@@ -431,8 +431,8 @@ export default async function AdminUserDetailPage({
           GROUPS, TAGS &amp; BADGES
         </h2>
         <p className="mt-1 font-body text-xs text-off-white/45">
-          Use × to remove. Open Groups or Tags to add or switch. CN and MN stay paired as one
-          track — assigning one replaces the other.
+          Set CN or MN here, then add any other tags or groups on this profile — they save on this
+          member and stay until you remove them.
         </p>
         <div className="mt-4">
           <AdminUserMemberships
