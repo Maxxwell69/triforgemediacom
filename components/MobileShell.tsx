@@ -21,6 +21,8 @@ export default function MobileShell({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const isWebinarRoom = /\/webinars\/[^/]+\/room/.test(pathname);
+  const isChatRoom = pathname.startsWith("/channels/") || pathname.startsWith("/dms/");
+  const lockViewport = isWebinarRoom || isChatRoom;
   // FAB sits over the webinar people/chat panel on phones — keep it in the drawer only.
   const adminFabVisible = showAdminFab && !isWebinarRoom;
 
@@ -32,7 +34,7 @@ export default function MobileShell({
   return (
     <div
       className={`flex flex-col md:flex-row ${
-        isWebinarRoom ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen"
+        lockViewport ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen"
       }`}
     >
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
@@ -94,7 +96,7 @@ export default function MobileShell({
 
       <div
         className={`flex min-w-0 flex-1 flex-col ${
-          isWebinarRoom ? "min-h-0 overflow-hidden" : ""
+          lockViewport ? "min-h-0 overflow-hidden" : ""
         }`}
       >
         {children}

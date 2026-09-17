@@ -9,6 +9,8 @@ import { markChannelRead } from "@/lib/channelReads";
 import { replyToInclude } from "@/lib/chatReplies";
 import ChatView from "@/components/chat/ChatView";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChannelPage({
   params,
 }: {

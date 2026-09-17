@@ -13,6 +13,7 @@ import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { truncateReplyPreview } from "@/lib/chatReplies";
 import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
 import { ALLOWED_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
+import { formatChatDateTime, formatChatTime } from "@/lib/formatChatTime";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -206,7 +207,11 @@ export default function ChatView({
   useEffect(() => {
     const interval = setInterval(async () => {
       const latest = messages[messages.length - 1];
-      const after = latest ? new Date(latest.createdAt).toISOString() : undefined;
+      let after: string | undefined;
+      if (latest?.createdAt) {
+        const latestAt = new Date(latest.createdAt);
+        if (!Number.isNaN(latestAt.getTime())) after = latestAt.toISOString();
+      }
       const editsAfter = editsAfterRef.current;
       const params = new URLSearchParams();
       if (after) params.set("after", after);
@@ -529,15 +534,15 @@ export default function ChatView({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b border-off-white/10 px-6 py-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
         <h1 className="font-display text-2xl tracking-wide"># {channel.name}</h1>
         {channel.description && (
           <p className="font-body text-sm text-off-white/50">{channel.description}</p>
         )}
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {messages.length === 0 && (
           <p className="mt-8 text-center font-body text-sm text-off-white/40">
             No messages yet. Say hi 👋
@@ -625,11 +630,8 @@ export default function ChatView({
                         Muted
                       </span>
                     )}
-                    <span className="font-body text-xs text-off-white/30">
-                      {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <span className="font-body text-xs text-off-white/30" suppressHydrationWarning>
+                      {formatChatTime(message.createdAt)}
                       {message.editedAt ? (
                         <span className="ml-1 text-off-white/25" title="Edited">
                           (edited)
@@ -773,16 +775,14 @@ export default function ChatView({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="relative border-t border-off-white/10 px-6 py-4">
+      <form
+        onSubmit={handleSubmit}
+        className="relative shrink-0 border-t border-off-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         {error && <p className="mb-2 font-body text-xs text-orange">{error}</p>}
         {viewerIsMuted && (
           <p className="mb-2 font-body text-xs text-orange">
-            You&apos;re muted until{" "}
-            {toMutedUntilDate(mutedUntil)!.toLocaleString([], {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-            .
+            You&apos;re muted until {formatChatDateTime(mutedUntil)}.
           </p>
         )}
         {replyingTo && !viewerIsMuted && (

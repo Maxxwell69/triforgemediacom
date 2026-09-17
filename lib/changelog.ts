@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.226",
+    date: "September 17, 2026",
+    title: "iPhone Create Hub chat",
+    summary:
+      "Opening a channel on iPhone in a Create Hub no longer hits a Safari timestamp crash — chat stays on screen instead of the Something broke page.",
+    items: [
+      {
+        kind: "fix",
+        text: "Channel and DM timestamps use a Safari-safe clock format so iPhone does not throw when you open chat",
+      },
+      {
+        kind: "fix",
+        text: "Chat on phones fills the viewport and stays scrollable instead of jumping the whole Safari page",
+      },
+    ],
+  },
+  {
     version: "3.225",
     date: "September 17, 2026",
     title: "Profile photo build fix",
