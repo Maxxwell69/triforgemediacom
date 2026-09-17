@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.221",
+    date: "September 17, 2026",
+    title: "CN / MN track switch",
+    summary:
+      "Admins can move a member between Creator Network and Media Network, and add tags or groups on the user profile so they stick.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin user page: Creator Network (CN) and Media Network (MN) buttons; choosing one replaces the other",
+      },
+      {
+        kind: "feature",
+        text: "Admin user profile: Add tag and Add group dropdowns write to that member and stay until removed",
+      },
+    ],
+  },
+  {
     version: "3.220",
     date: "September 17, 2026",
     title: "Admin users build fix",

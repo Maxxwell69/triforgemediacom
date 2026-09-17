@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { setUserTagAdded } from "@/app/admin/tags/actions";
 
 type UserOption = { id: string; name: string | null; email: string };
@@ -16,6 +17,7 @@ export default function TagMembersManager({
 }) {
   const [isPending, startTransition] = useTransition();
   const [addId, setAddId] = useState("");
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-4">
@@ -38,6 +40,7 @@ export default function TagMembersManager({
               onClick={() =>
                 startTransition(async () => {
                   await setUserTagAdded(tagId, u.id, false);
+                  router.refresh();
                 })
               }
               className="shrink-0 rounded-lg border border-orange/40 px-3 py-1 font-body text-xs font-semibold text-orange transition hover:bg-orange/10 disabled:opacity-40"
@@ -69,6 +72,7 @@ export default function TagMembersManager({
               startTransition(async () => {
                 await setUserTagAdded(tagId, addId, true);
                 setAddId("");
+                router.refresh();
               })
             }
             className="shrink-0 rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:opacity-40"

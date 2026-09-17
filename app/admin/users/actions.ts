@@ -292,6 +292,16 @@ export async function toggleUserGroup(userId: string, groupId: string, isMember:
   revalidatePath("/members");
 }
 
+export async function setUserNetworkTrack(userId: string, track: "CN" | "MN") {
+  await requireAdmin();
+  const { syncNetworkMembership } = await import("@/lib/mnCn");
+  await syncNetworkMembership(userId, track);
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/members");
+  revalidatePath(`/members/${userId}`);
+}
+
 export type AddMemberState = { error?: string; success?: boolean } | null;
 
 /**
