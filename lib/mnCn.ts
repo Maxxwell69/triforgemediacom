@@ -99,15 +99,36 @@ async function setMembership(userId: string, groupId: string, tagId: string, on:
   }
 }
 
+/** Keep application.answers.track in sync with the assigned CN/MN membership. */
+async function persistApplicationTrack(userId: string, track: NetworkTrack) {
+  const app = await prisma.application.findUnique({
+    where: { userId },
+    select: { id: true, answers: true },
+  });
+  if (!app) return;
+  const prev =
+    app.answers && typeof app.answers === "object" && !Array.isArray(app.answers)
+      ? (app.answers as Record<string, unknown>)
+      : {};
+  if (prev.track === track) return;
+  await prisma.application.update({
+    where: { id: app.id },
+    data: { answers: { ...prev, track } },
+  });
+}
+
 /**
  * Puts the user on exactly one network track (CN or MN): assigns that
- * group+tag and clears the other so filters stay accurate.
+ * group+tag and clears the other so filters stay accurate. Also writes
+ * application.answers.track so later page loads do not restore the apply-form
+ * pathway.
  */
 export async function syncNetworkMembership(userId: string, track: NetworkTrack) {
   const [mn, cn] = await Promise.all([ensureMnGroupAndTag(), ensureCnGroupAndTag()]);
   await Promise.all([
     setMembership(userId, mn.groupId, mn.tagId, track === "MN"),
     setMembership(userId, cn.groupId, cn.tagId, track === "CN"),
+    persistApplicationTrack(userId, track),
   ]);
 }
 
@@ -139,7 +160,8 @@ function trackFromAnswers(answers: unknown): NetworkTrack | null {
 /**
  * Repair: assign CN/MN group+tag for users whose application track is set
  * but memberships were never written (the old apply/import path only synced
- * MN). Skips users who already have the correct tag. Safe to call repeatedly.
+ * MN). Never overwrites an existing CN or MN assignment — admins can switch
+ * tracks without a later page load putting the apply-form track back.
  */
 export async function backfillNetworkMemberships(): Promise<{ updated: number }> {
   const [apps, cnTag, mnTag] = await Promise.all([
@@ -147,13 +169,17 @@ export async function backfillNetworkMemberships(): Promise<{ updated: number }>
       select: {
         userId: true,
         answers: true,
-        user: { select: { tags: { select: { tag: { select: { name: true } } } } } },
+        user: {
+          select: {
+            tags: { select: { tag: { select: { name: true } } } },
+            groupMemberships: { select: { group: { select: { name: true } } } },
+          },
+        },
       },
     }),
     ensureCnGroupAndTag(),
     ensureMnGroupAndTag(),
   ]);
-  // ensure* return ids — keep tags loaded for name checks via user.tags above
   void cnTag;
   void mnTag;
 
@@ -161,12 +187,13 @@ export async function backfillNetworkMemberships(): Promise<{ updated: number }>
   for (const app of apps) {
     const track = trackFromAnswers(app.answers);
     if (!track) continue;
-    const tagNames = new Set(
-      app.user.tags.map((t) => t.tag.name.toUpperCase())
+    const names = new Set(
+      [
+        ...app.user.tags.map((t) => t.tag.name.toUpperCase()),
+        ...app.user.groupMemberships.map((m) => m.group.name.toUpperCase()),
+      ].filter(Boolean)
     );
-    const hasCorrect =
-      track === "CN" ? tagNames.has("CN") && !tagNames.has("MN") : tagNames.has("MN") && !tagNames.has("CN");
-    if (hasCorrect) continue;
+    if (names.has(CN_TAG_NAME.toUpperCase()) || names.has(MN_TAG_NAME.toUpperCase())) continue;
     await syncNetworkMembership(app.userId, track);
     updated++;
   }
