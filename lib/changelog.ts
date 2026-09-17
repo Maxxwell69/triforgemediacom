@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.220",
+    date: "September 17, 2026",
+    title: "Admin users build fix",
+    summary:
+      "Railway can build again after group/tag editing — the admin pills no longer pull the database client into the browser bundle.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin Users membership chips import display helpers instead of Prisma, so staging and production image builds succeed",
+      },
+    ],
+  },
+  {
     version: "3.219",
     date: "September 17, 2026",
     title: "Admin group and tag editing",
