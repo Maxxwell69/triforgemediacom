@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.222",
+    date: "September 17, 2026",
+    title: "Admin user list memberships",
+    summary:
+      "Add tag, add group, and CN/MN switching stay on the admin user profile — the Users search list only shows current memberships.",
+    items: [
+      {
+        kind: "improve",
+        text: "Admin Users search cards show CN/MN, tags, and groups as pills; assign or remove them on that member’s profile",
+      },
+    ],
+  },
+  {
     version: "3.221",
     date: "September 17, 2026",
     title: "CN / MN track switch",
