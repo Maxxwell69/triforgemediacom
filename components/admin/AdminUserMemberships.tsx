@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleUserGroup } from "@/app/admin/users/actions";
 import { setUserTagAdded } from "@/app/admin/tags/actions";
-import { networkBadgeColor, tagsNotShownAsGroups } from "@/lib/mnCn";
+import { networkBadgeColor, tagsNotShownAsGroups } from "@/lib/mnCnDisplay";
 import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
 import UserTagsEditor from "@/components/admin/UserTagsEditor";
 import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
