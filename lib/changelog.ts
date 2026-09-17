@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.225",
+    date: "September 17, 2026",
+    title: "Profile photo build fix",
+    summary:
+      "Railway can build the profile photo update — Account → Profile compiles again after a TypeScript name type mismatch.",
+    items: [
+      {
+        kind: "fix",
+        text: "Profile photo page treats a missing account name as empty so staging and production image builds succeed",
+      },
+    ],
+  },
+  {
     version: "3.224",
     date: "September 17, 2026",
     title: "Profile photo",
