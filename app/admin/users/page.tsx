@@ -3,13 +3,11 @@ import type { Prisma, UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserPointsTotals } from "@/lib/points";
-import { backfillNetworkMemberships, networkBadgeColor } from "@/lib/mnCn";
+import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
-import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
-import UserTagsEditor from "@/components/admin/UserTagsEditor";
-import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
+import AdminUserMemberships from "@/components/admin/AdminUserMemberships";
 import AddMemberForm from "@/components/admin/AddMemberForm";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import InviteToForgeButton from "@/components/admin/InviteToForgeButton";
@@ -475,30 +473,16 @@ export default async function AdminUsersPage({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-off-white/10 pt-3">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {groups.length === 0 && (
-                    <span className="font-body text-xs text-off-white/30">No groups</span>
-                  )}
-                  {groups.map((g) => {
-                    const color = networkBadgeColor(g.name, g.color, user.effect);
-                    return (
-                      <span
-                        key={g.id}
-                        className="rounded-full border px-2 py-0.5 font-body text-xs"
-                        style={{ borderColor: `${color}66`, color }}
-                      >
-                        {g.name}
-                      </span>
-                    );
-                  })}
-                  <UserGroupsEditor
-                    userId={user.id}
-                    allGroups={allGroups}
-                    memberGroupIds={groups.map((g) => g.id)}
-                  />
-                  <UserTagsEditor userId={user.id} allTags={allTags} memberTagIds={tagIds} />
-                  <UserBadgesEditor userId={user.id} allBadges={allBadges} memberBadgeIds={badgeIds} />
-                </div>
+                <AdminUserMemberships
+                  userId={user.id}
+                  groups={groups}
+                  tags={allTags.filter((t) => tagIds.includes(t.id))}
+                  allGroups={allGroups}
+                  allTags={allTags}
+                  allBadges={allBadges}
+                  memberBadgeIds={badgeIds}
+                  effect={user.effect}
+                />
 
                 <div className="flex items-center gap-3">
                   <span className="font-body text-sm text-off-white/70">

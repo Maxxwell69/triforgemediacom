@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { setUserBadgeAdded } from "@/app/admin/badges/actions";
 import InlineMultiSelect from "./InlineMultiSelect";
 
@@ -16,6 +17,7 @@ export default function UserBadgesEditor({
   memberBadgeIds: string[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   return (
     <InlineMultiSelect
@@ -26,6 +28,7 @@ export default function UserBadgesEditor({
       onToggle={(badgeId, checked) =>
         startTransition(async () => {
           await setUserBadgeAdded(badgeId, userId, checked);
+          router.refresh();
         })
       }
     />

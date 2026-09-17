@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.219",
+    date: "September 17, 2026",
+    title: "Admin group and tag editing",
+    summary:
+      "Admins can remove a member’s groups and tags from the user page, and CN no longer shows twice.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin user profile no longer duplicates CN/MN as both a group pill and a tag pill",
+      },
+      {
+        kind: "improve",
+        text: "Groups and tags have a × to remove; Groups/Tags menus add or switch, and CN/MN still replace each other",
+      },
+    ],
+  },
+  {
     version: "3.218",
     date: "September 17, 2026",
     title: "Hub 0 email logo and recurring broadcasts",

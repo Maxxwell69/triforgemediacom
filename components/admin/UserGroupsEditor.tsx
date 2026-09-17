@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toggleUserGroup } from "@/app/admin/users/actions";
 import InlineMultiSelect from "./InlineMultiSelect";
 
@@ -16,6 +17,7 @@ export default function UserGroupsEditor({
   memberGroupIds: string[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   return (
     <InlineMultiSelect
@@ -26,6 +28,7 @@ export default function UserGroupsEditor({
       onToggle={(groupId, checked) =>
         startTransition(async () => {
           await toggleUserGroup(userId, groupId, checked);
+          router.refresh();
         })
       }
     />
