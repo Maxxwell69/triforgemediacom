@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.223",
+    date: "September 17, 2026",
+    title: "CN / MN switch sticks",
+    summary:
+      "Moving a member from Creator Network to Media Network (or the other way) stays after refresh — the apply-form track no longer overwrites an admin change.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin CN/MN switch writes the new track on the application and is not reset when Users or Members pages load",
+      },
+    ],
+  },
+  {
     version: "3.222",
     date: "September 17, 2026",
     title: "Admin user list memberships",
