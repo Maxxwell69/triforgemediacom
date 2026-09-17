@@ -3,6 +3,7 @@ import type { Platform } from "@prisma/client";
 type MemberLike = {
   name: string | null;
   email?: string | null;
+  image?: string | null;
   profile?: {
     platform?: Platform;
     showRealName?: boolean | null;
@@ -75,6 +76,8 @@ export const chatAuthorSelect = {
 } as const;
 
 export function getMemberAvatarUrl(member: MemberLike): string | null {
+  const custom = member.image?.trim();
+  if (custom) return custom;
   if (member.tiktokStatsSnapshot?.avatarUrl) {
     return member.tiktokStatsSnapshot.avatarUrl;
   }

@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const profileAvatarUrlSchema = z.object({
+  imageUrl: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v === "" || /^https:\/\//i.test(v), "Must be a valid https image URL"),
+});
+
 export const nameIdentitySchema = z.object({
   name: z
     .string()

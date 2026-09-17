@@ -112,7 +112,7 @@ export default async function AccountPage() {
         <AccountFeatureLink
           href="/account/profile"
           title="Profile"
-          description="Name, socials, tags, badges, and display preferences."
+          description="Photo, name, socials, tags, badges, and display preferences."
           accent="cyan"
         />
         <AccountFeatureLink

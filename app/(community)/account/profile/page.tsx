@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { activeGoalKeys } from "@/lib/goals";
 import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
-import { getTikTokUsername } from "@/lib/memberDisplay";
+import { getMemberAvatarUrl, getMemberInitial, getTikTokUsername } from "@/lib/memberDisplay";
 import { ensureTikTokSocialLink } from "@/lib/tiktokStats";
+import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import ProfileEditForm from "../ProfileEditForm";
+import ProfileAvatarForm from "../ProfileAvatarForm";
 import TagPicker from "@/components/TagPicker";
 import DisplayNamePreference from "@/components/DisplayNamePreference";
 import NameIdentityForm from "../NameIdentityForm";
@@ -24,7 +26,7 @@ export default async function AccountProfilePage() {
     select: { socialLinks: true, username: true },
   });
 
-  const [userBadges, certificates, tiktokStats, selfAssignableTags, myTags, prefsRow] =
+  const [userBadges, certificates, tiktokStats, tiktokConnection, selfAssignableTags, myTags, prefsRow, identity] =
     await Promise.all([
       prisma.userBadge.findMany({
         where: { userId: user.id },
@@ -37,11 +39,19 @@ export default async function AccountProfilePage() {
         orderBy: { issuedAt: "desc" },
       }),
       prisma.tikTokStatsSnapshot.findUnique({ where: { userId: user.id } }),
+      prisma.tikTokConnection.findUnique({
+        where: { userId: user.id },
+        select: { avatarUrl: true, displayName: true },
+      }),
       prisma.tag.findMany({ where: { selfAssignable: true }, orderBy: { name: "asc" } }),
       prisma.userTag.findMany({ where: { userId: user.id }, include: { tag: true } }),
       prisma.user.findUnique({
         where: { id: user.id },
         select: { effect: true },
+      }),
+      getControlPrisma().user.findUnique({
+        where: { id: user.id },
+        select: { image: true },
       }),
     ]);
 
@@ -51,6 +61,23 @@ export default async function AccountProfilePage() {
   const socialLinks =
     (refreshedProfile?.socialLinks as Record<string, string> | null) ??
     ((profile.socialLinks as Record<string, string> | null) ?? {});
+  const customImageUrl = identity?.image ?? null;
+  const fallbackAvatarUrl = getMemberAvatarUrl({
+    name: user.name,
+    image: null,
+    tiktokStatsSnapshot: tiktokStats,
+    tiktokConnection,
+  });
+  const avatarInitial = getMemberInitial({
+    name: user.name,
+    image: customImageUrl,
+    profile: {
+      socialLinks,
+      username: refreshedProfile?.username ?? profile.username,
+    },
+    tiktokStatsSnapshot: tiktokStats,
+    tiktokConnection,
+  });
 
   return (
     <AccountPageShell
@@ -60,7 +87,7 @@ export default async function AccountProfilePage() {
           <span className="text-gradient">PROFILE</span>
         </>
       }
-      description="Badges, identity, socials, and the tags other members see."
+      description="Photo, badges, identity, socials, and the tags other members see."
     >
       {isAdminRole(user.role) && hubHas("booking") && (
         <div className="-mt-2 mb-8">
@@ -72,7 +99,18 @@ export default async function AccountProfilePage() {
           </Link>
         </div>
       )}
-      <h2 className="font-display text-lg tracking-wide text-off-white/70">Badges</h2>
+      <h2 className="font-display text-lg tracking-wide text-off-white/70">
+        Profile photo
+      </h2>
+      <div className="mt-3">
+        <ProfileAvatarForm
+          customImageUrl={customImageUrl}
+          fallbackUrl={fallbackAvatarUrl}
+          initial={avatarInitial}
+        />
+      </div>
+
+      <h2 className="mt-10 font-display text-lg tracking-wide text-off-white/70">Badges</h2>
       <div className="mt-3">
         {userBadges.length === 0 ? (
           <p className="glass rounded-2xl p-6 text-center font-body text-sm text-off-white/40">
