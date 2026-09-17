@@ -7,7 +7,7 @@ import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
-import AdminUserMemberships from "@/components/admin/AdminUserMemberships";
+import AdminUserMembershipPills from "@/components/admin/AdminUserMembershipPills";
 import AddMemberForm from "@/components/admin/AddMemberForm";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import InviteToForgeButton from "@/components/admin/InviteToForgeButton";
@@ -181,26 +181,20 @@ export default async function AdminUsersPage({
     ];
   }
 
-  const [usersRaw, allGroups, allTags, allBadges] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        groupMemberships: { include: { group: true } },
-        tags: { select: { tagId: true } },
-        userBadges: { select: { badgeId: true } },
-        application: { select: { answers: true } },
-        tiktokStatsSnapshot: { select: { uniqueId: true } },
-        profile: { select: { socialLinks: true, username: true } },
-        onboardingProgress: {
-          select: { status: true },
-        },
+  const usersRaw = await prisma.user.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      groupMemberships: { include: { group: true } },
+      tags: { include: { tag: true } },
+      application: { select: { answers: true } },
+      tiktokStatsSnapshot: { select: { uniqueId: true } },
+      profile: { select: { socialLinks: true, username: true } },
+      onboardingProgress: {
+        select: { status: true },
       },
-    }),
-    prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
-    prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
-    prisma.badge.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, icon: true } }),
-  ]);
+    },
+  });
 
   // Staff (admins/mods) first so their profiles aren't buried under the roster
   const users = [...usersRaw].sort((a, b) => {
@@ -385,8 +379,6 @@ export default async function AdminUsersPage({
           const isSelf = user.id === currentUserId;
           const isBanned = user.status === "BANNED";
           const groups = user.groupMemberships.map((m) => m.group);
-          const tagIds = user.tags.map((t) => t.tagId);
-          const badgeIds = user.userBadges.map((b) => b.badgeId);
           const applyHandle =
             typeof (user.application?.answers as { handle?: unknown } | null)?.handle ===
             "string"
@@ -473,14 +465,9 @@ export default async function AdminUsersPage({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-off-white/10 pt-3">
-                <AdminUserMemberships
-                  userId={user.id}
+                <AdminUserMembershipPills
                   groups={groups}
-                  tags={allTags.filter((t) => tagIds.includes(t.id))}
-                  allGroups={allGroups}
-                  allTags={allTags}
-                  allBadges={allBadges}
-                  memberBadgeIds={badgeIds}
+                  tags={user.tags.map((ut) => ut.tag)}
                   effect={user.effect}
                 />
 
