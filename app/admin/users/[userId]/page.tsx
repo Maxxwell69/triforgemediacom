@@ -6,9 +6,7 @@ import { adjustUserPoints } from "../actions";
 import { getUserPointsTotal } from "@/lib/points";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
 import BanButton from "@/components/admin/BanButton";
-import UserGroupsEditor from "@/components/admin/UserGroupsEditor";
-import UserTagsEditor from "@/components/admin/UserTagsEditor";
-import UserBadgesEditor from "@/components/admin/UserBadgesEditor";
+import AdminUserMemberships from "@/components/admin/AdminUserMemberships";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import InviteToForgeButton from "@/components/admin/InviteToForgeButton";
 import AdminAlertsToggle from "@/components/admin/AdminAlertsToggle";
@@ -23,7 +21,6 @@ import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/li
 import { PLATFORM_LABELS } from "@/lib/platforms";
 import { canInitiateDm } from "@/lib/dmAccess";
 import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
-import { networkBadgeColor } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { loadCreatorInsights } from "@/lib/creatorInsights";
 import { refreshUserCreatorInsightsFormAction } from "../actions";
@@ -157,7 +154,6 @@ export default async function AdminUserDetailPage({
   const isSelf = user.id === currentUserId;
   const isBanned = user.status === "BANNED";
   const groups = user.groupMemberships.map((m) => m.group);
-  const tagIds = user.tags.map((t) => t.tagId);
   const badgeIds = user.userBadges.map((b) => b.badgeId);
 
   const lessonIds = user.enrollments.flatMap((e) => e.course.lessons.map((l) => l.id));
@@ -434,35 +430,21 @@ export default async function AdminUserDetailPage({
         <h2 className="font-display text-lg tracking-wide text-off-white/80">
           GROUPS, TAGS &amp; BADGES
         </h2>
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
-          {groups.length === 0 && <span className="font-body text-xs text-off-white/30">No groups</span>}
-          {groups.map((g) => {
-            const color = networkBadgeColor(g.name, g.color, user.effect);
-            return (
-              <span
-                key={g.id}
-                className="rounded-full border px-2 py-0.5 font-body text-xs"
-                style={{ borderColor: `${color}66`, color }}
-              >
-                {g.name}
-              </span>
-            );
-          })}
-          {user.tags.map((ut) => {
-            const color = networkBadgeColor(ut.tag.name, ut.tag.color, user.effect);
-            return (
-              <span
-                key={ut.tagId}
-                className="rounded-full border px-2 py-0.5 font-body text-xs font-medium"
-                style={{ borderColor: `${color}66`, color }}
-              >
-                {ut.tag.name}
-              </span>
-            );
-          })}
-          <UserGroupsEditor userId={user.id} allGroups={allGroups} memberGroupIds={groups.map((g) => g.id)} />
-          <UserTagsEditor userId={user.id} allTags={allTags} memberTagIds={tagIds} />
-          <UserBadgesEditor userId={user.id} allBadges={allBadges} memberBadgeIds={badgeIds} />
+        <p className="mt-1 font-body text-xs text-off-white/45">
+          Use × to remove. Open Groups or Tags to add or switch. CN and MN stay paired as one
+          track — assigning one replaces the other.
+        </p>
+        <div className="mt-4">
+          <AdminUserMemberships
+            userId={user.id}
+            groups={groups}
+            tags={user.tags.map((ut) => ut.tag)}
+            allGroups={allGroups}
+            allTags={allTags}
+            allBadges={allBadges}
+            memberBadgeIds={badgeIds}
+            effect={user.effect}
+          />
         </div>
         {user.userBadges.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2 border-t border-off-white/10 pt-4">

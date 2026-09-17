@@ -35,8 +35,13 @@ export default function InlineMultiSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [localIds, setLocalIds] = useState(selectedIds);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalIds(selectedIds);
+  }, [selectedIds]);
 
   useEffect(() => {
     if (!open) return;
@@ -100,9 +105,15 @@ export default function InlineMultiSelect({
               >
                 <input
                   type="checkbox"
-                  defaultChecked={selectedIds.includes(opt.id)}
+                  checked={localIds.includes(opt.id)}
                   disabled={disabled}
-                  onChange={(e) => onToggle(opt.id, e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setLocalIds((prev) =>
+                      checked ? [...prev, opt.id] : prev.filter((id) => id !== opt.id)
+                    );
+                    onToggle(opt.id, checked);
+                  }}
                   className="h-3.5 w-3.5 rounded border-off-white/30 bg-transparent accent-orange"
                 />
                 {opt.color && (

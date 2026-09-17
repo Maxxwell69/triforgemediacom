@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { setUserTagAdded } from "@/app/admin/tags/actions";
 import InlineMultiSelect from "./InlineMultiSelect";
 
@@ -16,6 +17,7 @@ export default function UserTagsEditor({
   memberTagIds: string[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   return (
     <InlineMultiSelect
@@ -26,6 +28,7 @@ export default function UserTagsEditor({
       onToggle={(tagId, checked) =>
         startTransition(async () => {
           await setUserTagAdded(tagId, userId, checked);
+          router.refresh();
         })
       }
     />
