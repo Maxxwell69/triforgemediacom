@@ -723,6 +723,14 @@ enum BroadcastAudienceType {
 enum BroadcastStatus {
   DRAFT
   SENT
+  SCHEDULED
+}
+
+enum BroadcastRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 
 model Broadcast {
@@ -740,6 +748,19 @@ model Broadcast {
   audienceEmail   String?
   recipientCount  Int                   @default(0)
   status          BroadcastStatus       @default(SENT)
+  recurrence      BroadcastRecurrence   @default(NONE)
+  /// IANA zone for scheduleHour/Minute (Hub 0 default Eastern).
+  timezone        String                @default("America/New_York")
+  scheduleHour    Int                   @default(9)
+  scheduleMinute  Int                   @default(0)
+  /// 0 = Sunday … 6 = Saturday (weekly).
+  scheduleWeekday Int?
+  /// 1–31 (monthly); clamped to the last day of shorter months.
+  scheduleMonthDay Int?
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  pausedAt        DateTime?
+  parentId        String?
   createdById     String
   sentById        String?
   createdAt       DateTime              @default(now())
@@ -748,8 +769,11 @@ model Broadcast {
 
   createdBy User  @relation("BroadcastCreatedBy", fields: [createdById], references: [id])
   sentBy    User? @relation("BroadcastSentBy", fields: [sentById], references: [id])
+  parent    Broadcast?  @relation("BroadcastRuns", fields: [parentId], references: [id], onDelete: SetNull)
+  runs      Broadcast[] @relation("BroadcastRuns")
 
   @@index([status, updatedAt])
+  @@index([status, nextRunAt])
 }
 
 // ---------- Editable system email templates ----------
