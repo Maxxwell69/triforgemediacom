@@ -61,13 +61,13 @@ export default async function AccountProfilePage() {
     ((profile.socialLinks as Record<string, string> | null) ?? {});
   const customImageUrl = identity?.image ?? null;
   const fallbackAvatarUrl = getMemberAvatarUrl({
-    name: user.name,
+    name: user.name ?? null,
     image: null,
     tiktokStatsSnapshot: tiktokStats,
     tiktokConnection,
   });
   const avatarInitial = getMemberInitial({
-    name: user.name,
+    name: user.name ?? null,
     image: customImageUrl,
     profile: {
       socialLinks,
