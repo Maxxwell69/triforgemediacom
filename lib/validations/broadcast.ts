@@ -29,3 +29,14 @@ export const saveBroadcastDraftSchema = z.object({
   subject: z.string().trim().min(1, "Subject is required").max(150),
   bodyText: z.string().max(50_000).default(""),
 });
+
+const hourSchema = z.coerce.number().int().min(0).max(23);
+const minuteSchema = z.coerce.number().int().min(0).max(59);
+
+export const scheduleBroadcastSchema = z.object({
+  recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
+  scheduleHour: hourSchema,
+  scheduleMinute: minuteSchema,
+  scheduleWeekday: z.coerce.number().int().min(0).max(6).nullable().optional(),
+  scheduleMonthDay: z.coerce.number().int().min(1).max(31).nullable().optional(),
+});

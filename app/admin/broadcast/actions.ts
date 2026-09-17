@@ -1,20 +1,27 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { BroadcastAudienceType } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import { generateBroadcastDraft, paragraphsToHtml } from "@/lib/aiEmail";
-import { sendBroadcastEmails, type BroadcastRecipient } from "@/lib/email";
+import { generateBroadcastDraft } from "@/lib/aiEmail";
 import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
+import {
+  audienceTargetFields,
+  deliverBroadcast,
+  parseAudienceFromFormData,
+  resolveAudience,
+  scheduleWriteData,
+  type Audience,
+} from "@/lib/broadcasts";
+import { BROADCAST_TZ } from "@/lib/broadcastSchedule";
 import {
   broadcastAudienceSchema,
   broadcastContentSchema,
   broadcastDraftSchema,
   saveBroadcastDraftSchema,
+  scheduleBroadcastSchema,
 } from "@/lib/validations/broadcast";
-import { resolveNetworkTrackEmails, type NetworkTrack } from "@/lib/mnCn";
 
 async function requireAdmin() {
   const session = await auth();
@@ -55,146 +62,6 @@ export async function generateDraftAction(topic: string): Promise<BroadcastDraft
       error: err instanceof Error ? err.message : "Failed to generate draft",
     };
   }
-}
-
-type Audience =
-  | { audienceType: "ALL_MEMBERS" }
-  | { audienceType: "TAG"; tagId: string }
-  | { audienceType: "GROUP"; groupId: string }
-  | { audienceType: "SINGLE_USER"; email: string }
-  | { audienceType: "NETWORK_TRACK"; track: NetworkTrack };
-
-const EMAILABLE_STATUSES: Array<"ACTIVE" | "INVITED"> = ["ACTIVE", "INVITED"];
-
-function isEmailable(status: string): boolean {
-  return status === "ACTIVE" || status === "INVITED";
-}
-
-type AudienceResolve = {
-  recipients: BroadcastRecipient[];
-  label: string;
-  skippedUnsubscribed: number;
-};
-
-async function filterOptedIn(rows: { id: string; email: string; broadcastEmailsOptIn: boolean }[]): Promise<{
-  recipients: BroadcastRecipient[];
-  skippedUnsubscribed: number;
-}> {
-  const recipients: BroadcastRecipient[] = [];
-  let skippedUnsubscribed = 0;
-  for (const row of rows) {
-    if (!row.broadcastEmailsOptIn) {
-      skippedUnsubscribed++;
-      continue;
-    }
-    recipients.push({ userId: row.id, email: row.email });
-  }
-  return { recipients, skippedUnsubscribed };
-}
-
-async function resolveAudience(audience: Audience): Promise<AudienceResolve> {
-  if (audience.audienceType === "ALL_MEMBERS") {
-    const users = await prisma.user.findMany({
-      where: { status: { in: EMAILABLE_STATUSES } },
-      select: { id: true, email: true, broadcastEmailsOptIn: true },
-    });
-    const filtered = await filterOptedIn(users);
-    return { ...filtered, label: "All members" };
-  }
-
-  if (audience.audienceType === "TAG") {
-    const tag = await prisma.tag.findUnique({
-      where: { id: audience.tagId },
-      include: {
-        users: {
-          include: {
-            user: { select: { id: true, email: true, status: true, broadcastEmailsOptIn: true } },
-          },
-        },
-      },
-    });
-    if (!tag) return { recipients: [], label: "Unknown tag", skippedUnsubscribed: 0 };
-    const rows = tag.users
-      .filter((ut) => isEmailable(ut.user.status))
-      .map((ut) => ut.user);
-    const filtered = await filterOptedIn(rows);
-    return { ...filtered, label: `Tag: ${tag.name}` };
-  }
-
-  if (audience.audienceType === "GROUP") {
-    const group = await prisma.group.findUnique({
-      where: { id: audience.groupId },
-      include: {
-        members: {
-          include: {
-            user: { select: { id: true, email: true, status: true, broadcastEmailsOptIn: true } },
-          },
-        },
-      },
-    });
-    if (!group) return { recipients: [], label: "Unknown group", skippedUnsubscribed: 0 };
-    const rows = group.members
-      .filter((m) => isEmailable(m.user.status))
-      .map((m) => m.user);
-    const filtered = await filterOptedIn(rows);
-    return { ...filtered, label: `Group: ${group.name}` };
-  }
-
-  if (audience.audienceType === "NETWORK_TRACK") {
-    const { emails, label } = await resolveNetworkTrackEmails(audience.track);
-    const users = await prisma.user.findMany({
-      where: { email: { in: emails } },
-      select: { id: true, email: true, broadcastEmailsOptIn: true },
-    });
-    const filtered = await filterOptedIn(users);
-    return { ...filtered, label };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: audience.email.toLowerCase() },
-    select: { id: true, email: true, broadcastEmailsOptIn: true },
-  });
-  if (!user) {
-    return { recipients: [], label: `Single user: ${audience.email}`, skippedUnsubscribed: 0 };
-  }
-  const filtered = await filterOptedIn([user]);
-  return { ...filtered, label: `Single user: ${audience.email}` };
-}
-
-function parseAudienceFromFormData(formData: FormData): unknown {
-  const audienceType = String(formData.get("audienceType"));
-  if (audienceType === "TAG") {
-    return { audienceType: "TAG" as const, tagId: String(formData.get("tagId") || "") };
-  }
-  if (audienceType === "GROUP") {
-    return { audienceType: "GROUP" as const, groupId: String(formData.get("groupId") || "") };
-  }
-  if (audienceType === "SINGLE_USER") {
-    return { audienceType: "SINGLE_USER" as const, email: String(formData.get("email") || "") };
-  }
-  if (audienceType === "NETWORK_TRACK") {
-    return {
-      audienceType: "NETWORK_TRACK" as const,
-      track: String(formData.get("track") || "") as NetworkTrack,
-    };
-  }
-  return { audienceType: "ALL_MEMBERS" as const };
-}
-
-function audienceTargetFields(audience: Audience): {
-  audienceType: BroadcastAudienceType;
-  audienceTagId: string | null;
-  audienceGroupId: string | null;
-  audienceTrack: string | null;
-  audienceEmail: string | null;
-} {
-  return {
-    audienceType: audience.audienceType,
-    audienceTagId: audience.audienceType === "TAG" ? audience.tagId : null,
-    audienceGroupId: audience.audienceType === "GROUP" ? audience.groupId : null,
-    audienceTrack: audience.audienceType === "NETWORK_TRACK" ? audience.track : null,
-    audienceEmail: audience.audienceType === "SINGLE_USER" ? audience.email.toLowerCase() : null,
-  };
 }
 
 async function audienceLabelOnly(audience: Audience): Promise<string> {
@@ -321,7 +188,7 @@ export async function deleteBroadcastDraftAction(draftId: string): Promise<Delet
   if (!draftId) return { error: "Draft id required" };
 
   const existing = await prisma.broadcast.findUnique({ where: { id: draftId } });
-  if (!existing || existing.status !== "DRAFT") {
+  if (!existing || (existing.status !== "DRAFT" && existing.status !== "SCHEDULED")) {
     return { error: "Draft not found" };
   }
 
@@ -384,22 +251,6 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
     };
   }
 
-  const spam = scoreBroadcastContent(content.data.subject, content.data.bodyHtml);
-  if (!spam.canSend) {
-    const top = spam.issues
-      .filter((i) => i.severity === "block" || i.severity === "warn")
-      .slice(0, 3)
-      .map((i) => i.text)
-      .join(" ");
-    return {
-      sent: null,
-      failed: null,
-      failedEmails: null,
-      skippedUnsubscribed: null,
-      error: `Deliverability score ${spam.score}/100 is too low to send. ${top || "Fix the flagged issues and try again."}`,
-    };
-  }
-
   const audienceParsed = broadcastAudienceSchema.safeParse(parseAudienceFromFormData(formData));
   if (!audienceParsed.success) {
     return {
@@ -413,9 +264,10 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
 
   const draftIdRaw = String(formData.get("draftId") || "").trim();
   let existingDraftId: string | null = null;
+  let keepScheduled = false;
   if (draftIdRaw) {
     const draft = await prisma.broadcast.findUnique({ where: { id: draftIdRaw } });
-    if (!draft || draft.status !== "DRAFT") {
+    if (!draft || (draft.status !== "DRAFT" && draft.status !== "SCHEDULED")) {
       return {
         sent: null,
         failed: null,
@@ -425,61 +277,64 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
       };
     }
     existingDraftId = draft.id;
+    keepScheduled = draft.status === "SCHEDULED";
   }
 
-  const { recipients, label, skippedUnsubscribed } = await resolveAudience(audienceParsed.data);
-  if (recipients.length === 0) {
-    return {
-      sent: null,
-      failed: null,
-      failedEmails: null,
-      skippedUnsubscribed: null,
-      error:
-        skippedUnsubscribed > 0
-          ? "Everyone in that audience has unsubscribed from announcement emails."
-          : "No recipients match that audience.",
-    };
-  }
-
-  const paragraphs = content.data.bodyHtml
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  const bodyHtml = paragraphsToHtml(paragraphs);
   const bodyText = content.data.bodyHtml;
   const targets = audienceTargetFields(audienceParsed.data);
+  const delivered = await deliverBroadcast({
+    subject: content.data.subject,
+    bodyText,
+    audience: audienceParsed.data,
+    actorUserId: session.user.id,
+    batchPrefix: `hub-broadcast/${session.user.id}/${Date.now()}`,
+  });
 
-  const batchPrefix = `hub-broadcast/${session.user.id}/${Date.now()}`;
-  const { sent, failed } = await sendBroadcastEmails(
-    recipients,
-    content.data.subject,
-    bodyHtml,
-    batchPrefix
-  );
-
-  if (sent === 0) {
+  if (delivered.error !== null) {
     return {
       sent: null,
       failed: null,
       failedEmails: null,
       skippedUnsubscribed: null,
-      error:
-        failed.length > 0
-          ? `Broadcast failed for all ${failed.length} recipients (check Resend rate limits / API key).`
-          : "Broadcast failed — no emails were sent.",
+      error: delivered.error,
     };
   }
 
   const sentAt = new Date();
-  if (existingDraftId) {
+  if (keepScheduled && existingDraftId) {
+    await prisma.broadcast.create({
+      data: {
+        subject: content.data.subject,
+        bodyText,
+        bodyHtml: delivered.bodyHtml,
+        audienceLabel: delivered.label,
+        recipientCount: delivered.sent,
+        status: "SENT",
+        createdById: session.user.id,
+        sentById: session.user.id,
+        sentAt,
+        parentId: existingDraftId,
+        ...targets,
+      },
+    });
     await prisma.broadcast.update({
       where: { id: existingDraftId },
       data: {
         subject: content.data.subject,
         bodyText,
-        bodyHtml,
-        audienceLabel: label,
-        recipientCount: sent,
+        lastRunAt: sentAt,
+        ...targets,
+      },
+    });
+  } else if (existingDraftId) {
+    await prisma.broadcast.update({
+      where: { id: existingDraftId },
+      data: {
+        subject: content.data.subject,
+        bodyText,
+        bodyHtml: delivered.bodyHtml,
+        audienceLabel: delivered.label,
+        recipientCount: delivered.sent,
         status: "SENT",
         sentById: session.user.id,
         sentAt,
@@ -491,9 +346,9 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
       data: {
         subject: content.data.subject,
         bodyText,
-        bodyHtml,
-        audienceLabel: label,
-        recipientCount: sent,
+        bodyHtml: delivered.bodyHtml,
+        audienceLabel: delivered.label,
+        recipientCount: delivered.sent,
         status: "SENT",
         createdById: session.user.id,
         sentById: session.user.id,
@@ -505,10 +360,177 @@ export async function sendBroadcastAction(formData: FormData): Promise<SendBroad
 
   revalidatePath("/admin/broadcast");
   return {
-    sent,
-    failed: failed.length,
-    failedEmails: failed.slice(0, 20),
-    skippedUnsubscribed,
+    sent: delivered.sent,
+    failed: delivered.failed.length,
+    failedEmails: delivered.failed.slice(0, 20),
+    skippedUnsubscribed: delivered.skippedUnsubscribed,
     error: null,
   };
+}
+
+export type ScheduleBroadcastResult =
+  | { scheduleId: string; nextRunAt: string; error: null }
+  | { scheduleId: null; nextRunAt: null; error: string };
+
+export async function scheduleBroadcastAction(formData: FormData): Promise<ScheduleBroadcastResult> {
+  const session = await requireAdmin();
+
+  const content = broadcastContentSchema.safeParse({
+    subject: formData.get("subject"),
+    bodyHtml: formData.get("bodyText"),
+  });
+  if (!content.success) {
+    return {
+      scheduleId: null,
+      nextRunAt: null,
+      error: content.error.issues[0]?.message || "Invalid content",
+    };
+  }
+
+  const spam = scoreBroadcastContent(content.data.subject, content.data.bodyHtml);
+  if (!spam.canSend) {
+    return {
+      scheduleId: null,
+      nextRunAt: null,
+      error: `Deliverability score ${spam.score}/100 is too low to schedule. Fix the flagged issues first.`,
+    };
+  }
+
+  const audienceParsed = broadcastAudienceSchema.safeParse(parseAudienceFromFormData(formData));
+  if (!audienceParsed.success) {
+    return {
+      scheduleId: null,
+      nextRunAt: null,
+      error: audienceParsed.error.issues[0]?.message || "Invalid audience",
+    };
+  }
+
+  const scheduleParsed = scheduleBroadcastSchema.safeParse({
+    recurrence: formData.get("recurrence"),
+    scheduleHour: formData.get("scheduleHour"),
+    scheduleMinute: formData.get("scheduleMinute"),
+    scheduleWeekday: formData.get("scheduleWeekday") || null,
+    scheduleMonthDay: formData.get("scheduleMonthDay") || null,
+  });
+  if (!scheduleParsed.success) {
+    return {
+      scheduleId: null,
+      nextRunAt: null,
+      error: scheduleParsed.error.issues[0]?.message || "Choose how often this should send",
+    };
+  }
+
+  const preview = await resolveAudience(audienceParsed.data);
+  if (preview.recipients.length === 0) {
+    return {
+      scheduleId: null,
+      nextRunAt: null,
+      error:
+        preview.skippedUnsubscribed > 0
+          ? "Everyone in that audience has unsubscribed from announcement emails."
+          : "No recipients match that audience.",
+    };
+  }
+
+  const targets = audienceTargetFields(audienceParsed.data);
+  const schedule = scheduleWriteData({
+    recurrence: scheduleParsed.data.recurrence,
+    timezone: BROADCAST_TZ,
+    scheduleHour: scheduleParsed.data.scheduleHour,
+    scheduleMinute: scheduleParsed.data.scheduleMinute,
+    scheduleWeekday: scheduleParsed.data.scheduleWeekday,
+    scheduleMonthDay: scheduleParsed.data.scheduleMonthDay,
+  });
+  const bodyText = content.data.bodyHtml;
+  const draftIdRaw = String(formData.get("draftId") || "").trim();
+
+  if (draftIdRaw) {
+    const existing = await prisma.broadcast.findUnique({ where: { id: draftIdRaw } });
+    if (!existing || (existing.status !== "DRAFT" && existing.status !== "SCHEDULED")) {
+      return {
+        scheduleId: null,
+        nextRunAt: null,
+        error: "Draft not found (it may have already been sent).",
+      };
+    }
+    await prisma.broadcast.update({
+      where: { id: existing.id },
+      data: {
+        subject: content.data.subject,
+        bodyText,
+        bodyHtml: "",
+        audienceLabel: preview.label,
+        createdById: existing.createdById,
+        sentById: null,
+        sentAt: null,
+        recipientCount: 0,
+        ...targets,
+        ...schedule,
+      },
+    });
+    revalidatePath("/admin/broadcast");
+    return {
+      scheduleId: existing.id,
+      nextRunAt: schedule.nextRunAt.toISOString(),
+      error: null,
+    };
+  }
+
+  const created = await prisma.broadcast.create({
+    data: {
+      subject: content.data.subject,
+      bodyText,
+      bodyHtml: "",
+      audienceLabel: preview.label,
+      recipientCount: 0,
+      createdById: session.user.id,
+      sentById: null,
+      sentAt: null,
+      ...targets,
+      ...schedule,
+    },
+  });
+
+  revalidatePath("/admin/broadcast");
+  return {
+    scheduleId: created.id,
+    nextRunAt: schedule.nextRunAt.toISOString(),
+    error: null,
+  };
+}
+
+export async function pauseScheduledBroadcastAction(id: string): Promise<{ error: string | null }> {
+  await requireAdmin();
+  const existing = await prisma.broadcast.findUnique({ where: { id } });
+  if (!existing || existing.status !== "SCHEDULED") return { error: "Schedule not found" };
+  if (existing.pausedAt) return { error: null };
+  await prisma.broadcast.update({
+    where: { id },
+    data: { pausedAt: new Date() },
+  });
+  revalidatePath("/admin/broadcast");
+  return { error: null };
+}
+
+export async function resumeScheduledBroadcastAction(id: string): Promise<{ error: string | null }> {
+  await requireAdmin();
+  const existing = await prisma.broadcast.findUnique({ where: { id } });
+  if (!existing || existing.status !== "SCHEDULED") return { error: "Schedule not found" };
+  if (existing.recurrence !== "DAILY" && existing.recurrence !== "WEEKLY" && existing.recurrence !== "MONTHLY") {
+    return { error: "This broadcast is not recurring" };
+  }
+  const schedule = scheduleWriteData({
+    recurrence: existing.recurrence,
+    timezone: existing.timezone,
+    scheduleHour: existing.scheduleHour,
+    scheduleMinute: existing.scheduleMinute,
+    scheduleWeekday: existing.scheduleWeekday,
+    scheduleMonthDay: existing.scheduleMonthDay,
+  });
+  await prisma.broadcast.update({
+    where: { id },
+    data: { pausedAt: null, nextRunAt: schedule.nextRunAt },
+  });
+  revalidatePath("/admin/broadcast");
+  return { error: null };
 }

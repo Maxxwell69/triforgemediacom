@@ -116,7 +116,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       {
         href: "/admin/broadcast",
         label: "Broadcasts",
-        description: "Send announcements to members",
+        description: "Send or schedule announcement emails",
         sku: "email",
       },
       {

@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import {
   deleteBroadcastDraftAction,
   generateDraftAction,
+  pauseScheduledBroadcastAction,
   previewBroadcastAudienceAction,
+  resumeScheduledBroadcastAction,
   saveBroadcastDraftAction,
+  scheduleBroadcastAction,
   sendBroadcastAction,
 } from "@/app/admin/broadcast/actions";
 import { scoreBroadcastContent } from "@/lib/broadcastSpamScore";
+import { formatBroadcastWhen, recurrenceLabel } from "@/lib/broadcastSchedule";
 import BroadcastSpamScorePanel from "@/components/admin/BroadcastSpamScorePanel";
 
 type Tag = { id: string; name: string };
@@ -29,6 +33,17 @@ export type BroadcastDraftItem = {
   createdByName: string;
 };
 
+export type BroadcastScheduleItem = BroadcastDraftItem & {
+  recurrence: "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
+  scheduleHour: number;
+  scheduleMinute: number;
+  scheduleWeekday: number | null;
+  scheduleMonthDay: number | null;
+  nextRunAt: string | Date | null;
+  lastRunAt: string | Date | null;
+  pausedAt: string | Date | null;
+};
+
 type AudiencePreview = {
   label: string;
   count: number;
@@ -40,16 +55,29 @@ const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60";
 
 const PREVIEW_EMAIL_CAP = 200;
+const WEEKDAYS = [
+  { value: 0, label: "Sun" },
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+] as const;
+const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+const MINUTES = [0, 15, 30, 45];
 
 export default function BroadcastComposer({
   tags,
   groups,
   drafts,
+  scheduled,
   aiConfigured,
 }: {
   tags: Tag[];
   groups: Group[];
   drafts: BroadcastDraftItem[];
+  scheduled: BroadcastScheduleItem[];
   aiConfigured: boolean;
 }) {
   const [topic, setTopic] = useState("");
@@ -63,11 +91,18 @@ export default function BroadcastComposer({
   const [track, setTrack] = useState<"CN" | "MN">("CN");
   const [email, setEmail] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [editingScheduled, setEditingScheduled] = useState(false);
+  const [recurrence, setRecurrence] = useState<"DAILY" | "WEEKLY" | "MONTHLY">("WEEKLY");
+  const [scheduleHour, setScheduleHour] = useState(9);
+  const [scheduleMinute, setScheduleMinute] = useState(0);
+  const [scheduleWeekday, setScheduleWeekday] = useState(1);
+  const [scheduleMonthDay, setScheduleMonthDay] = useState(1);
 
   const router = useRouter();
   const [generating, startGenerating] = useTransition();
   const [sending, startSending] = useTransition();
   const [savingDraft, startSavingDraft] = useTransition();
+  const [scheduling, startScheduling] = useTransition();
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [preview, setPreview] = useState<AudiencePreview | null>(null);
@@ -148,6 +183,7 @@ export default function BroadcastComposer({
     setError(null);
     setSuccessMsg(null);
     setDraftId(draft.id);
+    setEditingScheduled(false);
     setSubject(draft.subject);
     setBodyText(draft.bodyText);
     setAudienceType(draft.audienceType);
@@ -162,13 +198,31 @@ export default function BroadcastComposer({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function loadSchedule(item: BroadcastScheduleItem) {
+    loadDraft(item);
+    setEditingScheduled(true);
+    if (item.recurrence === "DAILY" || item.recurrence === "WEEKLY" || item.recurrence === "MONTHLY") {
+      setRecurrence(item.recurrence);
+    }
+    setScheduleHour(item.scheduleHour);
+    setScheduleMinute(item.scheduleMinute);
+    if (item.scheduleWeekday != null) setScheduleWeekday(item.scheduleWeekday);
+    if (item.scheduleMonthDay != null) setScheduleMonthDay(item.scheduleMonthDay);
+  }
+
   function clearComposer() {
     setDraftId(null);
+    setEditingScheduled(false);
     setSubject("");
     setBodyText("");
     setTopic("");
     setAudienceType("ALL_MEMBERS");
     setEmail("");
+    setRecurrence("WEEKLY");
+    setScheduleHour(9);
+    setScheduleMinute(0);
+    setScheduleWeekday(1);
+    setScheduleMonthDay(1);
   }
 
   function handleGenerate() {
@@ -226,7 +280,10 @@ export default function BroadcastComposer({
                   : "everyone on the Media Network (MN) track"
                 : `${email}`;
 
-    if (!confirm(`Send this email to ${countLabel}? This can't be undone.`)) return;
+    const extra = editingScheduled
+      ? " This sends once now and keeps the recurring schedule."
+      : " This can't be undone.";
+    if (!confirm(`Send this email to ${countLabel}?${extra}`)) return;
 
     startSending(async () => {
       const result = await sendBroadcastAction(formData);
@@ -255,6 +312,60 @@ export default function BroadcastComposer({
       clearComposer();
       router.refresh();
     });
+  }
+
+  function handleSchedule(formData: FormData) {
+    setError(null);
+    setSuccessMsg(null);
+
+    if (!spamScore.canSend) {
+      setError(
+        `Deliverability score ${spamScore.score}/100 is too low. Fix the issues below before scheduling.`
+      );
+      return;
+    }
+
+    const when = recurrenceLabel({
+      recurrence,
+      hour: scheduleHour,
+      minute: scheduleMinute,
+      weekday: scheduleWeekday,
+      monthDay: scheduleMonthDay,
+    });
+    if (!confirm(`Start sending this automatically — ${when}?`)) return;
+
+    startScheduling(async () => {
+      const result = await scheduleBroadcastAction(formData);
+      if (result.error !== null) {
+        setError(result.error);
+        return;
+      }
+      const next = result.nextRunAt ? formatBroadcastWhen(new Date(result.nextRunAt)) : when;
+      setSuccessMsg(`Recurring send is on. Next run ${next}.`);
+      setDraftId(result.scheduleId);
+      setEditingScheduled(true);
+      router.refresh();
+    });
+  }
+
+  async function handlePause(id: string) {
+    setError(null);
+    const result = await pauseScheduledBroadcastAction(id);
+    if (result.error) setError(result.error);
+    else {
+      setSuccessMsg("Paused — it won’t send until you resume.");
+      router.refresh();
+    }
+  }
+
+  async function handleResume(id: string) {
+    setError(null);
+    const result = await resumeScheduledBroadcastAction(id);
+    if (result.error) setError(result.error);
+    else {
+      setSuccessMsg("Resumed. Next send is scheduled in Eastern time.");
+      router.refresh();
+    }
   }
 
   async function handleDeleteDraft(id: string) {
@@ -290,7 +401,7 @@ export default function BroadcastComposer({
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {drafts.map((draft) => {
-              const active = draftId === draft.id;
+              const active = draftId === draft.id && !editingScheduled;
               return (
                 <div
                   key={draft.id}
@@ -337,11 +448,98 @@ export default function BroadcastComposer({
         </div>
       )}
 
+      {scheduled.length > 0 && (
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-display text-xl tracking-wide text-off-white/80">
+            Recurring sends
+          </h2>
+          <p className="mt-1 font-body text-xs text-off-white/45">
+            Automatic Hub 0 broadcasts. Times are Eastern. Pause anytime without deleting the copy.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {scheduled.map((item) => {
+              const active = draftId === item.id && editingScheduled;
+              const paused = Boolean(item.pausedAt);
+              return (
+                <div
+                  key={item.id}
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
+                    active
+                      ? "border-cyan/40 bg-cyan/10"
+                      : "border-off-white/10 bg-off-white/[0.03]"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-body font-semibold text-off-white">
+                      {item.subject || "(untitled)"}
+                      {paused ? (
+                        <span className="ml-2 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
+                          Paused
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 font-body text-xs text-off-white/45">
+                      {item.audienceLabel} ·{" "}
+                      {recurrenceLabel({
+                        recurrence: item.recurrence,
+                        hour: item.scheduleHour,
+                        minute: item.scheduleMinute,
+                        weekday: item.scheduleWeekday,
+                        monthDay: item.scheduleMonthDay,
+                      })}
+                      {item.nextRunAt && !paused
+                        ? ` · next ${formatBroadcastWhen(new Date(item.nextRunAt))}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => loadSchedule(item)}
+                      className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10"
+                    >
+                      {active ? "Editing" : "Open"}
+                    </button>
+                    {paused ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleResume(item.id)}
+                        className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/70 transition hover:border-cyan/40 hover:text-cyan"
+                      >
+                        Resume
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handlePause(item.id)}
+                        className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/70 transition hover:border-orange/40 hover:text-orange"
+                      >
+                        Pause
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteDraft(item.id)}
+                      disabled={deletingDraftId === item.id}
+                      className="rounded-lg border border-off-white/15 px-3 py-1.5 font-body text-xs text-off-white/50 transition hover:border-orange/40 hover:text-orange disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="glass flex flex-col gap-6 rounded-2xl p-6">
         {draftId && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan/25 bg-cyan/5 px-3 py-2">
             <p className="font-body text-xs text-cyan">
-              Editing shared draft — save to update, or send when ready.
+              {editingScheduled
+                ? "Editing a recurring send — update the schedule, send once now, or start a new email."
+                : "Editing shared draft — save to update, or send when ready."}
             </p>
             <button
               type="button"
@@ -384,6 +582,11 @@ export default function BroadcastComposer({
 
         <form className="flex flex-col gap-4">
           <input type="hidden" name="draftId" value={draftId ?? ""} />
+          <input type="hidden" name="recurrence" value={recurrence} />
+          <input type="hidden" name="scheduleHour" value={String(scheduleHour)} />
+          <input type="hidden" name="scheduleMinute" value={String(scheduleMinute)} />
+          <input type="hidden" name="scheduleWeekday" value={String(scheduleWeekday)} />
+          <input type="hidden" name="scheduleMonthDay" value={String(scheduleMonthDay)} />
           <div>
             <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
               2. Review &amp; edit
@@ -580,6 +783,107 @@ export default function BroadcastComposer({
             </div>
           </div>
 
+          <div>
+            <h2 className="mb-2 font-display text-xl tracking-wide text-off-white/80">
+              4. Recurring send
+            </h2>
+            <p className="font-body text-xs text-off-white/45">
+              Automatic sends use Eastern Time. GitHub pings the hub about every 10 minutes, so
+              the email goes out at or just after the time you pick.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(
+                [
+                  { value: "DAILY", label: "Daily" },
+                  { value: "WEEKLY", label: "Weekly" },
+                  { value: "MONTHLY", label: "Monthly" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setRecurrence(opt.value)}
+                  className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold transition ${
+                    recurrence === opt.value
+                      ? "border-cyan bg-cyan/20 text-cyan"
+                      : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {recurrence === "WEEKLY" && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {WEEKDAYS.map((day) => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => setScheduleWeekday(day.value)}
+                    className={`rounded-full border px-3 py-1 font-body text-xs font-semibold transition ${
+                      scheduleWeekday === day.value
+                        ? "border-orange bg-orange/20 text-orange"
+                        : "border-off-white/20 text-off-white/60 hover:border-off-white/40"
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {recurrence === "MONTHLY" && (
+              <label className="mt-3 flex items-center gap-2 font-body text-xs text-off-white/60">
+                Day of month
+                <select
+                  value={scheduleMonthDay}
+                  onChange={(e) => setScheduleMonthDay(Number(e.target.value))}
+                  className={`${fieldClass} w-20`}
+                >
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2 font-body text-xs text-off-white/60">
+              <span>Time</span>
+              <select
+                value={scheduleHour}
+                onChange={(e) => setScheduleHour(Number(e.target.value))}
+                className={`${fieldClass} w-28`}
+              >
+                {HOURS.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {((hour + 11) % 12) + 1}:00 {hour >= 12 ? "PM" : "AM"}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={scheduleMinute}
+                onChange={(e) => setScheduleMinute(Number(e.target.value))}
+                className={`${fieldClass} w-20`}
+              >
+                {MINUTES.map((minute) => (
+                  <option key={minute} value={minute}>
+                    :{String(minute).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+              <span>ET</span>
+            </div>
+            <p className="mt-2 font-body text-xs text-off-white/40">
+              {recurrenceLabel({
+                recurrence,
+                hour: scheduleHour,
+                minute: scheduleMinute,
+                weekday: scheduleWeekday,
+                monthDay: scheduleMonthDay,
+              })}
+            </p>
+          </div>
+
           {error && (
             <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 font-body text-sm text-orange">
               {error}
@@ -598,6 +902,7 @@ export default function BroadcastComposer({
               disabled={
                 sending ||
                 savingDraft ||
+                scheduling ||
                 !subject.trim() ||
                 !bodyText.trim() ||
                 !spamScore.canSend ||
@@ -617,8 +922,37 @@ export default function BroadcastComposer({
             </button>
             <button
               type="submit"
+              formAction={handleSchedule}
+              disabled={
+                sending ||
+                savingDraft ||
+                scheduling ||
+                !subject.trim() ||
+                !bodyText.trim() ||
+                !spamScore.canSend ||
+                previewLoading ||
+                !preview ||
+                preview.count === 0
+              }
+              className="rounded-lg border border-cyan/40 px-6 py-3 font-body font-semibold text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {scheduling
+                ? "Scheduling…"
+                : editingScheduled
+                  ? "Update recurring send"
+                  : "Start recurring send"}
+            </button>
+            <button
+              type="submit"
               formAction={handleSaveDraft}
-              disabled={sending || savingDraft || !subject.trim() || !audienceInput}
+              disabled={
+                sending ||
+                savingDraft ||
+                scheduling ||
+                editingScheduled ||
+                !subject.trim() ||
+                !audienceInput
+              }
               className="rounded-lg border border-off-white/25 px-6 py-3 font-body font-semibold text-off-white/80 transition hover:border-cyan/40 hover:text-cyan disabled:cursor-not-allowed disabled:opacity-60"
             >
               {savingDraft ? "Saving…" : draftId ? "Update draft" : "Save as draft"}

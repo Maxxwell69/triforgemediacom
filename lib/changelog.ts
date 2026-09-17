@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.218",
+    date: "September 17, 2026",
+    title: "Hub 0 email logo and recurring broadcasts",
+    summary:
+      "TriForge Media outbound mail now opens with the brand-kit logo, and Broadcasts can send automatically on a daily, weekly, or monthly schedule.",
+    items: [
+      {
+        kind: "feature",
+        text: "Hub 0 emails use the streaming-kit orange-glow TriForge Media wordmark in the header",
+      },
+      {
+        kind: "feature",
+        text: "Admin → Broadcasts: start a recurring send (daily / weekly / monthly, Eastern time), pause, resume, or send once now",
+      },
+    ],
+  },
+  {
     version: "3.217",
     date: "September 16, 2026",
     title: "Create Hub data sheet",

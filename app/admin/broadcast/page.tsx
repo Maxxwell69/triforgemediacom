@@ -10,12 +10,18 @@ export default async function AdminBroadcastPage() {
   // memberships were written — so By tag / By group / CN track all agree.
   await backfillNetworkMemberships();
 
-  const [tags, groups, drafts, recentBroadcasts] = await Promise.all([
+  const [tags, groups, drafts, scheduled, recentBroadcasts] = await Promise.all([
     prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.broadcast.findMany({
       where: { status: "DRAFT" },
       orderBy: { updatedAt: "desc" },
+      take: 50,
+      include: { createdBy: { select: { name: true, email: true } } },
+    }),
+    prisma.broadcast.findMany({
+      where: { status: "SCHEDULED" },
+      orderBy: { nextRunAt: "asc" },
       take: 50,
       include: { createdBy: { select: { name: true, email: true } } },
     }),
@@ -41,14 +47,36 @@ export default async function AdminBroadcastPage() {
     createdByName: d.createdBy.name || d.createdBy.email,
   }));
 
+  const scheduledItems = scheduled.map((d) => ({
+    id: d.id,
+    subject: d.subject,
+    bodyText: d.bodyText,
+    audienceType: d.audienceType,
+    audienceLabel: d.audienceLabel,
+    audienceTagId: d.audienceTagId,
+    audienceGroupId: d.audienceGroupId,
+    audienceTrack: d.audienceTrack,
+    audienceEmail: d.audienceEmail,
+    updatedAt: d.updatedAt,
+    createdByName: d.createdBy.name || d.createdBy.email,
+    recurrence: d.recurrence,
+    scheduleHour: d.scheduleHour,
+    scheduleMinute: d.scheduleMinute,
+    scheduleWeekday: d.scheduleWeekday,
+    scheduleMonthDay: d.scheduleMonthDay,
+    nextRunAt: d.nextRunAt,
+    lastRunAt: d.lastRunAt,
+    pausedAt: d.pausedAt,
+  }));
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-display text-5xl tracking-wide">
         BROAD<span className="text-gradient">CAST</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Send a one-off announcement email to the whole community, CN or MN track, a tag, a
-        group, or a single member. Save a draft for any admin to finish and send later.
+        Send a one-off announcement email, or set a daily / weekly / monthly send. Hub 0 mail
+        uses the TriForge Media logo from the brand kit.
       </p>
 
       <div className="mt-8">
@@ -56,6 +84,7 @@ export default async function AdminBroadcastPage() {
           tags={tags}
           groups={groups}
           drafts={draftItems}
+          scheduled={scheduledItems}
           aiConfigured={isAiEmailConfigured()}
         />
       </div>
