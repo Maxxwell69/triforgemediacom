@@ -79,7 +79,7 @@ export default function GroupServerRail({
   return (
     <nav
       aria-label="Groups"
-      className="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-off-white/10 bg-[#070707] py-3"
+      className="hub-groups flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-off-white/10 py-3"
     >
       {spaces.map((space, index) => {
         const active = space.id === activeGroupId;

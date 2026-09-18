@@ -75,6 +75,26 @@ export async function saveHubBrandKit(formData: FormData) {
       body: String(formData.get("bodyFont") || ""),
     },
     overlay: Number(formData.get("overlay")),
+    surfaces: {
+      menu: {
+        canvas: String(formData.get("menuCanvas") || ""),
+        ink: String(formData.get("menuInk") || ""),
+        backgroundImageUrl: String(formData.get("menuBackgroundImageUrl") || ""),
+        overlay: Number(formData.get("menuOverlay")),
+      },
+      groups: {
+        canvas: String(formData.get("groupsCanvas") || ""),
+        ink: String(formData.get("groupsInk") || ""),
+        backgroundImageUrl: String(formData.get("groupsBackgroundImageUrl") || ""),
+        overlay: Number(formData.get("groupsOverlay")),
+      },
+      chat: {
+        canvas: String(formData.get("chatCanvas") || ""),
+        ink: String(formData.get("chatInk") || ""),
+        backgroundImageUrl: String(formData.get("chatBackgroundImageUrl") || ""),
+        overlay: Number(formData.get("chatOverlay")),
+      },
+    },
   });
   const issues = validateBrandKit(kit);
   if (issues.length > 0) {
