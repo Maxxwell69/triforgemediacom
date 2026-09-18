@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
-import { hostnameFromHeaders, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, isCustomDomainCandidate, resolveHubHost } from "@/lib/hub/host";
 import { peekHostSlug } from "@/lib/hub/customDomain";
 import { tenantSchemaName } from "@/lib/hub/schemaUrl";
 import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
@@ -23,8 +23,10 @@ export function prismaForRequest(): PrismaClient {
     if (resolved.kind === "client") {
       return getTenantPrisma(tenantSchemaName(resolved.slug));
     }
-    const cached = peekHostSlug(hostname);
-    if (cached) return getTenantPrisma(tenantSchemaName(cached));
+    if (isCustomDomainCandidate(hostname)) {
+      const cached = peekHostSlug(hostname);
+      if (cached) return getTenantPrisma(tenantSchemaName(cached));
+    }
   } catch {
     // Scripts, seed, or no request — Hub 0.
   }

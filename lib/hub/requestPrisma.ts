@@ -48,7 +48,7 @@ export async function getRequestHubContext(): Promise<RequestHubContext> {
   let slug: string | null = pinnedSlug ?? (resolved.kind === "client" ? resolved.slug : null);
   if (!slug && isCustomDomainCandidate(hostname)) {
     slug = await findSlugByCustomDomain(control, hostname);
-  } else if (slug) {
+  } else if (slug && isCustomDomainCandidate(hostname)) {
     rememberHostSlug(hostname, slug);
   }
 

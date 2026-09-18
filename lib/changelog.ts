@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.240",
+    date: "September 18, 2026",
+    title: "Hub 0 tenant mix-up",
+    summary:
+      "The main TriForge Hub no longer shows an empty Create Hub community after a custom domain is attached.",
+    items: [
+      {
+        kind: "fix",
+        text: "hub.triforgemedia.com always reads Hub 0 data — a vanity hostname can no longer pin the main hub to another community’s members, XP, or channels",
+      },
+    ],
+  },
+  {
     version: "3.239",
     date: "September 18, 2026",
     title: "Custom domain landing fix",

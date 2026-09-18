@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import {
   CLIENT_HUB_SUFFIX,
   HUB0_HOST,
+  isCustomDomainCandidate,
   isPlatformHubHost,
   stripPort,
 } from "@/lib/hub/host";
@@ -96,11 +97,18 @@ export function validateCustomDomain(
 const slugByHost = new Map<string, string | null>();
 
 export function rememberHostSlug(hostname: string, slug: string | null) {
-  slugByHost.set(stripPort(hostname), slug);
+  const host = stripPort(hostname);
+  // Never bind Hub 0 / Railway / localhost to a tenant. AUTH_URL can make a
+  // vanity request look like hub.triforgemedia.com while x-hub-slug is pirate —
+  // caching that pair made the main hub read an empty client community.
+  if (!host || !isCustomDomainCandidate(host)) return;
+  slugByHost.set(host, slug);
 }
 
 export function peekHostSlug(hostname: string): string | null | undefined {
-  return slugByHost.get(stripPort(hostname));
+  const host = stripPort(hostname);
+  if (!host || !isCustomDomainCandidate(host)) return undefined;
+  return slugByHost.get(host);
 }
 
 export async function findSlugByCustomDomain(
@@ -108,7 +116,7 @@ export async function findSlugByCustomDomain(
   hostname: string
 ): Promise<string | null> {
   const host = stripPort(hostname);
-  if (!host) return null;
+  if (!host || !isCustomDomainCandidate(host)) return null;
   const cached = slugByHost.get(host);
   if (cached !== undefined) return cached;
 
