@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.231",
+    date: "September 17, 2026",
+    title: "Dashboard logo and button colors",
+    summary:
+      "Create Hub logos sit on the home dashboard, and each hub can pick its own button fill and button text.",
+    items: [
+      {
+        kind: "improve",
+        text: "Uploaded hub logo shows above the dashboard greeting; the left menu keeps the hub name",
+      },
+      {
+        kind: "feature",
+        text: "Admin → Hub profile brand kit: button and button-text colors, with contrast checks",
+      },
+    ],
+  },
+  {
     version: "3.230",
     date: "September 17, 2026",
     title: "Brand kit deploy fix",

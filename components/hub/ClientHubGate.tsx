@@ -120,7 +120,7 @@ export function ClientHubShell({
   signInHref?: string;
 }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-charcoal">
+    <div className="hub-main relative flex min-h-screen flex-col overflow-hidden bg-charcoal">
       <div
         className="pointer-events-none absolute inset-0"
         style={{

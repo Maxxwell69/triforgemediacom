@@ -67,6 +67,8 @@ export async function saveHubBrandKit(formData: FormData) {
       primary: String(formData.get("primary") || ""),
       secondary: String(formData.get("secondary") || ""),
       ink: String(formData.get("ink") || ""),
+      button: String(formData.get("button") || ""),
+      buttonInk: String(formData.get("buttonInk") || ""),
     },
     fonts: {
       display: String(formData.get("displayFont") || ""),
@@ -83,6 +85,7 @@ export async function saveHubBrandKit(formData: FormData) {
 
   revalidatePath("/admin/hub-profile");
   revalidatePath("/");
+  revalidatePath("/home");
   redirect("/admin/hub-profile?brandSaved=1");
 }
 
@@ -91,5 +94,6 @@ export async function resetHubBrandKit() {
   await writeClientHubBrandKit(ctx.control, ctx.hub.id, null);
   revalidatePath("/admin/hub-profile");
   revalidatePath("/");
+  revalidatePath("/home");
   redirect("/admin/hub-profile?brandSaved=1");
 }

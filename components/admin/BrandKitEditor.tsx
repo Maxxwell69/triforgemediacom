@@ -69,8 +69,8 @@ export default function BrandKitEditor({
         <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">Look</p>
         <h2 className="mt-1 font-display text-3xl tracking-wide">BRAND KIT</h2>
         <p className="mt-2 font-body text-sm text-off-white/55">
-          This is how members see {hubName} — logo, colors, type, and wallpaper. Layouts and
-          menus stay the same.
+          This is how members see {hubName} — logo on the dashboard, button colors, type, and
+          wallpaper. The left menu stays the hub name.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export default function BrandKitEditor({
             name="logoUrl"
             folder="hub-logo"
             defaultValue={kit.logoUrl}
-            label="Header logo"
+            label="Dashboard logo"
             onUrlChange={(logoUrl) => setKit((k) => ({ ...k, logoUrl: logoUrl || null }))}
           />
           <ImageUploadField
@@ -128,6 +128,18 @@ export default function BrandKitEditor({
               label="Secondary"
               value={kit.colors.secondary}
               onChange={(secondary) => setKit((k) => ({ ...k, colors: { ...k.colors, secondary } }))}
+            />
+            <ColorField
+              name="button"
+              label="Buttons"
+              value={kit.colors.button}
+              onChange={(button) => setKit((k) => ({ ...k, colors: { ...k.colors, button } }))}
+            />
+            <ColorField
+              name="buttonInk"
+              label="Button text"
+              value={kit.colors.buttonInk}
+              onChange={(buttonInk) => setKit((k) => ({ ...k, colors: { ...k.colors, buttonInk } }))}
             />
           </div>
 
@@ -204,6 +216,10 @@ export default function BrandKitEditor({
           }}
         >
           <p className="font-body text-[10px] uppercase tracking-[0.2em] opacity-60">Preview</p>
+          {kit.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={kit.logoUrl} alt="" className="mt-3 max-h-14 w-auto object-contain" />
+          ) : null}
           <p
             className="mt-3 text-3xl tracking-wide"
             style={{ fontFamily: `"${previewDisplay(kit)}", sans-serif` }}
@@ -215,8 +231,8 @@ export default function BrandKitEditor({
           </p>
           <button
             type="button"
-            className="mt-4 rounded-lg px-4 py-2 font-body text-sm font-semibold text-white"
-            style={{ background: kit.colors.primary }}
+            className="mt-4 rounded-lg px-4 py-2 font-body text-sm font-semibold"
+            style={{ background: kit.colors.button, color: kit.colors.buttonInk }}
           >
             Sign in
           </button>

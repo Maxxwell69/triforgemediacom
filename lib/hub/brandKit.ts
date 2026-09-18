@@ -18,6 +18,8 @@ export const BODY_FONTS = [
 export type DisplayFontId = (typeof DISPLAY_FONTS)[number]["id"];
 export type BodyFontId = (typeof BODY_FONTS)[number]["id"];
 
+const DEFAULT_BUTTON_INK = "#FFFFFF";
+
 export type BrandKit = {
   logoUrl: string | null;
   backgroundImageUrl: string | null;
@@ -26,6 +28,8 @@ export type BrandKit = {
     primary: string;
     secondary: string;
     ink: string;
+    button: string;
+    buttonInk: string;
   };
   fonts: {
     display: DisplayFontId;
@@ -42,6 +46,8 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
     primary: brandColors.electricOrange,
     secondary: brandColors.neonCyan,
     ink: brandColors.offWhite,
+    button: brandColors.electricOrange,
+    buttonInk: DEFAULT_BUTTON_INK,
   },
   fonts: { display: "bebas", body: "outfit" },
   overlay: 55,
@@ -131,6 +137,10 @@ export function parseBrandKit(raw: unknown): BrandKit {
       primary: normalizeHex(String(colors.primary || "")) ?? DEFAULT_BRAND_KIT.colors.primary,
       secondary: normalizeHex(String(colors.secondary || "")) ?? DEFAULT_BRAND_KIT.colors.secondary,
       ink: normalizeHex(String(colors.ink || "")) ?? DEFAULT_BRAND_KIT.colors.ink,
+      button:
+        normalizeHex(String(colors.button || colors.primary || "")) ??
+        DEFAULT_BRAND_KIT.colors.button,
+      buttonInk: normalizeHex(String(colors.buttonInk || "")) ?? DEFAULT_BRAND_KIT.colors.buttonInk,
     },
     fonts: {
       display: displayFontById(String(fonts.display || "")).id,
@@ -168,6 +178,18 @@ export function validateBrandKit(kit: BrandKit): BrandKitIssue[] {
       message: "Secondary color is too close to the canvas — pick a brighter accent.",
     });
   }
+  if (contrastRatio(kit.colors.button, kit.colors.canvas) < MIN_ACCENT_CONTRAST) {
+    issues.push({
+      field: "button",
+      message: "Button color is too close to the canvas — pick a brighter fill.",
+    });
+  }
+  if (contrastRatio(kit.colors.buttonInk, kit.colors.button) < MIN_INK_CONTRAST) {
+    issues.push({
+      field: "buttonInk",
+      message: "Button text does not contrast enough with the button fill.",
+    });
+  }
   return issues;
 }
 
@@ -180,11 +202,13 @@ export function brandKitCssVars(kit: BrandKit): CSSProperties {
   const display = displayFontById(kit.fonts.display);
   const body = bodyFontById(kit.fonts.body);
   return {
-    ["--brand-orange" as string]: hexToRgbTriple(kit.colors.primary),
+    ["--brand-orange" as string]: hexToRgbTriple(kit.colors.button),
+    ["--brand-primary" as string]: hexToRgbTriple(kit.colors.primary),
     ["--brand-cyan" as string]: hexToRgbTriple(kit.colors.secondary),
     ["--brand-charcoal" as string]: hexToRgbTriple(kit.colors.canvas),
     ["--brand-deep-blue" as string]: hexToRgbTriple(brandColors.deepBlue),
     ["--brand-off-white" as string]: hexToRgbTriple(kit.colors.ink),
+    ["--brand-button-ink" as string]: hexToRgbTriple(kit.colors.buttonInk),
     ["--background" as string]: `rgb(${hexToRgbTriple(kit.colors.canvas)})`,
     ["--foreground" as string]: `rgb(${hexToRgbTriple(kit.colors.ink)})`,
     ["--font-display" as string]: `"${display.family}", sans-serif`,
@@ -214,6 +238,8 @@ export function isDefaultBrandKit(kit: BrandKit): boolean {
     kit.colors.primary === DEFAULT_BRAND_KIT.colors.primary &&
     kit.colors.secondary === DEFAULT_BRAND_KIT.colors.secondary &&
     kit.colors.ink === DEFAULT_BRAND_KIT.colors.ink &&
+    kit.colors.button === DEFAULT_BRAND_KIT.colors.button &&
+    kit.colors.buttonInk === DEFAULT_BRAND_KIT.colors.buttonInk &&
     kit.fonts.display === DEFAULT_BRAND_KIT.fonts.display &&
     kit.fonts.body === DEFAULT_BRAND_KIT.fonts.body &&
     kit.overlay === DEFAULT_BRAND_KIT.overlay
@@ -231,7 +257,7 @@ export type EmailBrandChrome = {
 export function emailChromeFromKit(kit: BrandKit, hubName: string): EmailBrandChrome {
   return {
     logoUrl: kit.logoUrl,
-    primaryHex: kit.colors.primary,
+    primaryHex: kit.colors.button,
     canvasHex: kit.colors.canvas,
     inkHex: kit.colors.ink,
     footer: hubName,

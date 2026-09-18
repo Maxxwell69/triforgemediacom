@@ -14,6 +14,7 @@ import { listVisibleHubCampaigns } from "@/lib/hubCampaigns";
 import { loadMemberOnboardings, loadRequiredCourseLinks, stepHref, getOnboardingMenuLock } from "@/lib/onboarding/engine";
 import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import HomeOnboardingCard from "@/components/onboarding/HomeOnboardingCard";
+import HubDashboardLogo from "@/components/hub/HubDashboardLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,7 @@ export default async function HomePage() {
   return (
     <main className="flex-1 px-6 py-10">
       <div className="mx-auto max-w-5xl">
+        <HubDashboardLogo />
         {announcement?.isActive && (
           <div className="glass mb-8 flex flex-col gap-3 rounded-2xl border border-orange/30 bg-orange/5 p-4">
             <div className="flex items-start gap-3">

@@ -38,7 +38,7 @@ export default function MobileShell({
       }`}
     >
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
-        <Logo height={20} href="/home" />
+        <Logo height={20} href="/home" variant="chrome" />
         <div className="flex items-center gap-1">
           {headerRight}
           <button
@@ -95,7 +95,7 @@ export default function MobileShell({
       </aside>
 
       <div
-        className={`flex min-w-0 flex-1 flex-col ${
+        className={`hub-main flex min-w-0 flex-1 flex-col ${
           lockViewport ? "min-h-0 overflow-hidden" : ""
         }`}
       >

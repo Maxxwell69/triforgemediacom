@@ -15,16 +15,19 @@ export default function Logo({
   href = "/",
   priority = false,
   className = "",
+  variant = "mark",
 }: {
   height?: number;
   href?: string | null;
   priority?: boolean;
   className?: string;
+  /** chrome = menu/header name only. mark = uploaded logo when the hub has one. */
+  variant?: "chrome" | "mark";
 }) {
   const brand = useHubBrand();
   const [broken, setBroken] = useState(false);
   const width = Math.round(height * ASPECT_RATIO);
-  const custom = brand.logoUrl && !broken ? brand.logoUrl : null;
+  const custom = variant === "mark" && brand.logoUrl && !broken ? brand.logoUrl : null;
   const clientName = brand.hubName;
 
   const nameMark = clientName ? (
