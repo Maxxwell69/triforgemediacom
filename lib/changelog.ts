@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.230",
+    date: "September 17, 2026",
+    title: "Brand kit deploy fix",
+    summary: "Staging and production can build Create Hub brand kits after a TypeScript compile error blocked 3.229.",
+    items: [
+      {
+        kind: "fix",
+        text: "Google Fonts URL for a client hub kit no longer uses a Set spread that fails the Railway image build",
+      },
+    ],
+  },
+  {
     version: "3.229",
     date: "September 17, 2026",
     title: "Create Hub brand kits",

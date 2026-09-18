@@ -201,7 +201,9 @@ export function brandKitGoogleFontsHref(kit: BrandKit): string | null {
   if (display.id !== "bebas") families.add(display.google);
   if (body.id !== "outfit") families.add(body.google);
   if (families.size === 0) return null;
-  return `https://fonts.googleapis.com/css2?${[...families].map((f) => `family=${f}`).join("&")}&display=swap`;
+  return `https://fonts.googleapis.com/css2?${Array.from(families)
+    .map((f) => `family=${f}`)
+    .join("&")}&display=swap`;
 }
 
 export function isDefaultBrandKit(kit: BrandKit): boolean {
