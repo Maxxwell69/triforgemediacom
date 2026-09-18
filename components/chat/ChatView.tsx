@@ -14,6 +14,7 @@ import { truncateReplyPreview } from "@/lib/chatReplies";
 import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
 import { ALLOWED_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/lib/uploadConstraints";
 import { formatChatDateTime, formatChatTime } from "@/lib/formatChatTime";
+import ChannelVoiceBar from "@/components/chat/ChannelVoiceBar";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -66,12 +67,16 @@ export default function ChatView({
   currentUserRole,
   initialMessages,
   initialMutedUntil,
+  voiceEnabled,
+  selfName,
 }: {
   channel: { id: string; name: string; description: string | null };
   currentUserId: string;
   currentUserRole: ChatRole;
   initialMessages: ChatMessage[];
   initialMutedUntil: string | Date | null;
+  voiceEnabled?: boolean;
+  selfName?: string;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -540,6 +545,14 @@ export default function ChatView({
         {channel.description && (
           <p className="font-body text-sm text-off-white/50">{channel.description}</p>
         )}
+        {voiceEnabled ? (
+          <ChannelVoiceBar
+            key={channel.id}
+            channelId={channel.id}
+            currentUserId={currentUserId}
+            selfName={selfName?.trim() || "Member"}
+          />
+        ) : null}
       </header>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">

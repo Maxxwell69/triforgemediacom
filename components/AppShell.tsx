@@ -81,7 +81,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
-      include: { groups: { select: { id: true, isHome: true } } },
+      include: {
+        groups: { select: { id: true, isHome: true, grantsVoiceAccess: true } },
+      },
     }),
     prisma.xPEvent.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
     getUserGroupIds(user.id),
@@ -215,6 +217,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
             id: c.id,
             name: c.name,
             unreadCount: unreadCounts[c.id] ?? 0,
+            hasVoice: hubHas("voice") && c.hasVoice && c.groups.some((g) => g.grantsVoiceAccess),
           }))}
         />
       </div>

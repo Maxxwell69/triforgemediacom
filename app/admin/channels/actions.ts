@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { channelSchema } from "@/lib/validations/channel";
+import { hubHas } from "@/lib/hub/modules";
 
 async function requireAdmin() {
   const session = await auth();
@@ -40,11 +41,14 @@ export async function createChannel(formData: FormData) {
   await requireAdmin();
   const data = parseChannelForm(formData);
 
+  const hasVoice = hubHas("voice") ? formData.get("hasVoice") === "on" : false;
+
   await prisma.channel.create({
     data: {
       name: data.name,
       description: data.description || null,
       minRole: data.minRole,
+      hasVoice,
     },
   });
 
@@ -55,6 +59,7 @@ export async function updateChannel(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id"));
   const data = parseChannelForm(formData);
+  const hasVoice = hubHas("voice") ? formData.get("hasVoice") === "on" : undefined;
 
   await prisma.channel.update({
     where: { id },
@@ -62,6 +67,7 @@ export async function updateChannel(formData: FormData) {
       name: data.name,
       description: data.description || null,
       minRole: data.minRole,
+      ...(hasVoice === undefined ? {} : { hasVoice }),
     },
   });
 

@@ -7,7 +7,13 @@ import { createGroupChannel } from "@/app/(community)/groups/actions";
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
 
-export default function CreateGroupChannelForm({ groupId }: { groupId: string }) {
+export default function CreateGroupChannelForm({
+  groupId,
+  voiceAvailable,
+}: {
+  groupId: string;
+  voiceAvailable?: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -50,6 +56,16 @@ export default function CreateGroupChannelForm({ groupId }: { groupId: string })
         placeholder="Optional description"
         className={fieldClass}
       />
+      {voiceAvailable && (
+        <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+          <input
+            type="checkbox"
+            name="hasVoice"
+            className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+          />
+          Enable hop-in voice
+        </label>
+      )}
       {error && <p className="font-body text-sm text-orange">{error}</p>}
     </form>
   );

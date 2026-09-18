@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createGroup } from "./actions";
 import GroupRow from "@/components/admin/GroupRow";
 import ImageUploadField from "@/components/ImageUploadField";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function AdminGroupsPage() {
       _count: { select: { members: true, channels: true } },
     },
   });
+  const voiceSku = hubHas("voice");
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -71,6 +73,17 @@ export default async function AdminGroupsPage() {
           />
           Members of this group can access TikTask
         </label>
+        {voiceSku && (
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              name="grantsVoiceAccess"
+              defaultChecked
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Channels in this group can enable hop-in voice
+          </label>
+        )}
         <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
           <input
             type="checkbox"
@@ -112,6 +125,7 @@ export default async function AdminGroupsPage() {
               color: group.color,
               imageUrl: group.imageUrl,
               grantsTikTaskAccess: group.grantsTikTaskAccess,
+              grantsVoiceAccess: group.grantsVoiceAccess,
               showInList: group.showInList,
               canCreateEvents: group.canCreateEvents,
               isHome: group.isHome,
@@ -119,6 +133,7 @@ export default async function AdminGroupsPage() {
               memberCount: group._count.members,
               channelCount: group._count.channels,
             }}
+            voiceSku={voiceSku}
           />
         ))}
       </div>

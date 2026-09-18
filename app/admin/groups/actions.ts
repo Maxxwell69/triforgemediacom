@@ -10,6 +10,7 @@ import {
   groupInviteUrl,
 } from "@/lib/groups";
 import { groupMemberRoleSchema, groupSchema } from "@/lib/validations/group";
+import { hubHas } from "@/lib/hub/modules";
 
 async function requireAdmin() {
   const session = await auth();
@@ -53,6 +54,7 @@ export async function createGroup(formData: FormData) {
   await requireAdmin();
   const data = parseGroupForm(formData);
   const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
+  const grantsVoiceAccess = hubHas("voice") ? formData.get("grantsVoiceAccess") === "on" : false;
   const showInList = formData.get("showInList") === "on";
   const canCreateEvents = formData.get("canCreateEvents") === "on";
 
@@ -63,6 +65,7 @@ export async function createGroup(formData: FormData) {
       color: data.color,
       imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
+      grantsVoiceAccess,
       showInList,
       canCreateEvents,
       joinMode: data.joinMode ?? "INVITE_ONLY",
@@ -90,6 +93,7 @@ export async function updateGroup(formData: FormData) {
 
   const data = parseGroupForm(formData);
   const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
+  const grantsVoiceAccess = hubHas("voice") ? formData.get("grantsVoiceAccess") === "on" : undefined;
   // Home is always listed; other groups honor the checkbox.
   const showInList = existing.isHome || formData.get("showInList") === "on";
   const canCreateEvents = formData.get("canCreateEvents") === "on";
@@ -102,6 +106,7 @@ export async function updateGroup(formData: FormData) {
       color: data.color,
       imageUrl: data.imageUrl || null,
       grantsTikTaskAccess,
+      ...(grantsVoiceAccess === undefined ? {} : { grantsVoiceAccess }),
       showInList,
       canCreateEvents,
       // Home stays CLOSED — join is automatic via hub membership.
