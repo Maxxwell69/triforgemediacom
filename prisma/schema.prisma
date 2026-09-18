@@ -2527,6 +2527,8 @@ model ClientHub {
   brandKit             Json?
   /// Optional vanity hostname (community.example.com). Null = {slug}.hub.triforgemedia.com only.
   customDomain         String?  @unique
+  /// Railway DNS/TLS records for customDomain (CNAME + ownership TXT).
+  customDomainSetup    Json?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   createdById        String?
