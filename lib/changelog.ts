@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.239",
+    date: "September 18, 2026",
+    title: "Custom domain landing fix",
+    summary:
+      "Vanity hostnames no longer 500 on the sign-in page while Railway is still issuing HTTPS.",
+    items: [
+      {
+        kind: "fix",
+        text: "Custom domain requests rewrite inside the app instead of fetching the vanity URL (that failed TLS and showed Internal Server Error)",
+      },
+    ],
+  },
+  {
     version: "3.238",
     date: "September 18, 2026",
     title: "Custom domain DNS copy fields",

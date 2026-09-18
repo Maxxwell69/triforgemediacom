@@ -32,13 +32,26 @@ function atOrigin(req: NextRequest, path: string) {
   return new URL(path, `${requestOrigin(req)}/`);
 }
 
+/** Never fetch the vanity hostname from Edge — its cert may not be trusted yet. */
+function platformOrigin(req: NextRequest) {
+  for (const raw of [process.env.AUTH_URL, process.env.NEXTAUTH_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+    if (!raw) continue;
+    try {
+      return new URL(raw).origin;
+    } catch {
+      // ignore
+    }
+  }
+  return req.nextUrl.origin;
+}
+
 async function resolveClientSlug(req: NextRequest): Promise<string | null> {
   const host = hostnameFromHeaders(req.headers);
   const resolved = resolveHubHost(host);
   if (resolved.kind === "client") return resolved.slug;
   if (!isCustomDomainCandidate(host)) return null;
   try {
-    const url = new URL("/api/internal/hub-resolve", req.url);
+    const url = new URL("/api/internal/hub-resolve", `${platformOrigin(req)}/`);
     url.searchParams.set("h", host);
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
@@ -81,7 +94,8 @@ function clientHubGate(
       url.search = req.nextUrl.search;
       return NextResponse.redirect(url);
     }
-    const url = atOrigin(req, `/hub-host/${slug}${pathname === "/" ? "" : pathname}`);
+    const url = req.nextUrl.clone();
+    url.pathname = `/hub-host/${slug}${pathname === "/" ? "" : pathname}`;
     url.search = req.nextUrl.search;
     const headers = new Headers(req.headers);
     headers.set("x-hub-slug", slug);
