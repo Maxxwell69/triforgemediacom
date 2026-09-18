@@ -20,6 +20,13 @@ export type BodyFontId = (typeof BODY_FONTS)[number]["id"];
 
 const DEFAULT_BUTTON_INK = "#FFFFFF";
 
+export type SurfaceKit = {
+  canvas: string;
+  ink: string;
+  backgroundImageUrl: string | null;
+  overlay: number;
+};
+
 export type BrandKit = {
   logoUrl: string | null;
   backgroundImageUrl: string | null;
@@ -36,6 +43,18 @@ export type BrandKit = {
     body: BodyFontId;
   };
   overlay: number;
+  surfaces: {
+    menu: SurfaceKit;
+    groups: SurfaceKit;
+    chat: SurfaceKit;
+  };
+};
+
+export const DEFAULT_SURFACE: SurfaceKit = {
+  canvas: brandColors.charcoal,
+  ink: brandColors.offWhite,
+  backgroundImageUrl: null,
+  overlay: 55,
 };
 
 export const DEFAULT_BRAND_KIT: BrandKit = {
@@ -51,6 +70,11 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
   },
   fonts: { display: "bebas", body: "outfit" },
   overlay: 55,
+  surfaces: {
+    menu: { ...DEFAULT_SURFACE },
+    groups: { ...DEFAULT_SURFACE, canvas: "#070707" },
+    chat: { ...DEFAULT_SURFACE },
+  },
 };
 
 const HEX = /^#([0-9a-f]{6})$/i;
@@ -124,11 +148,34 @@ function parseOverlay(raw: unknown): number {
   return Math.min(80, Math.max(0, Math.round(n)));
 }
 
+function parseSurface(raw: unknown, fallback: SurfaceKit): SurfaceKit {
+  if (!raw || typeof raw !== "object") return { ...fallback };
+  const row = raw as Record<string, unknown>;
+  return {
+    canvas: normalizeHex(String(row.canvas || "")) ?? fallback.canvas,
+    ink: normalizeHex(String(row.ink || "")) ?? fallback.ink,
+    backgroundImageUrl: parseImageUrl(row.backgroundImageUrl),
+    overlay: parseOverlay(row.overlay),
+  };
+}
+
 export function parseBrandKit(raw: unknown): BrandKit {
-  if (!raw || typeof raw !== "object") return { ...DEFAULT_BRAND_KIT, colors: { ...DEFAULT_BRAND_KIT.colors }, fonts: { ...DEFAULT_BRAND_KIT.fonts } };
+  if (!raw || typeof raw !== "object") {
+    return {
+      ...DEFAULT_BRAND_KIT,
+      colors: { ...DEFAULT_BRAND_KIT.colors },
+      fonts: { ...DEFAULT_BRAND_KIT.fonts },
+      surfaces: {
+        menu: { ...DEFAULT_BRAND_KIT.surfaces.menu },
+        groups: { ...DEFAULT_BRAND_KIT.surfaces.groups },
+        chat: { ...DEFAULT_BRAND_KIT.surfaces.chat },
+      },
+    };
+  }
   const row = raw as Record<string, unknown>;
   const colors = row.colors && typeof row.colors === "object" ? (row.colors as Record<string, unknown>) : {};
   const fonts = row.fonts && typeof row.fonts === "object" ? (row.fonts as Record<string, unknown>) : {};
+  const surfaces = row.surfaces && typeof row.surfaces === "object" ? (row.surfaces as Record<string, unknown>) : {};
   return {
     logoUrl: parseImageUrl(row.logoUrl),
     backgroundImageUrl: parseImageUrl(row.backgroundImageUrl),
@@ -147,6 +194,11 @@ export function parseBrandKit(raw: unknown): BrandKit {
       body: bodyFontById(String(fonts.body || "")).id,
     },
     overlay: parseOverlay(row.overlay),
+    surfaces: {
+      menu: parseSurface(surfaces.menu, DEFAULT_BRAND_KIT.surfaces.menu),
+      groups: parseSurface(surfaces.groups, DEFAULT_BRAND_KIT.surfaces.groups),
+      chat: parseSurface(surfaces.chat, DEFAULT_BRAND_KIT.surfaces.chat),
+    },
   };
 }
 
@@ -172,12 +224,36 @@ export function validateBrandKit(kit: BrandKit): BrandKitIssue[] {
       message: "Button text does not contrast enough with the button fill.",
     });
   }
+  for (const [key, surface] of Object.entries(kit.surfaces) as Array<[string, SurfaceKit]>) {
+    const label = key === "menu" ? "Menu" : key === "groups" ? "Groups" : "Chat";
+    if (relativeLuminance(surface.canvas) > MAX_CANVAS_LUMINANCE) {
+      issues.push({
+        field: `${key}Canvas`,
+        message: `${label} canvas is too light — pick a darker color.`,
+      });
+    }
+    if (contrastRatio(surface.ink, surface.canvas) < MIN_INK_CONTRAST) {
+      issues.push({
+        field: `${key}Ink`,
+        message: `${label} text does not contrast enough with that canvas.`,
+      });
+    }
+  }
   return issues;
 }
 
 function cssUrl(url: string | null): string {
   if (!url) return "none";
   return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
+}
+
+function surfaceCssVars(prefix: string, surface: SurfaceKit): Record<string, string> {
+  return {
+    [`--hub-${prefix}-canvas`]: hexToRgbTriple(surface.canvas),
+    [`--hub-${prefix}-ink`]: hexToRgbTriple(surface.ink),
+    [`--hub-${prefix}-overlay`]: String(surface.overlay / 100),
+    [`--hub-${prefix}-bg-image`]: cssUrl(surface.backgroundImageUrl),
+  };
 }
 
 export function brandKitCssVars(kit: BrandKit): CSSProperties {
@@ -197,6 +273,9 @@ export function brandKitCssVars(kit: BrandKit): CSSProperties {
     ["--font-body" as string]: `"${body.family}", sans-serif`,
     ["--hub-overlay" as string]: String(kit.overlay / 100),
     ["--hub-bg-image" as string]: cssUrl(kit.backgroundImageUrl),
+    ...surfaceCssVars("menu", kit.surfaces.menu),
+    ...surfaceCssVars("groups", kit.surfaces.groups),
+    ...surfaceCssVars("chat", kit.surfaces.chat),
   };
 }
 
@@ -224,7 +303,13 @@ export function isDefaultBrandKit(kit: BrandKit): boolean {
     kit.colors.buttonInk === DEFAULT_BRAND_KIT.colors.buttonInk &&
     kit.fonts.display === DEFAULT_BRAND_KIT.fonts.display &&
     kit.fonts.body === DEFAULT_BRAND_KIT.fonts.body &&
-    kit.overlay === DEFAULT_BRAND_KIT.overlay
+    kit.overlay === DEFAULT_BRAND_KIT.overlay &&
+    !kit.surfaces.menu.backgroundImageUrl &&
+    !kit.surfaces.groups.backgroundImageUrl &&
+    !kit.surfaces.chat.backgroundImageUrl &&
+    kit.surfaces.menu.canvas === DEFAULT_BRAND_KIT.surfaces.menu.canvas &&
+    kit.surfaces.groups.canvas === DEFAULT_BRAND_KIT.surfaces.groups.canvas &&
+    kit.surfaces.chat.canvas === DEFAULT_BRAND_KIT.surfaces.chat.canvas
   );
 }
 

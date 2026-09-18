@@ -534,7 +534,7 @@ export default function ChatView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="hub-chat flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
         <h1 className="font-display text-2xl tracking-wide"># {channel.name}</h1>
         {channel.description && (

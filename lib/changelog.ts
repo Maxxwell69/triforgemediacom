@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.233",
+    date: "September 17, 2026",
+    title: "Brand kit tabs, admin unskinned",
+    summary:
+      "Create Hub brand kits no longer restyle admin. Separate tabs skin the dashboard, menu, groups rail, and chat.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin keeps the TriForge look even when a client hub has a custom kit",
+      },
+      {
+        kind: "feature",
+        text: "Hub profile brand kit tabs: dashboard, menu, groups, and chat each get their own canvas, text, and wallpaper",
+      },
+    ],
+  },
+  {
     version: "3.232",
     date: "September 17, 2026",
     title: "Brand kit on the dashboard",

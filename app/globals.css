@@ -14,6 +14,18 @@
   --foreground: #f5f5f5;
   --hub-overlay: 0.55;
   --hub-bg-image: none;
+  --hub-menu-canvas: 10 10 10;
+  --hub-menu-ink: 245 245 245;
+  --hub-menu-overlay: 0.55;
+  --hub-menu-bg-image: none;
+  --hub-groups-canvas: 7 7 7;
+  --hub-groups-ink: 245 245 245;
+  --hub-groups-overlay: 0.55;
+  --hub-groups-bg-image: none;
+  --hub-chat-canvas: 10 10 10;
+  --hub-chat-ink: 245 245 245;
+  --hub-chat-overlay: 0.55;
+  --hub-chat-bg-image: none;
   /* Tells the browser to render native form controls (select dropdowns,
      date/time pickers, scrollbars) in dark mode instead of defaulting to
      a light popup with our light theme text inherited into it. */
@@ -88,7 +100,71 @@ select option {
 }
 
 .hub-nav {
-  background-color: #0a0a0a;
+  --brand-charcoal: var(--hub-menu-canvas);
+  --brand-off-white: var(--hub-menu-ink);
+  color: rgb(var(--hub-menu-ink));
+  background-color: rgb(var(--hub-menu-canvas));
+  background-image: linear-gradient(
+      rgb(var(--hub-menu-canvas) / var(--hub-menu-overlay)),
+      rgb(var(--hub-menu-canvas) / var(--hub-menu-overlay))
+    ),
+    var(--hub-menu-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hub-groups {
+  --brand-charcoal: var(--hub-groups-canvas);
+  --brand-off-white: var(--hub-groups-ink);
+  color: rgb(var(--hub-groups-ink));
+  background-color: rgb(var(--hub-groups-canvas));
+  background-image: linear-gradient(
+      rgb(var(--hub-groups-canvas) / var(--hub-groups-overlay)),
+      rgb(var(--hub-groups-canvas) / var(--hub-groups-overlay))
+    ),
+    var(--hub-groups-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hub-chat {
+  --brand-charcoal: var(--hub-chat-canvas);
+  --brand-off-white: var(--hub-chat-ink);
+  color: rgb(var(--hub-chat-ink));
+  background-color: rgb(var(--hub-chat-canvas));
+  background-image: linear-gradient(
+      rgb(var(--hub-chat-canvas) / var(--hub-chat-overlay)),
+      rgb(var(--hub-chat-canvas) / var(--hub-chat-overlay))
+    ),
+    var(--hub-chat-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hub-admin {
+  --brand-orange: 253 72 2;
+  --brand-primary: 253 72 2;
+  --brand-button-ink: 255 255 255;
+  --brand-cyan: 0 212 255;
+  --brand-charcoal: 10 10 10;
+  --brand-deep-blue: 14 26 61;
+  --brand-off-white: 245 245 245;
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --hub-overlay: 0;
+  --hub-bg-image: none;
+  --hub-menu-bg-image: none;
+  --hub-groups-bg-image: none;
+  --hub-chat-bg-image: none;
+  --font-display: "Bebas Neue", sans-serif;
+  --font-body: Outfit, sans-serif;
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-family: var(--font-body), sans-serif;
 }
 
 @keyframes hubFadeUp {

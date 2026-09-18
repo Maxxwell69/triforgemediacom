@@ -79,18 +79,21 @@ export default function ImageUploadField({
   defaultValue,
   label,
   onUrlChange,
+  hint,
 }: {
-  name: string;
+  name?: string;
   folder: UploadFolder;
   defaultValue?: string | null;
   label?: string;
   onUrlChange?: (url: string) => void;
+  hint?: string;
 }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recommendation = RECOMMENDATIONS[folder];
+  const hintText = hint ?? recommendation.hint;
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -136,7 +139,7 @@ export default function ImageUploadField({
           {label}
         </span>
       )}
-      <input type="hidden" name={name} value={url} />
+      {name ? <input type="hidden" name={name} value={url} /> : null}
 
       <div className="flex flex-wrap items-center gap-3">
         {url && (
@@ -180,7 +183,7 @@ export default function ImageUploadField({
       </div>
 
       <p className="font-body text-xs text-off-white/35">
-        Recommended {recommendation.dimensions} &middot; {recommendation.hint} &middot; JPG/PNG/WEBP/GIF, max{" "}
+        Recommended {recommendation.dimensions} &middot; {hintText} &middot; JPG/PNG/WEBP/GIF, max{" "}
         {MAX_MB}MB.
       </p>
 

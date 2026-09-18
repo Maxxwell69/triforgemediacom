@@ -236,7 +236,7 @@ export default function DmChatView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="hub-chat flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
         <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
           &larr; Direct messages
