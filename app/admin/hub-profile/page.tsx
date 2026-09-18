@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { requireAdminPage } from "@/lib/session";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import ImageUploadField from "@/components/ImageUploadField";
-import { saveHubDirectoryProfile } from "./actions";
+import BrandKitEditor from "@/components/admin/BrandKitEditor";
+import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit } from "./actions";
 import { clientHubPublicHost } from "@/lib/hub/host";
+import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,7 @@ const fieldClass =
 export default async function AdminHubProfilePage({
   searchParams,
 }: {
-  searchParams: { saved?: string; error?: string };
+  searchParams: { saved?: string; error?: string; brandSaved?: string; brandError?: string };
 }) {
   await requireAdminPage();
   const ctx = await getRequestHubContext();
@@ -35,36 +37,54 @@ export default async function AdminHubProfilePage({
   if (!hub) notFound();
 
   const provisioned = Boolean(hub.tenantDbAt);
+  const kit = await readClientHubBrandKit(ctx.control, ctx.hub.id);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
-        Directory
+        This hub
       </p>
       <h1 className="mt-1 font-display text-5xl tracking-wide">
         HUB <span className="text-gradient">PROFILE</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
-        This is what people see on /hubs. Keep the hub private until you are ready, then
-        list it on the public directory. Invited members still see it under Your hubs either
-        way.
+        Design how {hub.name} looks for members, then decide what people see on /hubs.
       </p>
       <p className="mt-2 font-body text-xs text-off-white/40">
         {hub.name} · {clientHubPublicHost(hub.slug)}
       </p>
 
-      {searchParams.saved ? (
-        <p className="mt-6 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
-          Directory profile saved.
-        </p>
-      ) : null}
-      {searchParams.error ? (
-        <p className="mt-6 rounded-lg border border-orange/30 bg-orange/10 px-4 py-2 font-body text-sm text-orange">
-          Could not save. Use an https image URL and a description up to 400 characters.
-        </p>
-      ) : null}
+      <BrandKitEditor
+        initialKit={kit}
+        hubName={hub.name}
+        action={saveHubBrandKit}
+        resetAction={resetHubBrandKit}
+        saved={Boolean(searchParams.brandSaved)}
+        error={searchParams.brandError}
+      />
 
-      <form action={saveHubDirectoryProfile} className="glass mt-8 flex flex-col gap-6 rounded-2xl p-6">
+      <form action={saveHubDirectoryProfile} className="glass mt-10 flex flex-col gap-6 rounded-2xl p-6">
+        <div>
+          <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
+            Directory
+          </p>
+          <h2 className="mt-1 font-display text-3xl tracking-wide">ON /HUBS</h2>
+          <p className="mt-2 font-body text-sm text-off-white/55">
+            Cover card on the public directory. This is not the in-app wallpaper.
+          </p>
+        </div>
+
+        {searchParams.saved ? (
+          <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
+            Directory profile saved.
+          </p>
+        ) : null}
+        {searchParams.error ? (
+          <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-2 font-body text-sm text-orange">
+            Could not save. Use an https image URL and a description up to 400 characters.
+          </p>
+        ) : null}
+
         <ImageUploadField
           name="directoryImageUrl"
           folder="hub-directory"
@@ -109,7 +129,7 @@ export default async function AdminHubProfilePage({
           type="submit"
           className="w-fit rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white transition hover:bg-orange/90"
         >
-          Save profile
+          Save directory
         </button>
       </form>
     </main>

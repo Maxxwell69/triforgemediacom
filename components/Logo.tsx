@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useHubBrand } from "@/components/hub/HubBrandProvider";
 
 // Source asset is 1024x409 (wordmark on a near-black backdrop that blends
 // into the charcoal theme). Keep callers passing a height and let this
@@ -17,9 +21,34 @@ export default function Logo({
   priority?: boolean;
   className?: string;
 }) {
+  const brand = useHubBrand();
+  const [broken, setBroken] = useState(false);
   const width = Math.round(height * ASPECT_RATIO);
+  const custom = brand.logoUrl && !broken ? brand.logoUrl : null;
+  const clientName = brand.hubName;
 
-  const img = (
+  const nameMark = clientName ? (
+    <span
+      className={`inline-flex items-center font-display tracking-wide text-off-white ${className}`}
+      style={{ fontSize: Math.max(16, Math.round(height * 0.7)), lineHeight: 1 }}
+    >
+      {clientName}
+    </span>
+  ) : null;
+
+  const img = custom ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={custom}
+      alt={clientName || "Hub"}
+      height={height}
+      onError={() => setBroken(true)}
+      className={`object-contain ${className}`}
+      style={{ height, width: "auto", maxWidth: Math.round(height * 4) }}
+    />
+  ) : nameMark ? (
+    nameMark
+  ) : (
     <Image
       src="/brand/triforge-logo-transparent.png"
       alt="TriForge Media"
@@ -33,7 +62,11 @@ export default function Logo({
   if (!href) return img;
 
   return (
-    <Link href={href} aria-label="TriForge Community home" className="inline-flex">
+    <Link
+      href={href}
+      aria-label={brand.hubName ? `${brand.hubName} home` : "TriForge Community home"}
+      className="inline-flex"
+    >
       {img}
     </Link>
   );

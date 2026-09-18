@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { resolveEditableEmail } from "@/lib/emailTemplatesResolve";
+import { loadEmailChromeForRequest } from "@/lib/hub/brandKit.server";
 import {
   broadcastUnsubscribeApiUrl,
   broadcastUnsubscribePageUrl,
@@ -10,6 +11,7 @@ import {
   layout,
   safeHref,
   SAMPLE_APP_URL,
+  type EmailChrome,
   type EmailContent,
 } from "@/lib/emailLayout";
 
@@ -121,40 +123,58 @@ export function buildInviteEmail(name: string, url: string): EmailContent {
   };
 }
 
-export function buildClientHubInviteEmail(hubName: string, url: string): EmailContent {
+export function buildClientHubInviteEmail(
+  hubName: string,
+  url: string,
+  chrome?: EmailChrome
+): EmailContent {
   const safeHub = escapeHtml(hubName);
+  const accent = chrome?.primaryHex || "#FD4802";
   return {
     subject: `You're invited to run ${hubName}`,
-    html: layout(`
-      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Your hub is ready</h1>
+    html: layout(
+      `
+      <h1 style="color:${escapeHtml(accent)};font-size:22px;margin:0 0 12px;">Your hub is ready</h1>
       <p style="line-height:1.6;">You've been invited as the admin for <strong>${safeHub}</strong>.</p>
       <p style="line-height:1.6;">This is not the TriForge Hub. If you already have a Forge or hub login, use that password. If this is your first hub, you will set a password once.</p>
-      ${button(url, "Set up your admin account")}
+      ${button(url, "Set up your admin account", chrome?.primaryHex)}
       <p style="color:rgba(245,245,245,0.45);font-size:12px;">If the button doesn't work, copy this link: ${escapeHtml(url)}</p>
-    `),
+    `,
+      chrome
+    ),
   };
 }
 
-export async function sendClientHubInviteEmail(to: string, hubName: string, url: string) {
-  const { subject, html } = buildClientHubInviteEmail(hubName, url);
+export async function sendClientHubInviteEmail(
+  to: string,
+  hubName: string,
+  url: string,
+  chrome?: EmailChrome
+) {
+  const { subject, html } = buildClientHubInviteEmail(hubName, url, chrome);
   await send(to, subject, html);
 }
 
 export function buildClientHubMemberInviteEmail(
   hubName: string,
   url: string,
-  hasPassword: boolean
+  hasPassword: boolean,
+  chrome?: EmailChrome
 ): EmailContent {
   const safeHub = escapeHtml(hubName);
+  const accent = chrome?.primaryHex || "#FD4802";
   return {
     subject: `You're invited to ${hubName}`,
-    html: layout(`
-      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Join ${safeHub}</h1>
+    html: layout(
+      `
+      <h1 style="color:${escapeHtml(accent)};font-size:22px;margin:0 0 12px;">Join ${safeHub}</h1>
       <p style="line-height:1.6;">Your admin invited you to <strong>${safeHub}</strong>.</p>
       <p style="line-height:1.6;">This is that community’s own login — not TriForge Hub.</p>
-      ${button(url, hasPassword ? "Sign in" : "Set up your account")}
+      ${button(url, hasPassword ? "Sign in" : "Set up your account", chrome?.primaryHex)}
       <p style="color:rgba(245,245,245,0.45);font-size:12px;">If the button doesn't work, copy this link: ${escapeHtml(url)}</p>
-    `),
+    `,
+      chrome
+    ),
   };
 }
 
@@ -162,9 +182,10 @@ export async function sendClientHubMemberInviteEmail(
   to: string,
   hubName: string,
   url: string,
-  hasPassword: boolean
+  hasPassword: boolean,
+  chrome?: EmailChrome
 ) {
-  const { subject, html } = buildClientHubMemberInviteEmail(hubName, url, hasPassword);
+  const { subject, html } = buildClientHubMemberInviteEmail(hubName, url, hasPassword, chrome);
   await send(to, subject, html);
 }
 
@@ -1015,8 +1036,13 @@ export type BroadcastSendResult = {
   failed: string[];
 };
 
-function buildBroadcastPayload(to: BroadcastRecipient, subject: string, bodyHtml: string) {
-  const html = layout(`${bodyHtml}${broadcastFooterHtml(to.userId)}`);
+function buildBroadcastPayload(
+  to: BroadcastRecipient,
+  subject: string,
+  bodyHtml: string,
+  chrome?: EmailChrome
+) {
+  const html = layout(`${bodyHtml}${broadcastFooterHtml(to.userId)}`, chrome);
   const headers = broadcastListUnsubscribeHeaders(to.userId);
   return { to: to.email, html, headers };
 }
@@ -1042,10 +1068,11 @@ export async function sendBroadcastEmails(
   }
   const unique = Array.from(byEmail.values());
   if (unique.length === 0) return { sent: 0, failed: [] };
+  const chrome = await loadEmailChromeForRequest();
 
   if (!resend) {
     for (const r of unique) {
-      const { html } = buildBroadcastPayload(r, subject, bodyHtml);
+      const { html } = buildBroadcastPayload(r, subject, bodyHtml, chrome);
       console.log(`[email:stub] To: ${r.email}\nSubject: ${subject}\n\n${html}\n`);
     }
     return { sent: unique.length, failed: [] };
@@ -1058,7 +1085,7 @@ export async function sendBroadcastEmails(
     const chunk = unique.slice(i, i + BROADCAST_BATCH_SIZE);
     const chunkIndex = Math.floor(i / BROADCAST_BATCH_SIZE);
     const payloads = chunk.map((r) => {
-      const built = buildBroadcastPayload(r, subject, bodyHtml);
+      const built = buildBroadcastPayload(r, subject, bodyHtml, chrome);
       return {
         from: fromEmail,
         to: [built.to],
@@ -1094,7 +1121,7 @@ export async function sendBroadcastEmails(
     if (!chunkSent) {
       for (const r of chunk) {
         try {
-          const built = buildBroadcastPayload(r, subject, bodyHtml);
+          const built = buildBroadcastPayload(r, subject, bodyHtml, chrome);
           await send(r.email, subject, built.html, {
             headers: built.headers,
             idempotencyKey: `${batchPrefix}/${r.email}`,

@@ -1,6 +1,8 @@
 import "server-only";
 
 import { sendClientHubMemberInviteEmail } from "@/lib/email";
+import { emailChromeFromKit } from "@/lib/hub/brandKit";
+import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
 import {
   clientHubInviteUrl,
   clientHubSignInUrl,
@@ -103,7 +105,13 @@ export async function inviteClientHubMember(opts: {
   const hasPassword = !!user.passwordHash;
   const url = hasPassword ? clientHubSignInUrl(hub.slug) : clientHubInviteUrl(hub.slug, token);
   try {
-    await sendClientHubMemberInviteEmail(email, hub.name, url, hasPassword);
+    await sendClientHubMemberInviteEmail(
+      email,
+      hub.name,
+      url,
+      hasPassword,
+      emailChromeFromKit(await readClientHubBrandKit(control, hub.id), hub.name)
+    );
   } catch (err) {
     console.error("client hub member invite email failed", hub.slug, err);
     return {
@@ -125,7 +133,7 @@ export async function resendClientHubMemberInvite(opts: {
     where: { userId_clientHubId: { userId: opts.userId, clientHubId: opts.clientHubId } },
     include: {
       user: { select: { email: true, name: true, passwordHash: true, status: true } },
-      clientHub: { select: { name: true, slug: true } },
+      clientHub: { select: { id: true, name: true, slug: true } },
     },
   });
   if (!membership) return { error: "They don't have an invite on this hub." };
@@ -149,7 +157,11 @@ export async function resendClientHubMemberInvite(opts: {
       membership.user.email,
       membership.clientHub.name,
       url,
-      hasPassword
+      hasPassword,
+      emailChromeFromKit(
+        await readClientHubBrandKit(control, membership.clientHub.id),
+        membership.clientHub.name
+      )
     );
   } catch (err) {
     console.error("client hub member resend failed", membership.clientHub.slug, err);
