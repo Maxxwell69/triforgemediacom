@@ -147,10 +147,9 @@ export default function ChannelSidebar({
                   : "text-off-white/60 hover:bg-off-white/5 hover:text-off-white/90"
             }`}
           >
-            <span className="min-w-0 truncate"># {channel.name}</span>
             {channel.hasVoice ? (
-              <span className="shrink-0 text-cyan/80" title="Voice channel" aria-label="Voice">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <span className="shrink-0 text-cyan/80" title="Voice — joins when you open this room" aria-hidden>
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M11 5 6.5 9H3v6h3.5L11 19V5Z"
                     stroke="currentColor"
@@ -165,7 +164,10 @@ export default function ChannelSidebar({
                   />
                 </svg>
               </span>
-            ) : null}
+            ) : (
+              <span className="shrink-0 text-off-white/35">#</span>
+            )}
+            <span className="min-w-0 truncate">{channel.name}</span>
             <UnreadBadge count={isActive ? 0 : count} />
           </Link>
         );
