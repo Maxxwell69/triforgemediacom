@@ -4,8 +4,9 @@ import { getApiUserWithProfile, apiAuthErrorResponse } from "@/lib/apiAuth";
 import { canAccessConversation, summarizeReactions } from "@/lib/dmAccess";
 import { isMuted } from "@/lib/moderation";
 import { postMessageSchema } from "@/lib/validations/message";
-import { chatAuthorSelect } from "@/lib/memberDisplay";
+import { chatAuthorSelect, getChatDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
+import { notifyDmRecipients } from "@/lib/dmNotify";
 
 function mapMessage(
   message: {
@@ -125,6 +126,13 @@ export async function POST(
       data: { updatedAt: new Date() },
     });
     return created;
+  });
+
+  await notifyDmRecipients({
+    conversationId: params.conversationId,
+    senderId: result.user.id,
+    senderName: getChatDisplayName(message.user),
+    content: parsed.data.content,
   });
 
   return NextResponse.json({ message: mapMessage(message, result.user.id) }, { status: 201 });

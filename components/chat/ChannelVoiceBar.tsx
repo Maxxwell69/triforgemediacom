@@ -54,6 +54,8 @@ export default function ChannelVoiceBar({
   const [peers, setPeers] = useState<VoicePeer[]>([]);
 
   const joinedRef = useRef(false);
+  const joiningRef = useRef(false);
+  const stayOutRef = useRef(false);
   const mutedRef = useRef(false);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef(new Map<string, RTCPeerConnection>());
@@ -234,6 +236,7 @@ export default function ChannelVoiceBar({
   }, [dropPeer]);
 
   const leave = useCallback(async () => {
+    stayOutRef.current = true;
     stopLocal();
     setJoined(false);
     setError(null);
@@ -245,6 +248,9 @@ export default function ChannelVoiceBar({
   }, [postVoice, stopLocal]);
 
   const join = useCallback(async () => {
+    if (joinedRef.current || joiningRef.current) return;
+    joiningRef.current = true;
+    stayOutRef.current = false;
     setBusy(true);
     setError(null);
     try {
@@ -278,9 +284,16 @@ export default function ChannelVoiceBar({
             : "Could not join voice.";
       setError(message);
     } finally {
+      joiningRef.current = false;
       setBusy(false);
     }
   }, [currentUserId, ensurePc, postVoice, selfName, stopLocal]);
+
+  // Discord-style: opening the room joins voice. Leave stays in text until you re-enter.
+  useEffect(() => {
+    if (stayOutRef.current) return;
+    void join();
+  }, [channelId, join]);
 
   const toggleMute = useCallback(async () => {
     const next = !mutedRef.current;
@@ -376,7 +389,7 @@ export default function ChannelVoiceBar({
       <div className="flex flex-wrap items-center gap-2">
         <SpeakerIcon className={`h-4 w-4 ${joined ? "text-cyan" : "text-off-white/50"}`} />
         <p className="font-body text-sm text-off-white/80">
-          {joined ? "In voice" : "Voice"}
+          {joined ? "Connected" : busy ? "Connecting…" : "Voice"}
           <span className="text-off-white/40">
             {" "}
             · {count}/{MAX_VOICE_PEERS}

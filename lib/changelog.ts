@@ -186,6 +186,30 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.244",
+    date: "September 18, 2026",
+    title: "Voice joins on enter",
+    summary: "Opening a voice channel connects your mic automatically, like hopping into a Discord voice room.",
+    items: [
+      {
+        kind: "improve",
+        text: "Voice channels join as soon as you open them; Leave keeps you in text chat until you come back",
+      },
+    ],
+  },
+  {
+    version: "3.243",
+    date: "September 18, 2026",
+    title: "DM notification bell",
+    summary: "When someone DMs you, the hub bell and Notifications list show that you have a new message.",
+    items: [
+      {
+        kind: "feature",
+        text: "Direct messages notify the other person on the bell; tap through to the thread",
+      },
+    ],
+  },
+  {
     version: "3.242",
     date: "September 18, 2026",
     title: "Group channel create fix",
