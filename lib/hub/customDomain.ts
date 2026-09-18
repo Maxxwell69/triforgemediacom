@@ -10,6 +10,39 @@ import {
 
 const HOST_RE = /^(?=.{1,253}$)(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
+export type CustomDomainSetup = {
+  host: string;
+  railwayId: string | null;
+  cnameHost: string | null;
+  cnameTarget: string | null;
+  txtHost: string | null;
+  txtValue: string | null;
+  certificateStatus: string | null;
+  dnsStatus: string | null;
+};
+
+export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const host = typeof row.host === "string" ? row.host : "";
+  if (!host) return null;
+  return {
+    host,
+    railwayId: typeof row.railwayId === "string" ? row.railwayId : null,
+    cnameHost: typeof row.cnameHost === "string" ? row.cnameHost : host,
+    cnameTarget: typeof row.cnameTarget === "string" ? row.cnameTarget : null,
+    txtHost: typeof row.txtHost === "string" ? row.txtHost : null,
+    txtValue: typeof row.txtValue === "string" ? row.txtValue : null,
+    certificateStatus: typeof row.certificateStatus === "string" ? row.certificateStatus : null,
+    dnsStatus: typeof row.dnsStatus === "string" ? row.dnsStatus : null,
+  };
+}
+
+export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
+  const cert = setup?.certificateStatus?.toUpperCase() || "";
+  return cert === "ISSUED" || cert === "VALID";
+}
+
 export function normalizeCustomDomain(raw: string): string {
   let value = raw.trim().toLowerCase();
   value = value.replace(/^https?:\/\//, "");
@@ -72,10 +105,14 @@ export async function findSlugByCustomDomain(
 export async function writeClientHubCustomDomain(
   control: PrismaClient,
   hubId: string,
-  host: string | null
+  host: string | null,
+  setup: CustomDomainSetup | null = null
 ) {
   if (host == null) {
-    await control.$executeRawUnsafe(`UPDATE "ClientHub" SET "customDomain" = NULL WHERE id = $1`, hubId);
+    await control.$executeRawUnsafe(
+      `UPDATE "ClientHub" SET "customDomain" = NULL, "customDomainSetup" = NULL WHERE id = $1`,
+      hubId
+    );
     slugByHost.clear();
     return;
   }
@@ -86,8 +123,9 @@ export async function writeClientHubCustomDomain(
     throw new Error("That domain is already assigned to another hub.");
   }
   await control.$executeRawUnsafe(
-    `UPDATE "ClientHub" SET "customDomain" = $1 WHERE id = $2`,
+    `UPDATE "ClientHub" SET "customDomain" = $1, "customDomainSetup" = $2::jsonb WHERE id = $3`,
     host,
+    setup ? JSON.stringify(setup) : null,
     hubId
   );
   slugByHost.clear();
@@ -115,6 +153,11 @@ export async function readClientHubCustomDomain(
   control: PrismaClient,
   hubId: string
 ): Promise<string | null> {
+  const setup = await readClientHubCustomDomainSetup(control, hubId);
+  return setup?.host ?? (await readCustomDomainHostOnly(control, hubId));
+}
+
+async function readCustomDomainHostOnly(control: PrismaClient, hubId: string) {
   try {
     const rows = await control.$queryRaw<Array<{ customDomain: string | null }>>`
       SELECT "customDomain" FROM "ClientHub" WHERE id = ${hubId} LIMIT 1
@@ -122,5 +165,34 @@ export async function readClientHubCustomDomain(
     return rows[0]?.customDomain ?? null;
   } catch {
     return null;
+  }
+}
+
+export async function readClientHubCustomDomainSetup(
+  control: PrismaClient,
+  hubId: string
+): Promise<CustomDomainSetup | null> {
+  try {
+    const rows = await control.$queryRaw<Array<{ customDomain: string | null; customDomainSetup: unknown }>>`
+      SELECT "customDomain", "customDomainSetup" FROM "ClientHub" WHERE id = ${hubId} LIMIT 1
+    `;
+    const parsed = parseCustomDomainSetup(rows[0]?.customDomainSetup);
+    if (parsed) return parsed;
+    const host = rows[0]?.customDomain ?? null;
+    return host ? { host, railwayId: null, cnameHost: host, cnameTarget: null, txtHost: null, txtValue: null, certificateStatus: null, dnsStatus: null } : null;
+  } catch {
+    const host = await readCustomDomainHostOnly(control, hubId);
+    return host
+      ? {
+          host,
+          railwayId: null,
+          cnameHost: host,
+          cnameTarget: null,
+          txtHost: null,
+          txtValue: null,
+          certificateStatus: null,
+          dnsStatus: null,
+        }
+      : null;
   }
 }

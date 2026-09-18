@@ -6,7 +6,17 @@ import { requireAdminPage } from "@/lib/session";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { parseBrandKit, validateBrandKit } from "@/lib/hub/brandKit";
 import { writeClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { validateCustomDomain, writeClientHubCustomDomain } from "@/lib/hub/customDomain";
+import {
+  readClientHubCustomDomainSetup,
+  validateCustomDomain,
+  writeClientHubCustomDomain,
+} from "@/lib/hub/customDomain";
+import {
+  attachRailwayCustomDomain,
+  detachRailwayCustomDomain,
+  railwayDomainApiReady,
+  refreshRailwayCustomDomain,
+} from "@/lib/hub/railwayCustomDomain";
 
 const DESCRIPTION_MAX = 400;
 
@@ -122,8 +132,10 @@ export async function resetHubBrandKit() {
 
 export async function saveHubCustomDomain(formData: FormData) {
   const ctx = await requireClientHub();
+  const previous = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
   const raw = String(formData.get("customDomain") || "").trim();
   if (!raw) {
+    await detachRailwayCustomDomain(previous?.railwayId);
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, null);
     revalidatePath("/admin/hub-profile");
     revalidatePath("/hubs");
@@ -137,7 +149,18 @@ export async function saveHubCustomDomain(formData: FormData) {
   }
 
   try {
-    await writeClientHubCustomDomain(ctx.control, ctx.hub.id, parsed.host);
+    if (previous?.railwayId && previous.host !== parsed.host) {
+      await detachRailwayCustomDomain(previous.railwayId);
+    }
+    let setup = previous?.host === parsed.host ? previous : null;
+    if (railwayDomainApiReady()) {
+      setup = await attachRailwayCustomDomain(parsed.host);
+    } else if (process.env.RAILWAY_ENVIRONMENT_ID) {
+      throw new Error(
+        "HTTPS attach is not enabled yet. Set RAILWAY_TOKEN on this Railway service (a project token) once — then hub admins can add domains themselves."
+      );
+    }
+    await writeClientHubCustomDomain(ctx.control, ctx.hub.id, parsed.host, setup);
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Could not save that domain. Try again.";
@@ -147,5 +170,28 @@ export async function saveHubCustomDomain(formData: FormData) {
   revalidatePath("/admin/hub-profile");
   revalidatePath("/hubs");
   revalidatePath("/", "layout");
+  redirect("/admin/hub-profile?domainSaved=1");
+}
+
+export async function refreshHubCustomDomain() {
+  const ctx = await requireClientHub();
+  const previous = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
+  if (!previous?.host) {
+    redirect("/admin/hub-profile?domainError=Save%20a%20hostname%20first.");
+  }
+  try {
+    if (!railwayDomainApiReady()) {
+      throw new Error("HTTPS status is only available on Railway after RAILWAY_TOKEN is set.");
+    }
+    const setup = previous.railwayId
+      ? await refreshRailwayCustomDomain(previous.railwayId, previous.host)
+      : await attachRailwayCustomDomain(previous.host);
+    await writeClientHubCustomDomain(ctx.control, ctx.hub.id, previous.host, setup);
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Could not refresh HTTPS status.";
+    redirect(`/admin/hub-profile?domainError=${encodeURIComponent(message)}`);
+  }
+  revalidatePath("/admin/hub-profile");
   redirect("/admin/hub-profile?domainSaved=1");
 }

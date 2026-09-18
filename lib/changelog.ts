@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.236",
+    date: "September 18, 2026",
+    title: "Self-serve custom domain HTTPS",
+    summary:
+      "Create Hub admins attach a vanity domain without a TriForge Railway click — saving the hostname requests the certificate automatically.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Hub profile: save a custom domain and Railway issues HTTPS; the page shows the CNAME and ownership TXT to add at your DNS",
+      },
+      {
+        kind: "improve",
+        text: "Check HTTPS status refreshes certificate state after DNS propagates. One RAILWAY_TOKEN on the service enables this for every hub",
+      },
+    ],
+  },
+  {
     version: "3.235",
     date: "September 17, 2026",
     title: "Create Hub custom domain",

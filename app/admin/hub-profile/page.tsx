@@ -3,10 +3,10 @@ import { requireAdminPage } from "@/lib/session";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import ImageUploadField from "@/components/ImageUploadField";
 import BrandKitEditor from "@/components/admin/BrandKitEditor";
-import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCustomDomain } from "./actions";
+import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCustomDomain, refreshHubCustomDomain } from "./actions";
 import { clientHubPublicHost, hubPublicHost } from "@/lib/hub/host";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
+import { customDomainHttpsReady, readClientHubCustomDomainSetup } from "@/lib/hub/customDomain";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +46,11 @@ export default async function AdminHubProfilePage({
 
   const provisioned = Boolean(hub.tenantDbAt);
   const kit = await readClientHubBrandKit(ctx.control, ctx.hub.id);
-  const customDomain = await readClientHubCustomDomain(ctx.control, ctx.hub.id);
+  const domainSetup = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
+  const customDomain = domainSetup?.host ?? null;
   const publicHost = hubPublicHost({ slug: hub.slug, customDomain });
+  const httpsReady = customDomainHttpsReady(domainSetup);
+  const apex = Boolean(customDomain && customDomain.split(".").length === 2);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -87,7 +90,9 @@ export default async function AdminHubProfilePage({
 
         {searchParams.domainSaved ? (
           <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
-            Custom domain saved. Point DNS, then ask TriForge to attach HTTPS on Railway.
+            {httpsReady
+              ? "Custom domain saved. HTTPS is live."
+              : "Custom domain saved. Add the DNS records below — Railway issues HTTPS automatically after they propagate. No TriForge dashboard step."}
           </p>
         ) : null}
         {searchParams.domainError ? (
@@ -107,11 +112,9 @@ export default async function AdminHubProfilePage({
           />
         </label>
         <p className="font-body text-xs text-off-white/45">
-          Create a CNAME for that host to{" "}
-          <span className="text-off-white/80">{clientHubPublicHost(hub.slug)}</span>
-          . HTTPS on a vanity domain is not covered by the{" "}
-          <span className="text-off-white/80">*.hub.triforgemedia.com</span> certificate — TriForge
-          still needs to add the domain on Railway. Leave blank and save to clear.
+          Saving attaches this hostname to Railway and starts a Let’s Encrypt certificate.
+          You only add DNS at your registrar. Leave blank and save to clear.{" "}
+          {clientHubPublicHost(hub.slug)} still works.
         </p>
 
         <button
@@ -121,6 +124,61 @@ export default async function AdminHubProfilePage({
           Save custom domain
         </button>
       </form>
+
+      {customDomain ? (
+        <div className="glass mt-4 flex flex-col gap-4 rounded-2xl p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-body text-sm text-off-white">
+              {httpsReady ? "HTTPS is live on this hostname." : "DNS records for HTTPS"}
+            </p>
+            <form action={refreshHubCustomDomain}>
+              <button
+                type="submit"
+                className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan hover:border-cyan/70"
+              >
+                Check HTTPS status
+              </button>
+            </form>
+          </div>
+          {domainSetup?.certificateStatus || domainSetup?.dnsStatus ? (
+            <p className="font-body text-xs text-off-white/45">
+              Certificate: {domainSetup?.certificateStatus || "pending"}
+              {domainSetup?.dnsStatus ? ` · DNS: ${domainSetup.dnsStatus}` : ""}
+            </p>
+          ) : null}
+          {domainSetup?.cnameTarget ? (
+            <div className="rounded-xl border border-off-white/10 px-4 py-3">
+              <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">CNAME</p>
+              <p className="mt-1 break-all font-body text-sm text-off-white">
+                {domainSetup.cnameHost || customDomain} → {domainSetup.cnameTarget}
+              </p>
+              {apex ? (
+                <p className="mt-2 font-body text-xs text-off-white/45">
+                  Root domains need ALIAS, ANAME, or CNAME flattening — not an A record.
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="font-body text-xs text-off-white/45">
+              Save the hostname on Railway to generate the CNAME target.
+            </p>
+          )}
+          {domainSetup?.txtHost && domainSetup.txtValue ? (
+            <div className="rounded-xl border border-off-white/10 px-4 py-3">
+              <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
+                TXT (required)
+              </p>
+              <p className="mt-1 break-all font-body text-sm text-off-white">
+                {domainSetup.txtHost} → {domainSetup.txtValue}
+              </p>
+              <p className="mt-2 font-body text-xs text-off-white/45">
+                Railway will not serve HTTPS until this ownership record exists. If you use
+                Cloudflare, keep both records DNS-only (grey cloud), not proxied.
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <form action={saveHubDirectoryProfile} className="glass mt-10 flex flex-col gap-6 rounded-2xl p-6">
         <div>
