@@ -13,6 +13,7 @@
   --background: #0a0a0a;
   --foreground: #f5f5f5;
   --hub-overlay: 0.55;
+  --hub-card-opacity: 0.5;
   --hub-bg-image: none;
   --hub-menu-canvas: 10 10 10;
   --hub-menu-ink: 245 245 245;
@@ -74,6 +75,12 @@ select option {
     border: 1px solid rgb(var(--brand-off-white) / 0.08);
     backdrop-filter: blur(12px);
   }
+
+  .hub-featurette {
+    background: rgb(var(--brand-off-white) / 0.04);
+    border: 1px solid rgb(var(--brand-off-white) / 0.08);
+    backdrop-filter: blur(12px);
+  }
 }
 
 .hub-skin {
@@ -82,6 +89,11 @@ select option {
 
 .hub-skin .bg-orange {
   color: rgb(var(--brand-button-ink));
+}
+
+.hub-skin .hub-featurette {
+  background: rgb(var(--brand-charcoal) / var(--hub-card-opacity));
+  border: 1px solid rgb(var(--brand-off-white) / 0.14);
 }
 
 .hub-main {

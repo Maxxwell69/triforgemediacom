@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.234",
+    date: "September 17, 2026",
+    title: "Featurette opacity slider",
+    summary:
+      "Create Hub admins can make dashboard cards more or less opaque over the wallpaper.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Hub profile → Dashboard: slider for featurette (card) opacity",
+      },
+    ],
+  },
+  {
     version: "3.233",
     date: "September 17, 2026",
     title: "Brand kit tabs, admin unskinned",
