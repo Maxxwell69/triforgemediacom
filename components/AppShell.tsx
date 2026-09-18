@@ -195,7 +195,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   const sidebar = (
     <>
       <div className="mb-4 px-2 md:block">
-        <Logo height={22} href="/home" />
+        <Logo height={22} href="/home" variant="chrome" />
       </div>
 
       {showGroupChrome && (

@@ -65,7 +65,7 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   },
   "hub-logo": {
     dimensions: "800\u00D7320px (wide wordmark)",
-    hint: "Shows in the hub header instead of the community name.",
+    hint: "Shows on the home dashboard above the greeting — not in the left menu.",
   },
   "hub-background": {
     dimensions: "1920\u00D71080px",
