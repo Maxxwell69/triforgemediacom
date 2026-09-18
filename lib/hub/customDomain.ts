@@ -40,7 +40,7 @@ export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
 
 export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   const cert = setup?.certificateStatus?.toUpperCase() || "";
-  return cert === "ISSUED" || cert === "VALID";
+  return cert.includes("ISSUED") || cert === "VALID";
 }
 
 export function normalizeCustomDomain(raw: string): string {

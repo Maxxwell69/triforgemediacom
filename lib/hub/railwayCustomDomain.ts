@@ -4,6 +4,22 @@ import type { CustomDomainSetup } from "@/lib/hub/customDomain";
 
 const RAILWAY_GQL = "https://backboard.railway.com/graphql/v2";
 
+const DOMAIN_STATUS_FIELDS = `
+  certificateStatus
+  verified
+  verificationDnsHost
+  verificationToken
+  dnsRecords {
+    fqdn
+    hostlabel
+    purpose
+    recordType
+    requiredValue
+    status
+    zone
+  }
+`;
+
 type RailwayDomainRow = {
   id: string;
   domain: string;
@@ -41,7 +57,6 @@ async function railwayGql<T>(query: string, variables: Record<string, unknown>):
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Workspace / account tokens use Bearer. Project tokens use Project-Access-Token.
       Authorization: `Bearer ${token}`,
       "Project-Access-Token": token,
     },
@@ -58,20 +73,6 @@ async function railwayGql<T>(query: string, variables: Record<string, unknown>):
   return json.data;
 }
 
-function collectDomains(node: unknown, out: RailwayDomainRow[]) {
-  if (!node) return;
-  if (Array.isArray(node)) {
-    for (const item of node) collectDomains(item, out);
-    return;
-  }
-  if (typeof node !== "object") return;
-  const row = node as Record<string, unknown>;
-  if (typeof row.id === "string" && typeof row.domain === "string") {
-    out.push({ id: row.id, domain: row.domain.toLowerCase(), status: row.status });
-  }
-  for (const value of Object.values(row)) collectDomains(value, out);
-}
-
 function setupFromRailway(host: string, id: string, status: unknown): CustomDomainSetup {
   const blob = status && typeof status === "object" ? (status as Record<string, unknown>) : {};
   const records = Array.isArray(blob.dnsRecords) ? blob.dnsRecords : [];
@@ -81,8 +82,13 @@ function setupFromRailway(host: string, id: string, status: unknown): CustomDoma
     if (!raw || typeof raw !== "object") continue;
     const rec = raw as Record<string, unknown>;
     const required = typeof rec.requiredValue === "string" ? rec.requiredValue.replace(/\.$/, "") : "";
-    const purpose = String(rec.purpose || rec.type || "").toLowerCase();
-    if (required && (purpose.includes("cname") || required.includes("railway.app") || !cnameTarget)) {
+    const purpose = String(rec.purpose || "").toUpperCase();
+    const recordType = String(rec.recordType || "").toUpperCase();
+    const isRoute =
+      purpose.includes("TRAFFIC") ||
+      recordType.includes("CNAME") ||
+      required.includes("railway.app");
+    if (required && isRoute) {
       cnameTarget = required;
       dnsStatus = typeof rec.status === "string" ? rec.status : dnsStatus;
     }
@@ -94,15 +100,14 @@ function setupFromRailway(host: string, id: string, status: unknown): CustomDoma
   if (txtHost && !txtHost.includes(".")) {
     txtHost = `${txtHost}.${host}`;
   } else if (txtHost && !txtHost.endsWith(host) && txtHost.startsWith("_")) {
-    txtHost = `${txtHost}.${host.split(".").slice(1).join(".")}`.replace(/\.\./g, ".");
-    if (!txtHost.includes(host)) txtHost = `${txtHostRaw}.${host}`;
+    if (!txtHost.includes(host)) txtHost = txtHost.includes(".") ? `${txtHost}.${host.split(".").slice(-2).join(".")}` : `${txtHost}.${host}`;
   }
 
   const certificateStatus =
     typeof blob.certificateStatus === "string"
       ? blob.certificateStatus
-      : typeof blob.certStatus === "string"
-        ? blob.certStatus
+      : blob.verified === true
+        ? "ISSUED"
         : null;
 
   return {
@@ -119,27 +124,37 @@ function setupFromRailway(host: string, id: string, status: unknown): CustomDoma
 
 async function listRailwayCustomDomains(): Promise<RailwayDomainRow[]> {
   const { projectId, environmentId, serviceId } = serviceIds();
-  const data = await railwayGql<{ domains: unknown }>(
+  const data = await railwayGql<{
+    domains: { customDomains?: RailwayDomainRow[] };
+  }>(
     `query HubDomains($projectId: String!, $environmentId: String!, $serviceId: String!) {
-      domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)
+      domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) {
+        customDomains {
+          id
+          domain
+          status { ${DOMAIN_STATUS_FIELDS} }
+        }
+      }
     }`,
     { projectId, environmentId, serviceId }
   );
-  const rows: RailwayDomainRow[] = [];
-  collectDomains(data.domains, rows);
-  return rows;
+  return (data.domains?.customDomains || []).map((row) => ({
+    ...row,
+    domain: row.domain.toLowerCase(),
+  }));
 }
 
 async function loadRailwayDomain(id: string): Promise<RailwayDomainRow> {
+  const { projectId } = serviceIds();
   const data = await railwayGql<{ customDomain: RailwayDomainRow }>(
-    `query HubCustomDomain($id: String!) {
-      customDomain(id: $id) {
+    `query HubCustomDomain($id: String!, $projectId: String!) {
+      customDomain(id: $id, projectId: $projectId) {
         id
         domain
-        status
+        status { ${DOMAIN_STATUS_FIELDS} }
       }
     }`,
-    { id }
+    { id, projectId }
   );
   return data.customDomain;
 }
@@ -147,11 +162,10 @@ async function loadRailwayDomain(id: string): Promise<RailwayDomainRow> {
 export async function attachRailwayCustomDomain(host: string): Promise<CustomDomainSetup> {
   const existing = (await listRailwayCustomDomains()).find((row) => row.domain === host);
   if (existing) {
-    const fresh = existing.status ? existing : await loadRailwayDomain(existing.id);
-    return setupFromRailway(host, fresh.id, fresh.status);
+    return setupFromRailway(host, existing.id, existing.status);
   }
 
-  const { serviceId, environmentId } = serviceIds();
+  const { serviceId, environmentId, projectId } = serviceIds();
   try {
     const data = await railwayGql<{
       customDomainCreate: { id: string; domain: string; status?: unknown };
@@ -160,10 +174,10 @@ export async function attachRailwayCustomDomain(host: string): Promise<CustomDom
         customDomainCreate(input: $input) {
           id
           domain
-          status
+          status { ${DOMAIN_STATUS_FIELDS} }
         }
       }`,
-      { input: { serviceId, environmentId, domain: host } }
+      { input: { serviceId, environmentId, projectId, domain: host } }
     );
     const created = data.customDomainCreate;
     return setupFromRailway(host, created.id, created.status);
@@ -171,10 +185,7 @@ export async function attachRailwayCustomDomain(host: string): Promise<CustomDom
     const message = err instanceof Error ? err.message : "";
     if (/already|exist|taken|conflict/i.test(message)) {
       const retry = (await listRailwayCustomDomains()).find((row) => row.domain === host);
-      if (retry) {
-        const fresh = retry.status ? retry : await loadRailwayDomain(retry.id);
-        return setupFromRailway(host, fresh.id, fresh.status);
-      }
+      if (retry) return setupFromRailway(host, retry.id, retry.status);
     }
     throw err;
   }

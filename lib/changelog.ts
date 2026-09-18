@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.237",
+    date: "September 18, 2026",
+    title: "Custom domain Railway attach fix",
+    summary:
+      "Saving a Create Hub custom domain talks to Railway’s current domain API so HTTPS setup can finish.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin → Hub profile custom domain save no longer fails on Railway’s domains query (needs subfields + projectId)",
+      },
+    ],
+  },
+  {
     version: "3.236",
     date: "September 18, 2026",
     title: "Self-serve custom domain HTTPS",
