@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { setGroupChannels } from "@/app/admin/groups/actions";
 
 type Channel = { id: string; name: string };
@@ -14,9 +14,16 @@ export default function GroupChannelsForm({
   allChannels: Channel[];
   selectedChannelIds: string[];
 }) {
+  const selectedKey = selectedChannelIds.slice().sort().join(",");
   const [selected, setSelected] = useState<string[]>(selectedChannelIds);
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setSelected(selectedChannelIds);
+    // selectedChannelIds is a new array each render; key is the membership set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey]);
 
   function toggle(id: string) {
     setSaved(false);

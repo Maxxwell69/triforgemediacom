@@ -215,12 +215,14 @@ export default async function AdminGroupDetailPage({
           <CreateGroupChannelForm
             groupId={group.id}
             voiceAvailable={voiceSku && group.grantsVoiceAccess}
+            stayOnPage
           />
           <div className="my-6 border-t border-off-white/10" />
           <p className="mb-3 font-body text-sm font-medium text-off-white/70">
             Attach existing channels
           </p>
           <GroupChannelsForm
+            key={allChannels.map((c) => c.id).join(",")}
             groupId={group.id}
             allChannels={allChannels}
             selectedChannelIds={group.channels.map((c) => c.id)}

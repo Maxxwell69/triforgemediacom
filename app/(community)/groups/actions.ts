@@ -25,6 +25,15 @@ const groupChannelSchema = z.object({
   description: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
+function slugifyChannelName(raw: string) {
+  return raw
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export async function applyToGroup(
   groupId: string,
   formData: FormData
@@ -122,8 +131,13 @@ export async function acceptGroupInvite(
 export async function createGroupChannel(
   groupId: string,
   formData: FormData
-): Promise<{ error: string | null; channelId?: string }> {
-  const user = await requireActiveUser();
+): Promise<{ error: string | null; channelId?: string; name?: string }> {
+  let user;
+  try {
+    user = await requireActiveUser();
+  } catch {
+    return { error: "You must be signed in to create a channel." };
+  }
 
   if (!(await canManageGroup(user.id, user.role, groupId))) {
     return { error: "Only group managers can create channels for this space." };
@@ -143,24 +157,52 @@ export async function createGroupChannel(
     return { error: parsed.error.issues[0]?.message || "Invalid channel" };
   }
 
-  // Normalize Discord-style names: lowercase, spaces → hyphens
-  const name = parsed.data.name.toLowerCase().replace(/\s+/g, "-");
+  const name = slugifyChannelName(parsed.data.name);
+  if (name.length < 2) {
+    return { error: "Use letters or numbers in the channel name." };
+  }
+
+  const existing = await prisma.channel.findFirst({
+    where: { name },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: `A channel named #${name} already exists.` };
+  }
+
   const hasVoice =
     hubHas("voice") && group.grantsVoiceAccess && formData.get("hasVoice") === "on";
 
-  const channel = await prisma.channel.create({
-    data: {
-      name,
-      description: parsed.data.description || null,
-      minRole: "MEMBER",
-      hasVoice,
-      groups: { connect: { id: groupId } },
-    },
-  });
+  const data = {
+    name,
+    description: parsed.data.description || null,
+    minRole: "MEMBER" as const,
+    groups: { connect: { id: groupId } },
+  };
 
-  revalidatePath(`/groups/${groupId}`);
-  revalidatePath(`/admin/groups/${groupId}`);
-  revalidatePath("/admin/channels");
-  revalidatePath("/channels");
-  return { error: null, channelId: channel.id };
+  try {
+    const channel = await prisma.channel.create({
+      data: { ...data, hasVoice },
+    });
+    revalidatePath(`/groups/${groupId}`);
+    revalidatePath(`/admin/groups/${groupId}`);
+    revalidatePath("/admin/channels");
+    revalidatePath("/channels");
+    return { error: null, channelId: channel.id, name };
+  } catch (err) {
+    console.error("createGroupChannel failed", err);
+    try {
+      const channel = await prisma.channel.create({ data });
+      revalidatePath(`/groups/${groupId}`);
+      revalidatePath(`/admin/groups/${groupId}`);
+      revalidatePath("/admin/channels");
+      revalidatePath("/channels");
+      return { error: null, channelId: channel.id, name };
+    } catch (retryErr) {
+      console.error("createGroupChannel retry failed", retryErr);
+      return {
+        error: "Could not create that channel. Try a shorter name, or refresh and try again.",
+      };
+    }
+  }
 }
