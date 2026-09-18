@@ -17,6 +17,8 @@ const ALLOWED_FOLDERS = new Set([
   "social-planner",
   "calendar-event-images",
   "hub-directory",
+  "hub-logo",
+  "hub-background",
 ]);
 
 export async function POST(request: NextRequest) {

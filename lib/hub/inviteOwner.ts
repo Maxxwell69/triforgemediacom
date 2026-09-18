@@ -1,6 +1,8 @@
 import "server-only";
 
 import { sendClientHubInviteEmail } from "@/lib/email";
+import { emailChromeFromKit } from "@/lib/hub/brandKit";
+import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
 import {
   clientHubInviteUrl,
   clientHubSignInUrl,
@@ -38,7 +40,12 @@ export async function inviteClientHubOwner(hubId: string): Promise<{ error: stri
   if (existingMembership?.status === "ACTIVE") {
     const url = clientHubSignInUrl(hub.slug);
     try {
-      await sendClientHubInviteEmail(email, hub.name, url);
+      await sendClientHubInviteEmail(
+        email,
+        hub.name,
+        url,
+        emailChromeFromKit(await readClientHubBrandKit(control, hub.id), hub.name)
+      );
     } catch (err) {
       console.error("client hub owner ready email failed", hub.slug, err);
       return {
@@ -92,7 +99,12 @@ export async function inviteClientHubOwner(hubId: string): Promise<{ error: stri
 
   const url = clientHubInviteUrl(hub.slug, token);
   try {
-    await sendClientHubInviteEmail(email, hub.name, url);
+    await sendClientHubInviteEmail(
+      email,
+      hub.name,
+      url,
+      emailChromeFromKit(await readClientHubBrandKit(control, hub.id), hub.name)
+    );
   } catch (err) {
     console.error("client hub owner invite email failed", hub.slug, err);
     return {

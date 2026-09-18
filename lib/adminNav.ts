@@ -351,7 +351,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       {
         href: "/admin/hub-profile",
         label: "Hub profile",
-        description: "Directory image, description, and public/private listing",
+        description: "Brand kit, directory image, and public/private listing",
         sku: "core",
         clientOnly: true,
       },

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Outfit } from "next/font/google";
 import VersionBadge from "@/components/VersionBadge";
+import { HubBrandProvider } from "@/components/hub/HubBrandProvider";
 import { bindClientHubSkus } from "@/lib/hub/modules";
+import { loadRequestBrandKit } from "@/lib/hub/brandKit.server";
+import { brandKitCssVars, brandKitGoogleFontsHref, DEFAULT_BRAND_KIT } from "@/lib/hub/brandKit";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -28,13 +31,30 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   await bindClientHubSkus();
+  const { kit, hubName, isClient } = await loadRequestBrandKit();
+  const skin = isClient ? kit : DEFAULT_BRAND_KIT;
+  const cssVars = isClient ? brandKitCssVars(skin) : undefined;
+  const fontHref = isClient ? brandKitGoogleFontsHref(skin) : null;
+
   return (
-    <html lang="en">
+    <html lang="en" style={cssVars}>
       <body
-        className={`${bebasNeue.variable} ${outfit.variable} font-body antialiased bg-charcoal text-off-white`}
+        className={`${bebasNeue.variable} ${outfit.variable} font-body antialiased bg-charcoal text-off-white ${
+          isClient ? "hub-skin" : ""
+        }`}
+        style={cssVars}
       >
-        {children}
-        <VersionBadge />
+        {fontHref ? (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={fontHref} />
+          </>
+        ) : null}
+        <HubBrandProvider logoUrl={isClient ? skin.logoUrl : null} hubName={isClient ? hubName : null}>
+          {children}
+          <VersionBadge />
+        </HubBrandProvider>
       </body>
     </html>
   );

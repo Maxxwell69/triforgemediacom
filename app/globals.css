@@ -3,8 +3,15 @@
 @tailwind utilities;
 
 :root {
+  --brand-orange: 253 72 2;
+  --brand-cyan: 0 212 255;
+  --brand-charcoal: 10 10 10;
+  --brand-deep-blue: 14 26 61;
+  --brand-off-white: 245 245 245;
   --background: #0a0a0a;
   --foreground: #f5f5f5;
+  --hub-overlay: 0.55;
+  --hub-bg-image: none;
   /* Tells the browser to render native form controls (select dropdowns,
      date/time pickers, scrollbars) in dark mode instead of defaulting to
      a light popup with our light theme text inherited into it. */
@@ -42,17 +49,37 @@ select option {
   }
 
   .text-gradient {
-    background-image: linear-gradient(90deg, #fd4802, #00d4ff);
+    background-image: linear-gradient(90deg, rgb(var(--brand-orange)), rgb(var(--brand-cyan)));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .glass {
-    background: rgba(245, 245, 245, 0.04);
-    border: 1px solid rgba(245, 245, 245, 0.08);
+    background: rgb(var(--brand-off-white) / 0.04);
+    border: 1px solid rgb(var(--brand-off-white) / 0.08);
     backdrop-filter: blur(12px);
   }
+}
+
+.hub-skin {
+  background-color: rgb(var(--brand-charcoal));
+}
+
+.hub-skin::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(
+      rgb(var(--brand-charcoal) / var(--hub-overlay)),
+      rgb(var(--brand-charcoal) / var(--hub-overlay))
+    ),
+    var(--hub-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 @keyframes hubFadeUp {
@@ -69,12 +96,12 @@ select option {
 /* Brief flash when switching active group in the channel sidebar */
 @keyframes groupSwitchFlash {
   0% {
-    background-color: rgba(0, 212, 255, 0.18);
-    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.45);
+    background-color: rgb(var(--brand-cyan) / 0.18);
+    box-shadow: 0 0 0 1px rgb(var(--brand-cyan) / 0.45);
   }
   100% {
-    background-color: rgba(245, 245, 245, 0.04);
-    box-shadow: 0 0 0 1px rgba(245, 245, 245, 0.1);
+    background-color: rgb(var(--brand-off-white) / 0.04);
+    box-shadow: 0 0 0 1px rgb(var(--brand-off-white) / 0.1);
   }
 }
 
@@ -90,32 +117,32 @@ select option {
 
 /* Hub calendar day cells — soft glass panels (like dashboard cards), glow on hover */
 .cal-day-cell {
-  --cal-accent: #fd4802;
+  --cal-accent: rgb(var(--brand-orange));
   position: relative;
   overflow: hidden;
   border: 1px solid transparent;
-  background: rgba(245, 245, 245, 0.04);
+  background: rgb(var(--brand-off-white) / 0.04);
   backdrop-filter: blur(12px);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease,
     background-color 0.18s ease;
 }
 
 .cal-day-cell:hover {
-  border-color: rgba(253, 72, 2, 0.4);
-  background: rgba(245, 245, 245, 0.06);
-  box-shadow: 0 0 24px rgba(253, 72, 2, 0.35);
+  border-color: rgb(var(--brand-orange) / 0.4);
+  background: rgb(var(--brand-off-white) / 0.06);
+  box-shadow: 0 0 24px rgb(var(--brand-orange) / 0.35);
   transform: translateY(-2px);
   z-index: 1;
 }
 
 .cal-day-cell--selected {
-  border-color: rgba(253, 72, 2, 0.35);
-  background: rgba(253, 72, 2, 0.12);
+  border-color: rgb(var(--brand-orange) / 0.35);
+  background: rgb(var(--brand-orange) / 0.12);
 }
 
 .cal-day-cell--selected:hover {
-  border-color: rgba(253, 72, 2, 0.5);
-  box-shadow: 0 0 24px rgba(253, 72, 2, 0.4);
+  border-color: rgb(var(--brand-orange) / 0.5);
+  box-shadow: 0 0 24px rgb(var(--brand-orange) / 0.4);
 }
 
 .cal-day-cell__ripple {

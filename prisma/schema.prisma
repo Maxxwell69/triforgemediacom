@@ -2471,6 +2471,8 @@ model ClientHub {
   directoryPublic      Boolean @default(false)
   directoryDescription String?
   directoryImageUrl    String?
+  /// Client-hub skin. Null = TriForge defaults. Control-plane only.
+  brandKit             Json?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   createdById        String?

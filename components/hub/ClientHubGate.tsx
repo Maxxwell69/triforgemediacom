@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import Logo from "@/components/Logo";
 
 const inputClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-4 py-2.5 font-body text-off-white placeholder:text-off-white/30 outline-none transition focus:border-cyan/60 focus:ring-1 focus:ring-cyan/60";
@@ -124,11 +125,11 @@ export function ClientHubShell({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 45% at 50% -8%, rgba(0,212,255,0.14), transparent 55%), radial-gradient(circle at 12% 88%, rgba(14,26,61,0.85), transparent 42%)",
+            "radial-gradient(ellipse 70% 45% at 50% -8%, rgb(var(--brand-cyan) / 0.14), transparent 55%), radial-gradient(circle at 12% 88%, rgb(var(--brand-deep-blue) / 0.85), transparent 42%)",
         }}
       />
       <header className="relative z-20 flex items-center justify-between px-6 py-5 sm:px-10">
-        <p className="font-display text-2xl tracking-wide text-off-white">{name}</p>
+        <Logo height={28} href={signInHref || "/signin"} />
         {signInHref ? (
           <a
             href={signInHref}
@@ -142,7 +143,7 @@ export function ClientHubShell({
         {children}
       </main>
       <footer className="relative z-10 px-6 py-6 text-center font-body text-[11px] text-off-white/30">
-        Private community hub
+        Private community hub · {name}
       </footer>
     </div>
   );

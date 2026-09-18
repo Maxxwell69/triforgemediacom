@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.229",
+    date: "September 17, 2026",
+    title: "Create Hub brand kits",
+    summary:
+      "Each Create Hub can set its own logo, colors, fonts, and wallpaper from Admin — Hub 0 stays the TriForge look.",
+    items: [
+      {
+        kind: "feature",
+        text: "Client hub Admin → Hub profile: brand kit with logo, canvas, primary, secondary, type, and background",
+      },
+      {
+        kind: "improve",
+        text: "That hub’s sign-in, signed-in chrome, and invite/broadcast emails pick up the kit; contrast and dark-canvas checks keep it readable",
+      },
+    ],
+  },
+  {
     version: "3.228",
     date: "September 17, 2026",
     title: "Hubs page without duplicate Hub 0",

@@ -18,7 +18,9 @@ type UploadFolder =
   | "progression-images"
   | "social-planner"
   | "calendar-event-images"
-  | "hub-directory";
+  | "hub-directory"
+  | "hub-logo"
+  | "hub-background";
 
 const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }> = {
   "course-thumbnails": {
@@ -61,6 +63,14 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
     dimensions: "1280\u00D7720px (16:9)",
     hint: "Shows as the cover on the public /hubs directory card.",
   },
+  "hub-logo": {
+    dimensions: "800\u00D7320px (wide wordmark)",
+    hint: "Shows in the hub header instead of the community name.",
+  },
+  "hub-background": {
+    dimensions: "1920\u00D71080px",
+    hint: "Wallpaper behind the hub. A dark overlay keeps chat readable.",
+  },
 };
 
 export default function ImageUploadField({
@@ -68,11 +78,13 @@ export default function ImageUploadField({
   folder,
   defaultValue,
   label,
+  onUrlChange,
 }: {
   name: string;
   folder: UploadFolder;
   defaultValue?: string | null;
   label?: string;
+  onUrlChange?: (url: string) => void;
 }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const [isUploading, setIsUploading] = useState(false);
@@ -108,6 +120,7 @@ export default function ImageUploadField({
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
 
       setUrl(data.url);
+      onUrlChange?.(data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -155,7 +168,10 @@ export default function ImageUploadField({
         {url && (
           <button
             type="button"
-            onClick={() => setUrl("")}
+            onClick={() => {
+              setUrl("");
+              onUrlChange?.("");
+            }}
             className="font-body text-xs text-off-white/40 transition hover:text-orange"
           >
             Remove
@@ -170,7 +186,10 @@ export default function ImageUploadField({
 
       <input
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => {
+          setUrl(e.target.value);
+          onUrlChange?.(e.target.value);
+        }}
         placeholder="Or paste an image URL"
         className={fieldClass}
       />
