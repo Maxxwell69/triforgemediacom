@@ -6,6 +6,7 @@ import { requireAdminPage } from "@/lib/session";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { parseBrandKit, validateBrandKit } from "@/lib/hub/brandKit";
 import { writeClientHubBrandKit } from "@/lib/hub/brandKitStore";
+import { validateCustomDomain, writeClientHubCustomDomain } from "@/lib/hub/customDomain";
 
 const DESCRIPTION_MAX = 400;
 
@@ -117,4 +118,34 @@ export async function resetHubBrandKit() {
   revalidatePath("/", "layout");
   revalidatePath("/home");
   redirect("/admin/hub-profile?brandSaved=1");
+}
+
+export async function saveHubCustomDomain(formData: FormData) {
+  const ctx = await requireClientHub();
+  const raw = String(formData.get("customDomain") || "").trim();
+  if (!raw) {
+    await writeClientHubCustomDomain(ctx.control, ctx.hub.id, null);
+    revalidatePath("/admin/hub-profile");
+    revalidatePath("/hubs");
+    revalidatePath("/", "layout");
+    redirect("/admin/hub-profile?domainSaved=1");
+  }
+
+  const parsed = validateCustomDomain(raw);
+  if (!parsed.ok) {
+    redirect(`/admin/hub-profile?domainError=${encodeURIComponent(parsed.error)}`);
+  }
+
+  try {
+    await writeClientHubCustomDomain(ctx.control, ctx.hub.id, parsed.host);
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Could not save that domain. Try again.";
+    redirect(`/admin/hub-profile?domainError=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/admin/hub-profile");
+  revalidatePath("/hubs");
+  revalidatePath("/", "layout");
+  redirect("/admin/hub-profile?domainSaved=1");
 }

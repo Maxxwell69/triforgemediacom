@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { hostnameFromHeaders, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, isCustomDomainCandidate, resolveHubHost } from "@/lib/hub/host";
+import { findSlugByCustomDomain } from "@/lib/hub/customDomain";
 import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 
 /**
@@ -14,14 +15,19 @@ export async function GET(req: Request) {
     version: process.env.npm_package_version ?? "ok",
   };
 
-  const resolved = resolveHubHost(hostnameFromHeaders(req.headers));
-  if (resolved.kind !== "client") {
+  const host = hostnameFromHeaders(req.headers);
+  const resolved = resolveHubHost(host);
+  let slug = resolved.kind === "client" ? resolved.slug : null;
+  if (!slug && isCustomDomainCandidate(host)) {
+    slug = await findSlugByCustomDomain(getControlPrisma(), host);
+  }
+  if (!slug) {
     return NextResponse.json(body);
   }
 
-  body.hub = resolved.slug;
+  body.hub = slug;
   const hub = await getControlPrisma().clientHub.findUnique({
-    where: { slug: resolved.slug },
+    where: { slug },
     select: { tenantDbName: true },
   });
   if (!hub) {

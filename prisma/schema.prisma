@@ -2525,6 +2525,8 @@ model ClientHub {
   directoryImageUrl    String?
   /// Client-hub skin. Null = TriForge defaults. Control-plane only.
   brandKit             Json?
+  /// Optional vanity hostname (community.example.com). Null = {slug}.hub.triforgemedia.com only.
+  customDomain         String?  @unique
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   createdById        String?

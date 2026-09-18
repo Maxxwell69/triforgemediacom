@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import { resolveHubHost } from "@/lib/hub/host";
+import { isCustomDomainCandidate, resolveHubHost } from "@/lib/hub/host";
 
 /**
  * Edge-safe Auth.js config: no Prisma adapter, no bcrypt, no DB calls.
@@ -25,6 +25,7 @@ export const authConfig = {
         const dest = new URL(url, baseUrl);
         if (dest.origin === baseUrl) return dest.toString();
         if (resolveHubHost(dest.hostname).kind === "client") return dest.toString();
+        if (isCustomDomainCandidate(dest.hostname)) return dest.toString();
       } catch {
         // Fall through to AUTH_URL.
       }

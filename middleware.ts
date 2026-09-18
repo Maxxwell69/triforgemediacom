@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig } from "@/lib/auth.config";
-import { hostnameFromHeaders, publicOriginFromHeaders, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, isCustomDomainCandidate, publicOriginFromHeaders, resolveHubHost } from "@/lib/hub/host";
 
 const { auth } = NextAuth(authConfig);
 
@@ -32,9 +32,28 @@ function atOrigin(req: NextRequest, path: string) {
   return new URL(path, `${requestOrigin(req)}/`);
 }
 
-function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) {
-  const resolved = resolveHubHost(hostnameFromHeaders(req.headers));
-  if (resolved.kind !== "client") return null;
+async function resolveClientSlug(req: NextRequest): Promise<string | null> {
+  const host = hostnameFromHeaders(req.headers);
+  const resolved = resolveHubHost(host);
+  if (resolved.kind === "client") return resolved.slug;
+  if (!isCustomDomainCandidate(host)) return null;
+  try {
+    const url = new URL("/api/internal/hub-resolve", req.url);
+    url.searchParams.set("h", host);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { slug?: string | null };
+    return typeof data.slug === "string" && data.slug ? data.slug : null;
+  } catch {
+    return null;
+  }
+}
+
+function clientHubGate(
+  req: NextRequest & { auth?: { user?: unknown } | null },
+  slug: string | null
+) {
+  if (!slug) return null;
 
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/_next")) return null;
@@ -62,8 +81,11 @@ function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) 
       url.search = req.nextUrl.search;
       return NextResponse.redirect(url);
     }
-    const url = atOrigin(req, `/hub-host/${resolved.slug}${pathname === "/" ? "" : pathname}`);
-    return NextResponse.rewrite(url);
+    const url = atOrigin(req, `/hub-host/${slug}${pathname === "/" ? "" : pathname}`);
+    url.search = req.nextUrl.search;
+    const headers = new Headers(req.headers);
+    headers.set("x-hub-slug", slug);
+    return NextResponse.rewrite(url, { request: { headers } });
   }
 
   if (!req.auth) {
@@ -75,8 +97,19 @@ function clientHubGate(req: NextRequest & { auth?: { user?: unknown } | null }) 
   return null;
 }
 
-export default auth((req) => {
-  const gated = clientHubGate(req);
+export default auth(async (req) => {
+  if (req.nextUrl.pathname.startsWith("/api/internal/hub-resolve")) {
+    return NextResponse.next();
+  }
+
+  const slug = await resolveClientSlug(req);
+  if (!slug && isCustomDomainCandidate(hostnameFromHeaders(req.headers))) {
+    if (req.nextUrl.pathname.startsWith("/api/health")) {
+      return NextResponse.next();
+    }
+    return NextResponse.json({ error: "Unknown hub domain" }, { status: 404 });
+  }
+  const gated = clientHubGate(req, slug);
   if (gated) return gated;
 
   const { pathname } = req.nextUrl;
@@ -107,6 +140,7 @@ export default auth((req) => {
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
+  if (slug) requestHeaders.set("x-hub-slug", slug);
   return NextResponse.next({
     request: { headers: requestHeaders },
   });

@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.235",
+    date: "September 17, 2026",
+    title: "Create Hub custom domain",
+    summary:
+      "Create Hub admins can set a vanity hostname so members open the community on their own domain.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin → Hub profile: save a custom domain (CNAME to {slug}.hub.triforgemedia.com). Invites and the /hubs directory use that host when set",
+      },
+      {
+        kind: "improve",
+        text: "HTTPS on a vanity domain still needs the hostname added on Railway; the default {slug}.hub.triforgemedia.com address keeps working",
+      },
+    ],
+  },
+  {
     version: "3.234",
     date: "September 17, 2026",
     title: "Featurette opacity slider",

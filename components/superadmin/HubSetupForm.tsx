@@ -191,7 +191,7 @@ export default function HubSetupForm({
               rel="noreferrer"
               className="font-body text-xs text-cyan hover:underline"
             >
-              Open {hub.slug}.hub.triforgemedia.com
+              Open {new URL(hubHref).host}
             </a>
           ) : null}
         </div>

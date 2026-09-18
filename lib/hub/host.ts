@@ -7,8 +7,25 @@ export type ResolvedHubHost =
   | { kind: "platform" }
   | { kind: "client"; slug: string };
 
-function stripPort(host: string) {
+export function stripPort(host: string) {
   return host.replace(/:\d+$/, "").toLowerCase().trim();
+}
+
+export function isPlatformHubHost(hostname: string): boolean {
+  const host = stripPort(hostname);
+  if (!host) return true;
+  if (host === HUB0_HOST) return true;
+  if (host === "localhost" || host === "127.0.0.1") return true;
+  if (host.endsWith(".up.railway.app") || host.endsWith(".railway.internal")) return true;
+  return false;
+}
+
+/** Host that might be a hub admin's vanity domain — never Hub 0. */
+export function isCustomDomainCandidate(hostname: string): boolean {
+  const host = stripPort(hostname);
+  if (!host || isPlatformHubHost(host)) return false;
+  if (host.endsWith(CLIENT_HUB_SUFFIX)) return false;
+  return host.includes(".");
 }
 
 export function hostnameFromHeaders(headers: {
@@ -55,6 +72,16 @@ export function resolveHubHost(hostname: string): ResolvedHubHost {
 
 export function clientHubPublicHost(slug: string) {
   return `${slug}${CLIENT_HUB_SUFFIX}`;
+}
+
+/** Public hostname members should use — custom domain when set. */
+export function hubPublicHost(hub: { slug: string; customDomain?: string | null }) {
+  const custom = hub.customDomain?.trim().toLowerCase();
+  return custom || clientHubPublicHost(hub.slug);
+}
+
+export function hubPublicUrl(hub: { slug: string; customDomain?: string | null }) {
+  return `https://${hubPublicHost(hub)}`;
 }
 
 /** Browser origin for Hub 0 (Forge Hub). Staging/local follow NEXT_PUBLIC_APP_URL. */

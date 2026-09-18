@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { clientHubPublicHost } from "@/lib/hub/host";
+import { hubPublicHost } from "@/lib/hub/host";
 
 const INVITE_TOKEN_TTL_DAYS = 7;
 
@@ -17,12 +17,16 @@ export function inviteUrl(token: string): string {
 }
 
 /** Owner / member invite for a client hostname — never Hub 0. */
-export function clientHubInviteUrl(slug: string, token: string) {
-  return `https://${clientHubPublicHost(slug)}/signup?token=${encodeURIComponent(token)}`;
+export function clientHubInviteUrl(
+  slug: string,
+  token: string,
+  customDomain?: string | null
+) {
+  return `https://${hubPublicHost({ slug, customDomain })}/signup?token=${encodeURIComponent(token)}`;
 }
 
-export function clientHubSignInUrl(slug: string) {
-  return `https://${clientHubPublicHost(slug)}/signin`;
+export function clientHubSignInUrl(slug: string, customDomain?: string | null) {
+  return `https://${hubPublicHost({ slug, customDomain })}/signin`;
 }
 
 export function hub0SignInUrl() {
