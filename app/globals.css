@@ -75,14 +75,8 @@ select option {
 .hub-main {
   position: relative;
   isolation: isolate;
-}
-
-.hub-main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
+  min-height: 100%;
+  background-color: rgb(var(--brand-charcoal));
   background-image: linear-gradient(
       rgb(var(--brand-charcoal) / var(--hub-overlay)),
       rgb(var(--brand-charcoal) / var(--hub-overlay))
@@ -91,6 +85,10 @@ select option {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+.hub-nav {
+  background-color: #0a0a0a;
 }
 
 @keyframes hubFadeUp {

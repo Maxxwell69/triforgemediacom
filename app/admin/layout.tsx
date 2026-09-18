@@ -13,8 +13,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   });
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-off-white/10 px-4 py-3 sm:px-10 sm:py-4">
+    <div className="hub-main min-h-screen">
+      <header className="hub-nav border-b border-off-white/10 px-4 py-3 sm:px-10 sm:py-4">
         <div className="flex items-center justify-between gap-4">
           <Logo height={24} href="/home" variant="chrome" />
           <SignOutButton />

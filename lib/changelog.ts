@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.232",
+    date: "September 17, 2026",
+    title: "Brand kit on the dashboard",
+    summary:
+      "Create Hub wallpaper, canvas, fonts, and buttons now skin the inside of the hub, not only the login preview.",
+    items: [
+      {
+        kind: "fix",
+        text: "Background image and canvas color fill the dashboard and main column; the left menu stays a dark strip",
+      },
+      {
+        kind: "improve",
+        text: "Brand kit save no longer blocks typical orange-on-magenta palettes; preview shows the dashboard instead of sign-in",
+      },
+    ],
+  },
+  {
     version: "3.231",
     date: "September 17, 2026",
     title: "Dashboard logo and button colors",
