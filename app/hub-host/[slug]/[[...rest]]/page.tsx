@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { clientHubPublicHost } from "@/lib/hub/host";
+import { publicOriginFromHeaders } from "@/lib/hub/host";
 import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { findHubInviteByToken } from "@/lib/hub/membership";
 import ClientHubSignInForm, { ClientHubShell } from "@/components/hub/ClientHubGate";
@@ -158,7 +159,8 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
   }
 
   if (session?.user) {
-    redirect(`https://${clientHubPublicHost(hub.slug)}/home`);
+    const origin = publicOriginFromHeaders(headers());
+    redirect(`${origin || "https://hub.triforgemedia.com"}/home`);
   }
 
   return (

@@ -3,9 +3,10 @@ import { requireAdminPage } from "@/lib/session";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import ImageUploadField from "@/components/ImageUploadField";
 import BrandKitEditor from "@/components/admin/BrandKitEditor";
-import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit } from "./actions";
-import { clientHubPublicHost } from "@/lib/hub/host";
+import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCustomDomain } from "./actions";
+import { clientHubPublicHost, hubPublicHost } from "@/lib/hub/host";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
+import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,14 @@ const fieldClass =
 export default async function AdminHubProfilePage({
   searchParams,
 }: {
-  searchParams: { saved?: string; error?: string; brandSaved?: string; brandError?: string };
+  searchParams: {
+    saved?: string;
+    error?: string;
+    brandSaved?: string;
+    brandError?: string;
+    domainSaved?: string;
+    domainError?: string;
+  };
 }) {
   await requireAdminPage();
   const ctx = await getRequestHubContext();
@@ -38,6 +46,8 @@ export default async function AdminHubProfilePage({
 
   const provisioned = Boolean(hub.tenantDbAt);
   const kit = await readClientHubBrandKit(ctx.control, ctx.hub.id);
+  const customDomain = await readClientHubCustomDomain(ctx.control, ctx.hub.id);
+  const publicHost = hubPublicHost({ slug: hub.slug, customDomain });
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -51,7 +61,7 @@ export default async function AdminHubProfilePage({
         Design how {hub.name} looks for members, then decide what people see on /hubs.
       </p>
       <p className="mt-2 font-body text-xs text-off-white/40">
-        {hub.name} · {clientHubPublicHost(hub.slug)}
+        {hub.name} · {publicHost}
       </p>
 
       <BrandKitEditor
@@ -62,6 +72,55 @@ export default async function AdminHubProfilePage({
         saved={Boolean(searchParams.brandSaved)}
         error={searchParams.brandError}
       />
+
+      <form action={saveHubCustomDomain} className="glass mt-10 flex flex-col gap-6 rounded-2xl p-6">
+        <div>
+          <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
+            Address
+          </p>
+          <h2 className="mt-1 font-display text-3xl tracking-wide">CUSTOM DOMAIN</h2>
+          <p className="mt-2 font-body text-sm text-off-white/55">
+            Members can open this hub at your own hostname. The default address{" "}
+            <span className="text-off-white/80">{clientHubPublicHost(hub.slug)}</span> still works.
+          </p>
+        </div>
+
+        {searchParams.domainSaved ? (
+          <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
+            Custom domain saved. Point DNS, then ask TriForge to attach HTTPS on Railway.
+          </p>
+        ) : null}
+        {searchParams.domainError ? (
+          <p className="rounded-lg border border-orange/30 bg-orange/10 px-4 py-2 font-body text-sm text-orange">
+            {searchParams.domainError}
+          </p>
+        ) : null}
+
+        <label className="font-body text-xs font-semibold uppercase tracking-wide text-off-white/40">
+          Hostname
+          <input
+            name="customDomain"
+            defaultValue={customDomain ?? ""}
+            placeholder="community.yourbrand.com"
+            autoComplete="off"
+            className={`${fieldClass} mt-2`}
+          />
+        </label>
+        <p className="font-body text-xs text-off-white/45">
+          Create a CNAME for that host to{" "}
+          <span className="text-off-white/80">{clientHubPublicHost(hub.slug)}</span>
+          . HTTPS on a vanity domain is not covered by the{" "}
+          <span className="text-off-white/80">*.hub.triforgemedia.com</span> certificate — TriForge
+          still needs to add the domain on Railway. Leave blank and save to clear.
+        </p>
+
+        <button
+          type="submit"
+          className="w-fit rounded-lg bg-orange px-4 py-2 font-body text-sm font-semibold text-off-white transition hover:bg-orange/90"
+        >
+          Save custom domain
+        </button>
+      </form>
 
       <form action={saveHubDirectoryProfile} className="glass mt-10 flex flex-col gap-6 rounded-2xl p-6">
         <div>

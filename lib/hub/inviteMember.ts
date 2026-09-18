@@ -3,6 +3,7 @@ import "server-only";
 import { sendClientHubMemberInviteEmail } from "@/lib/email";
 import { emailChromeFromKit } from "@/lib/hub/brandKit";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
+import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
 import {
   clientHubInviteUrl,
   clientHubSignInUrl,
@@ -102,8 +103,11 @@ export async function inviteClientHubMember(opts: {
     });
   }
 
+  const customDomain = await readClientHubCustomDomain(control, hub.id);
   const hasPassword = !!user.passwordHash;
-  const url = hasPassword ? clientHubSignInUrl(hub.slug) : clientHubInviteUrl(hub.slug, token);
+  const url = hasPassword
+    ? clientHubSignInUrl(hub.slug, customDomain)
+    : clientHubInviteUrl(hub.slug, token, customDomain);
   try {
     await sendClientHubMemberInviteEmail(
       email,
@@ -148,10 +152,11 @@ export async function resendClientHubMemberInvite(opts: {
     });
   }
 
+  const customDomain = await readClientHubCustomDomain(control, membership.clientHub.id);
   const hasPassword = !!membership.user.passwordHash;
   const url = hasPassword
-    ? clientHubSignInUrl(membership.clientHub.slug)
-    : clientHubInviteUrl(membership.clientHub.slug, token);
+    ? clientHubSignInUrl(membership.clientHub.slug, customDomain)
+    : clientHubInviteUrl(membership.clientHub.slug, token, customDomain);
   try {
     await sendClientHubMemberInviteEmail(
       membership.user.email,

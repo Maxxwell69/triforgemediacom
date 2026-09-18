@@ -5,6 +5,7 @@ import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { requireSuperAdminPage } from "@/lib/session";
 import { OPTIONAL_SKUS } from "@/lib/hub/catalog";
 import { clientHubPublicUrl } from "@/lib/hub/directory";
+import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
 import { listPlatformHubStaff } from "@/lib/hub/staffAccess";
 import HubSetupForm from "@/components/superadmin/HubSetupForm";
 import SuperAdminSubnav from "@/components/superadmin/SuperAdminSubnav";
@@ -34,6 +35,8 @@ export default async function SuperAdminHubPage({ params }: { params: { hubId: s
     membershipStatus: membershipByUser.get(row.id) ?? null,
   }));
 
+  const customDomain = await readClientHubCustomDomain(control, hub.id);
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <Link href="/superadmin" className="font-body text-sm text-off-white/50 hover:text-off-white">
@@ -45,13 +48,14 @@ export default async function SuperAdminHubPage({ params }: { params: { hubId: s
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/55">
         {hub.slug}.hub.triforgemedia.com — record is saved. Work the list below.
+        {customDomain ? ` Custom domain: ${customDomain}.` : ""}
       </p>
       <div className="mt-8">
         <HubSetupForm
           hub={hub}
           optional={OPTIONAL_SKUS}
           tenantPing={tenantPing}
-          hubHref={clientHubPublicUrl(hub.slug)}
+          hubHref={clientHubPublicUrl(hub.slug, customDomain)}
           staff={staff}
         />
       </div>

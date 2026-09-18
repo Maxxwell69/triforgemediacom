@@ -1,6 +1,7 @@
 import "server-only";
 
-import { clientHubPublicHost } from "@/lib/hub/host";
+import { hubPublicHost, hubPublicUrl } from "@/lib/hub/host";
+import { readCustomDomainsByHubIds } from "@/lib/hub/customDomain";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
 export { hub0PublicUrl, hub0PublicHost } from "@/lib/hub/host";
@@ -17,8 +18,8 @@ export type DirectoryHub = {
   imageUrl: string | null;
 };
 
-export function clientHubPublicUrl(slug: string) {
-  return `https://${clientHubPublicHost(slug)}`;
+export function clientHubPublicUrl(slug: string, customDomain?: string | null) {
+  return hubPublicUrl({ slug, customDomain });
 }
 
 export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
@@ -35,17 +36,24 @@ export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
       directoryImageUrl: true,
     },
   });
-  return hubs.map((hub) => ({
-    id: hub.id,
-    name: hub.name,
-    slug: hub.slug,
-    host: clientHubPublicHost(hub.slug),
-    href: clientHubPublicUrl(hub.slug),
-    createdAt: hub.createdAt,
-    provisioned: !!hub.tenantDbAt,
-    description: hub.directoryDescription,
-    imageUrl: hub.directoryImageUrl,
-  }));
+  const domains = await readCustomDomainsByHubIds(
+    getControlPrisma(),
+    hubs.map((hub) => hub.id)
+  );
+  return hubs.map((hub) => {
+    const customDomain = domains.get(hub.id) ?? null;
+    return {
+      id: hub.id,
+      name: hub.name,
+      slug: hub.slug,
+      host: hubPublicHost({ slug: hub.slug, customDomain }),
+      href: hubPublicUrl({ slug: hub.slug, customDomain }),
+      createdAt: hub.createdAt,
+      provisioned: !!hub.tenantDbAt,
+      description: hub.directoryDescription,
+      imageUrl: hub.directoryImageUrl,
+    };
+  });
 }
 
 export async function userHasForgeHubAccess(userId: string) {
@@ -57,7 +65,7 @@ export async function userHasForgeHubAccess(userId: string) {
 }
 
 export async function listMyHubMemberships(userId: string) {
-  return getControlPrisma().hubMembership.findMany({
+  const rows = await getControlPrisma().hubMembership.findMany({
     where: { userId, status: { in: ["INVITED", "ACTIVE"] } },
     orderBy: { createdAt: "desc" },
     select: {
@@ -77,4 +85,15 @@ export async function listMyHubMemberships(userId: string) {
       },
     },
   });
+  const domains = await readCustomDomainsByHubIds(
+    getControlPrisma(),
+    rows.map((row) => row.clientHub.id)
+  );
+  return rows.map((row) => ({
+    ...row,
+    clientHub: {
+      ...row.clientHub,
+      customDomain: domains.get(row.clientHub.id) ?? null,
+    },
+  }));
 }

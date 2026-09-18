@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HubSiteHeader from "@/components/hub/HubSiteHeader";
 import HubSiteFooter from "@/components/hub/HubSiteFooter";
 import { auth } from "@/lib/auth";
+import { hubPublicHost } from "@/lib/hub/host";
 import {
   clientHubPublicUrl,
   hub0PublicUrl,
@@ -132,8 +133,8 @@ export default async function HubsDirectoryPage() {
                 <li key={row.id}>
                   <ClientHubCard
                     name={row.clientHub.name}
-                    host={`${row.clientHub.slug}.hub.triforgemedia.com`}
-                    href={`${clientHubPublicUrl(row.clientHub.slug)}/home`}
+                    host={hubPublicHost(row.clientHub)}
+                    href={`${clientHubPublicUrl(row.clientHub.slug, row.clientHub.customDomain)}/home`}
                     description={row.clientHub.directoryDescription}
                     imageUrl={row.clientHub.directoryImageUrl}
                     status={`${row.status === "INVITED" ? "Invite pending" : "Joined"} · ${row.role}${
