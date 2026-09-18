@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.242",
+    date: "September 18, 2026",
+    title: "Group channel create fix",
+    summary: "Creating a channel from a group (for example Voice Chat) shows an error or the new room instead of failing silently.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin → Groups: creating a channel stays on the page, shows success or the real error, and no longer gets wiped by Save channels",
+      },
+    ],
+  },
+  {
     version: "3.241",
     date: "September 18, 2026",
     title: "Hop-in channel voice",

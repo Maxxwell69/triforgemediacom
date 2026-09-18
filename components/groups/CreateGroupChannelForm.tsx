@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createGroupChannel } from "@/app/(community)/groups/actions";
 
@@ -10,36 +10,53 @@ const fieldClass =
 export default function CreateGroupChannelForm({
   groupId,
   voiceAvailable,
+  stayOnPage,
 }: {
   groupId: string;
   voiceAvailable?: boolean;
+  stayOnPage?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      try {
+        const result = await createGroupChannel(groupId, formData);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        form.reset();
+        if (stayOnPage) {
+          setSuccess(`Created #${result.name ?? "channel"}. It should appear in the list below.`);
+          router.refresh();
+          return;
+        }
+        if (result.channelId) {
+          router.push(`/channels/${result.channelId}`);
+          router.refresh();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not create that channel.");
+      }
+    });
+  }
+
   return (
-    <form
-      className="flex flex-col gap-3"
-      action={(formData) => {
-        startTransition(async () => {
-          const result = await createGroupChannel(groupId, formData);
-          if (result.error) {
-            setError(result.error);
-            return;
-          }
-          setError(null);
-          if (result.channelId) {
-            router.push(`/channels/${result.channelId}`);
-            router.refresh();
-          }
-        });
-      }}
-    >
+    <form className="flex flex-col gap-3" onSubmit={onSubmit}>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
         <input
           name="name"
           required
+          minLength={2}
           placeholder="channel-name"
           className={fieldClass}
         />
@@ -67,6 +84,7 @@ export default function CreateGroupChannelForm({
         </label>
       )}
       {error && <p className="font-body text-sm text-orange">{error}</p>}
+      {success && <p className="font-body text-sm text-cyan">{success}</p>}
     </form>
   );
 }
