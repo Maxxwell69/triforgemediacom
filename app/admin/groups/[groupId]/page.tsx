@@ -8,6 +8,7 @@ import GroupApplicationsPanel from "@/components/admin/GroupApplicationsPanel";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 import ImageUploadField from "@/components/ImageUploadField";
 import { updateGroup } from "../actions";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function AdminGroupDetailPage({
 
   if (!group) notFound();
 
+  const voiceSku = hubHas("voice");
   const memberIds = new Set(group.members.map((m) => m.user.id));
   const members = group.members.map((m) => ({
     id: m.user.id,
@@ -87,7 +89,9 @@ export default async function AdminGroupDetailPage({
         <p className="mt-2 font-body text-off-white/60">{group.description}</p>
       )}
       <p className="mt-2 font-body text-sm text-off-white/40">
-        TikTask access: {group.grantsTikTaskAccess ? "allowed" : "blocked"} for members · join:{" "}
+        TikTask access: {group.grantsTikTaskAccess ? "allowed" : "blocked"} for members
+        {voiceSku ? ` · Voice: ${group.grantsVoiceAccess ? "allowed" : "blocked"}` : ""}
+        {" · join: "}
         {group.joinMode}
       </p>
 
@@ -144,6 +148,22 @@ export default async function AdminGroupDetailPage({
             />
             Members of this group can access TikTask
           </label>
+          {voiceSku && (
+            <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="grantsVoiceAccess"
+                  defaultChecked={group.grantsVoiceAccess}
+                  className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+                />
+                Channels in this group can enable hop-in voice
+              </span>
+              <span className="pl-6 text-xs text-off-white/40">
+                Then turn voice on per channel. Small hangouts, up to 8 people — no LiveKit minutes.
+              </span>
+            </label>
+          )}
           {!group.isHome && (
             <label className="flex flex-col gap-1 font-body text-sm text-off-white/70">
               <span className="flex items-center gap-2">
@@ -192,7 +212,10 @@ export default async function AdminGroupDetailPage({
         </p>
         <div className="glass mt-4 rounded-2xl p-6">
           <p className="mb-3 font-body text-sm font-medium text-off-white/70">New channel for this space</p>
-          <CreateGroupChannelForm groupId={group.id} />
+          <CreateGroupChannelForm
+            groupId={group.id}
+            voiceAvailable={voiceSku && group.grantsVoiceAccess}
+          />
           <div className="my-6 border-t border-off-white/10" />
           <p className="mb-3 font-body text-sm font-medium text-off-white/70">
             Attach existing channels

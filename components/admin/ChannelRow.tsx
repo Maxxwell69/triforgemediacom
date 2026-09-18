@@ -10,6 +10,7 @@ type Channel = {
   name: string;
   description: string | null;
   minRole: keyof typeof ROLE_LABELS;
+  hasVoice: boolean;
   messageCount: number;
   groupNames: string[];
 };
@@ -17,7 +18,13 @@ type Channel = {
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
 
-export default function ChannelRow({ channel }: { channel: Channel }) {
+export default function ChannelRow({
+  channel,
+  voiceSku,
+}: {
+  channel: Channel;
+  voiceSku?: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -52,6 +59,17 @@ export default function ChannelRow({ channel }: { channel: Channel }) {
           rows={2}
           className={fieldClass}
         />
+        {voiceSku && (
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              name="hasVoice"
+              defaultChecked={channel.hasVoice}
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Enable hop-in voice in this channel
+          </label>
+        )}
         <div className="flex items-center gap-3">
           <button
             type="submit"
@@ -87,6 +105,11 @@ export default function ChannelRow({ channel }: { channel: Channel }) {
               {name}
             </span>
           ))}
+          {voiceSku && channel.hasVoice && (
+            <span className="rounded-full border border-cyan/40 px-2 py-0.5 font-body text-[10px] text-cyan">
+              Voice
+            </span>
+          )}
         </div>
         {channel.description && (
           <p className="mt-1 truncate font-body text-xs text-off-white/40">

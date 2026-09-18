@@ -131,6 +131,9 @@ model User {
   webinarChatMessages        WebinarChatMessage[]
   webinarStageRequests       WebinarStageRequest[]
   channelReads               ChannelRead[]
+  voicePresences             VoicePresence[]
+  voiceSignalsSent           VoiceSignal[]        @relation("VoiceSignalFrom")
+  voiceSignalsReceived       VoiceSignal[]        @relation("VoiceSignalTo")
   bugReports                 BugReport[]
   bugReportRead              BugReportRead?
   groupInvitesSent           GroupInvite[]          @relation("GroupInvitedBy")
@@ -296,11 +299,15 @@ model Channel {
   name        String
   description String?
   minRole     UserRole @default(MEMBER) // minimum role required to view/post
+  /// Hop-in voice for this room. Also requires hub Voice SKU + a group with grantsVoiceAccess.
+  hasVoice    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  messages Message[]
-  reads    ChannelRead[]
-  groups   Group[]   @relation("ChannelGroups")
+  messages       Message[]
+  reads          ChannelRead[]
+  groups         Group[]           @relation("ChannelGroups")
+  voicePresences VoicePresence[]
+  voiceSignals   VoiceSignal[]
 }
 
 /// Per-user read cursor for Discord-style channel unread badges.
@@ -316,6 +323,41 @@ model ChannelRead {
 
   @@unique([userId, channelId])
   @@index([userId])
+}
+
+/// Who is in a channel’s hop-in voice room (P2P mesh occupancy).
+model VoicePresence {
+  id          String   @id @default(cuid())
+  channelId   String
+  userId      String
+  displayName String
+  muted       Boolean  @default(false)
+  joinedAt    DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId])
+  @@index([lastSeenAt])
+}
+
+/// WebRTC offer/answer/ICE relay for channel voice (consumed once by the recipient).
+model VoiceSignal {
+  id         String   @id @default(cuid())
+  channelId  String
+  fromUserId String
+  toUserId   String
+  kind       String
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  channel  Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  fromUser User    @relation("VoiceSignalFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User    @relation("VoiceSignalTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, toUserId, createdAt])
 }
 
 // ---------- Groups (spaces + ACL) ----------
@@ -350,6 +392,8 @@ model Group {
   /// Optional square icon shown in group lists and the space switcher.
   imageUrl            String?
   grantsTikTaskAccess Boolean       @default(true)
+  /// When true (and the hub Voice SKU is on), channels in this group can enable hop-in voice.
+  grantsVoiceAccess   Boolean       @default(false)
   /// System main hub space. Only one row should have isHome=true.
   isHome              Boolean       @default(false)
   /// When false, hide from /groups and the space switcher rail (still usable for access/tags).

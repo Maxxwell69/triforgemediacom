@@ -8,6 +8,7 @@ type ChannelListItem = {
   id: string;
   name: string;
   unreadCount?: number;
+  hasVoice?: boolean;
 };
 
 export type ChannelSpaceHeader = {
@@ -147,6 +148,24 @@ export default function ChannelSidebar({
             }`}
           >
             <span className="min-w-0 truncate"># {channel.name}</span>
+            {channel.hasVoice ? (
+              <span className="shrink-0 text-cyan/80" title="Voice channel" aria-label="Voice">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M11 5 6.5 9H3v6h3.5L11 19V5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M15.2 8.8a4.5 4.5 0 0 1 0 6.4"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            ) : null}
             <UnreadBadge count={isActive ? 0 : count} />
           </Link>
         );

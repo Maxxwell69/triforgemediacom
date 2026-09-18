@@ -9,6 +9,7 @@ import ApplyToGroupForm from "@/components/groups/ApplyToGroupForm";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 import SyncActiveGroup from "@/components/groups/SyncActiveGroup";
 import { ACTIVE_GROUP_COOKIE } from "@/lib/activeGroup";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function GroupDetailPage({
       where: { id: params.groupId },
       include: {
         _count: { select: { members: true, channels: true } },
-        channels: { orderBy: { createdAt: "asc" }, select: { id: true, name: true } },
+        channels: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, hasVoice: true } },
         members: {
           orderBy: { addedAt: "asc" },
           take: 40,
@@ -147,6 +148,9 @@ export default async function GroupDetailPage({
                     className="glass rounded-xl px-4 py-3 font-body text-sm text-off-white/80 transition hover:border-cyan/30"
                   >
                     #{ch.name}
+                    {ch.hasVoice && hubHas("voice") && group.grantsVoiceAccess ? (
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-cyan">Voice</span>
+                    ) : null}
                   </Link>
                 ))}
               </div>
@@ -155,7 +159,10 @@ export default async function GroupDetailPage({
                   <p className="mb-3 font-body text-sm text-off-white/60">
                     Create a channel for this space. Group members will see it in chat.
                   </p>
-                  <CreateGroupChannelForm groupId={group.id} />
+                  <CreateGroupChannelForm
+                    groupId={group.id}
+                    voiceAvailable={hubHas("voice") && group.grantsVoiceAccess}
+                  />
                 </div>
               )}
             </section>

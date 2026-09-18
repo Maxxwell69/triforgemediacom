@@ -8,6 +8,7 @@ import { toChatAuthor } from "@/lib/chatAuthors";
 import { markChannelRead } from "@/lib/channelReads";
 import { replyToInclude } from "@/lib/chatReplies";
 import ChatView from "@/components/chat/ChatView";
+import { channelVoiceEnabled } from "@/lib/voiceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function ChannelPage({
   const [channel, userGroupIds, dbUser] = await Promise.all([
     prisma.channel.findUnique({
       where: { id: params.channelId },
-      include: { groups: { select: { id: true, isHome: true } } },
+      include: { groups: { select: { id: true, isHome: true, grantsVoiceAccess: true } } },
     }),
     getUserGroupIds(user.id),
     prisma.user.findUnique({ where: { id: user.id }, select: { mutedUntil: true } }),
@@ -66,6 +67,8 @@ export default async function ChannelPage({
       currentUserRole={user.role}
       initialMessages={initialMessages}
       initialMutedUntil={dbUser?.mutedUntil ?? null}
+      voiceEnabled={channelVoiceEnabled(channel)}
+      selfName={user.name ?? "Member"}
     />
   );
 }

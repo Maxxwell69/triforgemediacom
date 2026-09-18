@@ -25,6 +25,12 @@ export const CORE_SKUS: HubSku[] = [
 /** Create Hub checkboxes — member surface + matching admin module. */
 export const OPTIONAL_SKUS: HubSku[] = [
   { id: "chat", kind: "optional", label: "Chat", description: "Channels and community chat" },
+  {
+    id: "voice",
+    kind: "optional",
+    label: "Voice",
+    description: "Hop-in voice in group channels (small rooms, no LiveKit minutes)",
+  },
   { id: "dms", kind: "optional", label: "Direct messages", description: "DMs and DM settings" },
   { id: "applications", kind: "optional", label: "Applications", description: "Public apply + applicant queue" },
   { id: "tiktask", kind: "optional", label: "TikTask", description: "Daily tasks and templates" },

@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.241",
+    date: "September 18, 2026",
+    title: "Hop-in channel voice",
+    summary:
+      "Optional Voice add-on for small group hangouts — join, mute, and leave from chat without LiveKit minutes.",
+    items: [
+      {
+        kind: "feature",
+        text: "Create Hub Voice SKU: turn on hop-in voice per group, then per channel",
+      },
+      {
+        kind: "feature",
+        text: "Chat rooms show Join voice / Mute / Leave (up to 8 people, peer-to-peer)",
+      },
+    ],
+  },
+  {
     version: "3.240",
     date: "September 18, 2026",
     title: "Hub 0 tenant mix-up",

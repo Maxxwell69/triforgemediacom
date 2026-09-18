@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageGroup } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
+import { hubHas } from "@/lib/hub/modules";
 import { groupApplicationMessageSchema } from "@/lib/validations/group";
 import { z } from "zod";
 
@@ -130,7 +131,7 @@ export async function createGroupChannel(
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
-    select: { id: true, isHome: true },
+    select: { id: true, isHome: true, grantsVoiceAccess: true },
   });
   if (!group) return { error: "Group not found" };
 
@@ -144,12 +145,15 @@ export async function createGroupChannel(
 
   // Normalize Discord-style names: lowercase, spaces → hyphens
   const name = parsed.data.name.toLowerCase().replace(/\s+/g, "-");
+  const hasVoice =
+    hubHas("voice") && group.grantsVoiceAccess && formData.get("hasVoice") === "on";
 
   const channel = await prisma.channel.create({
     data: {
       name,
       description: parsed.data.description || null,
       minRole: "MEMBER",
+      hasVoice,
       groups: { connect: { id: groupId } },
     },
   });

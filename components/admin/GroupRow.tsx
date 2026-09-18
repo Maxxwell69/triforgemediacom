@@ -12,6 +12,7 @@ type Group = {
   color: string;
   imageUrl: string | null;
   grantsTikTaskAccess: boolean;
+  grantsVoiceAccess: boolean;
   showInList: boolean;
   canCreateEvents: boolean;
   isHome: boolean;
@@ -23,7 +24,13 @@ type Group = {
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
 
-export default function GroupRow({ group }: { group: Group }) {
+export default function GroupRow({
+  group,
+  voiceSku,
+}: {
+  group: Group;
+  voiceSku?: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -89,6 +96,17 @@ export default function GroupRow({ group }: { group: Group }) {
           />
           Members of this group can access TikTask
         </label>
+        {voiceSku && (
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              name="grantsVoiceAccess"
+              defaultChecked={group.grantsVoiceAccess}
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Channels in this group can enable hop-in voice
+          </label>
+        )}
         {!group.isHome && (
           <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
             <input
@@ -160,6 +178,7 @@ export default function GroupRow({ group }: { group: Group }) {
             {group.joinMode}
             {" \u00b7 "}
             TikTask {group.grantsTikTaskAccess ? "allowed" : "blocked"}
+            {voiceSku ? ` · Voice ${group.grantsVoiceAccess ? "allowed" : "blocked"}` : ""}
             {!group.isHome && !group.showInList ? " · not in listings" : ""}
             {group.canCreateEvents ? " · can create events" : ""}
           </p>

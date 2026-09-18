@@ -3,6 +3,7 @@ import { createChannel } from "./actions";
 import ChannelRow from "@/components/admin/ChannelRow";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { roleOptions } from "@/lib/validations/channel";
+import { hubHas } from "@/lib/hub/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function AdminChannelsPage() {
       _count: { select: { messages: true } },
     },
   });
+  const voiceSku = hubHas("voice");
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -24,8 +26,11 @@ export default async function AdminChannelsPage() {
         CHANNEL <span className="text-gradient">MANAGEMENT</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Create and edit chat channels. Attach a channel to a group from{" "}
+        Create and edit chat channels.         Attach a channel to a group from{" "}
         <span className="text-off-white/80">Groups</span> to make it an exception room.
+        {voiceSku
+          ? " Voice works when the group allows it and this room has hop-in voice on."
+          : ""}
       </p>
 
       <form
@@ -50,6 +55,16 @@ export default async function AdminChannelsPage() {
           placeholder="Optional description"
           className={fieldClass}
         />
+        {voiceSku && (
+          <label className="flex items-center gap-2 font-body text-sm text-off-white/70">
+            <input
+              type="checkbox"
+              name="hasVoice"
+              className="h-4 w-4 rounded border-off-white/30 bg-transparent accent-orange"
+            />
+            Enable hop-in voice in this channel
+          </label>
+        )}
         <button
           type="submit"
           className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
@@ -72,9 +87,11 @@ export default async function AdminChannelsPage() {
               name: channel.name,
               description: channel.description,
               minRole: channel.minRole,
+              hasVoice: channel.hasVoice,
               messageCount: channel._count.messages,
               groupNames: channel.groups.map((g) => g.name),
             }}
+            voiceSku={voiceSku}
           />
         ))}
       </div>
