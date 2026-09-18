@@ -7,6 +7,7 @@ import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCust
 import { clientHubPublicHost, hubPublicHost } from "@/lib/hub/host";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
 import { customDomainHttpsReady, readClientHubCustomDomainSetup } from "@/lib/hub/customDomain";
+import CustomDomainDnsPanel from "@/components/admin/CustomDomainDnsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,6 @@ export default async function AdminHubProfilePage({
   const customDomain = domainSetup?.host ?? null;
   const publicHost = hubPublicHost({ slug: hub.slug, customDomain });
   const httpsReady = customDomainHttpsReady(domainSetup);
-  const apex = Boolean(customDomain && customDomain.split(".").length === 2);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -125,59 +125,12 @@ export default async function AdminHubProfilePage({
         </button>
       </form>
 
-      {customDomain ? (
-        <div className="glass mt-4 flex flex-col gap-4 rounded-2xl p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-body text-sm text-off-white">
-              {httpsReady ? "HTTPS is live on this hostname." : "DNS records for HTTPS"}
-            </p>
-            <form action={refreshHubCustomDomain}>
-              <button
-                type="submit"
-                className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs text-cyan hover:border-cyan/70"
-              >
-                Check HTTPS status
-              </button>
-            </form>
-          </div>
-          {domainSetup?.certificateStatus || domainSetup?.dnsStatus ? (
-            <p className="font-body text-xs text-off-white/45">
-              Certificate: {domainSetup?.certificateStatus || "pending"}
-              {domainSetup?.dnsStatus ? ` · DNS: ${domainSetup.dnsStatus}` : ""}
-            </p>
-          ) : null}
-          {domainSetup?.cnameTarget ? (
-            <div className="rounded-xl border border-off-white/10 px-4 py-3">
-              <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">CNAME</p>
-              <p className="mt-1 break-all font-body text-sm text-off-white">
-                {domainSetup.cnameHost || customDomain} → {domainSetup.cnameTarget}
-              </p>
-              {apex ? (
-                <p className="mt-2 font-body text-xs text-off-white/45">
-                  Root domains need ALIAS, ANAME, or CNAME flattening — not an A record.
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="font-body text-xs text-off-white/45">
-              Save the hostname on Railway to generate the CNAME target.
-            </p>
-          )}
-          {domainSetup?.txtHost && domainSetup.txtValue ? (
-            <div className="rounded-xl border border-off-white/10 px-4 py-3">
-              <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">
-                TXT (required)
-              </p>
-              <p className="mt-1 break-all font-body text-sm text-off-white">
-                {domainSetup.txtHost} → {domainSetup.txtValue}
-              </p>
-              <p className="mt-2 font-body text-xs text-off-white/45">
-                Railway will not serve HTTPS until this ownership record exists. If you use
-                Cloudflare, keep both records DNS-only (grey cloud), not proxied.
-              </p>
-            </div>
-          ) : null}
-        </div>
+      {domainSetup?.host ? (
+        <CustomDomainDnsPanel
+          setup={domainSetup}
+          httpsReady={httpsReady}
+          refreshAction={refreshHubCustomDomain}
+        />
       ) : null}
 
       <form action={saveHubDirectoryProfile} className="glass mt-10 flex flex-col gap-6 rounded-2xl p-6">
