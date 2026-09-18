@@ -54,9 +54,9 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
 };
 
 const HEX = /^#([0-9a-f]{6})$/i;
-const MAX_CANVAS_LUMINANCE = 0.18;
-const MIN_INK_CONTRAST = 4.5;
-const MIN_ACCENT_CONTRAST = 2.8;
+/** Block near-white canvases; saturated brand colors (magenta, navy, etc.) are allowed. */
+const MAX_CANVAS_LUMINANCE = 0.45;
+const MIN_INK_CONTRAST = 3;
 
 export function isHexColor(value: string): boolean {
   return HEX.test(value.trim());
@@ -157,31 +157,13 @@ export function validateBrandKit(kit: BrandKit): BrandKitIssue[] {
   if (relativeLuminance(kit.colors.canvas) > MAX_CANVAS_LUMINANCE) {
     issues.push({
       field: "canvas",
-      message: "Canvas must stay dark so chat and admin stay readable.",
+      message: "Canvas is too light — pick a darker page color so chat stays readable.",
     });
   }
   if (contrastRatio(kit.colors.ink, kit.colors.canvas) < MIN_INK_CONTRAST) {
     issues.push({
       field: "ink",
       message: "Text color does not contrast enough with the canvas.",
-    });
-  }
-  if (contrastRatio(kit.colors.primary, kit.colors.canvas) < MIN_ACCENT_CONTRAST) {
-    issues.push({
-      field: "primary",
-      message: "Primary color is too close to the canvas — pick a brighter accent.",
-    });
-  }
-  if (contrastRatio(kit.colors.secondary, kit.colors.canvas) < MIN_ACCENT_CONTRAST) {
-    issues.push({
-      field: "secondary",
-      message: "Secondary color is too close to the canvas — pick a brighter accent.",
-    });
-  }
-  if (contrastRatio(kit.colors.button, kit.colors.canvas) < MIN_ACCENT_CONTRAST) {
-    issues.push({
-      field: "button",
-      message: "Button color is too close to the canvas — pick a brighter fill.",
     });
   }
   if (contrastRatio(kit.colors.buttonInk, kit.colors.button) < MIN_INK_CONTRAST) {

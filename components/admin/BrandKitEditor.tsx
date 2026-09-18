@@ -69,8 +69,8 @@ export default function BrandKitEditor({
         <p className="font-body text-[11px] uppercase tracking-wide text-off-white/35">Look</p>
         <h2 className="mt-1 font-display text-3xl tracking-wide">BRAND KIT</h2>
         <p className="mt-2 font-body text-sm text-off-white/55">
-          This is how members see {hubName} — logo on the dashboard, button colors, type, and
-          wallpaper. The left menu stays the hub name.
+          This is how members see {hubName} inside the hub — dashboard wallpaper, type, and
+          buttons. The left menu stays the hub name on a dark strip.
         </p>
       </div>
 
@@ -215,26 +215,41 @@ export default function BrandKitEditor({
             backgroundPosition: "center",
           }}
         >
-          <p className="font-body text-[10px] uppercase tracking-[0.2em] opacity-60">Preview</p>
+          <p className="font-body text-[10px] uppercase tracking-[0.2em] opacity-60">Dashboard</p>
           {kit.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={kit.logoUrl} alt="" className="mt-3 max-h-14 w-auto object-contain" />
+            <img src={kit.logoUrl} alt="" className="mt-3 max-h-12 w-auto object-contain" />
           ) : null}
           <p
             className="mt-3 text-3xl tracking-wide"
             style={{ fontFamily: `"${previewDisplay(kit)}", sans-serif` }}
           >
-            {hubName}
+            Good morning
           </p>
-          <p className="mt-2 font-body text-xs opacity-70" style={{ fontFamily: `"${previewBody(kit)}", sans-serif` }}>
-            Sign in to continue
+          <p className="mt-1 text-xs opacity-70" style={{ fontFamily: `"${previewBody(kit)}", sans-serif` }}>
+            Home · {hubName}
           </p>
+          <div
+            className="mt-4 rounded-xl border p-3"
+            style={{
+              borderColor: `${kit.colors.ink}22`,
+              background: `${kit.colors.ink}12`,
+              fontFamily: `"${previewBody(kit)}", sans-serif`,
+            }}
+          >
+            <p className="text-sm font-semibold">Chat</p>
+            <p className="mt-1 text-[11px] opacity-70">Jump into the conversation.</p>
+          </div>
           <button
             type="button"
             className="mt-4 rounded-lg px-4 py-2 font-body text-sm font-semibold"
-            style={{ background: kit.colors.button, color: kit.colors.buttonInk }}
+            style={{
+              background: kit.colors.button,
+              color: kit.colors.buttonInk,
+              fontFamily: `"${previewBody(kit)}", sans-serif`,
+            }}
           >
-            Sign in
+            Open
           </button>
           <span
             className="ml-2 inline-flex rounded-full px-2 py-1 font-body text-[10px] font-semibold uppercase tracking-wide"

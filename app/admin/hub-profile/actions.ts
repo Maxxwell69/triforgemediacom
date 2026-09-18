@@ -84,7 +84,7 @@ export async function saveHubBrandKit(formData: FormData) {
   await writeClientHubBrandKit(ctx.control, ctx.hub.id, kit);
 
   revalidatePath("/admin/hub-profile");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/home");
   redirect("/admin/hub-profile?brandSaved=1");
 }
@@ -93,7 +93,7 @@ export async function resetHubBrandKit() {
   const ctx = await requireClientHub();
   await writeClientHubBrandKit(ctx.control, ctx.hub.id, null);
   revalidatePath("/admin/hub-profile");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/home");
   redirect("/admin/hub-profile?brandSaved=1");
 }

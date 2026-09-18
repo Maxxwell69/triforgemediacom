@@ -37,7 +37,7 @@ export default function MobileShell({
         lockViewport ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen"
       }`}
     >
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-charcoal/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-off-white/10 bg-[#0A0A0A]/95 px-4 py-3 backdrop-blur md:hidden print:hidden">
         <Logo height={20} href="/home" variant="chrome" />
         <div className="flex items-center gap-1">
           {headerRight}
@@ -74,7 +74,7 @@ export default function MobileShell({
       >
         {rail}
 
-        <div className="flex w-64 flex-col overflow-y-auto border-r border-off-white/10 bg-charcoal px-4 py-5 md:bg-off-white/[0.02]">
+        <div className="hub-nav flex w-64 flex-col overflow-y-auto border-r border-off-white/10 px-4 py-5">
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -96,7 +96,7 @@ export default function MobileShell({
 
       <div
         className={`hub-main flex min-w-0 flex-1 flex-col ${
-          lockViewport ? "min-h-0 overflow-hidden" : ""
+          lockViewport ? "min-h-0 overflow-hidden" : "min-h-screen"
         }`}
       >
         {children}
