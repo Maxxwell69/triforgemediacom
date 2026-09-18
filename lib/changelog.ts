@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.228",
+    date: "September 17, 2026",
+    title: "Hubs page without duplicate Hub 0",
+    summary:
+      "The extra Hub 0 card at the top of /hubs is gone — Hub 0 still appears in Your hubs and All hubs.",
+    items: [
+      {
+        kind: "improve",
+        text: "Removed the featured Hub 0 block so the directory does not show the same community twice",
+      },
+    ],
+  },
+  {
     version: "3.227",
     date: "September 17, 2026",
     title: "Hub 0 directory graphic",
