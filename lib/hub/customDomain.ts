@@ -43,6 +43,29 @@ export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   return cert.includes("ISSUED") || cert === "VALID";
 }
 
+/** Host/name a registrar expects — relative to the root domain, not the FQDN. */
+export function dnsRegistrarName(fqdn: string, vanityHost: string): string {
+  const host = fqdn.replace(/\.$/, "").toLowerCase().trim();
+  const vanity = vanityHost.replace(/\.$/, "").toLowerCase().trim();
+  if (!host) return vanity;
+  const vanityParts = vanity.split(".").filter(Boolean);
+  const zone = vanityParts.length <= 2 ? vanity : vanityParts.slice(-2).join(".");
+  if (host === zone) return "@";
+  if (host.endsWith(`.${zone}`)) return host.slice(0, -(zone.length + 1));
+  return host;
+}
+
+export function humanizeRailwayStatus(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  return raw
+    .replace(/^CERTIFICATE_STATUS_TYPE_/, "")
+    .replace(/^CERTIFICATE_STATUS_/, "")
+    .replace(/^DNS_RECORD_STATUS_/, "")
+    .replace(/_/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 export function normalizeCustomDomain(raw: string): string {
   let value = raw.trim().toLowerCase();
   value = value.replace(/^https?:\/\//, "");

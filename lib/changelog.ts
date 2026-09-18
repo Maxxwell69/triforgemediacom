@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.238",
+    date: "September 18, 2026",
+    title: "Custom domain DNS copy fields",
+    summary:
+      "Create Hub custom domain setup shows Type, Name, and Value the way a registrar form expects them.",
+    items: [
+      {
+        kind: "improve",
+        text: "Admin → Hub profile lists CNAME and TXT as copyable Type / Name / Value fields (e.g. Name `_railway-verify.hub`, not the full hostname)",
+      },
+    ],
+  },
+  {
     version: "3.237",
     date: "September 18, 2026",
     title: "Custom domain Railway attach fix",
