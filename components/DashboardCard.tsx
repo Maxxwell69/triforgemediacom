@@ -33,7 +33,7 @@ export default function DashboardCard({
   return (
     <Link
       href={href}
-      className={`glass flex flex-col gap-3 rounded-2xl p-5 transition ${styles.border}`}
+      className={`hub-featurette flex flex-col gap-3 rounded-2xl p-5 transition ${styles.border}`}
     >
       <div
         className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${styles.iconBg}`}

@@ -75,6 +75,7 @@ export async function saveHubBrandKit(formData: FormData) {
       body: String(formData.get("bodyFont") || ""),
     },
     overlay: Number(formData.get("overlay")),
+    cardOpacity: Number(formData.get("cardOpacity")),
     surfaces: {
       menu: {
         canvas: String(formData.get("menuCanvas") || ""),

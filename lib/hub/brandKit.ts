@@ -43,6 +43,7 @@ export type BrandKit = {
     body: BodyFontId;
   };
   overlay: number;
+  cardOpacity: number;
   surfaces: {
     menu: SurfaceKit;
     groups: SurfaceKit;
@@ -70,6 +71,7 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
   },
   fonts: { display: "bebas", body: "outfit" },
   overlay: 55,
+  cardOpacity: 50,
   surfaces: {
     menu: { ...DEFAULT_SURFACE },
     groups: { ...DEFAULT_SURFACE, canvas: "#070707" },
@@ -142,10 +144,10 @@ function parseImageUrl(raw: unknown): string | null {
   return value.slice(0, 2000);
 }
 
-function parseOverlay(raw: unknown): number {
+function parsePercent(raw: unknown, fallback: number, max = 100): number {
   const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return DEFAULT_BRAND_KIT.overlay;
-  return Math.min(80, Math.max(0, Math.round(n)));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(0, Math.round(n)));
 }
 
 function parseSurface(raw: unknown, fallback: SurfaceKit): SurfaceKit {
@@ -155,7 +157,7 @@ function parseSurface(raw: unknown, fallback: SurfaceKit): SurfaceKit {
     canvas: normalizeHex(String(row.canvas || "")) ?? fallback.canvas,
     ink: normalizeHex(String(row.ink || "")) ?? fallback.ink,
     backgroundImageUrl: parseImageUrl(row.backgroundImageUrl),
-    overlay: parseOverlay(row.overlay),
+    overlay: parsePercent(row.overlay, fallback.overlay, 80),
   };
 }
 
@@ -193,7 +195,8 @@ export function parseBrandKit(raw: unknown): BrandKit {
       display: displayFontById(String(fonts.display || "")).id,
       body: bodyFontById(String(fonts.body || "")).id,
     },
-    overlay: parseOverlay(row.overlay),
+    overlay: parsePercent(row.overlay, DEFAULT_BRAND_KIT.overlay, 80),
+    cardOpacity: parsePercent(row.cardOpacity, DEFAULT_BRAND_KIT.cardOpacity),
     surfaces: {
       menu: parseSurface(surfaces.menu, DEFAULT_BRAND_KIT.surfaces.menu),
       groups: parseSurface(surfaces.groups, DEFAULT_BRAND_KIT.surfaces.groups),
@@ -272,6 +275,7 @@ export function brandKitCssVars(kit: BrandKit): CSSProperties {
     ["--font-display" as string]: `"${display.family}", sans-serif`,
     ["--font-body" as string]: `"${body.family}", sans-serif`,
     ["--hub-overlay" as string]: String(kit.overlay / 100),
+    ["--hub-card-opacity" as string]: String(kit.cardOpacity / 100),
     ["--hub-bg-image" as string]: cssUrl(kit.backgroundImageUrl),
     ...surfaceCssVars("menu", kit.surfaces.menu),
     ...surfaceCssVars("groups", kit.surfaces.groups),
@@ -304,6 +308,7 @@ export function isDefaultBrandKit(kit: BrandKit): boolean {
     kit.fonts.display === DEFAULT_BRAND_KIT.fonts.display &&
     kit.fonts.body === DEFAULT_BRAND_KIT.fonts.body &&
     kit.overlay === DEFAULT_BRAND_KIT.overlay &&
+    kit.cardOpacity === DEFAULT_BRAND_KIT.cardOpacity &&
     !kit.surfaces.menu.backgroundImageUrl &&
     !kit.surfaces.groups.backgroundImageUrl &&
     !kit.surfaces.chat.backgroundImageUrl &&

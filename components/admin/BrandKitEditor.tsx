@@ -193,7 +193,7 @@ export default function BrandKitEditor({
                 className="mt-4 rounded-xl border p-3"
                 style={{
                   borderColor: `${kit.colors.ink}22`,
-                  background: `${kit.colors.ink}12`,
+                  background: hexToRgba(kit.colors.canvas, kit.cardOpacity / 100),
                   fontFamily: `"${previewBody(kit)}", sans-serif`,
                 }}
               >
@@ -351,6 +351,20 @@ function DashboardFields({
           className="mt-2 w-full"
         />
       </label>
+      <label className="font-body text-xs font-semibold uppercase tracking-wide text-off-white/40">
+        Featurette opacity {kit.cardOpacity}%
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={kit.cardOpacity}
+          onChange={(e) => setKit((k) => ({ ...k, cardOpacity: Number(e.target.value) }))}
+          className="mt-2 w-full"
+        />
+        <span className="mt-1 block font-body text-[11px] font-normal normal-case tracking-normal text-off-white/40">
+          How solid the dashboard cards sit over the wallpaper. Lower lets more of the photo through.
+        </span>
+      </label>
     </>
   );
 }
@@ -412,6 +426,7 @@ function KitHiddenFields({ kit }: { kit: BrandKit }) {
       <input type="hidden" name="displayFont" value={kit.fonts.display} />
       <input type="hidden" name="bodyFont" value={kit.fonts.body} />
       <input type="hidden" name="overlay" value={String(kit.overlay)} />
+      <input type="hidden" name="cardOpacity" value={String(kit.cardOpacity)} />
       <input type="hidden" name="menuCanvas" value={kit.surfaces.menu.canvas} />
       <input type="hidden" name="menuInk" value={kit.surfaces.menu.ink} />
       <input type="hidden" name="menuBackgroundImageUrl" value={kit.surfaces.menu.backgroundImageUrl ?? ""} />
