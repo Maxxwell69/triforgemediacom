@@ -2,8 +2,9 @@ import "server-only";
 
 import { headers } from "next/headers";
 import type { PrismaClient } from "@prisma/client";
-import { hostnameFromHeaders, isCustomDomainCandidate, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, isCustomDomainCandidate } from "@/lib/hub/host";
 import { findSlugByCustomDomain, rememberHostSlug } from "@/lib/hub/customDomain";
+import { trustedClientSlug } from "@/lib/hub/requestHost";
 import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 export type RequestClientHub = {
@@ -34,18 +35,15 @@ export async function getRequestHubContext(): Promise<RequestHubContext> {
   const control = getControlPrisma();
 
   let hostname = "";
-  let pinnedSlug: string | null = null;
+  let slug: string | null = null;
   try {
     const h = headers();
     hostname = hostnameFromHeaders(h);
-    const pinned = h.get("x-hub-slug");
-    if (pinned && /^[a-z0-9-]+$/.test(pinned)) pinnedSlug = pinned;
+    slug = trustedClientSlug(h);
   } catch {
     return { kind: "platform", prisma: control, control, hub: null };
   }
 
-  const resolved = resolveHubHost(hostname);
-  let slug: string | null = pinnedSlug ?? (resolved.kind === "client" ? resolved.slug : null);
   if (!slug && isCustomDomainCandidate(hostname)) {
     slug = await findSlugByCustomDomain(control, hostname);
   } else if (slug && isCustomDomainCandidate(hostname)) {

@@ -109,30 +109,38 @@ export async function requireUser() {
 }
 
 /**
+ * Tenant Profile for this request. Control-plane user.id can differ from the
+ * hub_* User/Profile id — HubMembership.tenantUserId is the one chat/voice use.
+ */
+export async function loadProfileForUser(user: { id: string }) {
+  let profile = await prisma.profile.findUnique({ where: { userId: user.id } });
+  if (profile) return profile;
+
+  const ctx = await getRequestHubContext();
+  if (ctx.kind !== "client" || !ctx.prisma) return null;
+
+  const membership = await getControlPrisma().hubMembership.findUnique({
+    where: { userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id } },
+    select: { tenantUserId: true },
+  });
+  const tenantUserId = membership?.tenantUserId || user.id;
+  if (tenantUserId !== user.id) {
+    profile = await prisma.profile.findUnique({ where: { userId: tenantUserId } });
+  }
+  if (!profile) {
+    profile = await copyControlProfileToTenant(user.id, tenantUserId, ctx.prisma);
+  }
+  return profile;
+}
+
+/**
  * Gate for modules that need a completed Profile (chat, TikTask). Redirects
  * to /signin if unauthenticated, or /onboarding if the user hasn't set up
  * their profile yet.
  */
 export async function requireProfile() {
   const user = await requireUser();
-
-  let profile = await prisma.profile.findUnique({ where: { userId: user.id } });
-  if (!profile) {
-    const ctx = await getRequestHubContext();
-    if (ctx.kind === "client" && ctx.prisma) {
-      const membership = await getControlPrisma().hubMembership.findUnique({
-        where: { userId_clientHubId: { userId: user.id, clientHubId: ctx.hub.id } },
-        select: { tenantUserId: true },
-      });
-      const tenantUserId = membership?.tenantUserId || user.id;
-      if (tenantUserId !== user.id) {
-        profile = await prisma.profile.findUnique({ where: { userId: tenantUserId } });
-      }
-      if (!profile) {
-        profile = await copyControlProfileToTenant(user.id, tenantUserId, ctx.prisma);
-      }
-    }
-  }
+  const profile = await loadProfileForUser(user);
   if (!profile) {
     redirectHere("/onboarding");
   }

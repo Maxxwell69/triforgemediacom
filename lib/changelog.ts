@@ -186,6 +186,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.246",
+    date: "September 19, 2026",
+    title: "Hub isolation and tenant migrate",
+    summary:
+      "Hub 0 no longer follows a browser-sent tenant header, deploys migrate every client-hub schema, and Create Hub APIs resolve the right member profile.",
+    items: [
+      {
+        kind: "fix",
+        text: "Platform hosts ignore a client-sent x-hub-slug header so Hub 0 APIs cannot be pointed at another community",
+      },
+      {
+        kind: "fix",
+        text: "Railway pre-deploy now runs Prisma migrations on every hub_* schema, not only public",
+      },
+      {
+        kind: "fix",
+        text: "Public Create Hub fan signup is rate-limited (5 per hour per IP and email), same class as /apply",
+      },
+      {
+        kind: "fix",
+        text: "Voice, DMs, and chat APIs look up the tenant profile id when it differs from the Hub 0 user id",
+      },
+    ],
+  },
+  {
     version: "3.245",
     date: "September 18, 2026",
     title: "Voice on Create Hub chat",
