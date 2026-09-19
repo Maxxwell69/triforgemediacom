@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.245",
+    date: "September 18, 2026",
+    title: "Voice on Create Hub chat",
+    summary:
+      "Client hubs with Chat (including Pirate Maxx) can use hop-in voice without a separate Voice SKU checkbox from before this feature existed.",
+    items: [
+      {
+        kind: "fix",
+        text: "Voice rooms load on Create Hub communities that have Chat — Home channels named like voice-chat join as voice",
+      },
+    ],
+  },
+  {
     version: "3.244",
     date: "September 18, 2026",
     title: "Voice joins on enter",

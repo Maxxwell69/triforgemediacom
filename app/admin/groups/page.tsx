@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createGroup } from "./actions";
 import GroupRow from "@/components/admin/GroupRow";
 import ImageUploadField from "@/components/ImageUploadField";
-import { hubHas } from "@/lib/hub/modules";
+import { hubVoiceAvailable } from "@/lib/voiceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export default async function AdminGroupsPage() {
       _count: { select: { members: true, channels: true } },
     },
   });
-  const voiceSku = hubHas("voice");
+  const voiceSku = hubVoiceAvailable();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">

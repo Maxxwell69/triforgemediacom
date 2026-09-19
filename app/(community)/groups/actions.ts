@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageGroup } from "@/lib/groups";
 import { isAdminRole } from "@/lib/rbac";
-import { hubHas } from "@/lib/hub/modules";
+import { hubVoiceAvailable } from "@/lib/voiceAccess";
 import { groupApplicationMessageSchema } from "@/lib/validations/group";
 import { z } from "zod";
 
@@ -171,7 +171,9 @@ export async function createGroupChannel(
   }
 
   const hasVoice =
-    hubHas("voice") && group.grantsVoiceAccess && formData.get("hasVoice") === "on";
+    hubVoiceAvailable() &&
+    (group.grantsVoiceAccess || group.isHome) &&
+    formData.get("hasVoice") === "on";
 
   const data = {
     name,
