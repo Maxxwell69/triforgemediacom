@@ -16,7 +16,13 @@ function UnreadBadge({ count }: { count: number }) {
   );
 }
 
-export default function HubBugNavLink({ initialCount = 0 }: { initialCount?: number }) {
+export default function HubBugNavLink({
+  initialCount = 0,
+  label = "Hub Bug",
+}: {
+  initialCount?: number;
+  label?: string;
+}) {
   const pathname = usePathname();
   const [count, setCount] = useState(initialCount);
   const onBoard = pathname === "/bugs" || pathname.startsWith("/bugs?");
@@ -65,7 +71,7 @@ export default function HubBugNavLink({ initialCount = 0 }: { initialCount?: num
             : "text-off-white/60 hover:bg-off-white/5 hover:text-off-white/90"
       }`}
     >
-      <span>Hub Bug</span>
+      <span>{label}</span>
       <UnreadBadge count={isActive ? 0 : count} />
     </Link>
   );

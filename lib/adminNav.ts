@@ -361,6 +361,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     description: "Public updates and company social",
     links: [
       {
+        href: "/admin/menu",
+        label: "Menu lineup",
+        description: "Order, show or hide sidebar items, and add custom links",
+        sku: "core",
+      },
+      {
         href: "/admin/hub-profile",
         label: "Hub profile",
         description: "Brand kit, custom domain, directory image, and public/private listing",

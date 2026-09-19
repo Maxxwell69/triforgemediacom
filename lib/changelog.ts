@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.250",
+    date: "September 19, 2026",
+    title: "Admin menu lineup",
+    summary:
+      "Hub 0 and every client hub can order the member sidebar, hide items, and add custom links from Site → Menu lineup.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admin Site area: check, uncheck, and move menu items up or down for this hub",
+      },
+      {
+        kind: "feature",
+        text: "Add custom sidebar links that open an internal page or external URL",
+      },
+    ],
+  },
+  {
     version: "3.249",
     date: "September 19, 2026",
     title: "Leave, report, and archive DMs",

@@ -23,9 +23,6 @@ import { getSupportTicketUnreadCount } from "@/lib/supportReads";
 import { getSuggestionUnreadCount } from "@/lib/suggestionReads";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import { isLegacyBugChannelName } from "@/lib/bugs";
-import HubBugNavLink from "@/components/HubBugNavLink";
-import SupportNavLink from "@/components/support/SupportNavLink";
-import SuggestionNavLink from "@/components/suggestions/SuggestionNavLink";
 import GroupServerRail from "@/components/groups/GroupServerRail";
 import EnsureDefaultHomeGroup from "@/components/groups/EnsureDefaultHomeGroup";
 import {
@@ -43,6 +40,8 @@ import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
 import { getOnboardingMenuLock } from "@/lib/onboarding/engine";
 import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import OnboardingMenuGate from "@/components/onboarding/OnboardingMenuGate";
+import MemberMenu from "@/components/MemberMenu";
+import { customMenuPrefixes, getSiteMenuItems } from "@/lib/siteMenu";
 
 async function countUnreadHubNotifications(userId: string): Promise<number> {
   try {
@@ -81,6 +80,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
     showProgress,
     allGroups,
     menuLock,
+    siteMenuItems,
   ] = await Promise.all([
     prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
@@ -130,6 +130,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       orderBy: [{ isHome: "desc" }, { name: "asc" }],
     }),
     getOnboardingMenuLock(user.id, user.role),
+    getSiteMenuItems(),
   ]);
 
   const showDms = canSeeOnboardingMenuItem(menuLock, "chat") && hubDmAvailable();
@@ -244,163 +245,20 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <DmSidebar initialConversations={dmConversations} />
       )}
 
-      <div className="mb-4 border-t border-off-white/10 pt-4">
-        <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">
-          Menu
-        </p>
-        <div className="flex flex-col gap-0.5">
-          {canMenu("groups") && (
-            <Link
-              href="/groups"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Groups
-            </Link>
-          )}
-          <Link
-            href="/home"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Dashboard
-          </Link>
-          {canMenu("live") && hubHas("tiktokInsights") && (
-            <Link
-              href="/live"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange"
-            >
-              Live
-            </Link>
-          )}
-          {canMenu("streamingKit") && hubHas("streamingKit") && (
-            <Link
-              href="/streaming-kit"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Streaming kit
-            </Link>
-          )}
-          {canMenu("projects") && showMyProjects && hubHas("projects") && (
-            <Link
-              href="/apps/projects"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Projects
-            </Link>
-          )}
-          {canMenu("personalTasks") && personalTasksAccess && hubHas("personalTasks") && (
-            <Link
-              href="/apps/tasks"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              My Tasks
-            </Link>
-          )}
-          {canMenu("campaigns") && hubHas("hubCampaigns") && (
-            <Link
-              href="/campaigns"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Campaigns
-            </Link>
-          )}
-          {canMenu("calendar") && hubHas("calendar") && (
-            <Link
-              href="/calendar"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Calendar
-            </Link>
-          )}
-          {canMenu("members") && (
-            <Link
-              href="/members"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Members
-            </Link>
-          )}
-          {canMenu("progress") && showProgress && (
-            <Link
-              href="/progress"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Progress
-            </Link>
-          )}
-          {canMenu("shop") && hubHas("shop") && (
-            <Link
-              href="/shop"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Shop
-            </Link>
-          )}
-          {canMenu("rewards") && hubHas("rewards") && (
-            <Link
-              href="/rewards"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Rewards
-            </Link>
-          )}
-          {canMenu("learn") && hubHas("learning") && (
-            <Link
-              href="/learn"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Learn
-            </Link>
-          )}
-          {canMenu("webinars") && hubHas("webinars") && (
-            <Link
-              href="/webinars"
-              className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-            >
-              Webinars
-            </Link>
-          )}
-          {canMenu("hubBug") && hubHas("hubBug") && (
-            <HubBugNavLink initialCount={hubBugUnread} />
-          )}
-          {canMenu("support") && hubHas("support") && (
-            <SupportNavLink initialCount={supportUnread} />
-          )}
-          {canMenu("suggestions") && hubHas("support") && (
-            <SuggestionNavLink initialCount={suggestionUnread} />
-          )}
-          <Link
-            href="/hubs"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Hubs
-          </Link>
-          <Link
-            href="/account"
-            className="rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Account
-          </Link>
-          <Link
-            href="/notifications"
-            className="flex items-center justify-between rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"
-          >
-            Notifications
-            {unreadNotifications > 0 ? (
-              <span className="rounded-full bg-orange px-1.5 font-body text-[10px] font-semibold text-off-white">
-                {unreadNotifications > 99 ? "99+" : unreadNotifications}
-              </span>
-            ) : null}
-          </Link>
-          {canMenu("tiktask") && tikTaskAccess && hubHas("tiktask") && (
-            <Link
-              href="/apps/tiktask"
-              className="rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75"
-            >
-              TikTask
-            </Link>
-          )}
-        </div>
-      </div>
+      <MemberMenu
+        items={siteMenuItems}
+        gates={{
+          canMenu,
+          showMyProjects,
+          personalTasksAccess,
+          showProgress,
+          tikTaskAccess,
+          hubBugUnread,
+          supportUnread,
+          suggestionUnread,
+          unreadNotifications,
+        }}
+      />
 
       <div className="mt-auto flex flex-col gap-3 border-t border-off-white/10 pt-4">
         {isAdmin && (
@@ -436,7 +294,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
       showAdminFab={isAdmin}
       headerRight={<NotificationBell unread={unreadNotifications} />}
     >
-      <OnboardingMenuGate userId={user.id} role={user.role} allowedIds={menuLock} />
+      <OnboardingMenuGate
+        userId={user.id}
+        role={user.role}
+        allowedIds={menuLock}
+        extraAllowedPrefixes={customMenuPrefixes(siteMenuItems)}
+      />
       <EnsureDefaultHomeGroup
         homeGroupId={homeGroup?.id ?? null}
         hasCookie={Boolean(activeGroupCookie)}

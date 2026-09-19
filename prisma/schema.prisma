@@ -516,6 +516,13 @@ model ChatSettings {
   updatedAt   DateTime @updatedAt
 }
 
+/// Per-hub member sidebar Menu order, visibility, and custom links.
+model SiteMenuSettings {
+  id        String   @id @default("global")
+  items     Json
+  updatedAt DateTime @updatedAt
+}
+
 model DmAllowedUser {
   userId    String   @id
   addedAt   DateTime @default(now())
