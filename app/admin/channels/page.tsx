@@ -3,7 +3,7 @@ import { createChannel } from "./actions";
 import ChannelRow from "@/components/admin/ChannelRow";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { roleOptions } from "@/lib/validations/channel";
-import { hubHas } from "@/lib/hub/modules";
+import { hubVoiceAvailable } from "@/lib/voiceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export default async function AdminChannelsPage() {
       _count: { select: { messages: true } },
     },
   });
-  const voiceSku = hubHas("voice");
+  const voiceSku = hubVoiceAvailable();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">

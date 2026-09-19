@@ -34,6 +34,7 @@ import {
   resolveActiveGroupId,
 } from "@/lib/activeGroup";
 import { hubHas } from "@/lib/hub/modules";
+import { channelVoiceEnabled } from "@/lib/voiceAccess";
 import NotificationBell from "@/components/NotificationBell";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
@@ -217,7 +218,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
             id: c.id,
             name: c.name,
             unreadCount: unreadCounts[c.id] ?? 0,
-            hasVoice: hubHas("voice") && c.hasVoice && c.groups.some((g) => g.grantsVoiceAccess),
+            hasVoice: channelVoiceEnabled(c),
           }))}
         />
       </div>

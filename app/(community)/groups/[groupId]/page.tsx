@@ -9,7 +9,7 @@ import ApplyToGroupForm from "@/components/groups/ApplyToGroupForm";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 import SyncActiveGroup from "@/components/groups/SyncActiveGroup";
 import { ACTIVE_GROUP_COOKIE } from "@/lib/activeGroup";
-import { hubHas } from "@/lib/hub/modules";
+import { channelVoiceEnabled, hubVoiceAvailable } from "@/lib/voiceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -148,7 +148,11 @@ export default async function GroupDetailPage({
                     className="glass rounded-xl px-4 py-3 font-body text-sm text-off-white/80 transition hover:border-cyan/30"
                   >
                     #{ch.name}
-                    {ch.hasVoice && hubHas("voice") && group.grantsVoiceAccess ? (
+                    {channelVoiceEnabled({
+                      name: ch.name,
+                      hasVoice: ch.hasVoice,
+                      groups: [{ grantsVoiceAccess: group.grantsVoiceAccess, isHome: group.isHome }],
+                    }) ? (
                       <span className="ml-2 text-[10px] uppercase tracking-wide text-cyan">Voice</span>
                     ) : null}
                   </Link>
@@ -161,7 +165,7 @@ export default async function GroupDetailPage({
                   </p>
                   <CreateGroupChannelForm
                     groupId={group.id}
-                    voiceAvailable={hubHas("voice") && group.grantsVoiceAccess}
+                    voiceAvailable={hubVoiceAvailable() && (group.grantsVoiceAccess || group.isHome)}
                   />
                 </div>
               )}

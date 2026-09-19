@@ -8,7 +8,7 @@ import GroupApplicationsPanel from "@/components/admin/GroupApplicationsPanel";
 import CreateGroupChannelForm from "@/components/groups/CreateGroupChannelForm";
 import ImageUploadField from "@/components/ImageUploadField";
 import { updateGroup } from "../actions";
-import { hubHas } from "@/lib/hub/modules";
+import { hubVoiceAvailable } from "@/lib/voiceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,7 @@ export default async function AdminGroupDetailPage({
 
   if (!group) notFound();
 
-  const voiceSku = hubHas("voice");
+  const voiceSku = hubVoiceAvailable();
   const memberIds = new Set(group.members.map((m) => m.user.id));
   const members = group.members.map((m) => ({
     id: m.user.id,
