@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.252",
+    date: "September 19, 2026",
+    title: "Nested menu items and link targets",
+    summary:
+      "Admins can nest sidebar rows under a parent and choose whether a custom link opens in a new tab or the same window.",
+    items: [
+      {
+        kind: "feature",
+        text: "Menu lineup Parent control nests an item as a child of another row",
+      },
+      {
+        kind: "feature",
+        text: "Custom links can open in a new tab or stay in the same window",
+      },
+    ],
+  },
+  {
     version: "3.251",
     date: "September 19, 2026",
     title: "Fix menu lineup deploy",

@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BUILTIN_MENU_BY_ID, type SiteMenuItem } from "@/lib/siteMenu";
+import {
+  BUILTIN_MENU_BY_ID,
+  isExternalMenuHref,
+  menuChildren,
+  menuRoots,
+  moveMenuSibling,
+  setMenuParent,
+  type SiteMenuItem,
+} from "@/lib/siteMenu";
 import { saveMenuLineup } from "@/app/admin/menu/actions";
 
 const fieldClass =
@@ -13,23 +21,21 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
   const [items, setItems] = useState<SiteMenuItem[]>(initialItems);
   const [customLabel, setCustomLabel] = useState("");
   const [customHref, setCustomHref] = useState("");
+  const [customNewTab, setCustomNewTab] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function move(index: number, dir: -1 | 1) {
-    const next = index + dir;
-    if (next < 0 || next >= items.length) return;
-    const copy = [...items];
-    const [row] = copy.splice(index, 1);
-    copy.splice(next, 0, row);
-    setItems(copy);
+  const roots = menuRoots(items);
+  const parentChoices = roots;
+
+  function commit(next: SiteMenuItem[]) {
+    setItems(next);
     setSaved(false);
   }
 
-  function update(index: number, patch: Partial<SiteMenuItem>) {
-    setItems((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)));
-    setSaved(false);
+  function update(id: string, patch: Partial<SiteMenuItem>) {
+    commit(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
   function addCustom() {
@@ -40,24 +46,26 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
       setError("Custom links need a name and a URL.");
       return;
     }
-    setItems((current) => [
-      ...current,
+    commit([
+      ...items,
       {
         id: `custom_${crypto.randomUUID()}`,
         kind: "custom",
         enabled: true,
         label,
         href,
+        newTab: customNewTab,
       },
     ]);
     setCustomLabel("");
     setCustomHref("");
-    setSaved(false);
+    setCustomNewTab(false);
   }
 
   function removeCustom(id: string) {
-    setItems((current) => current.filter((item) => item.id !== id));
-    setSaved(false);
+    commit(items.filter((item) => item.id !== id).map((item) => (
+      item.parentId === id ? { ...item, parentId: undefined } : item
+    )));
   }
 
   function save() {
@@ -73,6 +81,114 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
     });
   }
 
+  function renderRow(item: SiteMenuItem, siblingIndex: number, siblingCount: number) {
+    const def = item.kind === "builtin" ? BUILTIN_MENU_BY_ID.get(item.id) : undefined;
+    const nested = Boolean(item.parentId);
+    const childCount = menuChildren(items, item.id).length;
+    return (
+      <li
+        key={item.id}
+        className={`flex flex-col gap-2 rounded-xl border border-off-white/10 bg-charcoal/40 p-3 ${
+          nested ? "ml-8 border-cyan/20" : ""
+        }`}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <label className="flex shrink-0 items-center gap-2 sm:mt-2 sm:w-8">
+            <input
+              type="checkbox"
+              checked={item.enabled}
+              onChange={(e) => update(item.id, { enabled: e.target.checked })}
+              className="h-4 w-4 accent-orange"
+              aria-label={`Show ${item.label}`}
+            />
+          </label>
+          <div className="min-w-0 flex-1">
+            <input
+              value={item.label}
+              onChange={(e) => update(item.id, { label: e.target.value })}
+              className={fieldClass}
+              aria-label="Menu label"
+            />
+            {item.kind === "custom" ? (
+              <input
+                value={item.href ?? ""}
+                onChange={(e) => update(item.id, { href: e.target.value })}
+                className={`${fieldClass} mt-2`}
+                placeholder="/page or https://…"
+                aria-label="Custom link URL"
+              />
+            ) : (
+              <p className="mt-1 font-body text-[11px] text-off-white/35">
+                Built-in · {def?.href ?? item.id}
+                {childCount > 0 ? ` · ${childCount} child${childCount === 1 ? "" : "ren"}` : ""}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 font-body text-xs text-off-white/60">
+                <span>Parent</span>
+                <select
+                  value={item.parentId ?? ""}
+                  onChange={(e) => commit(setMenuParent(items, item.id, e.target.value || undefined))}
+                  className="rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1 text-off-white outline-none focus:border-cyan/60"
+                  aria-label="Parent menu item"
+                >
+                  <option value="">Top level</option>
+                  {parentChoices
+                    .filter((parent) => parent.id !== item.id)
+                    .map((parent) => (
+                      <option key={parent.id} value={parent.id}>
+                        {parent.label || parent.id}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {item.kind === "custom" ? (
+                <label className="flex items-center gap-2 font-body text-xs text-off-white/60">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(item.newTab)}
+                    onChange={(e) => update(item.id, { newTab: e.target.checked })}
+                    className="h-3.5 w-3.5 accent-orange"
+                  />
+                  Open in new tab
+                </label>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              className={ghostBtn}
+              onClick={() => commit(moveMenuSibling(items, item.id, -1))}
+              disabled={siblingIndex === 0}
+              aria-label="Move up"
+            >
+              Up
+            </button>
+            <button
+              type="button"
+              className={ghostBtn}
+              onClick={() => commit(moveMenuSibling(items, item.id, 1))}
+              disabled={siblingIndex === siblingCount - 1}
+              aria-label="Move down"
+            >
+              Down
+            </button>
+            {item.kind === "custom" ? (
+              <button
+                type="button"
+                className={`${ghostBtn} text-orange/80`}
+                onClick={() => removeCustom(item.id)}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <div className="mt-8 flex flex-col gap-6">
       <div className="glass rounded-2xl p-5">
@@ -80,8 +196,8 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
           <div>
             <h2 className="font-display text-xl tracking-wide text-off-white/80">Lineup</h2>
             <p className="mt-1 font-body text-xs text-off-white/45">
-              Check items to show them. Move rows up or down to set the member sidebar order.
-              Unchecked built-ins stay in the list so you can turn them back on later.
+              Check items to show them. Use Parent to nest a row under another item. Custom links
+              can open in a new tab or the same window.
             </p>
           </div>
           <button
@@ -95,83 +211,24 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
         </div>
 
         <ol className="mt-5 flex flex-col gap-2">
-          {items.map((item, index) => {
-            const def = item.kind === "builtin" ? BUILTIN_MENU_BY_ID.get(item.id) : undefined;
-            return (
-              <li
-                key={item.id}
-                className="flex flex-col gap-2 rounded-xl border border-off-white/10 bg-charcoal/40 p-3 sm:flex-row sm:items-center"
-              >
-                <label className="flex shrink-0 items-center gap-2 sm:w-8">
-                  <input
-                    type="checkbox"
-                    checked={item.enabled}
-                    onChange={(e) => update(index, { enabled: e.target.checked })}
-                    className="h-4 w-4 accent-orange"
-                    aria-label={`Show ${item.label}`}
-                  />
-                </label>
-                <div className="min-w-0 flex-1">
-                  <input
-                    value={item.label}
-                    onChange={(e) => update(index, { label: e.target.value })}
-                    className={fieldClass}
-                    aria-label="Menu label"
-                  />
-                  {item.kind === "custom" ? (
-                    <input
-                      value={item.href ?? ""}
-                      onChange={(e) => update(index, { href: e.target.value })}
-                      className={`${fieldClass} mt-2`}
-                      placeholder="/page or https://…"
-                      aria-label="Custom link URL"
-                    />
-                  ) : (
-                    <p className="mt-1 font-body text-[11px] text-off-white/35">
-                      Built-in · {def?.href ?? item.id}
-                    </p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button
-                    type="button"
-                    className={ghostBtn}
-                    onClick={() => move(index, -1)}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    Up
-                  </button>
-                  <button
-                    type="button"
-                    className={ghostBtn}
-                    onClick={() => move(index, 1)}
-                    disabled={index === items.length - 1}
-                    aria-label="Move down"
-                  >
-                    Down
-                  </button>
-                  {item.kind === "custom" ? (
-                    <button
-                      type="button"
-                      className={`${ghostBtn} text-orange/80`}
-                      onClick={() => removeCustom(item.id)}
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
+          {roots.map((root, rootIndex) => (
+            <li key={root.id} className="flex list-none flex-col gap-2">
+              <ol className="flex flex-col gap-2">
+                {renderRow(root, rootIndex, roots.length)}
+                {menuChildren(items, root.id).map((child, childIndex, kids) =>
+                  renderRow(child, childIndex, kids.length)
+                )}
+              </ol>
+            </li>
+          ))}
         </ol>
       </div>
 
       <div className="glass rounded-2xl p-5">
         <h2 className="font-display text-xl tracking-wide text-off-white/80">Custom link</h2>
         <p className="mt-1 font-body text-xs text-off-white/45">
-          Add a sidebar row that opens an internal path or an external URL. Members go there when
-          they click it. Save the lineup after you add or reorder links.
+          Add a sidebar row that opens an internal path or an external URL. Choose whether it opens
+          in a new tab or this window, then save the lineup.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
           <input
@@ -183,7 +240,11 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
           />
           <input
             value={customHref}
-            onChange={(e) => setCustomHref(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setCustomHref(value);
+              if (isExternalMenuHref(value.trim())) setCustomNewTab(true);
+            }}
             className={fieldClass}
             placeholder="/groups or https://example.com"
             aria-label="Custom link URL"
@@ -196,6 +257,15 @@ export default function MenuLineupEditor({ initialItems }: { initialItems: SiteM
             Add custom link
           </button>
         </div>
+        <label className="mt-3 flex items-center gap-2 font-body text-xs text-off-white/60">
+          <input
+            type="checkbox"
+            checked={customNewTab}
+            onChange={(e) => setCustomNewTab(e.target.checked)}
+            className="h-3.5 w-3.5 accent-orange"
+          />
+          Open in new tab
+        </label>
       </div>
 
       {error ? (

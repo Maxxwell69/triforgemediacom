@@ -16,7 +16,8 @@ export default async function AdminMenuLineupPage() {
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/50">
         Organize the member sidebar Menu for {hubLabel}. Each hub has its own lineup — check the
-        items you want, move them up or down, and add custom links members can click.
+        items you want, nest rows under a parent, and add custom links that open in a new tab or
+        the same window.
       </p>
       <MenuLineupEditor initialItems={items} />
     </main>
