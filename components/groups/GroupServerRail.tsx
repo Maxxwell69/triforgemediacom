@@ -33,9 +33,15 @@ function UnreadPill({ count }: { count: number }) {
 export default function GroupServerRail({
   spaces,
   activeGroupId,
+  showDm = false,
+  dmActive = false,
+  dmUnread = 0,
 }: {
   spaces: ServerRailSpace[];
   activeGroupId: string | null;
+  showDm?: boolean;
+  dmActive?: boolean;
+  dmUnread?: number;
 }) {
   const pathname = usePathname();
   const inWebinarRoom = isWebinarRoomPath(pathname);
@@ -74,7 +80,7 @@ export default function GroupServerRail({
     };
   }, []);
 
-  if (spaces.length === 0) return null;
+  if (spaces.length === 0 && !showDm) return null;
 
   return (
     <nav
@@ -167,6 +173,52 @@ export default function GroupServerRail({
           </div>
         );
       })}
+
+      {showDm && (
+        <div className="group relative flex w-full flex-col items-center gap-2 pt-1">
+          <div className="h-0.5 w-8 rounded-full bg-off-white/15" aria-hidden />
+          <div className="relative flex w-full justify-center">
+            <span
+              className={`absolute left-0 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-off-white transition-all ${
+                dmActive ? "h-10 opacity-100" : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-70"
+              }`}
+              aria-hidden
+            />
+            <div className="relative h-12 w-12 shrink-0">
+              <Link
+                href="/dms"
+                title="Direct Messages"
+                aria-label={dmUnread > 0 ? `Direct Messages, ${dmUnread} unread` : "Direct Messages"}
+                aria-current={dmActive ? "true" : undefined}
+                className={`flex h-full w-full flex-col items-center justify-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+                  dmActive
+                    ? "rounded-2xl bg-cyan/20 shadow-[0_0_0_1px_rgba(0,212,255,0.35)]"
+                    : "rounded-[1.5rem] bg-off-white/5 hover:rounded-2xl hover:bg-off-white/10"
+                }`}
+              >
+                <svg className="h-5 w-5 text-off-white" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M5 6.5h14v9.2H9.2L5 19.5V6.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="font-display text-[10px] tracking-wide text-off-white/80">DM</span>
+              </Link>
+              <UnreadPill count={dmActive ? 0 : dmUnread} />
+            </div>
+            <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-charcoal px-3 py-1.5 font-body text-sm font-semibold text-off-white shadow-lg ring-1 ring-off-white/15 group-hover:block">
+              Direct Messages
+              {dmUnread > 0 ? (
+                <span className="ml-1.5 text-xs font-normal text-red-400">
+                  {dmUnread > 99 ? "99+" : dmUnread} new
+                </span>
+              ) : null}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="mt-auto flex flex-col items-center gap-2 pt-2">
         <div className="h-0.5 w-8 rounded-full bg-off-white/15" aria-hidden />

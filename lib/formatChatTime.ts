@@ -17,14 +17,22 @@ function fallbackTime(date: Date) {
   return `${hour12}:${pad2(date.getMinutes())} ${ampm}`;
 }
 
+/** 3/3/26 — no leading zeros, two-digit year. */
+function shortDate(date: Date) {
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${date.getMonth() + 1}/${date.getDate()}/${yy}`;
+}
+
 export function formatChatTime(value: string | Date | null | undefined): string {
   const date = asDate(value);
   if (!date) return "";
+  let time: string;
   try {
-    return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   } catch {
-    return fallbackTime(date);
+    time = fallbackTime(date);
   }
+  return `${time} ${shortDate(date)}`;
 }
 
 export function formatChatDateTime(value: string | Date | null | undefined): string {

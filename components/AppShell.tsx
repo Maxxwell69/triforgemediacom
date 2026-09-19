@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import {
@@ -196,9 +196,20 @@ export default async function AppShell({ children }: { children: React.ReactNode
     spaces.find((g) => g.id === activeGroupId) ??
     (homeGroupId ? spaces.find((g) => g.id === homeGroupId) ?? null : null);
 
-  const rail = showGroupChrome ? (
-    <GroupServerRail spaces={spaces} activeGroupId={activeGroupId} />
-  ) : undefined;
+  const pathname = headers().get("x-pathname") || "";
+  const dmMode = pathname === "/dms" || pathname.startsWith("/dms/");
+  const dmUnread = dmConversations.reduce((sum, row) => sum + row.unreadCount, 0);
+
+  const rail =
+    showGroupChrome || showDms ? (
+      <GroupServerRail
+        spaces={spaces}
+        activeGroupId={dmMode ? null : activeGroupId}
+        showDm={showDms}
+        dmActive={dmMode}
+        dmUnread={dmUnread}
+      />
+    ) : undefined;
 
   const sidebar = (
     <>
@@ -206,7 +217,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <Logo height={22} href="/home" variant="chrome" />
       </div>
 
-      {showGroupChrome && (
+      {showGroupChrome && !dmMode && (
       <div className="mb-4">
         <ChannelSidebar
           space={
@@ -229,7 +240,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
       </div>
       )}
 
-      {showDms && <DmSidebar initialConversations={dmConversations} />}
+      {showDms && (dmMode || !showGroupChrome) && (
+        <DmSidebar initialConversations={dmConversations} />
+      )}
 
       <div className="mb-4 border-t border-off-white/10 pt-4">
         <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">

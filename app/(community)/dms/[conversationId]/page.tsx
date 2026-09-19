@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { canAccessConversation, summarizeReactions } from "@/lib/dmAccess";
+import { canAccessConversation, isTrueAdmin, summarizeReactions } from "@/lib/dmAccess";
 import { markDmNotificationsRead } from "@/lib/dmSidebar";
 import { chatAuthorSelect, getMemberDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
@@ -77,6 +77,7 @@ export default async function DmConversationPage({
       currentUserId={user.id}
       initialMessages={initialMessages}
       initialMutedUntil={dbUser?.mutedUntil ?? null}
+      isAdmin={isTrueAdmin(user.role)}
     />
   );
 }

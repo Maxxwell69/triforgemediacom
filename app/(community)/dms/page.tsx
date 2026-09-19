@@ -12,6 +12,7 @@ export default async function DmsPage() {
 
   const conversations = isTrueAdmin(user.role)
     ? await prisma.directConversation.findMany({
+        where: { archivedAt: null },
         orderBy: { updatedAt: "desc" },
         include: {
           participants: {
@@ -38,7 +39,10 @@ export default async function DmsPage() {
         },
       })
     : await prisma.directConversation.findMany({
-        where: { participants: { some: { userId: user.id } } },
+        where: {
+          archivedAt: null,
+          participants: { some: { userId: user.id, leftAt: null } },
+        },
         orderBy: { updatedAt: "desc" },
         include: {
           participants: {
@@ -94,6 +98,7 @@ export default async function DmsPage() {
       <DmInbox
         initialConversations={rows}
         canInitiate={await canInitiateDm(user.id, user.role)}
+        isAdmin={isTrueAdmin(user.role)}
       />
     </main>
   );

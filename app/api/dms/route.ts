@@ -19,6 +19,7 @@ export async function GET() {
   const { user } = result;
   const conversations = isTrueAdmin(user.role)
     ? await prisma.directConversation.findMany({
+        where: { archivedAt: null },
         orderBy: { updatedAt: "desc" },
         include: {
           participants: {
@@ -44,7 +45,10 @@ export async function GET() {
         },
       })
     : await prisma.directConversation.findMany({
-        where: { participants: { some: { userId: user.id } } },
+        where: {
+          archivedAt: null,
+          participants: { some: { userId: user.id, leftAt: null } },
+        },
         orderBy: { updatedAt: "desc" },
         include: {
           participants: {
@@ -142,9 +146,13 @@ export async function POST(req: NextRequest) {
         { participants: { some: { userId: targetId } } },
       ],
     },
-    select: { id: true, participants: { select: { userId: true } } },
+    select: { id: true, archivedAt: true, participants: { select: { userId: true, leftAt: true } } },
   });
-  if (existing && existing.participants.length === 2) {
+  if (existing && existing.participants.length === 2 && !existing.archivedAt) {
+    await prisma.directConversationParticipant.updateMany({
+      where: { conversationId: existing.id, userId: result.user.id, leftAt: { not: null } },
+      data: { leftAt: null, joinedAt: new Date() },
+    });
     return NextResponse.json({ conversationId: existing.id });
   }
 

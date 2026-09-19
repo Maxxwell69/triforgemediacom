@@ -20,7 +20,11 @@ export async function notifyDmRecipients(opts: {
 }) {
   try {
     const others = await prisma.directConversationParticipant.findMany({
-      where: { conversationId: opts.conversationId, userId: { not: opts.senderId } },
+      where: {
+        conversationId: opts.conversationId,
+        userId: { not: opts.senderId },
+        leftAt: null,
+      },
       select: { userId: true },
     });
     if (others.length === 0) return;

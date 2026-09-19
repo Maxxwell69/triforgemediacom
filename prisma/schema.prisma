@@ -125,6 +125,9 @@ model User {
   directMessages             DirectMessage[]
   directMessageReactions     DirectMessageReaction[]
   dmConversationsCreated     DirectConversation[]   @relation("DmCreatedBy")
+  dmConversationsArchived    DirectConversation[]   @relation("DmArchivedBy")
+  dmReportsFiled             DmReport[]             @relation("DmReportsFiled")
+  dmReportsReviewed          DmReport[]             @relation("DmReportsReviewed")
   dmAllowlistEntry           DmAllowedUser?
   webinarsHosted             Webinar[]              @relation("WebinarHost")
   webinarAttendances         WebinarAttendance[]
@@ -520,30 +523,60 @@ model DmAllowedUser {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum DmReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
 model DirectConversation {
-  id          String   @id @default(cuid())
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String    @id @default(cuid())
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  archivedAt   DateTime?
+  archivedById String?
 
   createdBy    User                            @relation("DmCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  archivedBy   User?                           @relation("DmArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
   participants DirectConversationParticipant[]
   messages     DirectMessage[]
+  reports      DmReport[]
 
   @@index([updatedAt])
+  @@index([archivedAt])
 }
 
 model DirectConversationParticipant {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
   userId         String
-  joinedAt       DateTime @default(now())
+  joinedAt       DateTime  @default(now())
+  leftAt         DateTime?
 
   conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([userId])
+}
+
+model DmReport {
+  id             String         @id @default(cuid())
+  conversationId String
+  reporterId     String
+  reason         String
+  status         DmReportStatus @default(OPEN)
+  createdAt      DateTime       @default(now())
+  reviewedAt     DateTime?
+  reviewedById   String?
+
+  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  reporter     User               @relation("DmReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy   User?              @relation("DmReportsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([status, createdAt])
 }
 
 model DirectMessage {
