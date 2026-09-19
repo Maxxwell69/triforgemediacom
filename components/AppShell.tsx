@@ -36,6 +36,8 @@ import {
 import { hubHas } from "@/lib/hub/modules";
 import { channelVoiceEnabled } from "@/lib/voiceAccess";
 import NotificationBell from "@/components/NotificationBell";
+import DmSidebar from "@/components/chat/DmSidebar";
+import { hubDmAvailable, listDmSidebarRows } from "@/lib/dmSidebar";
 import { canSeeMemberProgressNav, maybeAutoEnrollProgression } from "@/lib/progression/access";
 import { syncSpecialtyGroupAccess } from "@/lib/progression/engine";
 import { getOnboardingMenuLock } from "@/lib/onboarding/engine";
@@ -130,6 +132,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
     getOnboardingMenuLock(user.id, user.role),
   ]);
 
+  const showDms = canSeeOnboardingMenuItem(menuLock, "chat") && hubDmAvailable();
+  const dmConversations = showDms ? await listDmSidebarRows(user.id).catch(() => []) : [];
+
   const accessible = allChannels.filter(
     (c) => canAccessChannel(user.role, c, userGroupIds) && !isLegacyBugChannelName(c.name)
   );
@@ -223,6 +228,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
         />
       </div>
       )}
+
+      {showDms && <DmSidebar initialConversations={dmConversations} />}
 
       <div className="mb-4 border-t border-off-white/10 pt-4">
         <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">

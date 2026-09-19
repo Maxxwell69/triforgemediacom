@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canInitiateDm, isTrueAdmin } from "@/lib/dmAccess";
-import { getMemberDisplayName } from "@/lib/memberDisplay";
+import { getMemberAvatarUrl, getMemberDisplayName, getMemberInitial } from "@/lib/memberDisplay";
 import DmInbox from "@/components/chat/DmInbox";
+import { unreadDmConversationIds } from "@/lib/dmSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function DmsPage() {
                   id: true,
                   name: true,
                   email: true,
+                  image: true,
                   role: true,
                   profile: { select: { platform: true, showRealName: true, socialLinks: true } },
                   tiktokConnection: { select: { displayName: true, avatarUrl: true } },
@@ -46,6 +48,7 @@ export default async function DmsPage() {
                   id: true,
                   name: true,
                   email: true,
+                  image: true,
                   role: true,
                   profile: { select: { platform: true, showRealName: true, socialLinks: true } },
                   tiktokConnection: { select: { displayName: true, avatarUrl: true } },
@@ -62,6 +65,7 @@ export default async function DmsPage() {
         },
       });
 
+  const unreadIds = await unreadDmConversationIds(user.id);
   const rows = conversations.map((c) => {
     const others = c.participants.map((p) => p.user).filter((u) => u.id !== user.id);
     return {
@@ -74,11 +78,14 @@ export default async function DmsPage() {
             createdAt: c.messages[0].createdAt.toISOString(),
           }
         : null,
-      participants: c.participants.map((p) => ({
-        id: p.user.id,
-        name: getMemberDisplayName(p.user),
-        role: p.user.role,
+      participants: others.map((u) => ({
+        id: u.id,
+        name: getMemberDisplayName(u),
+        role: u.role,
+        avatarUrl: getMemberAvatarUrl(u),
+        initial: getMemberInitial(u),
       })),
+      unreadCount: unreadIds.has(c.id) ? 1 : 0,
     };
   });
 
