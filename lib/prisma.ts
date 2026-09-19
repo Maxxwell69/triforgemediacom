@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
-import { hostnameFromHeaders, isCustomDomainCandidate, resolveHubHost } from "@/lib/hub/host";
+import { hostnameFromHeaders, isCustomDomainCandidate } from "@/lib/hub/host";
 import { peekHostSlug } from "@/lib/hub/customDomain";
+import { trustedClientSlug } from "@/lib/hub/requestHost";
 import { tenantSchemaName } from "@/lib/hub/schemaUrl";
 import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
@@ -14,14 +15,10 @@ import { getControlPrisma, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 export function prismaForRequest(): PrismaClient {
   try {
     const h = headers();
-    const pinned = h.get("x-hub-slug");
-    if (pinned && /^[a-z0-9-]+$/.test(pinned)) {
-      return getTenantPrisma(tenantSchemaName(pinned));
-    }
     const hostname = hostnameFromHeaders(h);
-    const resolved = resolveHubHost(hostname);
-    if (resolved.kind === "client") {
-      return getTenantPrisma(tenantSchemaName(resolved.slug));
+    const slug = trustedClientSlug(h);
+    if (slug) {
+      return getTenantPrisma(tenantSchemaName(slug));
     }
     if (isCustomDomainCandidate(hostname)) {
       const cached = peekHostSlug(hostname);

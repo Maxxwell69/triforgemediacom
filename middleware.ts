@@ -28,6 +28,13 @@ function requestOrigin(req: NextRequest) {
   return publicOriginFromHeaders(req.headers) || req.nextUrl.origin;
 }
 
+/** Drop a browser-forged tenant pin. Middleware is the only writer of x-hub-slug. */
+function stripIncomingHubSlug(source: Headers) {
+  const headers = new Headers(source);
+  headers.delete("x-hub-slug");
+  return headers;
+}
+
 function atOrigin(req: NextRequest, path: string) {
   return new URL(path, `${requestOrigin(req)}/`);
 }
@@ -97,7 +104,7 @@ function clientHubGate(
     const url = req.nextUrl.clone();
     url.pathname = `/hub-host/${slug}${pathname === "/" ? "" : pathname}`;
     url.search = req.nextUrl.search;
-    const headers = new Headers(req.headers);
+    const headers = stripIncomingHubSlug(req.headers);
     headers.set("x-hub-slug", slug);
     return NextResponse.rewrite(url, { request: { headers } });
   }
@@ -113,7 +120,9 @@ function clientHubGate(
 
 export default auth(async (req) => {
   if (req.nextUrl.pathname.startsWith("/api/internal/hub-resolve")) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: stripIncomingHubSlug(req.headers) },
+    });
   }
 
   const slug = await resolveClientSlug(req);
@@ -152,7 +161,7 @@ export default auth(async (req) => {
     }
   }
 
-  const requestHeaders = new Headers(req.headers);
+  const requestHeaders = stripIncomingHubSlug(req.headers);
   requestHeaders.set("x-pathname", pathname);
   if (slug) requestHeaders.set("x-hub-slug", slug);
   return NextResponse.next({

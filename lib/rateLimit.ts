@@ -49,10 +49,16 @@ export function checkRateLimit(key: string, max: number, windowMs: number): Rate
 }
 
 /** Best-effort client IP extraction behind Railway/Vercel-style proxies. */
-export function getClientIp(req: Request): string {
-  const forwardedFor = req.headers.get("x-forwarded-for");
+export function getClientIpFromHeaders(headerStore: {
+  get(name: string): string | null;
+}): string {
+  const forwardedFor = headerStore.get("x-forwarded-for");
   if (forwardedFor) return forwardedFor.split(",")[0]!.trim();
-  const realIp = req.headers.get("x-real-ip");
+  const realIp = headerStore.get("x-real-ip");
   if (realIp) return realIp.trim();
   return "unknown";
+}
+
+export function getClientIp(req: Request): string {
+  return getClientIpFromHeaders(req.headers);
 }

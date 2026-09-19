@@ -1,12 +1,17 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { publicHubSignupSchema, signupSchema } from "@/lib/validations/signup";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { activateHubMembership, findHubInviteByToken } from "@/lib/hub/membership";
 import { joinClientHubAsFan } from "@/lib/hub/joinAsFan";
+import { checkRateLimit, getClientIpFromHeaders } from "@/lib/rateLimit";
+
+const FAN_SIGNUP_MAX = 5;
+const FAN_SIGNUP_WINDOW_MS = 60 * 60 * 1000;
 
 export type HubAuthFormState = {
   error: string;
@@ -72,12 +77,18 @@ export async function completePublicClientHubSignup(
     return { error: parsed.error.issues[0]?.message || "Invalid input" };
   }
 
+  const { name, email, password } = parsed.data;
+  const ip = getClientIpFromHeaders(headers());
+  const ipLimit = checkRateLimit(`fan-signup-ip:${ip}`, FAN_SIGNUP_MAX, FAN_SIGNUP_WINDOW_MS);
+  const emailLimit = checkRateLimit(`fan-signup-email:${email}`, FAN_SIGNUP_MAX, FAN_SIGNUP_WINDOW_MS);
+  if (ipLimit.limited || emailLimit.limited) {
+    return { error: "Too many signup attempts from this connection. Please try again later." };
+  }
+
   const ctx = await getRequestHubContext();
   if (ctx.kind !== "client" || !ctx.hub?.tenantDbName) {
     return { error: "Open this page on the hub’s own URL to create a fan account." };
   }
-
-  const { name, email, password } = parsed.data;
   const control = getControlPrisma();
   const existing = await control.user.findUnique({
     where: { email },
