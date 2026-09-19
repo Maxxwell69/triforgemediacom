@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.251",
+    date: "September 19, 2026",
+    title: "Fix menu lineup deploy",
+    summary: "The Site menu editor no longer pulls the database client into the browser bundle, so Railway can build the image.",
+    items: [
+      {
+        kind: "fix",
+        text: "Split menu catalog from server load/save so staging and production can build",
+      },
+    ],
+  },
+  {
     version: "3.250",
     date: "September 19, 2026",
     title: "Admin menu lineup",

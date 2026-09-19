@@ -41,7 +41,8 @@ import { getOnboardingMenuLock } from "@/lib/onboarding/engine";
 import { canSeeOnboardingMenuItem } from "@/lib/onboarding/menu";
 import OnboardingMenuGate from "@/components/onboarding/OnboardingMenuGate";
 import MemberMenu from "@/components/MemberMenu";
-import { customMenuPrefixes, getSiteMenuItems } from "@/lib/siteMenu";
+import { customMenuPrefixes } from "@/lib/siteMenu";
+import { getSiteMenuItems } from "@/lib/siteMenu.server";
 
 async function countUnreadHubNotifications(userId: string): Promise<number> {
   try {
