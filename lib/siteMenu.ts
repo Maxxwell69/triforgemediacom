@@ -7,6 +7,10 @@ export type SiteMenuItem = {
   label: string;
   href?: string;
   builtinId?: string;
+  /** One-level nest: this row sits under another lineup item. */
+  parentId?: string;
+  /** Custom links only. When omitted, http(s) URLs open in a new tab. */
+  newTab?: boolean;
 };
 
 export type BuiltinMenuDef = {
@@ -78,6 +82,7 @@ export function parseSiteMenuItems(raw: unknown): SiteMenuItem[] {
         enabled: row.enabled !== false,
         label: typeof row.label === "string" && row.label.trim() ? row.label.trim() : def.label,
         builtinId,
+        parentId: readParentId(row),
       });
       continue;
     }
@@ -90,6 +95,8 @@ export function parseSiteMenuItems(raw: unknown): SiteMenuItem[] {
       enabled: row.enabled !== false,
       label,
       href,
+      parentId: readParentId(row),
+      newTab: typeof row.newTab === "boolean" ? row.newTab : isExternalMenuHref(href),
     });
   }
   for (const def of BUILTIN_MENU) {
@@ -102,7 +109,100 @@ export function parseSiteMenuItems(raw: unknown): SiteMenuItem[] {
       builtinId: def.id,
     });
   }
-  return items;
+  return normalizeMenuTree(items);
+}
+
+function readParentId(row: Record<string, unknown>): string | undefined {
+  return typeof row.parentId === "string" && row.parentId ? row.parentId : undefined;
+}
+
+export function menuRoots(items: SiteMenuItem[]): SiteMenuItem[] {
+  return items.filter((item) => !item.parentId);
+}
+
+export function menuChildren(items: SiteMenuItem[], parentId: string): SiteMenuItem[] {
+  return items.filter((item) => item.parentId === parentId);
+}
+
+export function rebuildMenuOrder(items: SiteMenuItem[]): SiteMenuItem[] {
+  return menuRoots(items).flatMap((root) => [root, ...menuChildren(items, root.id)]);
+}
+
+/** One level only: parent must exist and must itself be top-level. */
+export function normalizeMenuTree(items: SiteMenuItem[]): SiteMenuItem[] {
+  const ids = new Set(items.map((item) => item.id));
+  const next = items.map((item) => {
+    const parentId = item.parentId;
+    if (!parentId || parentId === item.id || !ids.has(parentId)) {
+      if (!item.parentId && item.newTab === undefined) return item;
+      const copy = { ...item };
+      delete copy.parentId;
+      return copy;
+    }
+    return item;
+  });
+  const byId = new Map(next.map((item) => [item.id, item]));
+  return rebuildMenuOrder(
+    next.map((item) => {
+      if (!item.parentId) return item;
+      const parent = byId.get(item.parentId);
+      if (!parent || parent.parentId) {
+        const copy = { ...item };
+        delete copy.parentId;
+        return copy;
+      }
+      return item;
+    })
+  );
+}
+
+export function setMenuParent(
+  items: SiteMenuItem[],
+  id: string,
+  parentId: string | undefined
+): SiteMenuItem[] {
+  const safeParent =
+    parentId && parentId !== id && items.some((item) => item.id === parentId && !item.parentId)
+      ? parentId
+      : undefined;
+  return normalizeMenuTree(
+    items.map((item) => {
+      if (item.id === id) {
+        const copy = { ...item, parentId: safeParent };
+        if (!safeParent) delete copy.parentId;
+        return copy;
+      }
+      if (safeParent && item.parentId === id) {
+        return { ...item, parentId: safeParent };
+      }
+      return item;
+    })
+  );
+}
+
+export function moveMenuSibling(items: SiteMenuItem[], id: string, dir: -1 | 1): SiteMenuItem[] {
+  const current = items.find((item) => item.id === id);
+  if (!current) return items;
+  const siblings = current.parentId
+    ? menuChildren(items, current.parentId)
+    : menuRoots(items);
+  const index = siblings.findIndex((item) => item.id === id);
+  const swap = siblings[index + dir];
+  if (!swap) return items;
+  const nextSiblings = [...siblings];
+  nextSiblings[index] = swap;
+  nextSiblings[index + dir] = current;
+  if (current.parentId) {
+    const copy = [...items];
+    const a = copy.findIndex((item) => item.id === current.id);
+    const b = copy.findIndex((item) => item.id === swap.id);
+    copy[a] = swap;
+    copy[b] = current;
+    return rebuildMenuOrder(copy);
+  }
+  return rebuildMenuOrder(
+    nextSiblings.flatMap((root) => [root, ...menuChildren(items, root.id)])
+  );
 }
 
 /** Safe internal path or https URL. Rejects // and javascript: */
