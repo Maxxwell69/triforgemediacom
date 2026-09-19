@@ -8,16 +8,18 @@ export default async function OnboardingMenuGate({
   userId,
   role,
   allowedIds,
+  extraAllowedPrefixes = [],
 }: {
   userId: string;
   role: UserRole;
   allowedIds?: Set<string> | null;
+  extraAllowedPrefixes?: readonly string[];
 }) {
   const lock = allowedIds === undefined ? await getOnboardingMenuLock(userId, role) : allowedIds;
   if (!lock) return null;
   const pathname = headers().get("x-pathname") || "";
   if (!pathname) return null;
-  if (!isOnboardingMenuPathAllowed(pathname, lock)) {
+  if (!isOnboardingMenuPathAllowed(pathname, lock, extraAllowedPrefixes)) {
     redirect("/home");
   }
   return null;

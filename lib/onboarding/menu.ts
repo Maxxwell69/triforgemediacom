@@ -54,8 +54,12 @@ export function menuIdForPath(pathname: string): string | null {
 
 export function isOnboardingMenuPathAllowed(
   pathname: string,
-  allowedIds: ReadonlySet<string>
+  allowedIds: ReadonlySet<string>,
+  extraPrefixes: readonly string[] = []
 ): boolean {
+  if (extraPrefixes.some((prefix) => pathMatchesPrefix(pathname, prefix))) {
+    return true;
+  }
   const id = menuIdForPath(pathname);
   if (!id) return false;
   return allowedIds.has(id);
