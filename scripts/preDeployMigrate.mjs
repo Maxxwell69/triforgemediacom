@@ -7,7 +7,6 @@
  * deploy still cannot succeed.
  */
 import { spawnSync } from "node:child_process";
-import { PrismaClient } from "@prisma/client";
 
 const LEGACY_RECORDINGS = "20260729214500_add_webinar_recordings";
 const RECORDINGS = "20260729221000_add_webinar_recordings";
@@ -42,12 +41,14 @@ function envForSchema(schema) {
   return { ...process.env, DATABASE_URL: withSchema(process.env.DATABASE_URL, schema) };
 }
 
-function run(args, env = process.env) {
+function run(args, env = process.env, timeout = 0) {
   return spawnSync("npx", args, {
     encoding: "utf8",
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
     env,
+    timeout: timeout || undefined,
+    killSignal: "SIGTERM",
   });
 }
 
@@ -55,8 +56,8 @@ function combined(result) {
   return `${result.stdout || ""}\n${result.stderr || ""}`;
 }
 
-function migrateDeploy(env = process.env) {
-  return run(["prisma", "migrate", "deploy"], env);
+function migrateDeploy(env = process.env, timeout = 0) {
+  return run(["prisma", "migrate", "deploy"], env, timeout);
 }
 
 function migrateResolve(flag, name, env = process.env) {
@@ -124,15 +125,15 @@ function recover(out, env = process.env) {
   return false;
 }
 
-function deployWithRecover(label, env = process.env) {
-  let deploy = migrateDeploy(env);
+function deployWithRecover(label, env = process.env, timeout = 0) {
+  let deploy = migrateDeploy(env, timeout);
   process.stdout.write(combined(deploy));
 
   if (deploy.status !== 0) {
     const out = combined(deploy);
     if (recover(out, env)) {
       console.log(`Retrying prisma migrate deploy (${label})…`);
-      deploy = migrateDeploy(env);
+      deploy = migrateDeploy(env, timeout);
       process.stdout.write(combined(deploy));
     }
   }
@@ -160,24 +161,32 @@ async function listTenantSchemas(prisma) {
 }
 
 async function migrateTenants() {
+  let PrismaClient;
+  try {
+    ({ PrismaClient } = await import("@prisma/client"));
+  } catch (err) {
+    console.warn("Skipping tenant migrate — Prisma client unavailable:", err?.message || err);
+    return;
+  }
+
   const prisma = new PrismaClient();
   try {
     const schemas = await listTenantSchemas(prisma);
     if (schemas.length === 0) {
       console.log("No client-hub schemas to migrate.");
-      return true;
+      return;
     }
 
     console.log(`Migrating ${schemas.length} client-hub schema(s): ${schemas.join(", ")}`);
     for (const schema of schemas) {
       console.log(`prisma migrate deploy → ${schema}`);
-      const ok = deployWithRecover(schema, envForSchema(schema));
+      const ok = deployWithRecover(schema, envForSchema(schema), 90_000);
       if (!ok) {
-        console.error(`prisma migrate deploy failed for ${schema} — refusing to start the new release.`);
-        return false;
+        console.error(
+          `prisma migrate deploy failed for ${schema} — Hub 0 will still start. Apply this hub_* schema by hand.`
+        );
       }
     }
-    return true;
   } finally {
     await prisma.$disconnect().catch(() => {});
   }
@@ -194,12 +203,10 @@ if (!deployWithRecover("public")) {
 }
 
 try {
-  const tenantsOk = await migrateTenants();
-  if (!tenantsOk) process.exit(1);
+  await migrateTenants();
 } catch (err) {
-  console.error("Tenant schema migrate failed:", err?.message || err);
-  process.exit(1);
+  console.error("Tenant schema migrate skipped after error:", err?.message || err);
 }
 
-console.log("Migrations up to date (public + hub_*).");
+console.log("Migrations up to date (public). Tenant schemas attempted.");
 process.exit(0);

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
 import { canAccessConversation, summarizeReactions } from "@/lib/dmAccess";
+import { markDmNotificationsRead } from "@/lib/dmSidebar";
 import { chatAuthorSelect, getMemberDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import DmChatView from "@/components/chat/DmChatView";
@@ -18,6 +19,8 @@ export default async function DmConversationPage({
   if (!(await canAccessConversation(user.id, user.role, params.conversationId))) {
     notFound();
   }
+
+  await markDmNotificationsRead(user.id, params.conversationId);
 
   const [conversation, dbUser, messages] = await Promise.all([
     prisma.directConversation.findUnique({

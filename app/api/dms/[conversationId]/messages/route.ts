@@ -7,6 +7,7 @@ import { postMessageSchema } from "@/lib/validations/message";
 import { chatAuthorSelect, getChatDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import { notifyDmRecipients } from "@/lib/dmNotify";
+import { markDmNotificationsRead } from "@/lib/dmSidebar";
 
 function mapMessage(
   message: {
@@ -41,6 +42,8 @@ export async function GET(
   if (!(await canAccessConversation(result.user.id, result.user.role, params.conversationId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  await markDmNotificationsRead(result.user.id, params.conversationId);
 
   const after = req.nextUrl.searchParams.get("after");
   const messages = await prisma.directMessage.findMany({

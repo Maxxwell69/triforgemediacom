@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.247",
+    date: "September 19, 2026",
+    title: "Direct Messages in the sidebar",
+    summary:
+      "Direct messages show in the left menu like Discord, with a red badge when someone messages you.",
+    items: [
+      {
+        kind: "feature",
+        text: "Sidebar lists your recent DMs with the other person’s avatar and name, plus a red unread badge",
+      },
+      {
+        kind: "fix",
+        text: "Railway pre-deploy no longer blocks Hub 0 if a client-hub schema migrate errors",
+      },
+    ],
+  },
+  {
     version: "3.246",
     date: "September 19, 2026",
     title: "Hub isolation and tenant migrate",

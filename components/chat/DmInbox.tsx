@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseMentionSegments } from "@/lib/chatMentions";
+import DmPeopleAvatars from "@/components/chat/DmPeopleAvatars";
 
 type ConversationRow = {
   id: string;
   title: string;
   updatedAt: string;
   lastMessage: { content: string; createdAt: string } | null;
-  participants: { id: string; name: string; role: string }[];
+  participants: { id: string; name: string; role: string; avatarUrl?: string | null; initial?: string }[];
+  unreadCount?: number;
 };
 
 type MentionCandidate = { id: string; name: string };
@@ -120,19 +122,39 @@ export default function DmInbox({
             <Link
               key={c.id}
               href={`/dms/${c.id}`}
-              className="glass flex flex-col gap-1 rounded-xl px-4 py-3 transition hover:border-cyan/40"
+              className="glass flex items-center gap-3 rounded-xl px-4 py-3 transition hover:border-cyan/40"
             >
+              <DmPeopleAvatars
+                people={c.participants.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  avatarUrl: p.avatarUrl ?? null,
+                  initial: p.initial || p.name.trim().replace(/^@/, "").charAt(0).toUpperCase() || "?",
+                }))}
+                size={40}
+              />
+              <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-body text-sm font-semibold text-off-white">{c.title}</p>
-                <span className="font-body text-[10px] text-off-white/30">
-                  {new Date(c.updatedAt).toLocaleDateString([], { dateStyle: "medium" })}
-                </span>
+                <p className={`truncate font-body text-sm ${c.unreadCount ? "font-bold text-off-white" : "font-semibold text-off-white"}`}>
+                  {c.title}
+                </p>
+                <div className="flex items-center gap-2">
+                  {c.unreadCount ? (
+                    <span className="inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-red-500 px-1 py-0.5 font-body text-[10px] font-bold leading-none text-white">
+                      {c.unreadCount > 99 ? "99+" : c.unreadCount}
+                    </span>
+                  ) : null}
+                  <span className="font-body text-[10px] text-off-white/30">
+                    {new Date(c.updatedAt).toLocaleDateString([], { dateStyle: "medium" })}
+                  </span>
+                </div>
               </div>
               {c.lastMessage && (
                 <p className="truncate font-body text-xs text-off-white/45">
                   {previewContent(c.lastMessage.content)}
                 </p>
               )}
+              </div>
             </Link>
           ))
         )}
