@@ -1,6 +1,6 @@
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isTrueAdmin } from "@/lib/rbac";
+import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
 
 export type DmAccessMode = "ADMIN" | "ADMIN_AND_MOD" | "ALLOWLIST";
 
@@ -34,11 +34,18 @@ export async function canAccessConversation(
   role: UserRole,
   conversationId: string
 ): Promise<boolean> {
-  if (isTrueAdmin(role)) return true;
+  const conversation = await prisma.directConversation.findUnique({
+    where: { id: conversationId },
+    select: { archivedAt: true },
+  });
+  if (!conversation) return false;
+  if (isAdminRole(role)) return true;
+  if (conversation.archivedAt) return false;
   const participant = await prisma.directConversationParticipant.findUnique({
     where: { conversationId_userId: { conversationId, userId } },
+    select: { leftAt: true },
   });
-  return !!participant;
+  return !!participant && !participant.leftAt;
 }
 
 export type ReactionSummary = {

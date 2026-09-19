@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseMentionSegments } from "@/lib/chatMentions";
 import DmPeopleAvatars from "@/components/chat/DmPeopleAvatars";
+import DmThreadActions from "@/components/chat/DmThreadActions";
 
 type ConversationRow = {
   id: string;
@@ -26,9 +27,11 @@ function previewContent(content: string): string {
 export default function DmInbox({
   initialConversations,
   canInitiate,
+  isAdmin = false,
 }: {
   initialConversations: ConversationRow[];
   canInitiate: boolean;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [conversations] = useState(initialConversations);
@@ -119,11 +122,11 @@ export default function DmInbox({
           </p>
         ) : (
           conversations.map((c) => (
-            <Link
+            <div
               key={c.id}
-              href={`/dms/${c.id}`}
               className="glass flex items-center gap-3 rounded-xl px-4 py-3 transition hover:border-cyan/40"
             >
+              <Link href={`/dms/${c.id}`} className="flex min-w-0 flex-1 items-center gap-3">
               <DmPeopleAvatars
                 people={c.participants.map((p) => ({
                   id: p.id,
@@ -155,7 +158,9 @@ export default function DmInbox({
                 </p>
               )}
               </div>
-            </Link>
+              </Link>
+              <DmThreadActions conversationId={c.id} isAdmin={isAdmin} compact />
+            </div>
           ))
         )}
       </div>

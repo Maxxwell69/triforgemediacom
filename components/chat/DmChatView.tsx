@@ -12,6 +12,7 @@ import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { useScrollToLatest } from "@/components/chat/useScrollToLatest";
 import { formatChatTime } from "@/lib/formatChatTime";
+import DmThreadActions from "@/components/chat/DmThreadActions";
 
 type ChatRole = keyof typeof ROLE_LABELS;
 
@@ -46,12 +47,14 @@ export default function DmChatView({
   currentUserId,
   initialMessages,
   initialMutedUntil,
+  isAdmin = false,
 }: {
   conversationId: string;
   title: string;
   currentUserId: string;
   initialMessages: ChatMessage[];
   initialMutedUntil: string | Date | null;
+  isAdmin?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -238,11 +241,16 @@ export default function DmChatView({
   return (
     <div className="hub-chat flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
-        <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
-          &larr; Direct messages
-        </Link>
-        <h1 className="mt-1 font-display text-2xl tracking-wide">{title}</h1>
-        <p className="font-body text-xs text-off-white/40">Private conversation</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
+              &larr; Direct messages
+            </Link>
+            <h1 className="mt-1 font-display text-2xl tracking-wide">{title}</h1>
+            <p className="font-body text-xs text-off-white/40">Private conversation</p>
+          </div>
+          <DmThreadActions conversationId={conversationId} isAdmin={isAdmin} />
+        </div>
       </header>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">

@@ -145,6 +145,18 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "dms",
       },
       {
+        href: "/admin/dms",
+        label: "DM reports",
+        description: "Member reports and open threads",
+        sku: "dms",
+      },
+      {
+        href: "/admin/dms/archive",
+        label: "DM archive",
+        description: "Threads removed from member view",
+        sku: "dms",
+      },
+      {
         href: "/admin/chat",
         label: "DM settings",
         description: "DM access mode and allowlist",

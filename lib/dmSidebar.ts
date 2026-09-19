@@ -81,7 +81,10 @@ export async function markDmNotificationsRead(userId: string, conversationId: st
 export async function listDmSidebarRows(userId: string): Promise<DmSidebarRow[]> {
   const [conversations, unreadIds] = await Promise.all([
     prisma.directConversation.findMany({
-      where: { participants: { some: { userId } } },
+      where: {
+        archivedAt: null,
+        participants: { some: { userId, leftAt: null } },
+      },
       orderBy: { updatedAt: "desc" },
       take: DM_SIDEBAR_LIMIT,
       include: {

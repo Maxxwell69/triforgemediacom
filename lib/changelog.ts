@@ -186,6 +186,39 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.249",
+    date: "September 19, 2026",
+    title: "Leave, report, and archive DMs",
+    summary:
+      "Members can leave or report a DM. Admins can archive threads. A DM icon on the left rail opens your conversations in the sidebar.",
+    items: [
+      {
+        kind: "feature",
+        text: "Leave or delete a DM from your list; report a thread to admins",
+      },
+      {
+        kind: "feature",
+        text: "Admins can delete a DM into an archive and review reports under Chat & safety",
+      },
+      {
+        kind: "feature",
+        text: "A DM icon under the group rail opens your conversations in the channel slot",
+      },
+    ],
+  },
+  {
+    version: "3.248",
+    date: "September 19, 2026",
+    title: "Chat timestamps include the date",
+    summary: "Channel and DM messages show the time plus a short date like 3/3/26.",
+    items: [
+      {
+        kind: "improve",
+        text: "Chat timestamps now read like 10:36 AM 3/3/26 in channels and DMs",
+      },
+    ],
+  },
+  {
     version: "3.247",
     date: "September 19, 2026",
     title: "Direct Messages in the sidebar",
