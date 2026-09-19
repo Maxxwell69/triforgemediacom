@@ -4,12 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
-import {
-  parseSiteMenuItems,
-  saveSiteMenuItems,
-  sanitizeMenuHref,
-  type SiteMenuItem,
-} from "@/lib/siteMenu";
+import { parseSiteMenuItems, sanitizeMenuHref, type SiteMenuItem } from "@/lib/siteMenu";
+import { saveSiteMenuItems } from "@/lib/siteMenu.server";
 
 async function requireAdmin() {
   const session = await auth();

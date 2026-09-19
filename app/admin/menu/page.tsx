@@ -1,4 +1,4 @@
-import { getSiteMenuItems } from "@/lib/siteMenu";
+import { getSiteMenuItems } from "@/lib/siteMenu.server";
 import { clientSlugFromHeaders } from "@/lib/hub/requestHost";
 import MenuLineupEditor from "@/components/admin/MenuLineupEditor";
 
