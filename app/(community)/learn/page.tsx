@@ -100,7 +100,7 @@ export default async function LearnPage({
   const userGroupIds = await getUserGroupIds(user.id);
 
   const courses = await prisma.course.findMany({
-    where: { isPublished: true },
+    where: { isPublished: true, hubOwnerOnly: false },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     include: {
       lessons: { select: { id: true } },

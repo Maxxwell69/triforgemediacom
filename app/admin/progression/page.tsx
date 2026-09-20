@@ -18,7 +18,7 @@ export default async function AdminProgressionPage() {
       prisma.progressionLevel.count(),
       prisma.progressionCategory.count(),
       prisma.progressionMission.count(),
-      prisma.course.count({ where: { progressionEnabled: true } }),
+      prisma.course.count({ where: { hubOwnerOnly: false, progressionEnabled: true } }),
       prisma.progressionCertification.count(),
       prisma.progressionSkill.count(),
       prisma.progressionBadge.count(),
@@ -29,7 +29,7 @@ export default async function AdminProgressionPage() {
         include: { _count: { select: { profiles: true } } },
       }),
       prisma.course.findMany({
-        where: { progressionEnabled: true },
+        where: { hubOwnerOnly: false, progressionEnabled: true },
         orderBy: { title: "asc" },
         include: {
           progressionLevel: { select: { name: true } },

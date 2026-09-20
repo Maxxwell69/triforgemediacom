@@ -16,6 +16,7 @@ export default async function AdminProgressionLearnPage() {
       select: { id: true, name: true, sortOrder: true },
     }),
     prisma.course.findMany({
+      where: { hubOwnerOnly: false },
       orderBy: { title: "asc" },
       select: {
         id: true,

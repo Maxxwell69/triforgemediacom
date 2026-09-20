@@ -6,9 +6,11 @@ import { markLessonComplete } from "@/app/(community)/learn/actions";
 export default function LessonCompleteButton({
   lessonId,
   completed,
+  completeAction,
 }: {
   lessonId: string;
   completed: boolean;
+  completeAction?: (lessonId: string) => Promise<void>;
 }) {
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(completed);
@@ -28,7 +30,7 @@ export default function LessonCompleteButton({
           setError(null);
           startTransition(async () => {
             try {
-              await markLessonComplete(lessonId);
+              await (completeAction ?? markLessonComplete)(lessonId);
               setDone(true);
             } catch (err) {
               setError(err instanceof Error ? err.message : "Failed to mark complete");

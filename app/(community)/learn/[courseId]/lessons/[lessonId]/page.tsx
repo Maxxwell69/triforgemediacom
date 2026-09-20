@@ -33,6 +33,7 @@ export default async function LessonPage({
           id: true,
           title: true,
           isPublished: true,
+          hubOwnerOnly: true,
           groups: { select: { id: true } },
         },
       },

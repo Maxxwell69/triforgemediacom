@@ -51,7 +51,7 @@ export default async function CourseDetailPage({
     },
   });
 
-  if (!course || !canViewCourse(course, user.role)) notFound();
+  if (!course || course.hubOwnerOnly || !canViewCourse(course, user.role)) notFound();
   if (!canAccessCourse(user.role, course, userGroupIds)) {
     redirect("/learn");
   }

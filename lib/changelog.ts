@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.254",
+    date: "September 20, 2026",
+    title: "Hub Zero Academy",
+    summary:
+      "Hub 0 holds one owner-training catalog. Admins on every hub open it from Admin — courses are not copied into client hubs.",
+    items: [
+      {
+        kind: "feature",
+        text: "Hub 0 admins build academy courses under Admin → Hub Zero Academy",
+      },
+      {
+        kind: "feature",
+        text: "Hub owners take those courses in their own admin, with progress stored on Hub 0",
+      },
+    ],
+  },
+  {
     version: "3.253",
     date: "September 19, 2026",
     title: "Menu dropdowns and DM options",

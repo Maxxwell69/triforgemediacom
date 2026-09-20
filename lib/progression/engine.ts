@@ -361,7 +361,12 @@ export async function evaluateProgression(userId: string) {
 
 async function hasPassedCategoryTeaching(userId: string, categoryId: string): Promise<boolean> {
   const courses = await prisma.course.findMany({
-    where: { progressionEnabled: true, isPublished: true, progressionCategoryId: categoryId },
+    where: {
+      hubOwnerOnly: false,
+      progressionEnabled: true,
+      isPublished: true,
+      progressionCategoryId: categoryId,
+    },
     select: { id: true, quiz: { select: { id: true } } },
   });
   for (let i = 0; i < courses.length; i += 1) {
@@ -397,7 +402,12 @@ async function hasPassedCategoryTeaching(userId: string, categoryId: string): Pr
 export async function awardedTrainingCategoryIds(): Promise<Set<string>> {
   const [courses, modules] = await Promise.all([
     prisma.course.findMany({
-      where: { progressionEnabled: true, isPublished: true, progressionCategoryId: { not: null } },
+      where: {
+        hubOwnerOnly: false,
+        progressionEnabled: true,
+        isPublished: true,
+        progressionCategoryId: { not: null },
+      },
       select: { progressionCategoryId: true },
     }),
     prisma.progressionLearningModule.findMany({
@@ -692,7 +702,7 @@ export async function loadCreatorProgress(userId: string) {
 
   const trainingCategoryIds = await awardedTrainingCategoryIds();
   const teachingCourses = await prisma.course.findMany({
-    where: { progressionEnabled: true, isPublished: true },
+    where: { hubOwnerOnly: false, progressionEnabled: true, isPublished: true },
     orderBy: { order: "asc" },
     select: {
       id: true,
