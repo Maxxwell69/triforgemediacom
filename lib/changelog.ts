@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.257",
+    date: "September 20, 2026",
+    title: "Academy intro",
+    summary: "Hub Zero Academy no longer says courses live only on Hub 0.",
+    items: [
+      {
+        kind: "improve",
+        text: "Academy catalog intro is just training for people who run a hub",
+      },
+    ],
+  },
+  {
     version: "3.256",
     date: "September 20, 2026",
     title: "Academy graphic",
