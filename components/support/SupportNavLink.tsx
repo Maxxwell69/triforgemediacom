@@ -64,7 +64,7 @@ export default function SupportNavLink({
   return (
     <Link
       href="/support"
-      className={`flex items-center gap-2 rounded-lg px-3 py-1.5 font-body text-sm transition ${
+      className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 font-body text-sm transition ${
         onMember
           ? "bg-off-white/10 text-off-white"
           : count > 0

@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.253",
+    date: "September 19, 2026",
+    title: "Menu dropdowns and DM options",
+    summary:
+      "Child sidebar items drop under their parent with a chevron. DM leave/archive options sit above the glass cards.",
+    items: [
+      {
+        kind: "fix",
+        text: "DM Options no longer hides under the next glass conversation row",
+      },
+      {
+        kind: "improve",
+        text: "Nested menu items stack under the parent and toggle with an arrow",
+      },
+    ],
+  },
+  {
     version: "3.252",
     date: "September 19, 2026",
     title: "Nested menu items and link targets",

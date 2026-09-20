@@ -11,13 +11,14 @@ import {
 import HubBugNavLink from "@/components/HubBugNavLink";
 import SupportNavLink from "@/components/support/SupportNavLink";
 import SuggestionNavLink from "@/components/suggestions/SuggestionNavLink";
+import MemberMenuDropdown from "@/components/MemberMenuDropdown";
 
 const NAV =
-  "rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90";
+  "flex w-full items-center rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90";
 const LIVE =
-  "rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange";
+  "flex w-full items-center rounded-lg px-3 py-1.5 font-body text-sm text-orange/90 transition hover:bg-orange/10 hover:text-orange";
 const NESTED =
-  "rounded-lg py-1.5 pl-6 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75";
+  "flex w-full items-center rounded-lg py-1.5 pl-2 pr-3 font-body text-sm text-off-white/45 transition hover:bg-off-white/5 hover:text-off-white/75";
 
 export type MemberMenuGates = {
   canMenu: (id: string) => boolean;
@@ -52,7 +53,7 @@ function builtinVisible(id: string, gates: MemberMenuGates): boolean {
 
 function wrapNested(nested: boolean, node: ReactNode) {
   if (!nested) return node;
-  return <div className="pl-3">{node}</div>;
+  return <div className="w-full">{node}</div>;
 }
 
 function CustomMenuLink({ item, nested }: { item: SiteMenuItem; nested: boolean }) {
@@ -117,7 +118,7 @@ function MenuRow({
     return (
       <Link
         href={def.href}
-        className={`flex items-center justify-between ${nested ? NESTED : "rounded-lg px-3 py-1.5 font-body text-sm text-off-white/60 transition hover:bg-off-white/5 hover:text-off-white/90"}`}
+        className={`flex w-full items-center justify-between ${nested ? NESTED : NAV}`}
       >
         {label}
         {gates.unreadNotifications > 0 ? (
@@ -164,17 +165,25 @@ export default function MemberMenu({
       <p className="mb-2 px-3 font-body text-[11px] font-semibold uppercase tracking-wider text-off-white/35">
         Menu
       </p>
-      <div className="flex flex-col gap-0.5">
+      <div className="flex w-full flex-col gap-0.5">
         {roots.map((root) => {
           const kids = visibleChildren(root);
           const showRoot = parentShown(root);
           if (!showRoot && kids.length === 0) return null;
+          const childRows = kids.map((child) => (
+            <MenuRow key={child.id} item={child} nested={showRoot} gates={gates} />
+          ));
+          if (showRoot && kids.length > 0) {
+            return (
+              <MemberMenuDropdown key={root.id} parent={<MenuRow item={root} nested={false} gates={gates} />}>
+                {childRows}
+              </MemberMenuDropdown>
+            );
+          }
           return (
-            <div key={root.id}>
+            <div key={root.id} className="flex w-full flex-col">
               {showRoot ? <MenuRow item={root} nested={false} gates={gates} /> : null}
-              {kids.map((child) => (
-                <MenuRow key={child.id} item={child} nested={showRoot} gates={gates} />
-              ))}
+              {childRows}
             </div>
           );
         })}
