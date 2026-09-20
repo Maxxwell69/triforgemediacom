@@ -134,6 +134,25 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    id: "conversations",
+    label: "Conversations",
+    description: "Staff outreach inbox",
+    links: [
+      {
+        href: "/admin/conversations",
+        label: "Inbox",
+        description: "Email members and keep the thread on the hub",
+        sku: "conversations",
+      },
+      {
+        href: "/admin/conversations/settings",
+        label: "Sending",
+        description: "This hub’s Resend key and from-address",
+        sku: "conversations",
+      },
+    ],
+  },
+  {
     id: "safety",
     label: "Chat & safety",
     description: "Chat, DMs, and moderation",

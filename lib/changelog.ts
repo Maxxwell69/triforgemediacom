@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.258",
+    date: "September 20, 2026",
+    title: "Hub Conversations",
+    summary:
+      "Create Hub can turn on Conversations — a staff inbox that emails members from that hub’s Resend key and keeps the reply on the site.",
+    items: [
+      {
+        kind: "feature",
+        text: "Optional Conversations module: admin inbox, staff history, open/close, member replies in DMs",
+      },
+      {
+        kind: "feature",
+        text: "Client hubs paste their own Resend key; outreach and broadcasts then send from their domain",
+      },
+    ],
+  },
+  {
     version: "3.257",
     date: "September 20, 2026",
     title: "Academy intro",

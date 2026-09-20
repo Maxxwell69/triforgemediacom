@@ -126,6 +126,7 @@ model User {
   directMessageReactions     DirectMessageReaction[]
   dmConversationsCreated     DirectConversation[]   @relation("DmCreatedBy")
   dmConversationsArchived    DirectConversation[]   @relation("DmArchivedBy")
+  dmConversationsClosed      DirectConversation[]   @relation("DmClosedBy")
   dmReportsFiled             DmReport[]             @relation("DmReportsFiled")
   dmReportsReviewed          DmReport[]             @relation("DmReportsReviewed")
   dmAllowlistEntry           DmAllowedUser?
@@ -538,15 +539,22 @@ model DirectConversation {
   updatedAt    DateTime  @updatedAt
   archivedAt   DateTime?
   archivedById String?
+  /// DM = regular 1:1. OUTREACH = staff Conversations inbox.
+  purpose      String    @default("DM")
+  closedAt     DateTime?
+  closedById   String?
 
   createdBy    User                            @relation("DmCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   archivedBy   User?                           @relation("DmArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
+  closedBy     User?                           @relation("DmClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
   participants DirectConversationParticipant[]
   messages     DirectMessage[]
   reports      DmReport[]
 
   @@index([updatedAt])
   @@index([archivedAt])
+  @@index([purpose, updatedAt])
+  @@index([closedAt])
 }
 
 model DirectConversationParticipant {
@@ -587,12 +595,15 @@ model DirectMessage {
   userId         String
   content        String
   createdAt      DateTime @default(now())
+  /// Set when the sender was staff, so history stays even if their role changes.
+  staffSenderId  String?
 
   conversation DirectConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions    DirectMessageReaction[]
 
   @@index([conversationId, createdAt])
+  @@index([staffSenderId])
 }
 
 model DirectMessageReaction {
@@ -2563,6 +2574,10 @@ model ClientHub {
   customDomain         String?  @unique
   /// Railway DNS/TLS records for customDomain (CNAME + ownership TXT).
   customDomainSetup    Json?
+  /// AES-GCM packed Resend API key. Null = use platform key (Hub 0) or block outreach.
+  resendApiKeyEnc      String?
+  resendFromEmail      String?
+  resendDomainReady    Boolean @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   createdById        String?

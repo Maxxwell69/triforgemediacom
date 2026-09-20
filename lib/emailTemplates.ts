@@ -16,7 +16,8 @@ export type EmailTemplateKey =
   | "support-ticket-opened"
   | "support-ticket-reply"
   | "support-ticket-status"
-  | "support-ticket-closed";
+  | "support-ticket-closed"
+  | "conversation-outreach";
 
 export type TemplateVarDef = {
   key: string;
@@ -314,6 +315,25 @@ export const EMAIL_TEMPLATE_DEFS: EmailTemplateDef[] = [
 {{cta}}
 <p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
   },
+  {
+    key: "conversation-outreach",
+    label: "Conversation message",
+    trigger: "Sent when staff writes in Conversations. Member replies on the hub.",
+    variables: [
+      { key: "name", label: "Member name", kind: "text" },
+      { key: "hubName", label: "Hub name", kind: "text" },
+      { key: "preview", label: "Message preview", kind: "text" },
+      { key: "url", label: "Conversation URL", kind: "text" },
+      { key: "cta", label: "Open conversation button", kind: "html" },
+    ],
+    wrapsInLayout: true,
+    defaultSubject: "You have a message from {{hubName}}",
+    defaultBodyHtml: `<h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Message from {{hubName}}</h1>
+<p style="line-height:1.6;">Hi {{name}}, you have a new message. Open the hub to reply — don't reply to this email.</p>
+<p style="line-height:1.6;color:rgba(245,245,245,0.7);">{{preview}}</p>
+{{cta}}
+<p style="color:rgba(245,245,245,0.5);font-size:12px;">If the button doesn't work: {{url}}</p>`,
+  },
 ];
 
 export function getTemplateDef(key: string): EmailTemplateDef | undefined {
@@ -469,6 +489,16 @@ export function sampleVarsFor(key: EmailTemplateKey): TemplateVars {
           url: `${SAMPLE_APP_URL}/support/tickets/sample`,
         },
         html: { cta: button(`${SAMPLE_APP_URL}/support/tickets/sample`, "Open in Hub") },
+      };
+    case "conversation-outreach":
+      return {
+        text: {
+          name,
+          hubName: "TriForge Hub",
+          preview: "Wanted to check in about this week’s content.",
+          url: `${SAMPLE_APP_URL}/dms/sample`,
+        },
+        html: { cta: button(`${SAMPLE_APP_URL}/dms/sample`, "Open conversation") },
       };
     default:
       return { text: { name } };

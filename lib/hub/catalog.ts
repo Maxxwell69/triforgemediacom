@@ -66,6 +66,12 @@ export const OPTIONAL_SKUS: HubSku[] = [
     label: "Email",
     description: "Broadcasts, templates, and trigger campaigns",
   },
+  {
+    id: "conversations",
+    kind: "optional",
+    label: "Conversations",
+    description: "Staff inbox to email members and keep the thread on the hub",
+  },
   { id: "hubBug", kind: "optional", label: "Hub Bug", description: "Bug reports" },
   {
     id: "support",

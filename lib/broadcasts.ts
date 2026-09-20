@@ -241,12 +241,25 @@ export async function deliverBroadcast(opts: {
   }
 
   const bodyHtml = bodyTextToHtml(opts.bodyText);
-  const { sent, failed } = await sendBroadcastEmails(
-    recipients,
-    opts.subject,
-    bodyHtml,
-    opts.batchPrefix
-  );
+  let sent: number;
+  let failed: string[];
+  try {
+    ({ sent, failed } = await sendBroadcastEmails(
+      recipients,
+      opts.subject,
+      bodyHtml,
+      opts.batchPrefix
+    ));
+  } catch (err) {
+    return {
+      sent: null,
+      failed: null,
+      skippedUnsubscribed: null,
+      label: null,
+      bodyHtml: null,
+      error: err instanceof Error ? err.message : "Broadcast failed — no emails were sent.",
+    };
+  }
 
   if (sent === 0) {
     return {

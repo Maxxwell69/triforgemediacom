@@ -31,6 +31,8 @@ type SendOptions = {
   headers?: Record<string, string>;
   idempotencyKey?: string;
   maxRetries?: number;
+  resend?: Resend | null;
+  from?: string;
 };
 
 /**
@@ -54,7 +56,9 @@ function isRetryableResendError(error: { name: string }): boolean {
 }
 
 async function send(to: string, subject: string, html: string, options: SendOptions = {}) {
-  if (!resend) {
+  const client = options.resend === undefined ? resend : options.resend;
+  const from = options.from || fromEmail;
+  if (!client) {
     // Dev-friendly stub: no RESEND_API_KEY configured yet, so just log it.
     console.log(`[email:stub] To: ${to}\nSubject: ${subject}\n\n${html}\n`);
     return;
@@ -64,9 +68,9 @@ async function send(to: string, subject: string, html: string, options: SendOpti
   let lastMessage = "Failed to send email";
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const { data, error } = await resend.emails.send(
+    const { data, error } = await client.emails.send(
       {
-        from: fromEmail,
+        from,
         to,
         subject,
         html,
@@ -1069,8 +1073,15 @@ export async function sendBroadcastEmails(
   const unique = Array.from(byEmail.values());
   if (unique.length === 0) return { sent: 0, failed: [] };
   const chrome = await loadEmailChromeForRequest();
+  const { resolveOutreachMailer, outreachMailerRequiredError } = await import("@/lib/hub/resendSettings");
+  const mailer = await resolveOutreachMailer();
+  if (mailer.mode === "missing") {
+    throw new Error(outreachMailerRequiredError());
+  }
+  const broadcastClient = mailer.resend;
+  const broadcastFrom = mailer.from;
 
-  if (!resend) {
+  if (!broadcastClient) {
     for (const r of unique) {
       const { html } = buildBroadcastPayload(r, subject, bodyHtml, chrome);
       console.log(`[email:stub] To: ${r.email}\nSubject: ${subject}\n\n${html}\n`);
@@ -1087,7 +1098,7 @@ export async function sendBroadcastEmails(
     const payloads = chunk.map((r) => {
       const built = buildBroadcastPayload(r, subject, bodyHtml, chrome);
       return {
-        from: fromEmail,
+        from: broadcastFrom,
         to: [built.to],
         subject,
         html: built.html,
@@ -1098,7 +1109,7 @@ export async function sendBroadcastEmails(
     let chunkSent = false;
     const maxRetries = 4;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const { error } = await resend.batch.send(payloads, {
+      const { error } = await broadcastClient.batch.send(payloads, {
         idempotencyKey: `${batchPrefix}/chunk-${chunkIndex}`,
       });
 
@@ -1125,6 +1136,8 @@ export async function sendBroadcastEmails(
           await send(r.email, subject, built.html, {
             headers: built.headers,
             idempotencyKey: `${batchPrefix}/${r.email}`,
+            resend: broadcastClient,
+            from: broadcastFrom,
           });
           sent++;
         } catch (err) {
@@ -1458,5 +1471,52 @@ export async function sendSocialPlannerLiveReminderEmail(
     ${button(data.url, "Open Social Planner")}
   `);
   await send(to, `LIVE reminder: ${data.title}`, html);
+}
+
+/** Staff Conversations outreach — CTA only. Never invite a reply-by-email. */
+export function buildConversationOutreachEmail(opts: {
+  memberName: string;
+  hubName: string;
+  preview: string;
+  url: string;
+}): EmailContent {
+  return {
+    subject: `You have a message from ${opts.hubName}`,
+    html: layout(`
+      <h1 style="color:#FD4802;font-size:22px;margin:0 0 12px;">Message from ${escapeHtml(opts.hubName)}</h1>
+      <p style="line-height:1.6;">Hi ${escapeHtml(opts.memberName)}, you have a new message. Open the hub to reply — don't reply to this email.</p>
+      <p style="line-height:1.6;color:rgba(245,245,245,0.7);">${escapeHtml(opts.preview)}</p>
+      ${button(opts.url, "Open conversation")}
+    `),
+  };
+}
+
+export async function sendConversationOutreachEmail(opts: {
+  to: string;
+  memberName: string;
+  hubName: string;
+  preview: string;
+  url: string;
+  resend: Resend | null;
+  from: string;
+}) {
+  const { subject, html } = await resolveEditableEmail(
+    "conversation-outreach",
+    {
+      text: {
+        name: opts.memberName,
+        hubName: opts.hubName,
+        preview: opts.preview,
+        url: opts.url,
+      },
+      html: { cta: button(opts.url, "Open conversation") },
+    },
+    () => buildConversationOutreachEmail(opts)
+  );
+  await send(opts.to, subject, html, {
+    resend: opts.resend,
+    from: opts.from,
+    idempotencyKey: `conversation/${opts.to}/${Date.now()}`,
+  });
 }
 
