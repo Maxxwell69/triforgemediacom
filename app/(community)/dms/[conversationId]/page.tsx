@@ -63,6 +63,7 @@ export default async function DmConversationPage({
     others.length > 0
       ? others.map((u) => getMemberDisplayName(u)).join(", ")
       : "Direct message";
+  const outreach = conversation.purpose === "OUTREACH";
 
   const initialMessages = [...messages].reverse().map(({ reactions, user: author, ...message }) => ({
     ...message,
@@ -78,6 +79,11 @@ export default async function DmConversationPage({
       initialMessages={initialMessages}
       initialMutedUntil={dbUser?.mutedUntil ?? null}
       isAdmin={isTrueAdmin(user.role)}
+      subtitle={
+        outreach
+          ? "Reply here on the hub. Don’t reply to the email."
+          : "Private conversation"
+      }
     />
   );
 }

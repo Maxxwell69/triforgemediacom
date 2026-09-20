@@ -88,6 +88,7 @@ const MODULES = [
   { name: "Hub campaigns", line: "Interviews, meetings, games, battles." },
   { name: "Onboarding", line: "Named checklists and required courses." },
   { name: "Email & automations", line: "Broadcasts plus first-login / go-live triggers." },
+  { name: "Conversations", line: "Staff inbox to email members; they reply on the hub." },
   { name: "Social Planner", line: "Schedule TikTok posts and LIVE reminders." },
   { name: "Rewards & badges", line: "XP store, ranks, recognition." },
   { name: "Support", line: "FAQ, tickets, suggestions." },

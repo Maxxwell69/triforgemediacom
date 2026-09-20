@@ -48,6 +48,9 @@ export default function DmChatView({
   initialMessages,
   initialMutedUntil,
   isAdmin = false,
+  backHref = "/dms",
+  backLabel = "Direct messages",
+  subtitle = "Private conversation",
 }: {
   conversationId: string;
   title: string;
@@ -55,6 +58,9 @@ export default function DmChatView({
   initialMessages: ChatMessage[];
   initialMutedUntil: string | Date | null;
   isAdmin?: boolean;
+  backHref?: string;
+  backLabel?: string;
+  subtitle?: string;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -243,11 +249,11 @@ export default function DmChatView({
       <header className="shrink-0 border-b border-off-white/10 px-6 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <Link href="/dms" className="font-body text-xs text-off-white/40 transition hover:text-off-white">
-              &larr; Direct messages
+            <Link href={backHref} className="font-body text-xs text-off-white/40 transition hover:text-off-white">
+              &larr; {backLabel}
             </Link>
             <h1 className="mt-1 font-display text-2xl tracking-wide">{title}</h1>
-            <p className="font-body text-xs text-off-white/40">Private conversation</p>
+            <p className="font-body text-xs text-off-white/40">{subtitle}</p>
           </div>
           <DmThreadActions conversationId={conversationId} isAdmin={isAdmin} showReportButton />
         </div>

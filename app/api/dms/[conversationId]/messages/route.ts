@@ -8,6 +8,8 @@ import { chatAuthorSelect, getChatDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import { notifyDmRecipients } from "@/lib/dmNotify";
 import { markDmNotificationsRead } from "@/lib/dmSidebar";
+import { isAdminRole } from "@/lib/rbac";
+import { notifyConversationEmail } from "@/lib/conversationNotify";
 
 function mapMessage(
   message: {
@@ -118,6 +120,7 @@ export async function POST(
         conversationId: params.conversationId,
         userId: result.user.id,
         content: parsed.data.content,
+        staffSenderId: isAdminRole(result.user.role) ? result.user.id : null,
       },
       include: {
         user: { select: chatAuthorSelect },
@@ -137,6 +140,14 @@ export async function POST(
     senderName: getChatDisplayName(message.user),
     content: parsed.data.content,
   });
+
+  if (isAdminRole(result.user.role)) {
+    await notifyConversationEmail({
+      conversationId: params.conversationId,
+      senderId: result.user.id,
+      content: parsed.data.content,
+    });
+  }
 
   return NextResponse.json({ message: mapMessage(message, result.user.id) }, { status: 201 });
 }
