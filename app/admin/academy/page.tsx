@@ -53,7 +53,7 @@ export default async function AdminAcademyPage() {
       </div>
       <h1 className="sr-only">Hub Zero Academy</h1>
       <p className="mt-4 font-body text-sm text-off-white/50">
-        Training for people who run a hub. Courses live only on Hub 0.
+        Training for people who run a hub.
       </p>
 
       {author ? (
