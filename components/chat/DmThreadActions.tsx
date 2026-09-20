@@ -8,10 +8,12 @@ export default function DmThreadActions({
   conversationId,
   isAdmin = false,
   compact = false,
+  showReportButton = false,
 }: {
   conversationId: string;
   isAdmin?: boolean;
   compact?: boolean;
+  showReportButton?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -29,7 +31,7 @@ export default function DmThreadActions({
     function updatePosition() {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const panelWidth = 224;
+      const panelWidth = reporting ? 288 : 224;
       setCoords({
         top: rect.bottom + 6,
         left: Math.min(Math.max(8, rect.right - panelWidth), window.innerWidth - panelWidth - 8),
@@ -56,7 +58,7 @@ export default function DmThreadActions({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [open, reporting]);
 
   async function leave() {
     if (!confirm("Remove this conversation from your DM list? The other person still has it.")) {
@@ -138,7 +140,9 @@ export default function DmThreadActions({
             ref={panelRef}
             role="menu"
             style={{ top: coords.top, left: coords.left }}
-            className="fixed z-50 w-56 rounded-xl border border-off-white/10 bg-[#111] p-1 shadow-xl"
+            className={`fixed z-50 rounded-xl border border-off-white/10 bg-[#111] p-1 shadow-xl ${
+              reporting ? "w-72" : "w-56"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {reporting ? (
@@ -149,7 +153,7 @@ export default function DmThreadActions({
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
                   className="w-full rounded-lg border border-off-white/15 bg-off-white/5 px-2 py-1.5 font-body text-xs text-off-white outline-none focus:border-cyan/60"
-                  placeholder="Harassment, spam, threats…"
+                  placeholder="What looks suspicious? Harassment, spam, threats…"
                 />
                 <div className="flex gap-2">
                   <button
@@ -205,7 +209,21 @@ export default function DmThreadActions({
       : null;
 
   return (
-    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+    <div className="relative flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      {showReportButton ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setOpen(true);
+            setReporting(true);
+            setError(null);
+          }}
+          className="rounded-lg px-2 py-1 font-body text-xs font-semibold text-orange/80 transition hover:bg-orange/10 hover:text-orange"
+        >
+          Report
+        </button>
+      ) : null}
       <button
         ref={buttonRef}
         type="button"

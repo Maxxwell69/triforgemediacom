@@ -186,6 +186,34 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.256",
+    date: "September 20, 2026",
+    title: "Academy graphic",
+    summary: "Hub Zero Academy opens with the new brand graphic and shorter intro copy.",
+    items: [
+      {
+        kind: "improve",
+        text: "Academy catalog uses the Hub Zero Academy graphic instead of the long access note",
+      },
+    ],
+  },
+  {
+    version: "3.255",
+    date: "September 20, 2026",
+    title: "Report suspicious DMs",
+    summary: "The DM inbox asks members to report suspicious activity and puts Report on each conversation.",
+    items: [
+      {
+        kind: "improve",
+        text: "DM board copy no longer says admins can see every thread",
+      },
+      {
+        kind: "feature",
+        text: "Report on a DM sends the thread to admins with a short reason",
+      },
+    ],
+  },
+  {
     version: "3.254",
     date: "September 20, 2026",
     title: "Hub Zero Academy",
