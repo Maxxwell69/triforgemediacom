@@ -34,6 +34,7 @@ export default async function AdminProgressionLevelDetailPage({
       orderBy: { name: "asc" },
     }),
     prisma.course.findMany({
+      where: { hubOwnerOnly: false },
       orderBy: { title: "asc" },
       select: {
         id: true,

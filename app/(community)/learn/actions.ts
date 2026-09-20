@@ -31,13 +31,18 @@ async function assertLessonAccessible(userId: string, userRole: UserRole, lesson
         select: {
           id: true,
           isPublished: true,
+          hubOwnerOnly: true,
           groups: { select: { id: true } },
           progressionCategoryId: true,
         },
       },
     },
   });
-  if (!lesson || (!lesson.course.isPublished && !isAdminRole(userRole))) {
+  if (
+    !lesson ||
+    lesson.course.hubOwnerOnly ||
+    (!lesson.course.isPublished && !isAdminRole(userRole))
+  ) {
     throw new Error("Lesson not found");
   }
 
@@ -101,7 +106,7 @@ export async function submitQuizAttempt(
       lessons: { select: { id: true } },
     },
   });
-  if (!course || (!course.isPublished && !isAdminRole(user.role))) {
+  if (!course || course.hubOwnerOnly || (!course.isPublished && !isAdminRole(user.role))) {
     throw new Error("Course not found");
   }
   if (!course.quiz) throw new Error("This course doesn't have a quiz.");

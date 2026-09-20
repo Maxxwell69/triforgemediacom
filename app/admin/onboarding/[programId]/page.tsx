@@ -22,6 +22,7 @@ export default async function AdminOnboardingProgramPage({
   const [program, courses] = await Promise.all([
     getOnboardingProgram(params.programId),
     prisma.course.findMany({
+      where: { hubOwnerOnly: false },
       orderBy: [{ isPublished: "desc" }, { title: "asc" }],
       select: { id: true, title: true, isPublished: true },
     }),

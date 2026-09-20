@@ -42,6 +42,7 @@ async function requireAdmin() {
 function revalidateCourse(courseId: string) {
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath("/admin/academy");
   revalidatePath("/learn");
   revalidatePath(`/learn/${courseId}`);
   revalidatePath("/progress");
@@ -89,6 +90,7 @@ export async function createCourse(formData: FormData) {
 
   await prisma.course.create({
     data: {
+      hubOwnerOnly: false,
       title: data.title,
       description: data.description || null,
       thumbnailUrl: data.thumbnailUrl || null,
@@ -173,7 +175,14 @@ export async function setCoursePublished(courseId: string, isPublished: boolean)
 export async function moveCourseOrder(courseId: string, direction: "up" | "down") {
   await requireAdmin();
 
+  const currentCourse = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { hubOwnerOnly: true },
+  });
+  if (!currentCourse) return;
+
   const courses = await prisma.course.findMany({
+    where: { hubOwnerOnly: currentCourse.hubOwnerOnly },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     select: { id: true, order: true },
   });

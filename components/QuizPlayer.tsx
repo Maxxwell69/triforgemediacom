@@ -22,10 +22,15 @@ export default function QuizPlayer({
   courseId,
   quiz,
   completed,
+  submitAction,
 }: {
   courseId: string;
   quiz: Quiz;
   completed: boolean;
+  submitAction?: (
+    courseId: string,
+    answers: Record<string, string | string[]>
+  ) => Promise<QuizSubmitResult>;
 }) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
@@ -57,7 +62,7 @@ export default function QuizPlayer({
     setError(null);
     startTransition(async () => {
       try {
-        const res = await submitQuizAttempt(courseId, answers);
+        const res = await (submitAction ?? submitQuizAttempt)(courseId, answers);
         setResult(res);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to submit quiz");

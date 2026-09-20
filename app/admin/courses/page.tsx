@@ -12,6 +12,7 @@ const fieldClass =
 export default async function AdminCoursesPage() {
   const [courses, groups] = await Promise.all([
     prisma.course.findMany({
+      where: { hubOwnerOnly: false },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       include: {
         _count: { select: { lessons: true, enrollments: true } },

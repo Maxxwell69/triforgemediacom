@@ -995,6 +995,8 @@ model Course {
   thumbnailUrl       String?
   category           String?
   isPublished        Boolean  @default(false)
+  /// Hub Zero Academy: hub-owner training. Lives on Hub 0; other hubs read it, they do not copy it.
+  hubOwnerOnly       Boolean  @default(false)
   order              Int      @default(0)
   /// Module/course completion bonus (all lessons + quiz). Default 100.
   xpReward           Int      @default(100)

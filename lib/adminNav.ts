@@ -256,6 +256,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     description: "Courses, rewards, and badges",
     links: [
       {
+        href: "/admin/academy",
+        label: "Hub Zero Academy",
+        description: "Owner training from Hub 0 — one catalog for every hub admin",
+        sku: "core",
+      },
+      {
         href: "/admin/courses",
         label: "Courses",
         description: "Learning Center content",

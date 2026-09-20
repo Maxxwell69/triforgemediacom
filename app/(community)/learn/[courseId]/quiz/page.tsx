@@ -35,7 +35,7 @@ export default async function CourseQuizPage({
     },
   });
 
-  if (!course || !canViewCourse(course, user.role)) notFound();
+  if (!course || course.hubOwnerOnly || !canViewCourse(course, user.role)) notFound();
   if (!canAccessCourse(user.role, course, userGroupIds)) redirect("/learn");
   if (!course.quiz) redirect(`/learn/${course.id}`);
 
