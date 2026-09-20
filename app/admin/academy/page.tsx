@@ -43,12 +43,17 @@ export default async function AdminAcademyPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-display text-5xl tracking-wide">
-        HUB ZERO <span className="text-gradient">ACADEMY</span>
-      </h1>
-      <p className="mt-2 font-body text-sm text-off-white/50">
-        Training for people who run a hub. Courses live only on Hub 0 — every hub admin gets
-        access here. Nothing is copied into client hubs.
+      <div className="overflow-hidden rounded-2xl border border-off-white/10">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/hubzero-academy.jpg"
+          alt="Hub Zero Academy"
+          className="h-auto w-full object-cover"
+        />
+      </div>
+      <h1 className="sr-only">Hub Zero Academy</h1>
+      <p className="mt-4 font-body text-sm text-off-white/50">
+        Training for people who run a hub. Courses live only on Hub 0.
       </p>
 
       {author ? (

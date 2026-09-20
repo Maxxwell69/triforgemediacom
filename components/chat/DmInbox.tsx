@@ -82,7 +82,10 @@ export default function DmInbox({
         DIRECT <span className="text-gradient">MESSAGES</span>
       </h1>
       <p className="mt-2 font-body text-sm text-off-white/50">
-        Private 1:1 chats. All admins can see every thread.
+        Private 1:1 chats. Report all suspicious activity.
+      </p>
+      <p className="mt-1 font-body text-xs text-off-white/40">
+        Use Report on a conversation to send it to admins.
       </p>
 
       {canInitiate && (
@@ -159,7 +162,7 @@ export default function DmInbox({
               )}
               </div>
               </Link>
-              <DmThreadActions conversationId={c.id} isAdmin={isAdmin} compact />
+              <DmThreadActions conversationId={c.id} isAdmin={isAdmin} compact showReportButton />
             </div>
           ))
         )}

@@ -249,7 +249,7 @@ export default function DmChatView({
             <h1 className="mt-1 font-display text-2xl tracking-wide">{title}</h1>
             <p className="font-body text-xs text-off-white/40">Private conversation</p>
           </div>
-          <DmThreadActions conversationId={conversationId} isAdmin={isAdmin} />
+          <DmThreadActions conversationId={conversationId} isAdmin={isAdmin} showReportButton />
         </div>
       </header>
 
