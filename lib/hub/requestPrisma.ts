@@ -51,6 +51,9 @@ export async function getRequestHubContext(): Promise<RequestHubContext> {
   }
 
   if (!slug) {
+    if (isCustomDomainCandidate(hostname)) {
+      return { kind: "unknown-client", prisma: null, control, hub: null, slug: hostname };
+    }
     return { kind: "platform", prisma: control, control, hub: null };
   }
 

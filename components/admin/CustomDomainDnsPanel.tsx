@@ -1,5 +1,6 @@
 import CopyField from "@/components/admin/CopyField";
 import {
+  customDomainDnsRecords,
   dnsRegistrarName,
   humanizeRailwayStatus,
   type CustomDomainSetup,
@@ -18,10 +19,10 @@ export default function CustomDomainDnsPanel({
     setup.host.split(".").length <= 2
       ? setup.host
       : setup.host.split(".").slice(-2).join(".");
-  const cnameName = dnsRegistrarName(setup.cnameHost || setup.host, setup.host);
-  const txtName = setup.txtHost ? dnsRegistrarName(setup.txtHost, setup.host) : null;
+  const records = customDomainDnsRecords(setup);
   const cert = humanizeRailwayStatus(setup.certificateStatus);
   const dns = humanizeRailwayStatus(setup.dnsStatus);
+  const cloudflare = setup.provider === "cloudflare" || !setup.railwayId;
 
   return (
     <div className="glass mt-4 flex flex-col gap-5 rounded-2xl p-6">
@@ -31,13 +32,13 @@ export default function CustomDomainDnsPanel({
             DNS at your registrar
           </p>
           <h2 className="mt-1 font-display text-2xl tracking-wide">
-            {httpsReady ? "HTTPS IS LIVE" : "ADD THESE TWO RECORDS"}
+            {httpsReady ? "HTTPS IS LIVE" : "ADD THESE RECORDS"}
           </h2>
           <p className="mt-2 max-w-xl font-body text-sm text-off-white/55">
-            Copy Type, Name, and Value into GoDaddy, Namecheap, or Cloudflare. Name is
-            only the left part — they already add{" "}
-            <span className="text-off-white/80">.{zone}</span>. Do not paste the whole
-            line into Value.
+            Copy Type, Name, and Value into the DNS for{" "}
+            <span className="text-off-white/80">.{zone}</span>. Name is only the left
+            part. This hub is identified by hostname — {setup.host} always loads{" "}
+            this community, not Hub 0.
           </p>
         </div>
         <form action={refreshAction}>
@@ -57,45 +58,43 @@ export default function CustomDomainDnsPanel({
         </p>
       ) : null}
 
-      {setup.cnameTarget ? (
-        <DnsRecordCard
-          step="1"
-          type="CNAME"
-          name={cnameName}
-          value={setup.cnameTarget.replace(/\.$/, "")}
-          hint={
-            cnameName === "@"
-              ? "Root domain: use ALIAS, ANAME, or CNAME flattening if your registrar has no CNAME on @."
-              : `This makes ${setup.host} point at Railway.`
-          }
-        />
-      ) : (
+      {records.length === 0 ? (
         <p className="font-body text-xs text-off-white/45">
-          Save the hostname above so Railway can generate the CNAME target.
+          Save the hostname above so DNS records can be generated.
         </p>
+      ) : (
+        records.map((record, index) => (
+          <DnsRecordCard
+            key={`${record.type}-${record.host}-${record.value}-${index}`}
+            step={String(index + 1)}
+            total={String(records.length)}
+            type={record.type}
+            name={dnsRegistrarName(record.host, setup.host)}
+            value={record.value}
+            hint={
+              record.type === "CNAME"
+                ? cloudflare
+                  ? `This makes ${setup.host} point at ${record.value}.`
+                  : `This makes ${setup.host} point at Railway.`
+                : "Ownership / certificate check. Same name can appear twice with different values."
+            }
+          />
+        ))
       )}
-
-      {txtName && setup.txtValue ? (
-        <DnsRecordCard
-          step="2"
-          type="TXT"
-          name={txtName}
-          value={setup.txtValue}
-          hint="Required for ownership. If you use Cloudflare, set both records to DNS only (grey cloud)."
-        />
-      ) : null}
     </div>
   );
 }
 
 function DnsRecordCard({
   step,
+  total,
   type,
   name,
   value,
   hint,
 }: {
   step: string;
+  total: string;
   type: string;
   name: string;
   value: string;
@@ -104,7 +103,7 @@ function DnsRecordCard({
   return (
     <div className="rounded-xl border border-off-white/15 bg-charcoal/40 p-4">
       <p className="font-body text-[11px] uppercase tracking-wide text-cyan">
-        Record {step} of 2 · {type}
+        Record {step} of {total} · {type}
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <CopyField label="Type" value={type} />

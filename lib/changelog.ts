@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.259",
+    date: "September 21, 2026",
+    title: "Vanity host stays on its hub",
+    summary:
+      "A custom domain such as hub.piratemaxx.com now resolves to that Create Hub, not Hub 0.",
+    items: [
+      {
+        kind: "fix",
+        text: "Vanity hosts (hub.piratemaxx.com) resolve from the saved hostname — they no longer load Hub 0",
+      },
+      {
+        kind: "improve",
+        text: "Hub profile custom domain maps in the app first; Cloudflare issues the certificate",
+      },
+    ],
+  },
+  {
     version: "3.258",
     date: "September 20, 2026",
     title: "Hub Conversations",

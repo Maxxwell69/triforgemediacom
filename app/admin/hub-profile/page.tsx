@@ -91,8 +91,8 @@ export default async function AdminHubProfilePage({
         {searchParams.domainSaved ? (
           <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
             {httpsReady
-              ? "Custom domain saved. HTTPS is live."
-              : "Custom domain saved. Add the DNS records below — Railway issues HTTPS automatically after they propagate. No TriForge dashboard step."}
+              ? "Custom domain saved. HTTPS is live. This hostname is mapped to this hub."
+              : "Custom domain saved. This hostname is mapped to this hub. Add the DNS records below so Cloudflare can finish HTTPS."}
           </p>
         ) : null}
         {searchParams.domainError ? (
@@ -112,8 +112,8 @@ export default async function AdminHubProfilePage({
           />
         </label>
         <p className="font-body text-xs text-off-white/45">
-          Saving attaches this hostname to Railway and starts a Let’s Encrypt certificate.
-          You only add DNS at your registrar. Leave blank and save to clear.{" "}
+          Saving maps this hostname to this hub. Members at that address see this
+          community, not Hub 0. Leave blank and save to clear.{" "}
           {clientHubPublicHost(hub.slug)} still works.
         </p>
 

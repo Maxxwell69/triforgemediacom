@@ -11,29 +11,75 @@ import {
 
 const HOST_RE = /^(?=.{1,253}$)(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
+export type CustomDomainProvider = "cloudflare" | "railway";
+
+export type CustomDomainDnsRecord = {
+  type: "CNAME" | "TXT";
+  host: string;
+  value: string;
+};
+
 export type CustomDomainSetup = {
   host: string;
+  provider?: CustomDomainProvider | null;
   railwayId: string | null;
+  cloudflareId?: string | null;
   cnameHost: string | null;
   cnameTarget: string | null;
   txtHost: string | null;
   txtValue: string | null;
+  extraTxt?: Array<{ host: string; value: string }>;
+  dnsRecords?: CustomDomainDnsRecord[];
   certificateStatus: string | null;
   dnsStatus: string | null;
 };
+
+function parseDnsRecords(raw: unknown): CustomDomainDnsRecord[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const rows: CustomDomainDnsRecord[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const type = rec.type === "TXT" || rec.type === "CNAME" ? rec.type : null;
+    const host = typeof rec.host === "string" ? rec.host : "";
+    const value = typeof rec.value === "string" ? rec.value : "";
+    if (!type || !host || !value) continue;
+    rows.push({ type, host, value });
+  }
+  return rows.length ? rows : undefined;
+}
+
+function parseExtraTxt(raw: unknown): Array<{ host: string; value: string }> | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const rows: Array<{ host: string; value: string }> = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const host = typeof rec.host === "string" ? rec.host : "";
+    const value = typeof rec.value === "string" ? rec.value : "";
+    if (!host || !value) continue;
+    rows.push({ host, value });
+  }
+  return rows.length ? rows : undefined;
+}
 
 export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
   const host = typeof row.host === "string" ? row.host : "";
   if (!host) return null;
+  const provider = row.provider === "cloudflare" || row.provider === "railway" ? row.provider : null;
   return {
     host,
+    provider,
     railwayId: typeof row.railwayId === "string" ? row.railwayId : null,
+    cloudflareId: typeof row.cloudflareId === "string" ? row.cloudflareId : null,
     cnameHost: typeof row.cnameHost === "string" ? row.cnameHost : host,
     cnameTarget: typeof row.cnameTarget === "string" ? row.cnameTarget : null,
     txtHost: typeof row.txtHost === "string" ? row.txtHost : null,
     txtValue: typeof row.txtValue === "string" ? row.txtValue : null,
+    extraTxt: parseExtraTxt(row.extraTxt),
+    dnsRecords: parseDnsRecords(row.dnsRecords),
     certificateStatus: typeof row.certificateStatus === "string" ? row.certificateStatus : null,
     dnsStatus: typeof row.dnsStatus === "string" ? row.dnsStatus : null,
   };
@@ -41,7 +87,28 @@ export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
 
 export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   const cert = setup?.certificateStatus?.toUpperCase() || "";
-  return cert.includes("ISSUED") || cert === "VALID";
+  const dns = setup?.dnsStatus?.toUpperCase() || "";
+  return (
+    cert.includes("ISSUED") ||
+    cert === "VALID" ||
+    cert === "ACTIVE" ||
+    dns === "ACTIVE"
+  );
+}
+
+export function customDomainDnsRecords(setup: CustomDomainSetup): CustomDomainDnsRecord[] {
+  if (setup.dnsRecords?.length) return setup.dnsRecords;
+  const rows: CustomDomainDnsRecord[] = [];
+  if (setup.cnameHost && setup.cnameTarget) {
+    rows.push({ type: "CNAME", host: setup.cnameHost, value: setup.cnameTarget.replace(/\.$/, "") });
+  }
+  if (setup.txtHost && setup.txtValue) {
+    rows.push({ type: "TXT", host: setup.txtHost, value: setup.txtValue });
+  }
+  for (const extra of setup.extraTxt || []) {
+    rows.push({ type: "TXT", host: extra.host, value: extra.value });
+  }
+  return rows;
 }
 
 /** Host/name a registrar expects — relative to the root domain, not the FQDN. */
