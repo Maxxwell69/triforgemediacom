@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.262",
+    date: "September 21, 2026",
+    title: "TikTok LIVE Studio course",
+    summary:
+      "Hub 0 Learning Center now has the full TikTok LIVE Studio curriculum — nine modules from first setup through Gaming Club.",
+    items: [
+      {
+        kind: "feature",
+        text: "Tik Tok Live Studio: 9 modules and 61 lessons with screenshots, in the same format as the other network courses",
+      },
+    ],
+  },
+  {
     version: "3.261",
     date: "September 21, 2026",
     title: "Check HTTPS stays on the page",

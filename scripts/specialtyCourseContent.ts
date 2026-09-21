@@ -7,6 +7,12 @@ export type QuestionSeed = {
   correct: string;
 };
 
+export type LessonFigure = {
+  src: string;
+  alt: string;
+  caption?: string;
+};
+
 export type LessonSeed = {
   title: string;
   tagline: string;
@@ -19,6 +25,12 @@ export type LessonSeed = {
   /** Ungraded study questions shown at the end of the lesson. */
   knowledgeCheck?: string[];
   footerLabel?: string;
+  /** Screenshots after the intro, same card language as GHL/network courses. */
+  figures?: LessonFigure[];
+  /** Screenshots under each method step (same index as stepTitles). */
+  stepFigures?: Array<LessonFigure[] | undefined>;
+  /** Trusted tables/lists after the intro (already escaped HTML). */
+  extraHtml?: string;
 };
 
 export type CourseSeed = {
@@ -52,17 +64,39 @@ function introParagraphs(paragraphs: string[]) {
     .join("\n");
 }
 
-function methodSteps(titles: string[], bodies: string[]) {
+function figuresHtml(figures?: LessonFigure[]) {
+  if (!figures?.length) return "";
+  return figures
+    .map(
+      (figure) => `    <figure style="margin: 16px 0px 0px;">
+      <img src="${escapeHtml(figure.src)}" alt="${escapeHtml(figure.alt)}" style="width: 100%; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid rgb(59, 59, 59);" />
+      ${
+        figure.caption
+          ? `<figcaption style="margin: 8px 0px 0px; color: rgb(176, 176, 176); font-size: 13px;">${escapeHtml(figure.caption)}</figcaption>`
+          : ""
+      }
+    </figure>`
+    )
+    .join("\n");
+}
+
+function methodSteps(
+  titles: string[],
+  bodies: string[],
+  stepFigures?: Array<LessonFigure[] | undefined>
+) {
   return titles
     .map((title, i) => {
       const n = pad2(i + 1);
       const isLast = i === titles.length - 1;
       const bg = isLast ? "rgb(11, 11, 11)" : "rgb(26, 26, 26)";
+      const shots = figuresHtml(stepFigures?.[i]);
       const card = `    <div style="background: ${bg}; color: rgb(255, 255, 255); border-radius: 14px; padding: 20px 22px;">
       <p style="margin: 0px; color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">
         <strong>${n} · ${escapeHtml(title)}</strong>
       </p>
       <p style="margin: 6px 0px 0px; color: rgb(222, 222, 222);">${escapeHtml(bodies[i] ?? "")}</p>
+${shots}
     </div>`;
       if (isLast) return card;
       return `${card}
@@ -89,7 +123,7 @@ export function lessonHtml(lesson: LessonSeed, index: number) {
     <div style="margin-top: 32px; color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">
       <p style="margin: 0px;"><strong>The Method</strong></p>
     </div>
-${methodSteps(lesson.stepTitles, rest)}`
+${methodSteps(lesson.stepTitles, rest, lesson.stepFigures)}`
       : "";
 
   const knowledgeBlock =
@@ -166,6 +200,8 @@ ${lesson.knowledgeCheck
 
   <div style="max-width: 1050px; margin: 0px auto; padding: 40px 20px 60px;">
 ${introParagraphs(intro)}
+${figuresHtml(lesson.figures)}
+${lesson.extraHtml ? `\n${lesson.extraHtml}\n` : ""}
 ${method}
 ${exerciseBlock}
 ${knowledgeBlock}
