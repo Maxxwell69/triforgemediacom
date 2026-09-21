@@ -179,27 +179,35 @@ export async function saveHubCustomDomain(formData: FormData) {
   redirect("/admin/hub-profile?domainSaved=1");
 }
 
+function isNextRedirect(err: unknown) {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
+  );
+}
+
 export async function refreshHubCustomDomain() {
-  const ctx = await requireClientHub();
-  const previous = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
-  if (!previous?.host) {
-    redirect("/admin/hub-profile?domainError=Save%20a%20hostname%20first.");
-  }
   try {
-    let setup;
-    if (previous.railwayId) await detachRailwayCustomDomain(previous.railwayId);
-    if (cloudflareCustomDomainReady()) {
-      setup = await refreshCloudflareCustomHostname(previous.host, previous.cloudflareId);
-    } else {
-      setup = cloudflareManualSetup(previous.host);
-      if (previous.cloudflareId) setup = { ...setup, cloudflareId: previous.cloudflareId };
+    const ctx = await requireClientHub();
+    const previous = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
+    if (!previous?.host) {
+      redirect("/admin/hub-profile?domainError=Save%20a%20hostname%20first.");
     }
+    const setup = cloudflareCustomDomainReady()
+      ? await refreshCloudflareCustomHostname(previous.host, previous.cloudflareId)
+      : {
+          ...cloudflareManualSetup(previous.host),
+          ...(previous.cloudflareId ? { cloudflareId: previous.cloudflareId } : {}),
+        };
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, previous.host, setup);
+    revalidatePath("/admin/hub-profile");
+    redirect("/admin/hub-profile?domainSaved=1");
   } catch (err) {
+    if (isNextRedirect(err)) throw err;
     const message =
       err instanceof Error ? err.message : "Could not refresh HTTPS status.";
     redirect(`/admin/hub-profile?domainError=${encodeURIComponent(message)}`);
   }
-  revalidatePath("/admin/hub-profile");
-  redirect("/admin/hub-profile?domainSaved=1");
 }

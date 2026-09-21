@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.261",
+    date: "September 21, 2026",
+    title: "Check HTTPS stays on the page",
+    summary:
+      "Pirate Hub profile Check HTTPS status no longer crashes into Something broke.",
+    items: [
+      {
+        kind: "fix",
+        text: "Check HTTPS only refreshes certificate status; it no longer deletes Railway records or throws an uncaught error on a vanity host",
+      },
+    ],
+  },
+  {
     version: "3.260",
     date: "September 21, 2026",
     title: "Vanity DNS is Cloudflare",

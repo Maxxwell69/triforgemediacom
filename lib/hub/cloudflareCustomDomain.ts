@@ -168,15 +168,18 @@ export async function refreshCloudflareCustomHostname(
   host: string,
   cloudflareId?: string | null
 ): Promise<CustomDomainSetup> {
-  if (cloudflareId) {
-    const row = await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(cloudflareId)}`);
-    return setupFromCloudflare(host, row);
+  try {
+    if (cloudflareId) {
+      const row = await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(cloudflareId)}`);
+      return setupFromCloudflare(host, row);
+    }
+    const existing = await findCloudflareHostname(host);
+    if (existing?.id) return setupFromCloudflare(host, existing);
+  } catch {
+    // Token/zone miss or API error — still show the CNAME the registrar needs.
   }
-  const existing = await findCloudflareHostname(host);
-  if (!existing?.id) {
-    return attachCloudflareCustomHostname(host);
-  }
-  return setupFromCloudflare(host, existing);
+  const fallback = cloudflareManualSetup(host);
+  return cloudflareId ? { ...fallback, cloudflareId } : fallback;
 }
 
 export async function detachCloudflareCustomHostname(cloudflareId: string | null | undefined) {
