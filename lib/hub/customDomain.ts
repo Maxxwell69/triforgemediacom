@@ -96,6 +96,13 @@ export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   );
 }
 
+export function isRailwayVanitySetup(setup: CustomDomainSetup | null) {
+  if (!setup) return false;
+  if (setup.provider === "cloudflare") return false;
+  if (setup.provider === "railway" || setup.railwayId) return true;
+  return (setup.cnameTarget || "").toLowerCase().includes("railway.app");
+}
+
 export function customDomainDnsRecords(setup: CustomDomainSetup): CustomDomainDnsRecord[] {
   if (setup.dnsRecords?.length) return setup.dnsRecords;
   const rows: CustomDomainDnsRecord[] = [];

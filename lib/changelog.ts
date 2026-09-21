@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.260",
+    date: "September 21, 2026",
+    title: "Vanity DNS is Cloudflare",
+    summary:
+      "Hub profile custom-domain records point at Cloudflare (triforgemedia.com), not the old Railway CNAME.",
+    items: [
+      {
+        kind: "fix",
+        text: "Pirate and other vanities show CNAME to triforgemedia.com; Check HTTPS no longer restores Railway records",
+      },
+    ],
+  },
+  {
     version: "3.259",
     date: "September 21, 2026",
     title: "Vanity host stays on its hub",

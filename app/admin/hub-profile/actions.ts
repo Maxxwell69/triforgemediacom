@@ -19,10 +19,7 @@ import {
   refreshCloudflareCustomHostname,
 } from "@/lib/hub/cloudflareCustomDomain";
 import {
-  attachRailwayCustomDomain,
   detachRailwayCustomDomain,
-  railwayDomainApiReady,
-  refreshRailwayCustomDomain,
 } from "@/lib/hub/railwayCustomDomain";
 
 const DESCRIPTION_MAX = 400;
@@ -161,9 +158,9 @@ export async function saveHubCustomDomain(formData: FormData) {
       await detachCloudflareCustomHostname(previous.cloudflareId);
       await detachRailwayCustomDomain(previous.railwayId);
     }
+    if (previous?.railwayId) await detachRailwayCustomDomain(previous.railwayId);
     let setup;
     if (cloudflareCustomDomainReady()) {
-      if (previous?.railwayId) await detachRailwayCustomDomain(previous.railwayId);
       setup = await attachCloudflareCustomHostname(parsed.host);
     } else {
       setup = cloudflareManualSetup(parsed.host);
@@ -190,14 +187,12 @@ export async function refreshHubCustomDomain() {
   }
   try {
     let setup;
+    if (previous.railwayId) await detachRailwayCustomDomain(previous.railwayId);
     if (cloudflareCustomDomainReady()) {
       setup = await refreshCloudflareCustomHostname(previous.host, previous.cloudflareId);
-    } else if (previous.railwayId && railwayDomainApiReady()) {
-      setup = await refreshRailwayCustomDomain(previous.railwayId, previous.host);
-    } else if (railwayDomainApiReady()) {
-      setup = await attachRailwayCustomDomain(previous.host);
     } else {
       setup = cloudflareManualSetup(previous.host);
+      if (previous.cloudflareId) setup = { ...setup, cloudflareId: previous.cloudflareId };
     }
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, previous.host, setup);
   } catch (err) {
