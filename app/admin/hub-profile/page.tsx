@@ -6,7 +6,8 @@ import BrandKitEditor from "@/components/admin/BrandKitEditor";
 import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCustomDomain, refreshHubCustomDomain } from "./actions";
 import { clientHubPublicHost, hubPublicHost } from "@/lib/hub/host";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { customDomainHttpsReady, readClientHubCustomDomainSetup } from "@/lib/hub/customDomain";
+import { customDomainHttpsReady, isRailwayVanitySetup, readClientHubCustomDomainSetup } from "@/lib/hub/customDomain";
+import { cloudflareManualSetup } from "@/lib/hub/cloudflareCustomDomain";
 import CustomDomainDnsPanel from "@/components/admin/CustomDomainDnsPanel";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,11 @@ export default async function AdminHubProfilePage({
   const domainSetup = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
   const customDomain = domainSetup?.host ?? null;
   const publicHost = hubPublicHost({ slug: hub.slug, customDomain });
-  const httpsReady = customDomainHttpsReady(domainSetup);
+  const panelSetup =
+    domainSetup && isRailwayVanitySetup(domainSetup)
+      ? cloudflareManualSetup(domainSetup.host)
+      : domainSetup;
+  const httpsReady = customDomainHttpsReady(panelSetup);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -125,9 +130,9 @@ export default async function AdminHubProfilePage({
         </button>
       </form>
 
-      {domainSetup?.host ? (
+      {panelSetup?.host ? (
         <CustomDomainDnsPanel
-          setup={domainSetup}
+          setup={panelSetup}
           httpsReady={httpsReady}
           refreshAction={refreshHubCustomDomain}
         />
