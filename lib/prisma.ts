@@ -23,8 +23,12 @@ export function prismaForRequest(): PrismaClient {
     if (isCustomDomainCandidate(hostname)) {
       const cached = peekHostSlug(hostname);
       if (cached) return getTenantPrisma(tenantSchemaName(cached));
+      throw new Error(`No client hub is registered for ${hostname}.`);
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("No client hub is registered")) {
+      throw err;
+    }
     // Scripts, seed, or no request — Hub 0.
   }
   return getControlPrisma();

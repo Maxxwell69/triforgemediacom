@@ -12,6 +12,13 @@ import {
   writeClientHubCustomDomain,
 } from "@/lib/hub/customDomain";
 import {
+  attachCloudflareCustomHostname,
+  cloudflareCustomDomainReady,
+  cloudflareManualSetup,
+  detachCloudflareCustomHostname,
+  refreshCloudflareCustomHostname,
+} from "@/lib/hub/cloudflareCustomDomain";
+import {
   attachRailwayCustomDomain,
   detachRailwayCustomDomain,
   railwayDomainApiReady,
@@ -135,6 +142,7 @@ export async function saveHubCustomDomain(formData: FormData) {
   const previous = await readClientHubCustomDomainSetup(ctx.control, ctx.hub.id);
   const raw = String(formData.get("customDomain") || "").trim();
   if (!raw) {
+    await detachCloudflareCustomHostname(previous?.cloudflareId);
     await detachRailwayCustomDomain(previous?.railwayId);
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, null);
     revalidatePath("/admin/hub-profile");
@@ -149,16 +157,17 @@ export async function saveHubCustomDomain(formData: FormData) {
   }
 
   try {
-    if (previous?.railwayId && previous.host !== parsed.host) {
+    if (previous?.host && previous.host !== parsed.host) {
+      await detachCloudflareCustomHostname(previous.cloudflareId);
       await detachRailwayCustomDomain(previous.railwayId);
     }
-    let setup = previous?.host === parsed.host ? previous : null;
-    if (railwayDomainApiReady()) {
-      setup = await attachRailwayCustomDomain(parsed.host);
-    } else if (process.env.RAILWAY_ENVIRONMENT_ID) {
-      throw new Error(
-        "HTTPS attach is not enabled yet. Set RAILWAY_TOKEN on this Railway service (a project token) once — then hub admins can add domains themselves."
-      );
+    let setup;
+    if (cloudflareCustomDomainReady()) {
+      if (previous?.railwayId) await detachRailwayCustomDomain(previous.railwayId);
+      setup = await attachCloudflareCustomHostname(parsed.host);
+    } else {
+      setup = cloudflareManualSetup(parsed.host);
+      if (previous?.cloudflareId) setup = { ...setup, cloudflareId: previous.cloudflareId };
     }
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, parsed.host, setup);
   } catch (err) {
@@ -180,12 +189,16 @@ export async function refreshHubCustomDomain() {
     redirect("/admin/hub-profile?domainError=Save%20a%20hostname%20first.");
   }
   try {
-    if (!railwayDomainApiReady()) {
-      throw new Error("HTTPS status is only available on Railway after RAILWAY_TOKEN is set.");
+    let setup;
+    if (cloudflareCustomDomainReady()) {
+      setup = await refreshCloudflareCustomHostname(previous.host, previous.cloudflareId);
+    } else if (previous.railwayId && railwayDomainApiReady()) {
+      setup = await refreshRailwayCustomDomain(previous.railwayId, previous.host);
+    } else if (railwayDomainApiReady()) {
+      setup = await attachRailwayCustomDomain(previous.host);
+    } else {
+      setup = cloudflareManualSetup(previous.host);
     }
-    const setup = previous.railwayId
-      ? await refreshRailwayCustomDomain(previous.railwayId, previous.host)
-      : await attachRailwayCustomDomain(previous.host);
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, previous.host, setup);
   } catch (err) {
     const message =

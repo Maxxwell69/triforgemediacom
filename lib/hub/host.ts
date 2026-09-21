@@ -3,6 +3,28 @@ import { RESERVED_HUB_SLUGS } from "@/lib/hub/clientHubs";
 export const HUB0_HOST = "hub.triforgemedia.com";
 export const CLIENT_HUB_SUFFIX = ".hub.triforgemedia.com";
 
+/** Cloudflare Snippet → Railway. Railway overwrites Host / X-Forwarded-Host. */
+export const HUB_ORIGINAL_HOST_HEADER = "x-hub-original-host";
+export const HUB_PROXY_SECRET_HEADER = "x-hub-proxy-secret";
+
+function secretsMatch(provided: string, expected: string) {
+  if (!provided || !expected || provided.length !== expected.length) return false;
+  let mix = 0;
+  for (let i = 0; i < expected.length; i++) {
+    mix |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+  }
+  return mix === 0;
+}
+
+function proxiedOriginalHost(headers: { get(name: string): string | null }): string | null {
+  const expected = (process.env.HUB_PROXY_SECRET || "").trim();
+  if (expected.length < 16) return null;
+  const provided = (headers.get(HUB_PROXY_SECRET_HEADER) || "").trim();
+  if (!secretsMatch(provided, expected)) return null;
+  const original = (headers.get(HUB_ORIGINAL_HOST_HEADER) || "").split(",")[0]?.trim();
+  return original ? stripPort(original) : null;
+}
+
 export type ResolvedHubHost =
   | { kind: "platform" }
   | { kind: "client"; slug: string };
@@ -31,6 +53,8 @@ export function isCustomDomainCandidate(hostname: string): boolean {
 export function hostnameFromHeaders(headers: {
   get(name: string): string | null;
 }): string {
+  const proxied = proxiedOriginalHost(headers);
+  if (proxied) return proxied;
   const forwarded = headers.get("x-forwarded-host");
   const raw = (forwarded?.split(",")[0] || headers.get("host") || "").trim();
   return stripPort(raw);

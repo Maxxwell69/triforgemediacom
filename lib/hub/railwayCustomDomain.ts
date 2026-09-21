@@ -112,6 +112,7 @@ function setupFromRailway(host: string, id: string, status: unknown): CustomDoma
 
   return {
     host,
+    provider: "railway",
     railwayId: id,
     cnameHost: host,
     cnameTarget,
