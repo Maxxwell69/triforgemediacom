@@ -11,6 +11,49 @@ import {
 
 export const dynamic = "force-dynamic";
 
+type AcademyCourse = NonNullable<Awaited<ReturnType<typeof getAcademyCourse>>>;
+type AcademyLesson = AcademyCourse["lessons"][number];
+
+function AcademyLessonRow({
+  courseId,
+  lesson,
+  isDone,
+  lessonNumber,
+}: {
+  courseId: string;
+  lesson: AcademyLesson;
+  isDone: boolean;
+  lessonNumber: number;
+}) {
+  return (
+    <Link
+      href={`/admin/academy/${courseId}/lessons/${lesson.id}`}
+      className="glass flex items-center gap-3 rounded-xl p-4 transition hover:border-cyan/40"
+    >
+      {lesson.thumbnailUrl ? (
+        <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lesson.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+          {isDone ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-charcoal/55 font-body text-sm text-cyan">
+              ✓
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-body text-xs ${
+            isDone ? "border-cyan bg-cyan/10 text-cyan" : "border-off-white/20 text-off-white/50"
+          }`}
+        >
+          {isDone ? "✓" : lessonNumber}
+        </span>
+      )}
+      <span className="font-body text-sm text-off-white">{lesson.title}</span>
+    </Link>
+  );
+}
+
 export default async function AcademyCoursePage({
   params,
 }: {
@@ -50,37 +93,18 @@ export default async function AcademyCoursePage({
     ])
   );
 
+  const courseId = course.id;
   let lessonNumber = 0;
-  function renderLesson(lesson: (typeof course.lessons)[number]) {
+  function renderLesson(lesson: AcademyLesson) {
     lessonNumber += 1;
-    const isDone = done.has(lesson.id);
     return (
-      <Link
+      <AcademyLessonRow
         key={lesson.id}
-        href={`/admin/academy/${course.id}/lessons/${lesson.id}`}
-        className="glass flex items-center gap-3 rounded-xl p-4 transition hover:border-cyan/40"
-      >
-        {lesson.thumbnailUrl ? (
-          <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={lesson.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-            {isDone ? (
-              <span className="absolute inset-0 flex items-center justify-center bg-charcoal/55 font-body text-sm text-cyan">
-                ✓
-              </span>
-            ) : null}
-          </div>
-        ) : (
-          <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-body text-xs ${
-              isDone ? "border-cyan bg-cyan/10 text-cyan" : "border-off-white/20 text-off-white/50"
-            }`}
-          >
-            {isDone ? "✓" : lessonNumber}
-          </span>
-        )}
-        <span className="font-body text-sm text-off-white">{lesson.title}</span>
-      </Link>
+        courseId={courseId}
+        lesson={lesson}
+        isDone={done.has(lesson.id)}
+        lessonNumber={lessonNumber}
+      />
     );
   }
 

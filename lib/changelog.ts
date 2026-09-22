@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.267",
+    date: "September 21, 2026",
+    title: "Module covers build fix",
+    summary: "The 3.266 deploy is unblocked so module cover images can ship.",
+    items: [
+      {
+        kind: "fix",
+        text: "Academy course page no longer crashes the production TypeScript build",
+      },
+    ],
+  },
+  {
     version: "3.266",
     date: "September 21, 2026",
     title: "Module cover images",
