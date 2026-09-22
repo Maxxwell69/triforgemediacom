@@ -30,7 +30,7 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   },
   "module-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",
-    hint: "Shows as the module cover on the course outline \u2014 landscape images crop best.",
+    hint: "Shows in full on the course outline \u2014 landscape title cards work best.",
   },
   "lesson-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",

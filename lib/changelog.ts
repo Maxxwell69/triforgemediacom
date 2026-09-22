@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.268",
+    date: "September 21, 2026",
+    title: "Module covers stay intact",
+    summary:
+      "Module cover images on the course outline show the full title card instead of cropping the top and bottom.",
+    items: [
+      {
+        kind: "fix",
+        text: "Learning Center and Academy module covers use contain, matching the course banner",
+      },
+    ],
+  },
+  {
     version: "3.267",
     date: "September 21, 2026",
     title: "Module covers build fix",

@@ -169,8 +169,8 @@ export default async function AcademyCoursePage({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={mod.thumbnailUrl}
-                    alt=""
-                    className="block h-auto max-h-48 w-full object-cover object-center"
+                    alt={mod.title}
+                    className="block h-auto max-h-[min(50vh,420px)] w-full object-contain object-center"
                   />
                 </div>
               ) : null}
