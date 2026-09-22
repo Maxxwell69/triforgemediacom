@@ -18,7 +18,7 @@ export const MEMBER_MENU_ITEMS: readonly MemberMenuItem[] = [
   { id: "groups", label: "Groups", prefixes: ["/groups"] },
   { id: "chat", label: "Chat", prefixes: ["/channels", "/dms"] },
   { id: "live", label: "Live", prefixes: ["/live"] },
-  { id: "streamingKit", label: "Streaming kit", prefixes: ["/streaming-kit"] },
+  { id: "streamingKit", label: "Branding kit", prefixes: ["/streaming-kit"] },
   { id: "projects", label: "Projects", prefixes: ["/apps/projects"] },
   { id: "personalTasks", label: "My Tasks", prefixes: ["/apps/tasks"] },
   { id: "campaigns", label: "Campaigns", prefixes: ["/campaigns"] },

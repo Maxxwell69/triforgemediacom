@@ -181,7 +181,7 @@ export default async function HomePage() {
             <DashboardCard
               href="/streaming-kit"
               icon="🎬"
-              title="Streaming kit"
+              title="Branding kit"
               description="Forge logos, frames, and overlays for OBS and LIVE Studio."
               accent="orange"
             />

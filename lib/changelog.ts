@@ -176,7 +176,7 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
     since: "3.192",
   },
   {
-    name: "Streaming kit",
+    name: "Branding kit",
     tagline: "Forge overlays for live",
     description:
       "Hub 0 only: logos, corner marks, nameplates, and camera frames as transparent PNGs, plus the creator guide — signed-in downloads from /streaming-kit.",
@@ -185,6 +185,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 ];
 
 export const CHANGELOG: ChangelogRelease[] = [
+  {
+    version: "3.265",
+    date: "September 21, 2026",
+    title: "Branding kit",
+    summary:
+      "The Hub 0 overlays menu is now Branding kit — same downloads, clearer name.",
+    items: [
+      {
+        kind: "improve",
+        text: "Sidebar, home card, admin nav, and Academy lessons say Branding kit instead of Streaming kit",
+      },
+    ],
+  },
   {
     version: "3.264",
     date: "September 21, 2026",
