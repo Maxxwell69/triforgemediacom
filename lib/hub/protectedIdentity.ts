@@ -26,7 +26,9 @@ export async function loadClientHubOwnerEmail(hubId: string): Promise<string | n
 }
 
 export async function platformStaffEmails(emails: string[]): Promise<Set<string>> {
-  const unique = [...new Set(emails.map((email) => email.trim()).filter(Boolean))];
+  const unique = emails
+    .map((email) => email.trim())
+    .filter((email, index, all) => Boolean(email) && all.indexOf(email) === index);
   if (unique.length === 0) return new Set();
   const staff = await getControlPrisma().user.findMany({
     where: {
