@@ -29,6 +29,8 @@ import AdminUserPasswordForm from "@/components/admin/AdminUserPasswordForm";
 import AdminUserOnboardingPanel from "@/components/admin/AdminUserOnboardingPanel";
 import { hubHas } from "@/lib/hub/modules";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
+import { hubHostLocksByEmail } from "@/lib/hub/protectedIdentity";
 import { listOnboardingPrograms } from "@/lib/onboarding/config";
 
 export const dynamic = "force-dynamic";
@@ -154,6 +156,13 @@ export default async function AdminUserDetailPage({
 
   const isSelf = user.id === currentUserId;
   const isBanned = user.status === "BANNED";
+  const hubCtx = clientHub ? await getRequestHubContext() : null;
+  const statusLocks = await hubHostLocksByEmail({
+    actorId: currentUserId,
+    hubId: hubCtx?.kind === "client" ? hubCtx.hub.id : null,
+    users: [{ email: user.email, role: user.role }],
+  });
+  const statusLock = statusLocks.get(user.email.trim().toLowerCase()) ?? null;
   const groups = user.groupMemberships.map((m) => m.group);
   const badgeIds = user.userBadges.map((b) => b.badgeId);
 
@@ -266,11 +275,17 @@ export default async function AdminUserDetailPage({
             <UserRoleSelect
               userId={user.id}
               currentRole={user.role}
-              disabled={isSelf}
+              disabled={isSelf || Boolean(statusLock)}
+              disabledReason={statusLock}
               clientHub={clientHub}
             />
           </div>
-          <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
+          <BanButton
+            userId={user.id}
+            banned={isBanned}
+            disabled={isSelf || Boolean(statusLock)}
+            disabledReason={isSelf ? "You can't ban yourself" : statusLock}
+          />
           {user.status === "INVITED" && <ResendInviteButton userId={user.id} />}
           {!clientHub && !user.platformAccess && user.status !== "BANNED" ? (
             <InviteToForgeButton userId={user.id} />

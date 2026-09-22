@@ -16,6 +16,13 @@ import { inviteClientHubMember, resendClientHubMemberInvite } from "@/lib/hub/in
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
+import {
+  findHubMembershipForTenantUser,
+  hubHostStatusLockReason,
+  isMainSystemActor,
+  loadClientHubOwnerEmail,
+  platformStaffEmails,
+} from "@/lib/hub/protectedIdentity";
 import type { UserRole } from "@prisma/client";
 
 async function requireAdmin() {
@@ -38,6 +45,29 @@ async function requireAdmin() {
   return { ...session, user: { ...session.user, role: dbUser.role, status: dbUser.status } };
 }
 
+async function assertHubHostCanChangeStatus(opts: {
+  actorId: string;
+  email: string;
+  role: UserRole;
+}) {
+  const ctx = await getRequestHubContext();
+  if (ctx.kind !== "client" || !ctx.hub) return;
+
+  const [actorIsMainSystem, ownerEmail, staff] = await Promise.all([
+    isMainSystemActor(opts.actorId),
+    loadClientHubOwnerEmail(ctx.hub.id),
+    platformStaffEmails([opts.email]),
+  ]);
+  const reason = hubHostStatusLockReason({
+    actorIsMainSystem,
+    email: opts.email,
+    role: opts.role,
+    ownerEmail,
+    isPlatformStaff: staff.has(opts.email.trim().toLowerCase()),
+  });
+  if (reason) throw new Error(reason);
+}
+
 export async function updateUserRole(userId: string, role: string) {
   const session = await requireAdmin();
 
@@ -49,10 +79,18 @@ export async function updateUserRole(userId: string, role: string) {
     throw new Error("You can't change your own role");
   }
 
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, email: true },
+  });
   if (!target) {
     throw new Error("User not found");
   }
+  await assertHubHostCanChangeStatus({
+    actorId: session.user.id,
+    email: target.email,
+    role: target.role,
+  });
 
   // A MOD can manage MEMBER/CREATOR roles, but only a true ADMIN may touch an
   // existing ADMIN/MOD's role or grant ADMIN/MOD to anyone — otherwise a MOD
@@ -82,19 +120,47 @@ export async function setUserBanned(userId: string, banned: boolean) {
     throw new Error("You can't ban yourself");
   }
 
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, email: true },
+  });
   if (!target) {
     throw new Error("User not found");
   }
+  await assertHubHostCanChangeStatus({
+    actorId: session.user.id,
+    email: target.email,
+    role: target.role,
+  });
   // A MOD can never ban an ADMIN or another MOD — only a true ADMIN can.
   if (isAdminRole(target.role) && session.user.role !== "ADMIN") {
     throw new Error("Only an admin can ban another admin or mod");
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { status: banned ? "BANNED" : "ACTIVE" },
-  });
+  const nextStatus = banned ? "BANNED" : "ACTIVE";
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "client" && ctx.hub) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: nextStatus },
+    });
+    const membership = await findHubMembershipForTenantUser({
+      hubId: ctx.hub.id,
+      tenantUserId: userId,
+      email: target.email,
+    });
+    if (membership) {
+      await getControlPrisma().hubMembership.update({
+        where: { id: membership.id },
+        data: { status: nextStatus },
+      });
+    }
+  } else {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: nextStatus },
+    });
+  }
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
 }

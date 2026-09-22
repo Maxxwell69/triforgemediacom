@@ -186,6 +186,48 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.270",
+    date: "September 22, 2026",
+    title: "Hub-only bans",
+    summary:
+      "A hub host who bans someone only removes them from that hub. TriForge Media emails, main-system owners, and other admins stay locked.",
+    items: [
+      {
+        kind: "fix",
+        text: "Client-hub Ban updates that hub’s membership only — it does not ban the account on Hub 0",
+      },
+      {
+        kind: "fix",
+        text: "Hub hosts cannot change status or role for another admin, the hub owner, main-system staff, or anyone @triforgemedia.com",
+      },
+    ],
+  },
+  {
+    version: "3.269",
+    date: "September 22, 2026",
+    title: "How to Run Your Hub cleanup",
+    summary:
+      "Hub Zero Academy now talks like a hub owner: brand steps match the screen, no leftover tech jargon, and a real quiz on the knowledge checks.",
+    items: [
+      {
+        kind: "improve",
+        text: "Academy vs Learning Center no longer talks about who can write owner training",
+      },
+      {
+        kind: "improve",
+        text: "Brand lesson uses Hub profile labels, logo size 800×320, and Check HTTPS — no Railway DNS",
+      },
+      {
+        kind: "improve",
+        text: "Member groups and courses are whatever the hub host names — not a fixed CN/MN ladder",
+      },
+      {
+        kind: "improve",
+        text: "Chat and DMs drop LiveKit; How to Run Your Hub now has a 35-question course quiz",
+      },
+    ],
+  },
+  {
     version: "3.268",
     date: "September 21, 2026",
     title: "Module covers stay intact",

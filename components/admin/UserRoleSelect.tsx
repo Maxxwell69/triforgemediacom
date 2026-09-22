@@ -9,11 +9,13 @@ export default function UserRoleSelect({
   userId,
   currentRole,
   disabled,
+  disabledReason,
   clientHub = false,
 }: {
   userId: string;
   currentRole: string;
   disabled?: boolean;
+  disabledReason?: string | null;
   clientHub?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -26,6 +28,7 @@ export default function UserRoleSelect({
     <select
       defaultValue={currentRole}
       disabled={disabled || isPending}
+      title={disabledReason || undefined}
       onChange={(e) => {
         const role = e.target.value;
         startTransition(async () => {

@@ -40,7 +40,7 @@ export async function joinClientHubAsFan(opts: {
     tenantDbName: opts.tenantDbName,
     user,
     role: membership.role,
-    status: "ACTIVE",
+    status: membership.status === "BANNED" ? "BANNED" : "ACTIVE",
   });
   if (tenantUserId !== user.id) {
     await control.hubMembership.update({
