@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.271",
+    date: "September 22, 2026",
+    title: "Hub-ban build fix",
+    summary: "Staging and production builds failed on 3.270; the hub-ban guard now compiles on Railway.",
+    items: [
+      {
+        kind: "fix",
+        text: "Stop spreading a Set in hub-ban protection so next build succeeds on ES5",
+      },
+    ],
+  },
+  {
     version: "3.270",
     date: "September 22, 2026",
     title: "Hub-only bans",
