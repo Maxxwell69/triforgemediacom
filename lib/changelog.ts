@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.263",
+    date: "September 21, 2026",
+    title: "How to Run Your Hub",
+    summary:
+      "Hub Zero Academy now has owner training: what each system is and what to do in the first week.",
+    items: [
+      {
+        kind: "feature",
+        text: "Academy course How to Run Your Hub — 6 modules, 15 lessons, with product screenshots",
+      },
+    ],
+  },
+  {
     version: "3.262",
     date: "September 21, 2026",
     title: "TikTok LIVE Studio course",
