@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.264",
+    date: "September 21, 2026",
+    title: "Lesson lists stay readable",
+    summary:
+      "Gray bullet lists and captions on the off-white lesson page no longer fade into the background.",
+    items: [
+      {
+        kind: "fix",
+        text: "Light-gray lesson text on the white canvas remaps to charcoal; extra lists sit on a dark card like The Method",
+      },
+    ],
+  },
+  {
     version: "3.263",
     date: "September 21, 2026",
     title: "How to Run Your Hub",

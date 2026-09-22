@@ -58,6 +58,18 @@ function isNearWhite(c: { r: number; g: number; b: number; a: number }): boolean
   return relativeLuminance(c) >= 0.85;
 }
 
+/** Light gray (222 / 176) on the off-white lesson page — readable only on dark cards. */
+function isPaleGray(c: { r: number; g: number; b: number; a: number }): boolean {
+  if (c.a < 0.4) return false;
+  const spread = Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b);
+  if (spread > 28) return false;
+  return relativeLuminance(c) >= 0.32;
+}
+
+function isIllegibleOnLight(c: { r: number; g: number; b: number; a: number }): boolean {
+  return isNearWhite(c) || isPaleGray(c);
+}
+
 function isDarkBackground(c: { r: number; g: number; b: number; a: number }): boolean {
   if (c.a < 0.5) return false;
   return relativeLuminance(c) <= 0.45;
@@ -127,7 +139,7 @@ export function fixIllegibleLessonTextColors(html: string): string {
     const colorRaw = getDecl(style, "color");
     if (!colorRaw) return;
     const color = parseCssColor(colorRaw);
-    if (!color || !isNearWhite(color)) return;
+    if (!color || !isIllegibleOnLight(color)) return;
 
     const bg = effectiveBackground(el, root);
     if (isDarkBackground(bg)) return;
