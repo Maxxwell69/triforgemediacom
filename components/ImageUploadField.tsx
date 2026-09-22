@@ -10,6 +10,7 @@ const MAX_MB = MAX_UPLOAD_BYTES / (1024 * 1024);
 
 type UploadFolder =
   | "course-thumbnails"
+  | "module-thumbnails"
   | "lesson-thumbnails"
   | "reward-images"
   | "host-avatars"
@@ -26,6 +27,10 @@ const RECOMMENDATIONS: Record<UploadFolder, { dimensions: string; hint: string }
   "course-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",
     hint: "Shows as a wide banner and card thumbnail \u2014 landscape images crop best.",
+  },
+  "module-thumbnails": {
+    dimensions: "1280\u00D7720px (16:9)",
+    hint: "Shows as the module cover on the course outline \u2014 landscape images crop best.",
   },
   "lesson-thumbnails": {
     dimensions: "1280\u00D7720px (16:9)",

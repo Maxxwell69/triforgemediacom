@@ -7,6 +7,7 @@ import { uploadImage } from "@/lib/r2";
 // and prevents arbitrary path injection via the "folder" field.
 const ALLOWED_FOLDERS = new Set([
   "course-thumbnails",
+  "module-thumbnails",
   "lesson-thumbnails",
   "reward-images",
   "host-avatars",

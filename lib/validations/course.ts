@@ -12,6 +12,7 @@ export const courseSchema = z.object({
 export const moduleSchema = z.object({
   title: z.string().trim().min(2, "Title must be at least 2 characters").max(150),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
+  thumbnailUrl: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
 });
 
 export const lessonSchema = z.object({

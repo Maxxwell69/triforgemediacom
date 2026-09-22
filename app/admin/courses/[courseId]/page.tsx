@@ -232,6 +232,7 @@ export default async function AdminCourseDetailPage({
                 id: mod.id,
                 title: mod.title,
                 description: mod.description,
+                thumbnailUrl: mod.thumbnailUrl,
                 lessonCount: mod._count.lessons,
               }}
             />
@@ -252,6 +253,7 @@ export default async function AdminCourseDetailPage({
             placeholder="Description (optional)"
             className={fieldClass}
           />
+          <ImageUploadField name="thumbnailUrl" folder="module-thumbnails" label="Cover image" />
           <button
             type="submit"
             className="self-start rounded-lg bg-orange px-6 py-2 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110"
@@ -305,7 +307,15 @@ export default async function AdminCourseDetailPage({
             if (group.length === 0) return null;
             return (
               <div key={mod.id}>
-                <h3 className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-cyan/70">
+                <h3 className="mb-2 flex items-center gap-2 font-body text-xs font-semibold uppercase tracking-wide text-cyan/70">
+                  {mod.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mod.thumbnailUrl}
+                      alt=""
+                      className="h-6 w-10 rounded object-cover"
+                    />
+                  ) : null}
                   {mod.title}
                 </h3>
                 <div className="flex flex-col gap-3">
