@@ -128,7 +128,7 @@ export const FLAGSHIP_SKUS: HubSku[] = [
   {
     id: "streamingKit",
     kind: "flagship",
-    label: "Streaming kit",
+    label: "Branding kit",
     description: "/streaming-kit overlays, logos, and brand downloads (Hub 0 only)",
   },
 ];

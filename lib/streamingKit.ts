@@ -219,7 +219,7 @@ export const STREAMING_KIT_PACKS: StreamingKitPack[] = [
   },
   {
     key: "guide",
-    name: "Streaming kit guide",
+    name: "Branding kit guide",
     description: "Visual creator guide (PDF).",
     path: "TriForge_Streaming_Kit_Guide.pdf",
     bytes: 6117057,

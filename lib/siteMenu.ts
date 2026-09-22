@@ -28,7 +28,7 @@ export const BUILTIN_MENU: readonly BuiltinMenuDef[] = [
   { id: "groups", label: "Groups", href: "/groups" },
   { id: "home", label: "Dashboard", href: "/home" },
   { id: "live", label: "Live", href: "/live", sku: "tiktokInsights", accent: "live" },
-  { id: "streamingKit", label: "Streaming kit", href: "/streaming-kit", sku: "streamingKit" },
+  { id: "streamingKit", label: "Branding kit", href: "/streaming-kit", sku: "streamingKit" },
   { id: "projects", label: "Projects", href: "/apps/projects", sku: "projects", gate: "projects" },
   { id: "personalTasks", label: "My Tasks", href: "/apps/tasks", sku: "personalTasks", gate: "personalTasks" },
   { id: "campaigns", label: "Campaigns", href: "/campaigns", sku: "hubCampaigns" },
@@ -76,11 +76,19 @@ export function parseSiteMenuItems(raw: unknown): SiteMenuItem[] {
       if (!builtinId || !BUILTIN_MENU_BY_ID.has(builtinId) || seenBuiltin.has(builtinId)) continue;
       seenBuiltin.add(builtinId);
       const def = BUILTIN_MENU_BY_ID.get(builtinId)!;
+      const storedLabel = typeof row.label === "string" ? row.label.trim() : "";
+      const renamedDefaults: Record<string, string[]> = {
+        streamingKit: ["Streaming kit", "Streaming Kit"],
+      };
+      const keepStored =
+        storedLabel &&
+        storedLabel !== def.label &&
+        !(renamedDefaults[builtinId] ?? []).includes(storedLabel);
       items.push({
         id: builtinId,
         kind: "builtin",
         enabled: row.enabled !== false,
-        label: typeof row.label === "string" && row.label.trim() ? row.label.trim() : def.label,
+        label: keepStored ? storedLabel : def.label,
         builtinId,
         parentId: readParentId(row),
       });

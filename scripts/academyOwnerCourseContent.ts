@@ -468,7 +468,7 @@ export const ACADEMY_OWNER_MODULES: AcademyModuleSeed[] = [
         figures: [SHOT.progress],
         paragraphs: [
           "Some tools are Hub 0 only. They will not appear on a client hub, and that is correct.",
-          "Create Hub, Hub Zero Academy authoring, Agency LIVE reports, GHL/roster import, company social, public /updates, CN/MN apply routing, Shop (for now), Creator Progression, Streaming kit.",
+          "Create Hub, Hub Zero Academy authoring, Agency LIVE reports, GHL/roster import, company social, public /updates, CN/MN apply routing, Shop (for now), Creator Progression, Branding kit.",
           "Your hub still has Academy as a learner: you take owner courses. You do not write them unless you are a Hub 0 true admin.",
           "TikTok Live page and Creator Insights can be on if that SKU was sold. If /live is missing, it was not in the package.",
           "When talent asks for “the Forge ladder” on a partner hub, the answer is: that ladder is Hub 0. Your hub can still have Learning Center courses and badges.",

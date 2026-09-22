@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Streaming kit · TriForge Community",
+  title: "Branding kit · TriForge Community",
 };
 
 export default async function StreamingKitPage() {

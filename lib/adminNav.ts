@@ -233,7 +233,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         href: "/streaming-kit",
-        label: "Streaming kit",
+        label: "Branding kit",
         description: "Creator overlays, logos, and brand downloads",
         sku: "streamingKit",
       },
