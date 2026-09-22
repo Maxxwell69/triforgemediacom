@@ -12,6 +12,7 @@ import {
   ACADEMY_OWNER_COURSE,
   ACADEMY_OWNER_COURSE_TITLES,
   ACADEMY_OWNER_MODULES,
+  ACADEMY_OWNER_QUIZ,
 } from "./academyOwnerCourseContent";
 
 function extractHost(url: string): string | null {
@@ -111,6 +112,35 @@ async function upsert(prisma: PrismaClient) {
       }
     }
   }
+
+  const quiz = await prisma.quiz.upsert({
+    where: { courseId: course.id },
+    create: {
+      courseId: course.id,
+      title: `${ACADEMY_OWNER_COURSE.title} quiz`,
+      passScore: 75,
+    },
+    update: {
+      title: `${ACADEMY_OWNER_COURSE.title} quiz`,
+      passScore: 75,
+    },
+  });
+  await prisma.question.deleteMany({ where: { quizId: quiz.id } });
+  for (let i = 0; i < ACADEMY_OWNER_QUIZ.length; i += 1) {
+    const question = ACADEMY_OWNER_QUIZ[i];
+    const options = question.type === "TRUE_FALSE" ? ["True", "False"] : question.options ?? [];
+    await prisma.question.create({
+      data: {
+        quizId: quiz.id,
+        type: question.type,
+        text: question.text,
+        options,
+        correctAnswer: question.correct,
+        order: i,
+      },
+    });
+  }
+  results.push(`QUIZ · ${ACADEMY_OWNER_QUIZ.length} questions`);
 
   return { course, results };
 }

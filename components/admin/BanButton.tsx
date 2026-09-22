@@ -7,10 +7,12 @@ export default function BanButton({
   userId,
   banned,
   disabled,
+  disabledReason,
 }: {
   userId: string;
   banned: boolean;
   disabled?: boolean;
+  disabledReason?: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -18,6 +20,7 @@ export default function BanButton({
     <button
       type="button"
       disabled={disabled || isPending}
+      title={disabledReason || undefined}
       onClick={() =>
         startTransition(async () => {
           await setUserBanned(userId, !banned);

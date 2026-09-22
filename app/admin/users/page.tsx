@@ -16,6 +16,8 @@ import DirectoryVisibilityToggle from "@/components/admin/DirectoryVisibilityTog
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
 import { hubHas } from "@/lib/hub/modules";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
+import { getRequestHubContext } from "@/lib/hub/requestPrisma";
+import { hubHostLocksByEmail } from "@/lib/hub/protectedIdentity";
 import { onboardingStatusLabel } from "@/lib/onboarding/labels";
 import { summarizeOnboardingStatus } from "@/lib/onboarding/engine";
 import type { OnboardingProgressStatus } from "@prisma/client";
@@ -204,6 +206,12 @@ export default async function AdminUsersPage({
   });
 
   const pointsTotals = await getUserPointsTotals(users.map((u) => u.id));
+  const hubCtx = clientHub ? await getRequestHubContext() : null;
+  const statusLocks = await hubHostLocksByEmail({
+    actorId: currentUserId,
+    hubId: hubCtx?.kind === "client" ? hubCtx.hub.id : null,
+    users: users.map((user) => ({ email: user.email, role: user.role })),
+  });
 
   function listHref(opts: {
     track?: "CN" | "MN" | null;
@@ -368,6 +376,7 @@ export default async function AdminUsersPage({
         {users.map((user) => {
           const isSelf = user.id === currentUserId;
           const isBanned = user.status === "BANNED";
+          const statusLock = statusLocks.get(user.email.trim().toLowerCase()) ?? null;
           const groups = user.groupMemberships.map((m) => m.group);
           const applyHandle =
             typeof (user.application?.answers as { handle?: unknown } | null)?.handle ===
@@ -447,10 +456,16 @@ export default async function AdminUsersPage({
                   <UserRoleSelect
                     userId={user.id}
                     currentRole={user.role}
-                    disabled={isSelf}
+                    disabled={isSelf || Boolean(statusLock)}
+                    disabledReason={statusLock}
                     clientHub={clientHub}
                   />
-                  <BanButton userId={user.id} banned={isBanned} disabled={isSelf} />
+                  <BanButton
+                    userId={user.id}
+                    banned={isBanned}
+                    disabled={isSelf || Boolean(statusLock)}
+                    disabledReason={isSelf ? "You can't ban yourself" : statusLock}
+                  />
                 </div>
               </div>
 
