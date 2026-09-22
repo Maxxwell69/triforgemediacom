@@ -64,15 +64,16 @@ function introParagraphs(paragraphs: string[]) {
     .join("\n");
 }
 
-function figuresHtml(figures?: LessonFigure[]) {
+function figuresHtml(figures?: LessonFigure[], onDark = false) {
   if (!figures?.length) return "";
+  const captionColor = onDark ? "rgb(176, 176, 176)" : "rgb(68, 68, 68)";
   return figures
     .map(
       (figure) => `    <figure style="margin: 16px 0px 0px;">
       <img src="${escapeHtml(figure.src)}" alt="${escapeHtml(figure.alt)}" style="width: 100%; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid rgb(59, 59, 59);" />
       ${
         figure.caption
-          ? `<figcaption style="margin: 8px 0px 0px; color: rgb(176, 176, 176); font-size: 13px;">${escapeHtml(figure.caption)}</figcaption>`
+          ? `<figcaption style="margin: 8px 0px 0px; color: ${captionColor}; font-size: 13px;">${escapeHtml(figure.caption)}</figcaption>`
           : ""
       }
     </figure>`
@@ -90,7 +91,7 @@ function methodSteps(
       const n = pad2(i + 1);
       const isLast = i === titles.length - 1;
       const bg = isLast ? "rgb(11, 11, 11)" : "rgb(26, 26, 26)";
-      const shots = figuresHtml(stepFigures?.[i]);
+      const shots = figuresHtml(stepFigures?.[i], true);
       const card = `    <div style="background: ${bg}; color: rgb(255, 255, 255); border-radius: 14px; padding: 20px 22px;">
       <p style="margin: 0px; color: rgb(244, 122, 32); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">
         <strong>${n} · ${escapeHtml(title)}</strong>
@@ -200,8 +201,16 @@ ${lesson.knowledgeCheck
 
   <div style="max-width: 1050px; margin: 0px auto; padding: 40px 20px 60px;">
 ${introParagraphs(intro)}
-${figuresHtml(lesson.figures)}
-${lesson.extraHtml ? `\n${lesson.extraHtml}\n` : ""}
+${figuresHtml(lesson.figures, false)}
+${
+  lesson.extraHtml
+    ? `
+    <div style="margin-top: 16px; background: rgb(26, 26, 26); color: rgb(222, 222, 222); border-radius: 14px; padding: 20px 22px;">
+${lesson.extraHtml}
+    </div>
+`
+    : ""
+}
 ${method}
 ${exerciseBlock}
 ${knowledgeBlock}
