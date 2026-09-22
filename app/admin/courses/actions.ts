@@ -43,6 +43,7 @@ function revalidateCourse(courseId: string) {
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/academy");
+  revalidatePath(`/admin/academy/${courseId}`);
   revalidatePath("/learn");
   revalidatePath(`/learn/${courseId}`);
   revalidatePath("/progress");
@@ -210,6 +211,7 @@ function parseModuleForm(formData: FormData) {
   const parsed = moduleSchema.safeParse({
     title: formData.get("title") ?? "",
     description: formData.get("description") ?? "",
+    thumbnailUrl: formData.get("thumbnailUrl") ?? "",
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Invalid module");
@@ -231,6 +233,7 @@ export async function createModule(formData: FormData) {
       courseId,
       title: data.title,
       description: data.description || null,
+      thumbnailUrl: data.thumbnailUrl || null,
       order: (maxOrder._max.order ?? -1) + 1,
     },
   });
@@ -249,6 +252,7 @@ export async function updateModule(formData: FormData) {
     data: {
       title: data.title,
       description: data.description || null,
+      thumbnailUrl: data.thumbnailUrl || null,
     },
   });
 

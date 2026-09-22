@@ -1089,13 +1089,14 @@ model Course {
 }
 
 model Module {
-  id          String   @id @default(cuid())
-  courseId    String
-  title       String
-  description String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  courseId     String
+  title        String
+  description  String?
+  thumbnailUrl String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]

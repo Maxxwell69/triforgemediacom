@@ -322,6 +322,16 @@ export default async function CourseDetailPage({
             if (group.length === 0) return null;
             return (
               <div key={mod.id}>
+                {mod.thumbnailUrl ? (
+                  <div className="mb-3 overflow-hidden rounded-2xl bg-charcoal">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={mod.thumbnailUrl}
+                      alt=""
+                      className="block h-auto max-h-48 w-full object-cover object-center"
+                    />
+                  </div>
+                ) : null}
                 <h2 className="mb-1 font-display text-xl tracking-wide text-off-white/80">
                   {mod.title}
                 </h2>

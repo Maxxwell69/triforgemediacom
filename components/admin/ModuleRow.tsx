@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { deleteModule, moveModuleOrder, updateModule } from "@/app/admin/courses/actions";
+import ImageUploadField from "@/components/ImageUploadField";
 
 type Module = {
   id: string;
   title: string;
   description: string | null;
+  thumbnailUrl: string | null;
   lessonCount: number;
 };
 
@@ -52,14 +54,24 @@ export default function ModuleRow({
             </button>
           </div>
           {!editing && (
-            <div className="min-w-0">
-              <p className="truncate font-body text-sm font-medium text-off-white">
-                {module.title}
-              </p>
-              <p className="mt-0.5 font-body text-xs text-off-white/40">
-                {module.lessonCount} lesson{module.lessonCount === 1 ? "" : "s"}
-                {module.description ? ` \u00b7 ${module.description}` : ""}
-              </p>
+            <div className="flex min-w-0 items-start gap-3">
+              {module.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={module.thumbnailUrl}
+                  alt=""
+                  className="h-12 w-20 shrink-0 rounded-lg object-cover"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <p className="truncate font-body text-sm font-medium text-off-white">
+                  {module.title}
+                </p>
+                <p className="mt-0.5 font-body text-xs text-off-white/40">
+                  {module.lessonCount} lesson{module.lessonCount === 1 ? "" : "s"}
+                  {module.description ? ` \u00b7 ${module.description}` : ""}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -109,6 +121,12 @@ export default function ModuleRow({
             rows={2}
             placeholder="Description (optional)"
             className={fieldClass}
+          />
+          <ImageUploadField
+            name="thumbnailUrl"
+            folder="module-thumbnails"
+            label="Cover image"
+            defaultValue={module.thumbnailUrl}
           />
           <div className="flex items-center gap-3">
             <button

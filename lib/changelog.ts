@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.266",
+    date: "September 21, 2026",
+    title: "Module cover images",
+    summary:
+      "Learning Center modules can now have a cover image on the course outline.",
+    items: [
+      {
+        kind: "feature",
+        text: "Admins upload a cover image per course module; members see it above that module’s lessons",
+      },
+    ],
+  },
+  {
     version: "3.265",
     date: "September 21, 2026",
     title: "Branding kit",
