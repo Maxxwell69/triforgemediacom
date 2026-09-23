@@ -7,7 +7,7 @@ import type {
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { getChatDisplayName } from "@/lib/memberDisplay";
-import type { NetworkTrack } from "@/lib/mnCn";
+import type { NetworkTrack } from "@/lib/mnCnDisplay";
 
 export { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 
