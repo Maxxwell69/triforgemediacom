@@ -5,7 +5,7 @@ import { getControlPrisma, pingTenantSchema } from "@/lib/hub/tenantPrisma";
 import { requireSuperAdminPage } from "@/lib/session";
 import { OPTIONAL_SKUS } from "@/lib/hub/catalog";
 import { clientHubPublicUrl } from "@/lib/hub/directory";
-import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
+import { reachableClientHubCustomDomain, readClientHubCustomDomain } from "@/lib/hub/customDomain";
 import { listPlatformHubStaff } from "@/lib/hub/staffAccess";
 import HubSetupForm from "@/components/superadmin/HubSetupForm";
 import SuperAdminSubnav from "@/components/superadmin/SuperAdminSubnav";
@@ -35,7 +35,10 @@ export default async function SuperAdminHubPage({ params }: { params: { hubId: s
     membershipStatus: membershipByUser.get(row.id) ?? null,
   }));
 
-  const customDomain = await readClientHubCustomDomain(control, hub.id);
+  const [customDomain, reachableDomain] = await Promise.all([
+    readClientHubCustomDomain(control, hub.id),
+    reachableClientHubCustomDomain(control, hub.id),
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -55,7 +58,7 @@ export default async function SuperAdminHubPage({ params }: { params: { hubId: s
           hub={hub}
           optional={OPTIONAL_SKUS}
           tenantPing={tenantPing}
-          hubHref={clientHubPublicUrl(hub.slug, customDomain)}
+          hubHref={clientHubPublicUrl(hub.slug, reachableDomain)}
           staff={staff}
         />
       </div>

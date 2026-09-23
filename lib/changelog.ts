@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.277",
+    date: "September 23, 2026",
+    title: "Vanity link fallback",
+    summary:
+      "/hubs and invite links stay on the working slug host until a custom domain’s HTTPS certificate is live.",
+    items: [
+      {
+        kind: "fix",
+        text: "Jmarko and other vanity hosts no longer send members to a broken https://hub.example.com/home while the cert is still pending — cards open slug.hub.triforgemedia.com instead",
+      },
+    ],
+  },
+  {
     version: "3.276",
     date: "September 23, 2026",
     title: "Vanity HTTPS provision",
