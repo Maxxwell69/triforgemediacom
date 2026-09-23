@@ -2,7 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isLiveKitConfigured } from "@/lib/livekit";
 import { webinarExternalInviteUrl, webinarHubUrl } from "@/lib/webinarExternal";
-import AdminWebinarInvitePanel from "@/components/webinars/AdminWebinarInvitePanel";
+import AdminWebinarInvitePanel, {
+  type WebinarInviteMember,
+} from "@/components/webinars/AdminWebinarInvitePanel";
 import CreateWebinarForm from "@/components/webinars/CreateWebinarForm";
 import AdminWebinarActions from "@/components/webinars/AdminWebinarActions";
 import AdminWebinarAudience from "@/components/webinars/AdminWebinarAudience";
@@ -80,11 +82,17 @@ export default async function AdminWebinarsPage() {
         <CreateWebinarForm members={members} />
       </div>
 
-      <AdminWebinarList title="Active webinars" empty="No active webinars." webinars={active} />
+      <AdminWebinarList
+        title="Active webinars"
+        empty="No active webinars."
+        webinars={active}
+        members={members}
+      />
       <AdminWebinarList
         title="Archive"
         empty="No archived webinars yet. Ended meetings land here so they stay off the main hub list."
         webinars={archived}
+        members={members}
       />
     </main>
   );
@@ -94,9 +102,11 @@ function AdminWebinarList({
   title,
   empty,
   webinars,
+  members,
 }: {
   title: string;
   empty: string;
+  members: WebinarInviteMember[];
   webinars: {
     id: string;
     title: string;

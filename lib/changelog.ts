@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.275",
+    date: "September 23, 2026",
+    title: "3.274 production build fix",
+    summary:
+      "Production Railway failed typecheck because the webinar archive list used the invite roster without receiving it.",
+    items: [
+      {
+        kind: "fix",
+        text: "Admin webinar active/archive lists pass the member roster into the invite panel",
+      },
+    ],
+  },
+  {
     version: "3.274",
     date: "September 23, 2026",
     title: "3.273 build fix",
