@@ -29,6 +29,7 @@ export default async function SuperAdminHubsPage() {
         railwayDomainAt: true,
         tenantDbAt: true,
         adminInvitedAt: true,
+        customDomain: true,
       },
     }),
     loadCreateHubDataSheet(),
@@ -113,7 +114,10 @@ export default async function SuperAdminHubsPage() {
                     <div>
                       <p className="font-body text-sm text-off-white">{hub.name}</p>
                       <p className="font-body text-[11px] text-off-white/45">
-                        {hub.slug}.hub.triforgemedia.com · {hub.clientAdminEmail}
+                        {hub.customDomain || `${hub.slug}.hub.triforgemedia.com`}
+                        {hub.customDomain ? ` · ${hub.slug}.hub.triforgemedia.com` : ""}
+                        {" · "}
+                        {hub.clientAdminEmail}
                       </p>
                     </div>
                     <p className="shrink-0 font-body text-[11px] uppercase tracking-wide text-orange">

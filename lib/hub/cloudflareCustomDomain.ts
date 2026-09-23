@@ -7,9 +7,17 @@ const CF_API = "https://api.cloudflare.com/client/v4";
 type CfOwnership = { type?: string; name?: string; value?: string };
 type CfValidationRecord = { txt_name?: string; txt_value?: string };
 type CfSsl = {
+  method?: string;
   status?: string;
   validation_records?: CfValidationRecord[];
 };
+
+const SSL_HTTP = {
+  method: "http" as const,
+  type: "dv" as const,
+  settings: { min_tls_version: "1.2" },
+};
+
 type CfHostname = {
   id?: string;
   hostname?: string;
@@ -17,6 +25,17 @@ type CfHostname = {
   ssl?: CfSsl;
   ownership_verification?: CfOwnership;
 };
+
+function hostnameHttpsReady(row: CfHostname) {
+  const cert = (row.ssl?.status || "").toUpperCase();
+  const dns = (row.status || "").toUpperCase();
+  return (
+    cert.includes("ACTIVE") ||
+    cert === "VALID" ||
+    cert.includes("ISSUED") ||
+    dns === "ACTIVE"
+  );
+}
 
 type CfEnvelope<T> = {
   success?: boolean;
@@ -137,20 +156,32 @@ async function findCloudflareHostname(host: string): Promise<CfHostname | null> 
   return null;
 }
 
+async function preferHttpSsl(host: string, row: CfHostname): Promise<CfHostname> {
+  if (!row.id || hostnameHttpsReady(row)) return row;
+  const method = (row.ssl?.method || "").toLowerCase();
+  if (method === "http") return row;
+  try {
+    return await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ ssl: SSL_HTTP }),
+    });
+  } catch {
+    return row;
+  }
+}
+
 export async function attachCloudflareCustomHostname(host: string): Promise<CustomDomainSetup> {
   const existing = await findCloudflareHostname(host);
-  if (existing?.id) return setupFromCloudflare(host, existing);
+  if (existing?.id) {
+    return setupFromCloudflare(host, await preferHttpSsl(host, existing));
+  }
 
   try {
     const created = await cfFetch<CfHostname>("/custom_hostnames", {
       method: "POST",
       body: JSON.stringify({
         hostname: host,
-        ssl: {
-          method: "txt",
-          type: "dv",
-          settings: { min_tls_version: "1.2" },
-        },
+        ssl: SSL_HTTP,
       }),
     });
     return setupFromCloudflare(host, created);
@@ -158,7 +189,7 @@ export async function attachCloudflareCustomHostname(host: string): Promise<Cust
     const message = err instanceof Error ? err.message : "";
     if (/already|exist|duplicate|taken/i.test(message)) {
       const retry = await findCloudflareHostname(host);
-      if (retry?.id) return setupFromCloudflare(host, retry);
+      if (retry?.id) return setupFromCloudflare(host, await preferHttpSsl(host, retry));
     }
     throw err;
   }
@@ -171,15 +202,18 @@ export async function refreshCloudflareCustomHostname(
   try {
     if (cloudflareId) {
       const row = await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(cloudflareId)}`);
-      return setupFromCloudflare(host, row);
+      return setupFromCloudflare(host, await preferHttpSsl(host, row));
     }
-    const existing = await findCloudflareHostname(host);
-    if (existing?.id) return setupFromCloudflare(host, existing);
+  } catch {
+    // Fall through and create/find by hostname.
+  }
+  try {
+    return await attachCloudflareCustomHostname(host);
   } catch {
     // Token/zone miss or API error — still show the CNAME the registrar needs.
+    const fallback = cloudflareManualSetup(host);
+    return cloudflareId ? { ...fallback, cloudflareId } : fallback;
   }
-  const fallback = cloudflareManualSetup(host);
-  return cloudflareId ? { ...fallback, cloudflareId } : fallback;
 }
 
 export async function detachCloudflareCustomHostname(cloudflareId: string | null | undefined) {

@@ -186,6 +186,23 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.276",
+    date: "September 23, 2026",
+    title: "Vanity HTTPS provision",
+    summary:
+      "Custom domains like hub.jmarko.net finish HTTPS from the CNAME, and Create Hub lists that address.",
+    items: [
+      {
+        kind: "fix",
+        text: "Cloudflare custom-host SSL uses HTTP validation so a CNAME is enough — Check HTTPS also creates the hostname if it was missing",
+      },
+      {
+        kind: "improve",
+        text: "Create Hub saved hubs show the vanity hostname (hub.jmarko.net) next to the slug address",
+      },
+    ],
+  },
+  {
     version: "3.274",
     date: "September 23, 2026",
     title: "3.273 build fix",
