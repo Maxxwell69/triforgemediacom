@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { CustomDomainDnsRecord, CustomDomainSetup } from "@/lib/hub/customDomain";
+import {
+  cloudflareDelegatedDnsRecords,
+  type CustomDomainSetup,
+} from "@/lib/hub/customDomain";
 
 const CF_API = "https://api.cloudflare.com/client/v4";
 
@@ -12,8 +15,8 @@ type CfSsl = {
   validation_records?: CfValidationRecord[];
 };
 
-const SSL_HTTP = {
-  method: "http" as const,
+const SSL_TXT = {
+  method: "txt" as const,
   type: "dv" as const,
   settings: { min_tls_version: "1.2" },
 };
@@ -43,6 +46,7 @@ export function cloudflareSaaSCnameTarget() {
 
 export function cloudflareManualSetup(host: string): CustomDomainSetup {
   const cnameTarget = cloudflareSaaSCnameTarget();
+  const dnsRecords = cloudflareDelegatedDnsRecords(host);
   return {
     host,
     provider: "cloudflare",
@@ -52,7 +56,8 @@ export function cloudflareManualSetup(host: string): CustomDomainSetup {
     cnameTarget,
     txtHost: null,
     txtValue: null,
-    dnsRecords: [{ type: "CNAME", host, value: cnameTarget }],
+    dnsRecords,
+    issuedDnsRecords: dnsRecords,
     certificateStatus: null,
     dnsStatus: null,
   };
@@ -95,26 +100,7 @@ async function cfFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 function setupFromCloudflare(host: string, row: CfHostname): CustomDomainSetup {
   const cnameTarget = cloudflareSaaSCnameTarget();
-  const ownership = row.ownership_verification;
-  const txtHost =
-    ownership?.type?.toLowerCase() === "txt" && ownership.name ? ownership.name.replace(/\.$/, "") : null;
-  const txtValue = txtHost && ownership?.value ? ownership.value : null;
-  const extraTxt: Array<{ host: string; value: string }> = [];
-  const seen = new Set<string>();
-  if (txtHost && txtValue) seen.add(`${txtHost}\0${txtValue}`);
-  for (const rec of row.ssl?.validation_records || []) {
-    const h = rec.txt_name?.replace(/\.$/, "") || "";
-    const v = rec.txt_value || "";
-    if (!h || !v) continue;
-    const key = `${h}\0${v}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    extraTxt.push({ host: h, value: v });
-  }
-  const dnsRecords: CustomDomainDnsRecord[] = [{ type: "CNAME", host, value: cnameTarget }];
-  if (txtHost && txtValue) dnsRecords.push({ type: "TXT", host: txtHost, value: txtValue });
-  for (const extra of extraTxt) dnsRecords.push({ type: "TXT", host: extra.host, value: extra.value });
-
+  const dnsRecords = cloudflareDelegatedDnsRecords(host);
   const sslStatus = row.ssl?.status || null;
   const hostStatus = row.status || null;
 
@@ -125,10 +111,10 @@ function setupFromCloudflare(host: string, row: CfHostname): CustomDomainSetup {
     cloudflareId: typeof row.id === "string" ? row.id : null,
     cnameHost: host,
     cnameTarget,
-    txtHost,
-    txtValue,
-    extraTxt: extraTxt.length ? extraTxt : undefined,
+    txtHost: null,
+    txtValue: null,
     dnsRecords,
+    issuedDnsRecords: dnsRecords,
     certificateStatus: sslStatus || hostStatus,
     dnsStatus: hostStatus,
   };
@@ -154,7 +140,7 @@ export async function attachCloudflareCustomHostname(host: string): Promise<Cust
       method: "POST",
       body: JSON.stringify({
         hostname: host,
-        ssl: SSL_HTTP,
+        ssl: SSL_TXT,
       }),
     });
     return setupFromCloudflare(host, created);

@@ -98,21 +98,30 @@ export function customDomainDnsActive(setup: CustomDomainSetup | null) {
   return dns === "ACTIVE";
 }
 
-const ORIGINAL_ISSUED_DNS: Record<string, CustomDomainDnsRecord[]> = {
-  "hub.jmarko.net": [
-    { type: "CNAME", host: "hub.jmarko.net", value: "triforgemedia.com" },
+const DEFAULT_DCV_ID = "655f36c116791ee8";
+const DEFAULT_CNAME_TARGET = "triforgemedia.com";
+
+export function cloudflareDcvDelegationId() {
+  return (process.env.CLOUDFLARE_DCV_ID || DEFAULT_DCV_ID).trim() || DEFAULT_DCV_ID;
+}
+
+/** Traffic CNAME + one stable ACME CNAME. No rotating TXT. */
+export function cloudflareDelegatedDnsRecords(host: string): CustomDomainDnsRecord[] {
+  const cnameTarget = (process.env.CLOUDFLARE_CNAME_TARGET || DEFAULT_CNAME_TARGET)
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\.$/, "") || DEFAULT_CNAME_TARGET;
+  const dcvId = cloudflareDcvDelegationId();
+  return [
+    { type: "CNAME", host, value: cnameTarget },
     {
-      type: "TXT",
-      host: "_acme-challenge.hub.jmarko.net",
-      value: "xscd8uOaxQGyvzhsGmvCGc3z1v_FdK84SbXBCWxaT24",
+      type: "CNAME",
+      host: `_acme-challenge.${host}`,
+      value: `${host}.${dcvId}.dcv.cloudflare.com`,
     },
-    {
-      type: "TXT",
-      host: "_acme-challenge.hub.jmarko.net",
-      value: "M4Vv-WXad68q-8gyR9QfWva1tXIlXFw3We4n9OG0HPg",
-    },
-  ],
-};
+  ];
+}
 
 export function applyIssuedDnsRecords(
   setup: CustomDomainSetup,
@@ -132,23 +141,25 @@ export function applyIssuedDnsRecords(
 }
 
 export function stampIssuedCustomDomainRecords(setup: CustomDomainSetup): CustomDomainSetup {
-  const known = ORIGINAL_ISSUED_DNS[setup.host];
-  if (known?.length) return applyIssuedDnsRecords(setup, known);
+  if (setup.provider === "cloudflare" || !setup.railwayId) {
+    return applyIssuedDnsRecords(setup, cloudflareDelegatedDnsRecords(setup.host));
+  }
   const issued = setup.issuedDnsRecords?.length ? setup.issuedDnsRecords : customDomainDnsRecords(setup);
   return issued.length ? applyIssuedDnsRecords(setup, issued) : setup;
 }
 
-/** Keep the records we first sent the customer. Cloudflare rotates ACME TXT on refresh. */
+/** Keep issued copy-sheet records. Cloudflare sheets stay on DCV CNAMEs. */
 export function keepSavedCustomDomainRecords(
   fresh: CustomDomainSetup,
   saved: CustomDomainSetup | null | undefined
 ): CustomDomainSetup {
+  if (fresh.provider === "cloudflare" || !fresh.railwayId) {
+    return applyIssuedDnsRecords(fresh, cloudflareDelegatedDnsRecords(fresh.host));
+  }
   if (!saved?.host || saved.host !== fresh.host) return stampIssuedCustomDomainRecords(fresh);
-  const known = ORIGINAL_ISSUED_DNS[saved.host];
   const issued =
-    known ||
     saved.issuedDnsRecords ||
-    (customDomainDnsRecords(saved).some((row) => row.type === "TXT") ? customDomainDnsRecords(saved) : []);
+    (customDomainDnsRecords(saved).length ? customDomainDnsRecords(saved) : []);
   if (!issued.length) return stampIssuedCustomDomainRecords(fresh);
   return applyIssuedDnsRecords(fresh, issued);
 }

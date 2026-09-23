@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.280",
+    date: "September 23, 2026",
+    title: "Custom domain CNAME only",
+    summary:
+      "Hub owners add two CNAMEs for a custom domain. Rotating certificate TXT records are no longer required.",
+    items: [
+      {
+        kind: "improve",
+        text: "Custom-domain setup uses Cloudflare DCV Delegation — traffic CNAME plus one stable _acme-challenge CNAME, no TXT copy sheet",
+      },
+    ],
+  },
+  {
     version: "3.279",
     date: "September 23, 2026",
     title: "Jmarko cert TXT",
