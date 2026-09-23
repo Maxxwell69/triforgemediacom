@@ -6,7 +6,12 @@ import BrandKitEditor from "@/components/admin/BrandKitEditor";
 import { saveHubDirectoryProfile, saveHubBrandKit, resetHubBrandKit, saveHubCustomDomain, refreshHubCustomDomain } from "./actions";
 import { clientHubPublicHost, hubPublicHost } from "@/lib/hub/host";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { customDomainHttpsReady, isRailwayVanitySetup, readClientHubCustomDomainSetup } from "@/lib/hub/customDomain";
+import {
+  customDomainDnsActive,
+  customDomainHttpsReady,
+  isRailwayVanitySetup,
+  readClientHubCustomDomainSetup,
+} from "@/lib/hub/customDomain";
 import { cloudflareManualSetup } from "@/lib/hub/cloudflareCustomDomain";
 import CustomDomainDnsPanel from "@/components/admin/CustomDomainDnsPanel";
 
@@ -56,6 +61,7 @@ export default async function AdminHubProfilePage({
       ? cloudflareManualSetup(domainSetup.host)
       : domainSetup;
   const httpsReady = customDomainHttpsReady(panelSetup);
+  const dnsActive = customDomainDnsActive(panelSetup);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -134,6 +140,7 @@ export default async function AdminHubProfilePage({
         <CustomDomainDnsPanel
           setup={panelSetup}
           httpsReady={httpsReady}
+          dnsActive={dnsActive}
           refreshAction={refreshHubCustomDomain}
         />
       ) : null}

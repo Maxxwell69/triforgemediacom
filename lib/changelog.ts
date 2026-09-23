@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.278",
+    date: "September 23, 2026",
+    title: "Stable custom-domain DNS",
+    summary:
+      "Check HTTPS no longer replaces the TXT records we already sent a hub owner.",
+    items: [
+      {
+        kind: "fix",
+        text: "Custom-domain status checks keep the original CNAME/TXT values; jmarko’s first-sent records are restored on the hub profile",
+      },
+    ],
+  },
+  {
     version: "3.277",
     date: "September 23, 2026",
     title: "Vanity link fallback",

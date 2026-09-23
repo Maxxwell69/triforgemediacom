@@ -30,6 +30,8 @@ export type CustomDomainSetup = {
   txtValue: string | null;
   extraTxt?: Array<{ host: string; value: string }>;
   dnsRecords?: CustomDomainDnsRecord[];
+  /** First records we sent the owner. Never rotate these on Check HTTPS. */
+  issuedDnsRecords?: CustomDomainDnsRecord[];
   certificateStatus: string | null;
   dnsStatus: string | null;
 };
@@ -80,6 +82,7 @@ export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
     txtValue: typeof row.txtValue === "string" ? row.txtValue : null,
     extraTxt: parseExtraTxt(row.extraTxt),
     dnsRecords: parseDnsRecords(row.dnsRecords),
+    issuedDnsRecords: parseDnsRecords(row.issuedDnsRecords),
     certificateStatus: typeof row.certificateStatus === "string" ? row.certificateStatus : null,
     dnsStatus: typeof row.dnsStatus === "string" ? row.dnsStatus : null,
   };
@@ -87,13 +90,72 @@ export function parseCustomDomainSetup(raw: unknown): CustomDomainSetup | null {
 
 export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   const cert = setup?.certificateStatus?.toUpperCase() || "";
+  return cert.includes("ISSUED") || cert === "VALID" || cert === "ACTIVE";
+}
+
+export function customDomainDnsActive(setup: CustomDomainSetup | null) {
   const dns = setup?.dnsStatus?.toUpperCase() || "";
-  return (
-    cert.includes("ISSUED") ||
-    cert === "VALID" ||
-    cert === "ACTIVE" ||
-    dns === "ACTIVE"
-  );
+  return dns === "ACTIVE";
+}
+
+const ORIGINAL_ISSUED_DNS: Record<string, CustomDomainDnsRecord[]> = {
+  "hub.jmarko.net": [
+    { type: "CNAME", host: "hub.jmarko.net", value: "triforgemedia.com" },
+    {
+      type: "TXT",
+      host: "_acme-challenge.hub.jmarko.net",
+      value: "rCZ9TiR32QQTmdwlFYGSdhJE7mQP1x4zlRQP9LM5-V0",
+    },
+    {
+      type: "TXT",
+      host: "_acme-challenge.hub.jmarko.net",
+      value: "M4Vv-WXad68q-8gyR9QfWva1tXIlXFw3We4n9OG0HPg",
+    },
+    {
+      type: "TXT",
+      host: "_cf-custom-hostname.hub.jmarko.net",
+      value: "e6f8d39a-91d6-4e22-8a16-617a088464d3",
+    },
+  ],
+};
+
+export function applyIssuedDnsRecords(
+  setup: CustomDomainSetup,
+  issued: CustomDomainDnsRecord[]
+): CustomDomainSetup {
+  if (!issued.length) return setup;
+  const txt = issued.filter((row) => row.type === "TXT");
+  const first = txt[0];
+  return {
+    ...setup,
+    issuedDnsRecords: issued,
+    dnsRecords: issued,
+    txtHost: first?.host ?? setup.txtHost,
+    txtValue: first?.value ?? setup.txtValue,
+    extraTxt: txt.slice(1).map((row) => ({ host: row.host, value: row.value })),
+  };
+}
+
+export function stampIssuedCustomDomainRecords(setup: CustomDomainSetup): CustomDomainSetup {
+  const known = ORIGINAL_ISSUED_DNS[setup.host];
+  if (known?.length) return applyIssuedDnsRecords(setup, known);
+  const issued = setup.issuedDnsRecords?.length ? setup.issuedDnsRecords : customDomainDnsRecords(setup);
+  return issued.length ? applyIssuedDnsRecords(setup, issued) : setup;
+}
+
+/** Keep the records we first sent the customer. Cloudflare rotates ACME TXT on refresh. */
+export function keepSavedCustomDomainRecords(
+  fresh: CustomDomainSetup,
+  saved: CustomDomainSetup | null | undefined
+): CustomDomainSetup {
+  if (!saved?.host || saved.host !== fresh.host) return stampIssuedCustomDomainRecords(fresh);
+  const known = ORIGINAL_ISSUED_DNS[saved.host];
+  const issued =
+    known ||
+    saved.issuedDnsRecords ||
+    (customDomainDnsRecords(saved).some((row) => row.type === "TXT") ? customDomainDnsRecords(saved) : []);
+  if (!issued.length) return stampIssuedCustomDomainRecords(fresh);
+  return applyIssuedDnsRecords(fresh, issued);
 }
 
 /** Vanity host for member links — null until Cloudflare/Railway says HTTPS is live. */
@@ -110,6 +172,7 @@ export function isRailwayVanitySetup(setup: CustomDomainSetup | null) {
 }
 
 export function customDomainDnsRecords(setup: CustomDomainSetup): CustomDomainDnsRecord[] {
+  if (setup.issuedDnsRecords?.length) return setup.issuedDnsRecords;
   if (setup.dnsRecords?.length) return setup.dnsRecords;
   const rows: CustomDomainDnsRecord[] = [];
   if (setup.cnameHost && setup.cnameTarget) {
@@ -233,10 +296,11 @@ export async function writeClientHubCustomDomain(
   if (taken[0]) {
     throw new Error("That domain is already assigned to another hub.");
   }
+  const persisted = setup ? stampIssuedCustomDomainRecords(setup) : null;
   await control.$executeRawUnsafe(
     `UPDATE "ClientHub" SET "customDomain" = $1, "customDomainSetup" = $2::jsonb WHERE id = $3`,
     host,
-    setup ? JSON.stringify(setup) : null,
+    persisted ? JSON.stringify(persisted) : null,
     hubId
   );
   slugByHost.clear();
@@ -257,7 +321,7 @@ export async function readCustomDomainSetupsByHubIds(
     );
     for (const row of rows) {
       const parsed = parseCustomDomainSetup(row.customDomainSetup);
-      if (parsed) map.set(row.id, parsed);
+      if (parsed) map.set(row.id, stampIssuedCustomDomainRecords(parsed));
       else if (row.customDomain) {
         map.set(row.id, {
           host: row.customDomain,
@@ -325,7 +389,7 @@ export async function readClientHubCustomDomainSetup(
       SELECT "customDomain", "customDomainSetup" FROM "ClientHub" WHERE id = ${hubId} LIMIT 1
     `;
     const parsed = parseCustomDomainSetup(rows[0]?.customDomainSetup);
-    if (parsed) return parsed;
+    if (parsed) return stampIssuedCustomDomainRecords(parsed);
     const host = rows[0]?.customDomain ?? null;
     return host ? { host, railwayId: null, cnameHost: host, cnameTarget: null, txtHost: null, txtValue: null, certificateStatus: null, dnsStatus: null } : null;
   } catch {

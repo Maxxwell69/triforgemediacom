@@ -7,6 +7,7 @@ import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { parseBrandKit, validateBrandKit } from "@/lib/hub/brandKit";
 import { writeClientHubBrandKit } from "@/lib/hub/brandKitStore";
 import {
+  keepSavedCustomDomainRecords,
   readClientHubCustomDomainSetup,
   validateCustomDomain,
   writeClientHubCustomDomain,
@@ -166,6 +167,7 @@ export async function saveHubCustomDomain(formData: FormData) {
       setup = cloudflareManualSetup(parsed.host);
       if (previous?.cloudflareId) setup = { ...setup, cloudflareId: previous.cloudflareId };
     }
+    setup = keepSavedCustomDomainRecords(setup, previous?.host === parsed.host ? previous : null);
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, parsed.host, setup);
   } catch (err) {
     const message =
@@ -195,12 +197,13 @@ export async function refreshHubCustomDomain() {
     if (!previous?.host) {
       redirect("/admin/hub-profile?domainError=Save%20a%20hostname%20first.");
     }
-    const setup = cloudflareCustomDomainReady()
+    const fresh = cloudflareCustomDomainReady()
       ? await refreshCloudflareCustomHostname(previous.host, previous.cloudflareId)
       : {
           ...cloudflareManualSetup(previous.host),
           ...(previous.cloudflareId ? { cloudflareId: previous.cloudflareId } : {}),
         };
+    const setup = keepSavedCustomDomainRecords(fresh, previous);
     await writeClientHubCustomDomain(ctx.control, ctx.hub.id, previous.host, setup);
     revalidatePath("/admin/hub-profile");
     redirect("/admin/hub-profile?domainSaved=1");
