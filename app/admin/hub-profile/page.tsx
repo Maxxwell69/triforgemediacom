@@ -103,7 +103,7 @@ export default async function AdminHubProfilePage({
           <p className="rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-2 font-body text-sm text-cyan">
             {httpsReady
               ? "Custom domain saved. HTTPS is live. This hostname is mapped to this hub."
-              : "Custom domain saved. This hostname is mapped to this hub. Add the DNS records below so Cloudflare can finish HTTPS."}
+              : "Custom domain saved. This hostname is mapped to this hub. Add the two CNAME records below so Cloudflare can finish HTTPS."}
           </p>
         ) : null}
         {searchParams.domainError ? (

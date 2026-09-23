@@ -37,9 +37,9 @@ export default function CustomDomainDnsPanel({
             {httpsReady ? "HTTPS IS LIVE" : dnsActive ? "KEEP THESE RECORDS" : "ADD THESE RECORDS"}
           </h2>
           <p className="mt-2 max-w-xl font-body text-sm text-off-white/55">
-            {dnsActive && !httpsReady
-              ? "DNS is already in. These are the original records we sent — do not replace them if a status check shows new tokens."
-              : `Copy Type, Name, and Value into the DNS for .${zone}. Name is only the left part. This hub is identified by hostname — ${setup.host} always loads this community, not Hub 0.`}
+            {httpsReady
+              ? `These two CNAMEs keep ${setup.host} on this hub with HTTPS.`
+              : `Copy two CNAME records into the DNS for .${zone}. Name is only the left part. No TXT records. This hostname always loads this community, not Hub 0.`}
           </p>
         </div>
         <form action={refreshAction}>
@@ -73,13 +73,11 @@ export default function CustomDomainDnsPanel({
             name={dnsRegistrarName(record.host, setup.host)}
             value={record.value}
             hint={
-              record.type === "CNAME"
-                ? cloudflare
-                  ? `This makes ${setup.host} point at ${record.value} so Cloudflare can issue HTTPS.`
+              record.host.startsWith("_acme-challenge.")
+                ? "Certificate check. This CNAME does not rotate — leave it as-is."
+                : cloudflare
+                  ? `This makes ${setup.host} point at ${record.value} so the hub loads here.`
                   : `This makes ${setup.host} point at Railway.`
-                : dnsActive
-                  ? "Leave this TXT as first sent. New values after a status check are Cloudflare rotating — do not update DNS."
-                  : "Ownership / certificate check. Same name can appear twice with different values."
             }
           />
         ))
