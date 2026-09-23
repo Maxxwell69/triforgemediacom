@@ -15,6 +15,7 @@ import {
 } from "@/lib/hubCampaigns";
 import { claimNextOpenInterviewSlot } from "@/lib/hubCampaignSlots";
 import { bookAppointment } from "@/app/book/actions";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 export type CampaignFormState = { error?: string } | null;
 
@@ -188,6 +189,9 @@ export async function bookHubCampaignInterview(
 ): Promise<{ error: string | null; guestJoinUrl?: string }> {
   try {
     const user = await requireMember();
+    if (!(await canUseEventsAndBookings(user.id, user.role))) {
+      return { error: "Media Network members can’t book meetings." };
+    }
     const campaign = await prisma.hubCampaign.findUnique({
       where: { id: campaignId },
       select: {

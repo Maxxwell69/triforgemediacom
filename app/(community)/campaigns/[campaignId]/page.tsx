@@ -21,6 +21,7 @@ import { joinHubCampaign, leaveHubCampaign, toggleHubCampaignTask } from "../act
 import InterviewSpotsBoard from "@/components/campaigns/InterviewSpotsBoard";
 import { isInterviewCampaign } from "@/lib/hubCampaignLabels";
 import { interviewNetworkLabel } from "@/lib/hubCampaignSlots";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,7 @@ export default async function CampaignDetailPage({
   const doneCount = myTasks.filter((t) => t.completions.length > 0).length;
   const campaignId = campaign.id;
   const bookingPage = hubCampaignBookingPage(campaign);
+  const canBook = await canUseEventsAndBookings(user.id, user.role);
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -215,7 +217,7 @@ export default async function CampaignDetailPage({
                 campaignId={campaign.id}
                 currentUserId={user.id}
                 canClaim={canClaimSpot && campaign.status !== "ARCHIVED"}
-                bookingEnabled={!!bookingPage}
+                bookingEnabled={!!bookingPage && canBook}
                 slots={campaign.slots.map((slot) => ({
                   id: slot.id,
                   startsAt: slot.startsAt.toISOString(),

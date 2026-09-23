@@ -6,8 +6,6 @@ import {
   parseTikTokUniqueId,
   type TikToolsBulkLiveRow,
 } from "@/lib/tiktools";
-import { ensureTikTokSocialLink } from "@/lib/tiktokStats";
-
 export const LIVE_TAG_NAME = "LIVE";
 export const LIVE_TAG_COLOR = "#FD4802";
 
@@ -186,15 +184,10 @@ export async function syncRosterLiveStatus(): Promise<{
     throw new Error("TIKTOOLS_API_KEY is not configured");
   }
 
-  // Keep social links populated so member profiles show TikTok handles
-  const activeUsers = await prisma.user.findMany({
-    where: { status: "ACTIVE", profile: { isNot: null } },
-    select: { id: true },
-  });
-  let filled = 0;
-  for (const user of activeUsers) {
-    if (await ensureTikTokSocialLink(user.id)) filled++;
-  }
+  // Keep @usernames populated and activate missing tik.tools snapshots
+  const { activateAllTikTokUsernames } = await import("@/lib/tiktokStats");
+  const activated = await activateAllTikTokUsernames({ statsLimit: 25 });
+  const filled = activated.filled;
 
   await ensureLiveTag();
 

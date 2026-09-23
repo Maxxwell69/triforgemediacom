@@ -56,7 +56,7 @@ export default function DisplayNamePreference({
           Show my real name publicly
           <span className="mt-1 block text-xs text-off-white/45">
             Unchecked (default): show TikTok username
-            {tiktokUsername ? ` (${tiktokUsername})` : " — add a TikTok link or connect TikTok first"}
+            {tiktokUsername ? ` (${tiktokUsername})` : " — add a TikTok @username first"}
             . Checked: show your account name
             {realName ? ` (${realName})` : ""}.
           </span>

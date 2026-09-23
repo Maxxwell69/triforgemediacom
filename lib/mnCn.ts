@@ -1,4 +1,6 @@
+import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isAdminRole } from "@/lib/rbac";
 import {
   CN_EFFECT_COLOR,
   CN_GROUP_NAME,
@@ -62,11 +64,16 @@ async function ensureGroupAndTag(
 }
 
 async function ensureMnGroupAndTag() {
-  return ensureGroupAndTag(MN_GROUP_NAME, {
+  const ids = await ensureGroupAndTag(MN_GROUP_NAME, {
     groupDescription: "Creators represented by an outside agency for live hosting.",
     tagDescription: "Represented by an outside agency for live hosting.",
     color: "#00D4FF",
   });
+  await prisma.group.update({
+    where: { id: ids.groupId },
+    data: { canCreateEvents: false },
+  });
+  return ids;
 }
 
 async function ensureCnGroupAndTag() {
@@ -231,6 +238,19 @@ export async function getUserNetworkTrack(
   if (hasCn) return "CN";
   if (hasMn) return "MN";
   return null;
+}
+
+export async function isMediaNetworkMember(userId: string): Promise<boolean> {
+  return (await getUserNetworkTrack(userId)) === "MN";
+}
+
+/** Calendar events and in-hub booking are not available to Media Network members. */
+export async function canUseEventsAndBookings(
+  userId: string,
+  role?: UserRole | null
+): Promise<boolean> {
+  if (isAdminRole(role)) return true;
+  return !(await isMediaNetworkMember(userId));
 }
 
 /**

@@ -12,6 +12,7 @@ import AdminWebinarExternalSignup from "@/components/webinars/AdminWebinarExtern
 import MemberAvatar from "@/components/MemberAvatar";
 import LocalWhen from "@/components/LocalWhen";
 import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
+import type { WebinarAudience, WebinarStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,8 @@ export default async function AdminWebinarsPage() {
   ]);
 
   const livekitReady = isLiveKitConfigured();
+  const active = webinars.filter((w) => w.status !== "ENDED");
+  const archived = webinars.filter((w) => w.status === "ENDED");
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
@@ -77,15 +80,56 @@ export default async function AdminWebinarsPage() {
         <CreateWebinarForm members={members} />
       </div>
 
-      <div className="mt-10">
-        <h2 className="font-display text-2xl tracking-wide text-off-white/80">All webinars</h2>
-        {webinars.length === 0 ? (
-          <p className="mt-3 font-body text-off-white/50">No webinars yet.</p>
-        ) : (
-          <div className="mt-3 flex flex-col gap-3">
-            {webinars.map((w) => {
-              const hostName = w.host.name || w.host.email;
-              return (
+      <AdminWebinarList title="Active webinars" empty="No active webinars." webinars={active} />
+      <AdminWebinarList
+        title="Archive"
+        empty="No archived webinars yet. Ended meetings land here so they stay off the main hub list."
+        webinars={archived}
+      />
+    </main>
+  );
+}
+
+function AdminWebinarList({
+  title,
+  empty,
+  webinars,
+}: {
+  title: string;
+  empty: string;
+  webinars: {
+    id: string;
+    title: string;
+    description: string | null;
+    scheduledAt: Date;
+    status: WebinarStatus;
+    audience: WebinarAudience;
+    seriesId: string | null;
+    hostAvatarUrl: string | null;
+    externalSignupEnabled: boolean;
+    externalInviteToken: string | null;
+    host: { name: string | null; email: string };
+    recordings: { id: string; title: string | null; url: string }[];
+    externalGuests: {
+      id: string;
+      name: string;
+      email: string;
+      registeredAt: Date;
+      joinedAt: Date | null;
+    }[];
+    _count: { attendances: number; chatMessages: number };
+  }[];
+}) {
+  return (
+    <div className="mt-10">
+      <h2 className="font-display text-2xl tracking-wide text-off-white/80">{title}</h2>
+      {webinars.length === 0 ? (
+        <p className="mt-3 font-body text-off-white/50">{empty}</p>
+      ) : (
+        <div className="mt-3 flex flex-col gap-3">
+          {webinars.map((w) => {
+            const hostName = w.host.name || w.host.email;
+            return (
               <div key={w.id} className="glass rounded-xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
@@ -101,7 +145,7 @@ export default async function AdminWebinarsPage() {
                         <span
                           className={`rounded px-2 py-0.5 font-body text-xs uppercase tracking-wide ${STATUS_STYLES[w.status]}`}
                         >
-                          {w.status}
+                          {w.status === "ENDED" ? "Archived" : w.status}
                         </span>
                         <span className="rounded bg-off-white/10 px-2 py-0.5 font-body text-xs text-off-white/60">
                           {WEBINAR_AUDIENCE_LABELS[w.audience]}
@@ -133,10 +177,7 @@ export default async function AdminWebinarsPage() {
                         Open room
                       </Link>
                     )}
-                    <AdminWebinarActions
-                      webinarId={w.id}
-                      status={w.status}
-                    />
+                    <AdminWebinarActions webinarId={w.id} status={w.status} />
                   </div>
                 </div>
                 <AdminWebinarAudience webinarId={w.id} audience={w.audience} />
@@ -177,11 +218,10 @@ export default async function AdminWebinarsPage() {
                   canAttach={w.status === "ENDED" || w.status === "LIVE"}
                 />
               </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </main>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

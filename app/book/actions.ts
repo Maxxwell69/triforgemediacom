@@ -16,6 +16,7 @@ import {
 } from "@/lib/webinarExternal";
 import { sendAppointmentBookedEmails } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 function clientIpFromHeaders(): string {
   const h = headers();
@@ -63,6 +64,17 @@ export async function bookAppointment(
     return {
       error: `Too many bookings from this email. Try again in about ${emailLimit.retryAfterSeconds} seconds.`,
     };
+  }
+
+  const bookerAccount = await prisma.user.findFirst({
+    where: { email: { equals: emailKey, mode: "insensitive" } },
+    select: { id: true, role: true },
+  });
+  if (
+    bookerAccount &&
+    !(await canUseEventsAndBookings(bookerAccount.id, bookerAccount.role))
+  ) {
+    return { error: "Media Network members can’t book meetings." };
   }
 
   const page = await getActiveBookingPageBySlug(slug);

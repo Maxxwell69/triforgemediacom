@@ -30,22 +30,24 @@ export default function AdminTikTokLinkForm({
           }
           setMessage(
             value.trim()
-              ? "TikTok link saved — stats refresh started."
-              : "TikTok link cleared."
+              ? "TikTok @username saved — stats refresh started."
+              : "TikTok username cleared."
           );
         });
       }}
     >
       <label htmlFor="admin-tiktok-url" className="flex flex-col gap-1.5">
         <span className="font-body text-xs uppercase tracking-wide text-off-white/40">
-          TikTok profile URL or @handle
+          TikTok username
         </span>
         <input
           id="admin-tiktok-url"
           type="text"
+          autoComplete="off"
+          spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="https://www.tiktok.com/@username"
+          placeholder="@username"
           className="rounded-lg border border-off-white/15 bg-charcoal/60 px-3 py-2 font-body text-sm text-off-white placeholder:text-off-white/30 focus:border-cyan/50 focus:outline-none"
         />
       </label>
@@ -55,7 +57,7 @@ export default function AdminTikTokLinkForm({
           disabled={isPending}
           className="rounded-lg border border-cyan/40 px-3 py-1.5 font-body text-xs font-semibold text-cyan transition hover:bg-cyan/10 disabled:opacity-60"
         >
-          {isPending ? "Saving…" : "Save TikTok link"}
+          {isPending ? "Saving…" : "Save TikTok username"}
         </button>
         {message && (
           <p className="font-body text-xs text-cyan">{message}</p>

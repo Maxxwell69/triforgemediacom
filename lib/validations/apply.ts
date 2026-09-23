@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { COUNTRY_CODES } from "@/lib/applyTrack";
+import { parseTikTokUniqueId } from "@/lib/tiktools";
 
 export const platformOptions = [
   "TIKTOK",
@@ -16,7 +17,7 @@ export const applySchema = z.object({
   platform: z.enum(platformOptions, {
     error: "Select your main platform",
   }),
-  handle: z.string().trim().min(1, "Enter your handle/username").max(100),
+  handle: z.string().trim().min(1, "Enter your handle/username").max(300),
   phone: z
     .string()
     .trim()
@@ -27,10 +28,12 @@ export const applySchema = z.object({
   socialLink: z
     .string()
     .trim()
-    .url("Enter a valid URL")
     .max(300)
     .optional()
-    .or(z.literal("")),
+    .or(z.literal(""))
+    .refine((v) => !v || !!parseTikTokUniqueId(v) || /^https?:\/\//i.test(v), {
+      message: "Enter a profile URL or TikTok @username",
+    }),
   country: z.enum(COUNTRY_CODES, {
     error: "Select your country",
   }),

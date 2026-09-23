@@ -13,6 +13,7 @@ import {
   nameIdentitySchema,
 } from "@/lib/validations/account";
 import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
+import { formatTikTokHandle, parseTikTokUniqueId } from "@/lib/tiktools";
 import { sendEmailChangedNotice } from "@/lib/email";
 import type { ProfileFormState } from "@/components/ProfileForm";
 
@@ -54,7 +55,8 @@ export async function updateProfile(
   for (const key of goals) goalsJson[key] = true;
 
   const socialLinks: Record<string, string> = {};
-  if (tiktokUrl) socialLinks.tiktok = tiktokUrl;
+  const tiktokHandle = tiktokUrl ? parseTikTokUniqueId(tiktokUrl) : null;
+  if (tiktokHandle) socialLinks.tiktok = formatTikTokHandle(tiktokHandle);
   if (twitchUrl) socialLinks.twitch = twitchUrl;
   if (youtubeUrl) socialLinks.youtube = youtubeUrl;
 

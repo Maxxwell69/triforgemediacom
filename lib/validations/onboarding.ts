@@ -2,6 +2,7 @@ import { z } from "zod";
 import { platformOptions } from "./apply";
 import { GOAL_OPTIONS } from "../goals";
 import { COUNTRY_CODES } from "@/lib/applyTrack";
+import { parseTikTokUniqueId } from "@/lib/tiktools";
 
 const goalKeys = GOAL_OPTIONS.map((g) => g.key) as [string, ...string[]];
 
@@ -18,7 +19,15 @@ export const onboardingSchema = z.object({
     .optional()
     .or(z.literal("")),
   country: z.union([z.enum(COUNTRY_CODES), z.literal("")]).optional(),
-  tiktokUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
+  tiktokUrl: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .or(z.literal(""))
+    .refine((v) => !v || !!parseTikTokUniqueId(v), {
+      message: "Enter a TikTok @username",
+    }),
   twitchUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
   youtubeUrl: z.string().trim().url().max(300).optional().or(z.literal("")),
   pinnedTiktokVideoUrl: z

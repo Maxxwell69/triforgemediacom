@@ -12,6 +12,7 @@ import EventLocation from "@/components/calendar/EventLocation";
 import { calendarKindLabel } from "@/lib/calendarEventTypes";
 import { calendarMemberLabel } from "@/lib/calendar";
 import { isAdminRole } from "@/lib/rbac";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ export default async function CalendarEventPage({
   }
 
   const alreadyRsvpd = event.attendees.some((a) => a.userId === user.id);
+  const canBookEvents = await canUseEventsAndBookings(user.id, user.role);
   const canEditPhoto =
     !event.webinarId && (event.createdById === user.id || isAdminRole(user.role));
 
@@ -152,8 +154,12 @@ export default async function CalendarEventPage({
                 <span className="rounded-lg border border-cyan/35 bg-cyan/10 px-4 py-2 font-body text-sm font-semibold text-cyan">
                   You&apos;re going
                 </span>
-              ) : (
+              ) : canBookEvents ? (
                 <RsvpButton eventId={event.id} />
+              ) : (
+                <span className="font-body text-xs text-off-white/45">
+                  Media Network members can&apos;t RSVP to hub events.
+                </span>
               )}
               <Link
                 href="/calendar"

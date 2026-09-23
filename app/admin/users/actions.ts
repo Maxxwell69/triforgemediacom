@@ -570,13 +570,13 @@ export async function updateUserTikTokLink(
   }
 
   const raw = tiktokUrl.trim();
-  const { parseTikTokUniqueId } = await import("@/lib/tiktools");
+  const { formatTikTokHandle, parseTikTokUniqueId } = await import("@/lib/tiktools");
   const uniqueId = raw ? parseTikTokUniqueId(raw) : null;
 
   if (raw && !uniqueId) {
     return {
       ok: false,
-      error: "Enter a TikTok profile URL (tiktok.com/@handle) or @handle.",
+      error: "Enter a TikTok @username.",
     };
   }
 
@@ -585,9 +585,7 @@ export async function updateUserTikTokLink(
   };
 
   if (uniqueId) {
-    socialLinks.tiktok = raw.startsWith("http")
-      ? raw
-      : `https://www.tiktok.com/@${uniqueId}`;
+    socialLinks.tiktok = formatTikTokHandle(uniqueId);
   } else {
     delete socialLinks.tiktok;
   }

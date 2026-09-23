@@ -18,7 +18,7 @@ function tiktokHandleFromSocialLinks(socialLinks: unknown): string | null {
   if (!socialLinks || typeof socialLinks !== "object") return null;
   const tiktok = (socialLinks as Record<string, unknown>).tiktok;
   if (typeof tiktok !== "string" || !tiktok) return null;
-  const fromUrl = tiktok.match(/tiktok\.com\/@([\w.-]+)/i);
+  const fromUrl = tiktok.match(/(?:https?:\/\/)?(?:www\.|m\.)?tiktok\.com\/@([\w.-]+)/i);
   if (fromUrl) return `@${fromUrl[1]}`;
   const bare = tiktok.trim().replace(/^@/, "");
   if (/^[\w.-]+$/.test(bare) && bare.length >= 2) return `@${bare}`;
@@ -27,13 +27,15 @@ function tiktokHandleFromSocialLinks(socialLinks: unknown): string | null {
 
 /** TikTok identity used as the default public display name. */
 export function getTikTokUsername(member: MemberLike): string | null {
+  const uniqueId = member.tiktokStatsSnapshot?.uniqueId?.trim();
+  if (uniqueId) return `@${uniqueId.replace(/^@/, "")}`;
+  const fromLinks = tiktokHandleFromSocialLinks(member.profile?.socialLinks);
+  if (fromLinks) return fromLinks;
   const fromSnapshot = member.tiktokStatsSnapshot?.nickname?.trim();
   if (fromSnapshot) return fromSnapshot;
   const fromConnection = member.tiktokConnection?.displayName?.trim();
   if (fromConnection) return fromConnection;
-  const uniqueId = member.tiktokStatsSnapshot?.uniqueId?.trim();
-  if (uniqueId) return `@${uniqueId.replace(/^@/, "")}`;
-  return tiktokHandleFromSocialLinks(member.profile?.socialLinks);
+  return null;
 }
 
 /**

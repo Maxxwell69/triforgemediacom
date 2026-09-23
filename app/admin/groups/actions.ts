@@ -11,6 +11,7 @@ import {
 } from "@/lib/groups";
 import { groupMemberRoleSchema, groupSchema } from "@/lib/validations/group";
 import { hubVoiceAvailable } from "@/lib/voiceAccess";
+import { MN_GROUP_NAME } from "@/lib/mnCn";
 
 async function requireAdmin() {
   const session = await auth();
@@ -56,7 +57,10 @@ export async function createGroup(formData: FormData) {
   const grantsTikTaskAccess = formData.get("grantsTikTaskAccess") === "on";
   const grantsVoiceAccess = hubVoiceAvailable() ? formData.get("grantsVoiceAccess") === "on" : false;
   const showInList = formData.get("showInList") === "on";
-  const canCreateEvents = formData.get("canCreateEvents") === "on";
+  const canCreateEvents =
+    data.name.trim().toUpperCase() === MN_GROUP_NAME.toUpperCase()
+      ? false
+      : formData.get("canCreateEvents") === "on";
 
   await prisma.group.create({
     data: {
@@ -96,7 +100,11 @@ export async function updateGroup(formData: FormData) {
   const grantsVoiceAccess = hubVoiceAvailable() ? formData.get("grantsVoiceAccess") === "on" : undefined;
   // Home is always listed; other groups honor the checkbox.
   const showInList = existing.isHome || formData.get("showInList") === "on";
-  const canCreateEvents = formData.get("canCreateEvents") === "on";
+  const canCreateEvents =
+    existing.name.toUpperCase() === MN_GROUP_NAME.toUpperCase() ||
+    data.name.trim().toUpperCase() === MN_GROUP_NAME.toUpperCase()
+      ? false
+      : formData.get("canCreateEvents") === "on";
 
   await prisma.group.update({
     where: { id },

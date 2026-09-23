@@ -31,6 +31,8 @@ import { hubHas } from "@/lib/hub/modules";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { hubHostLocksByEmail } from "@/lib/hub/protectedIdentity";
+import { displayCreatorHandle, formatTikTokHandle, parseTikTokUniqueId } from "@/lib/tiktools";
+import { ensureTikTokSocialLink } from "@/lib/tiktokStats";
 import { listOnboardingPrograms } from "@/lib/onboarding/config";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +109,7 @@ export default async function AdminUserDetailPage({
         tags: { include: { tag: true } },
         userBadges: { include: { badge: true }, orderBy: { awardedAt: "desc" } },
         tiktokConnection: true,
+        tiktokStatsSnapshot: { select: { uniqueId: true, nickname: true, avatarUrl: true } },
         enrollments: {
           include: { course: { include: { lessons: { select: { id: true } } } } },
           orderBy: { enrolledAt: "desc" },
@@ -153,6 +156,7 @@ export default async function AdminUserDetailPage({
   ]);
 
   if (!user) notFound();
+  await ensureTikTokSocialLink(user.id);
 
   const isSelf = user.id === currentUserId;
   const isBanned = user.status === "BANNED";
@@ -189,11 +193,14 @@ export default async function AdminUserDetailPage({
   const hasAgency = answers?.hasAgency === "yes";
   const signupHandleRaw =
     typeof answers?.handle === "string" ? answers.handle.trim() : "";
-  const signupHandle = signupHandleRaw
-    ? signupHandleRaw.startsWith("@")
-      ? signupHandleRaw
-      : `@${signupHandleRaw.replace(/^@/, "")}`
-    : null;
+  const signupHandle =
+    displayCreatorHandle(signupHandleRaw) ||
+    displayCreatorHandle(
+      ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok
+    ) ||
+    (user.tiktokStatsSnapshot?.uniqueId
+      ? formatTikTokHandle(user.tiktokStatsSnapshot.uniqueId)
+      : null);
   const signupSocialLink =
     typeof answers?.socialLink === "string" && answers.socialLink.trim()
       ? answers.socialLink.trim()
@@ -389,7 +396,14 @@ export default async function AdminUserDetailPage({
             <AdminTikTokLinkForm
               userId={user.id}
               currentUrl={
-                ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok ?? ""
+                (() => {
+                  const stored =
+                    ((user.profile?.socialLinks as Record<string, string> | null) ?? {})
+                      .tiktok ?? "";
+                  const uniqueId =
+                    parseTikTokUniqueId(stored) || user.tiktokStatsSnapshot?.uniqueId || null;
+                  return uniqueId ? formatTikTokHandle(uniqueId) : stored;
+                })()
               }
             />
           </div>

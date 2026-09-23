@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validations/onboarding";
 import type { ProfileFormState } from "@/components/ProfileForm";
 import { sendWelcomeEmail } from "@/lib/email";
+import { formatTikTokHandle, parseTikTokUniqueId } from "@/lib/tiktools";
 
 export async function completeOnboarding(
   _prevState: ProfileFormState,
@@ -45,18 +46,14 @@ export async function completeOnboarding(
   for (const key of goals) goalsJson[key] = true;
 
   const socialLinks: Record<string, string> = {};
-  if (tiktokUrl) socialLinks.tiktok = tiktokUrl;
+  const tiktokHandle = tiktokUrl ? parseTikTokUniqueId(tiktokUrl) : null;
+  if (tiktokHandle) socialLinks.tiktok = formatTikTokHandle(tiktokHandle);
   if (twitchUrl) socialLinks.twitch = twitchUrl;
   if (youtubeUrl) socialLinks.youtube = youtubeUrl;
 
   // Seed hub username from TikTok @handle when missing so chat never falls
   // through to the generic "Member" label for new creators.
-  let usernameFromTikTok: string | null = null;
-  if (tiktokUrl) {
-    const fromUrl = tiktokUrl.match(/tiktok\.com\/@([\w.-]+)/i);
-    const bare = (fromUrl?.[1] || tiktokUrl.replace(/^@/, "").trim()).toLowerCase();
-    if (/^[\w.-]{2,64}$/.test(bare)) usernameFromTikTok = bare;
-  }
+  const usernameFromTikTok = tiktokHandle;
 
   const existingProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
 
