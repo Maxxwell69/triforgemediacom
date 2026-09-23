@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { COUNTRY_CODES } from "@/lib/applyTrack";
-import { parseTikTokUniqueId } from "@/lib/tiktools";
+import { parseTikTokUniqueId } from "@/lib/tiktokHandle";
 
 export const platformOptions = [
   "TIKTOK",

@@ -282,7 +282,9 @@ export async function resolveNetworkTrackEmails(
     select: { email: true },
   });
 
-  const emails = Array.from(new Set(users.map((u) => u.email)));
+  const emails = users
+    .map((user) => user.email)
+    .filter((email, index, all) => all.indexOf(email) === index);
   return {
     emails,
     label: track === "CN" ? "Creator Network (CN)" : "Media Network (MN)",

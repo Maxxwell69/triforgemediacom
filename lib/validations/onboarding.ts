@@ -2,7 +2,7 @@ import { z } from "zod";
 import { platformOptions } from "./apply";
 import { GOAL_OPTIONS } from "../goals";
 import { COUNTRY_CODES } from "@/lib/applyTrack";
-import { parseTikTokUniqueId } from "@/lib/tiktools";
+import { parseTikTokUniqueId } from "@/lib/tiktokHandle";
 
 const goalKeys = GOAL_OPTIONS.map((g) => g.key) as [string, ...string[]];
 

@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.274",
+    date: "September 23, 2026",
+    title: "3.273 build fix",
+    summary: "The 3.273 Railway image failed to compile; handle parsing is split out of the TikTok API client.",
+    items: [
+      {
+        kind: "fix",
+        text: "Apply and profile forms no longer pull the tik.tools client into the browser bundle",
+      },
+    ],
+  },
+  {
     version: "3.273",
     date: "September 23, 2026",
     title: "MN event lock and webinar archive",
