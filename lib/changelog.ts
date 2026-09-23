@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.279",
+    date: "September 23, 2026",
+    title: "Jmarko cert TXT",
+    summary:
+      "The jmarko custom-domain sheet now shows the two _acme-challenge values Cloudflare is waiting on.",
+    items: [
+      {
+        kind: "fix",
+        text: "Hub profile for hub.jmarko.net matches Cloudflare’s current certificate TXT records so HTTPS can finish",
+      },
+    ],
+  },
+  {
     version: "3.278",
     date: "September 23, 2026",
     title: "Stable custom-domain DNS",

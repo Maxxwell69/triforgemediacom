@@ -104,17 +104,12 @@ const ORIGINAL_ISSUED_DNS: Record<string, CustomDomainDnsRecord[]> = {
     {
       type: "TXT",
       host: "_acme-challenge.hub.jmarko.net",
-      value: "rCZ9TiR32QQTmdwlFYGSdhJE7mQP1x4zlRQP9LM5-V0",
+      value: "xscd8uOaxQGyvzhsGmvCGc3z1v_FdK84SbXBCWxaT24",
     },
     {
       type: "TXT",
       host: "_acme-challenge.hub.jmarko.net",
       value: "M4Vv-WXad68q-8gyR9QfWva1tXIlXFw3We4n9OG0HPg",
-    },
-    {
-      type: "TXT",
-      host: "_cf-custom-hostname.hub.jmarko.net",
-      value: "e6f8d39a-91d6-4e22-8a16-617a088464d3",
     },
   ],
 };
