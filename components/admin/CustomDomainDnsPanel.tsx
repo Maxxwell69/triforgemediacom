@@ -9,10 +9,12 @@ import {
 export default function CustomDomainDnsPanel({
   setup,
   httpsReady,
+  dnsActive,
   refreshAction,
 }: {
   setup: CustomDomainSetup;
   httpsReady: boolean;
+  dnsActive?: boolean;
   refreshAction: () => Promise<void>;
 }) {
   const zone =
@@ -32,13 +34,12 @@ export default function CustomDomainDnsPanel({
             DNS at your registrar
           </p>
           <h2 className="mt-1 font-display text-2xl tracking-wide">
-            {httpsReady ? "HTTPS IS LIVE" : "ADD THESE RECORDS"}
+            {httpsReady ? "HTTPS IS LIVE" : dnsActive ? "KEEP THESE RECORDS" : "ADD THESE RECORDS"}
           </h2>
           <p className="mt-2 max-w-xl font-body text-sm text-off-white/55">
-            Copy Type, Name, and Value into the DNS for{" "}
-            <span className="text-off-white/80">.{zone}</span>. The CNAME is what
-            provisions HTTPS. Name is only the left part. This hub is identified by
-            hostname — {setup.host} always loads this community, not Hub 0.
+            {dnsActive && !httpsReady
+              ? "DNS is already in. These are the original records we sent — do not replace them if a status check shows new tokens."
+              : `Copy Type, Name, and Value into the DNS for .${zone}. Name is only the left part. This hub is identified by hostname — ${setup.host} always loads this community, not Hub 0.`}
           </p>
         </div>
         <form action={refreshAction}>
@@ -76,7 +77,9 @@ export default function CustomDomainDnsPanel({
                 ? cloudflare
                   ? `This makes ${setup.host} point at ${record.value} so Cloudflare can issue HTTPS.`
                   : `This makes ${setup.host} point at Railway.`
-                : "Ownership / certificate check. Same name can appear twice with different values."
+                : dnsActive
+                  ? "Leave this TXT as first sent. New values after a status check are Cloudflare rotating — do not update DNS."
+                  : "Ownership / certificate check. Same name can appear twice with different values."
             }
           />
         ))

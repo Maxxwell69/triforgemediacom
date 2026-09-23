@@ -26,17 +26,6 @@ type CfHostname = {
   ownership_verification?: CfOwnership;
 };
 
-function hostnameHttpsReady(row: CfHostname) {
-  const cert = (row.ssl?.status || "").toUpperCase();
-  const dns = (row.status || "").toUpperCase();
-  return (
-    cert.includes("ACTIVE") ||
-    cert === "VALID" ||
-    cert.includes("ISSUED") ||
-    dns === "ACTIVE"
-  );
-}
-
 type CfEnvelope<T> = {
   success?: boolean;
   errors?: Array<{ message?: string; code?: number }>;
@@ -156,25 +145,9 @@ async function findCloudflareHostname(host: string): Promise<CfHostname | null> 
   return null;
 }
 
-async function preferHttpSsl(host: string, row: CfHostname): Promise<CfHostname> {
-  if (!row.id || hostnameHttpsReady(row)) return row;
-  const method = (row.ssl?.method || "").toLowerCase();
-  if (method === "http") return row;
-  try {
-    return await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(row.id)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ ssl: SSL_HTTP }),
-    });
-  } catch {
-    return row;
-  }
-}
-
 export async function attachCloudflareCustomHostname(host: string): Promise<CustomDomainSetup> {
   const existing = await findCloudflareHostname(host);
-  if (existing?.id) {
-    return setupFromCloudflare(host, await preferHttpSsl(host, existing));
-  }
+  if (existing?.id) return setupFromCloudflare(host, existing);
 
   try {
     const created = await cfFetch<CfHostname>("/custom_hostnames", {
@@ -189,7 +162,7 @@ export async function attachCloudflareCustomHostname(host: string): Promise<Cust
     const message = err instanceof Error ? err.message : "";
     if (/already|exist|duplicate|taken/i.test(message)) {
       const retry = await findCloudflareHostname(host);
-      if (retry?.id) return setupFromCloudflare(host, await preferHttpSsl(host, retry));
+      if (retry?.id) return setupFromCloudflare(host, retry);
     }
     throw err;
   }
@@ -202,7 +175,7 @@ export async function refreshCloudflareCustomHostname(
   try {
     if (cloudflareId) {
       const row = await cfFetch<CfHostname>(`/custom_hostnames/${encodeURIComponent(cloudflareId)}`);
-      return setupFromCloudflare(host, await preferHttpSsl(host, row));
+      return setupFromCloudflare(host, row);
     }
   } catch {
     // Fall through and create/find by hostname.
