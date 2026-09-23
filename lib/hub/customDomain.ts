@@ -96,6 +96,12 @@ export function customDomainHttpsReady(setup: CustomDomainSetup | null) {
   );
 }
 
+/** Vanity host for member links — null until Cloudflare/Railway says HTTPS is live. */
+export function vanityHostIfHttpsReady(setup: CustomDomainSetup | null | undefined): string | null {
+  if (!setup?.host || !customDomainHttpsReady(setup)) return null;
+  return setup.host;
+}
+
 export function isRailwayVanitySetup(setup: CustomDomainSetup | null) {
   if (!setup) return false;
   if (setup.provider === "cloudflare") return false;
@@ -236,21 +242,50 @@ export async function writeClientHubCustomDomain(
   slugByHost.clear();
 }
 
+export async function readCustomDomainSetupsByHubIds(
+  control: PrismaClient,
+  hubIds: string[]
+): Promise<Map<string, CustomDomainSetup | null>> {
+  const map = new Map<string, CustomDomainSetup | null>();
+  if (hubIds.length === 0) return map;
+  try {
+    const rows = await control.$queryRawUnsafe<
+      Array<{ id: string; customDomain: string | null; customDomainSetup: unknown }>
+    >(
+      `SELECT id, "customDomain", "customDomainSetup" FROM "ClientHub" WHERE id = ANY($1::text[])`,
+      hubIds
+    );
+    for (const row of rows) {
+      const parsed = parseCustomDomainSetup(row.customDomainSetup);
+      if (parsed) map.set(row.id, parsed);
+      else if (row.customDomain) {
+        map.set(row.id, {
+          host: row.customDomain,
+          railwayId: null,
+          cnameHost: row.customDomain,
+          cnameTarget: null,
+          txtHost: null,
+          txtValue: null,
+          certificateStatus: null,
+          dnsStatus: null,
+        });
+      } else {
+        map.set(row.id, null);
+      }
+    }
+  } catch {
+    // Column missing until migrate — slug hosts still work.
+  }
+  return map;
+}
+
 export async function readCustomDomainsByHubIds(
   control: PrismaClient,
   hubIds: string[]
 ): Promise<Map<string, string | null>> {
+  const setups = await readCustomDomainSetupsByHubIds(control, hubIds);
   const map = new Map<string, string | null>();
-  if (hubIds.length === 0) return map;
-  try {
-    const rows = await control.$queryRawUnsafe<Array<{ id: string; customDomain: string | null }>>(
-      `SELECT id, "customDomain" FROM "ClientHub" WHERE id = ANY($1::text[])`,
-      hubIds
-    );
-    for (const row of rows) map.set(row.id, row.customDomain);
-  } catch {
-    // Column missing until migrate — slug hosts still work.
-  }
+  for (const [id, setup] of setups) map.set(id, setup?.host ?? null);
   return map;
 }
 
@@ -260,6 +295,14 @@ export async function readClientHubCustomDomain(
 ): Promise<string | null> {
   const setup = await readClientHubCustomDomainSetup(control, hubId);
   return setup?.host ?? (await readCustomDomainHostOnly(control, hubId));
+}
+
+/** Custom domain only when HTTPS is live — otherwise member links should use the slug host. */
+export async function reachableClientHubCustomDomain(
+  control: PrismaClient,
+  hubId: string
+): Promise<string | null> {
+  return vanityHostIfHttpsReady(await readClientHubCustomDomainSetup(control, hubId));
 }
 
 async function readCustomDomainHostOnly(control: PrismaClient, hubId: string) {

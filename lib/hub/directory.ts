@@ -1,7 +1,10 @@
 import "server-only";
 
 import { hubPublicHost, hubPublicUrl } from "@/lib/hub/host";
-import { readCustomDomainsByHubIds } from "@/lib/hub/customDomain";
+import {
+  readCustomDomainSetupsByHubIds,
+  vanityHostIfHttpsReady,
+} from "@/lib/hub/customDomain";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 
 export { hub0PublicUrl, hub0PublicHost } from "@/lib/hub/host";
@@ -36,12 +39,12 @@ export async function listDirectoryHubs(): Promise<DirectoryHub[]> {
       directoryImageUrl: true,
     },
   });
-  const domains = await readCustomDomainsByHubIds(
+  const setups = await readCustomDomainSetupsByHubIds(
     getControlPrisma(),
     hubs.map((hub) => hub.id)
   );
   return hubs.map((hub) => {
-    const customDomain = domains.get(hub.id) ?? null;
+    const customDomain = vanityHostIfHttpsReady(setups.get(hub.id));
     return {
       id: hub.id,
       name: hub.name,
@@ -85,7 +88,7 @@ export async function listMyHubMemberships(userId: string) {
       },
     },
   });
-  const domains = await readCustomDomainsByHubIds(
+  const setups = await readCustomDomainSetupsByHubIds(
     getControlPrisma(),
     rows.map((row) => row.clientHub.id)
   );
@@ -93,7 +96,7 @@ export async function listMyHubMemberships(userId: string) {
     ...row,
     clientHub: {
       ...row.clientHub,
-      customDomain: domains.get(row.clientHub.id) ?? null,
+      customDomain: vanityHostIfHttpsReady(setups.get(row.clientHub.id)),
     },
   }));
 }

@@ -3,7 +3,7 @@ import "server-only";
 import { sendClientHubMemberInviteEmail } from "@/lib/email";
 import { emailChromeFromKit } from "@/lib/hub/brandKit";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
+import { reachableClientHubCustomDomain } from "@/lib/hub/customDomain";
 import {
   clientHubInviteUrl,
   clientHubSignInUrl,
@@ -103,7 +103,7 @@ export async function inviteClientHubMember(opts: {
     });
   }
 
-  const customDomain = await readClientHubCustomDomain(control, hub.id);
+  const customDomain = await reachableClientHubCustomDomain(control, hub.id);
   const hasPassword = !!user.passwordHash;
   const url = hasPassword
     ? clientHubSignInUrl(hub.slug, customDomain)
@@ -152,7 +152,7 @@ export async function resendClientHubMemberInvite(opts: {
     });
   }
 
-  const customDomain = await readClientHubCustomDomain(control, membership.clientHub.id);
+  const customDomain = await reachableClientHubCustomDomain(control, membership.clientHub.id);
   const hasPassword = !!membership.user.passwordHash;
   const url = hasPassword
     ? clientHubSignInUrl(membership.clientHub.slug, customDomain)

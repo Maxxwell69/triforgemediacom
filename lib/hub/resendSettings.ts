@@ -4,7 +4,7 @@ import { Resend } from "resend";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { hubHas } from "@/lib/hub/modules";
 import { clientHubPublicUrl } from "@/lib/hub/directory";
-import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
+import { reachableClientHubCustomDomain } from "@/lib/hub/customDomain";
 import { appOrigin } from "@/lib/emailLayout";
 import { decryptSecret, encryptSecret } from "@/lib/secretBox";
 
@@ -97,7 +97,7 @@ export async function saveClientHubResendSettings(opts: {
 export async function currentHubPublicOrigin() {
   const ctx = await getRequestHubContext();
   if (ctx.kind === "client" || ctx.kind === "client-unprovisioned") {
-    const custom = await readClientHubCustomDomain(ctx.control, ctx.hub.id);
+    const custom = await reachableClientHubCustomDomain(ctx.control, ctx.hub.id);
     return clientHubPublicUrl(ctx.hub.slug, custom);
   }
   return appOrigin();

@@ -3,7 +3,7 @@ import "server-only";
 import { sendClientHubInviteEmail } from "@/lib/email";
 import { emailChromeFromKit } from "@/lib/hub/brandKit";
 import { readClientHubBrandKit } from "@/lib/hub/brandKitStore";
-import { readClientHubCustomDomain } from "@/lib/hub/customDomain";
+import { reachableClientHubCustomDomain } from "@/lib/hub/customDomain";
 import {
   clientHubInviteUrl,
   clientHubSignInUrl,
@@ -38,7 +38,7 @@ export async function inviteClientHubOwner(hubId: string): Promise<{ error: stri
   if (existingMembership?.status === "BANNED") {
     return { error: "That email is banned on this hub." };
   }
-  const customDomain = await readClientHubCustomDomain(control, hub.id);
+  const customDomain = await reachableClientHubCustomDomain(control, hub.id);
   if (existingMembership?.status === "ACTIVE") {
     const url = clientHubSignInUrl(hub.slug, customDomain);
     try {
