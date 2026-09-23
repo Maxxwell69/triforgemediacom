@@ -40,10 +40,6 @@ export default async function WebinarsPage() {
     .filter((w) => w.status === "SCHEDULED" || w.status === "DRAFT")
     .slice()
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
-  const past = visible
-    .filter((w) => w.status === "ENDED")
-    .slice()
-    .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
 
   return (
     <main className="flex-1 px-6 py-10">
@@ -54,8 +50,8 @@ export default async function WebinarsPage() {
               WEBI<span className="text-gradient">NARS</span>
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              Join sessions that are live or starting within 24 hours. The full schedule lives on
-              the calendar.
+              Join sessions that are live or starting within 24 hours. Closed meetings move to
+              archive. The full schedule lives on the calendar.
             </p>
           </div>
           {isAdminRole(user.role) && (
@@ -94,17 +90,6 @@ export default async function WebinarsPage() {
                 <h2 className="font-display text-2xl tracking-wide text-off-white/80">Upcoming</h2>
                 <div className="mt-3 flex flex-col gap-3">
                   {upcoming.map((w) => (
-                    <WebinarCard key={w.id} webinar={w} showAudience={isAdminRole(user.role)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {past.length > 0 && (
-              <section>
-                <h2 className="font-display text-2xl tracking-wide text-off-white/50">Past</h2>
-                <div className="mt-3 flex flex-col gap-3">
-                  {past.map((w) => (
                     <WebinarCard key={w.id} webinar={w} showAudience={isAdminRole(user.role)} />
                   ))}
                 </div>

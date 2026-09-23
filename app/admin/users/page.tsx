@@ -18,6 +18,8 @@ import { hubHas } from "@/lib/hub/modules";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
 import { getRequestHubContext } from "@/lib/hub/requestPrisma";
 import { hubHostLocksByEmail } from "@/lib/hub/protectedIdentity";
+import { displayCreatorHandle } from "@/lib/tiktools";
+import { backfillAllTikTokSocialLinks } from "@/lib/tiktokStats";
 import { onboardingStatusLabel } from "@/lib/onboarding/labels";
 import { summarizeOnboardingStatus } from "@/lib/onboarding/engine";
 import type { OnboardingProgressStatus } from "@prisma/client";
@@ -111,6 +113,9 @@ export default async function AdminUsersPage({
   const qBare = q.replace(/^@/, "");
 
   await backfillNetworkMemberships();
+  await backfillAllTikTokSocialLinks().catch((err) => {
+    console.error("TikTok username backfill failed:", err);
+  });
 
   const where: Prisma.UserWhereInput = {
     status: { in: ["ACTIVE", "INVITED", "BANNED"] },
@@ -383,13 +388,14 @@ export default async function AdminUsersPage({
             "string"
               ? String((user.application!.answers as { handle: string }).handle).trim()
               : "";
-          const signupHandle = applyHandle
-            ? applyHandle.startsWith("@")
-              ? applyHandle
-              : `@${applyHandle.replace(/^@/, "")}`
-            : user.tiktokStatsSnapshot?.uniqueId
-              ? `@${user.tiktokStatsSnapshot.uniqueId}`
-              : null;
+          const signupHandle =
+            displayCreatorHandle(applyHandle) ||
+            displayCreatorHandle(
+              ((user.profile?.socialLinks as Record<string, string> | null) ?? {}).tiktok
+            ) ||
+            (user.tiktokStatsSnapshot?.uniqueId
+              ? `@${user.tiktokStatsSnapshot.uniqueId.replace(/^@/, "")}`
+              : null);
 
           return (
             <div

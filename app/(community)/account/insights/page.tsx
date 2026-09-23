@@ -100,7 +100,7 @@ export default async function AccountInsightsPage({
         <div className="glass rounded-2xl p-6 text-center">
           <p className="font-body text-sm text-off-white/60">
             We couldn&apos;t find a TikTok handle on your profile or application. Add your
-            TikTok URL in{" "}
+            TikTok @username in{" "}
             <Link href="/account/profile" className="text-cyan hover:underline">
               Profile
             </Link>

@@ -18,6 +18,7 @@ import {
   parseDateTime,
 } from "@/lib/validations/calendar";
 import { formTimeZone } from "@/lib/time";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 async function requireActiveUser() {
   const session = await auth();
@@ -41,6 +42,9 @@ export async function createGroupCalendarEvent(
   formData: FormData
 ): Promise<{ error: string | null; eventId?: string }> {
   const user = await requireActiveUser();
+  if (!(await canUseEventsAndBookings(user.id, user.role))) {
+    return { error: "Media Network members can’t use the event system." };
+  }
   const creatable = await listEventCreatableGroups(user.id, user.role);
   if (creatable.length === 0) {
     return { error: "Your groups aren’t allowed to create calendar events yet." };
@@ -218,6 +222,9 @@ export async function bookAvailabilitySlot(
   formData: FormData
 ): Promise<{ error: string | null }> {
   const user = await requireActiveUser();
+  if (!(await canUseEventsAndBookings(user.id, user.role))) {
+    return { error: "Media Network members can’t book meetings." };
+  }
   const notesParsed = bookingNotesSchema.safeParse({
     notes: formData.get("notes") || "",
   });
@@ -268,6 +275,9 @@ export async function rsvpCalendarEvent(
   formData: FormData
 ): Promise<{ error: string | null }> {
   const user = await requireActiveUser();
+  if (!(await canUseEventsAndBookings(user.id, user.role))) {
+    return { error: "Media Network members can’t use the event system." };
+  }
   const notesParsed = bookingNotesSchema.safeParse({
     notes: formData.get("notes") || "",
   });

@@ -8,6 +8,7 @@ import { getTikTokEmbedHtml } from "@/lib/tiktokEmbed";
 import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/lib/memberDisplay";
 import { isExpiredSignedAvatarUrl } from "@/lib/tiktokAvatar";
 import { refreshTikTokStatsSnapshot } from "@/lib/tiktokStats";
+import { formatTikTokHandle, parseTikTokUniqueId, tiktokProfileUrl } from "@/lib/tiktools";
 import { networkBadgeColor, tagsNotShownAsGroups } from "@/lib/mnCn";
 import { isOnline } from "@/lib/presence";
 import { isAdminRole } from "@/lib/rbac";
@@ -29,9 +30,9 @@ function profileShareUrl(userId: string): string {
   return `${base}/members/${userId}`;
 }
 
-function tiktokHandle(url: string): string | null {
-  const match = url.match(/@([\w.-]+)/);
-  return match ? `@${match[1]}` : null;
+function memberTikTokHref(raw: string): string {
+  const uniqueId = parseTikTokUniqueId(raw);
+  return uniqueId ? tiktokProfileUrl(uniqueId) : raw;
 }
 
 export default async function MemberProfilePage({
@@ -94,7 +95,14 @@ export default async function MemberProfilePage({
   );
   const socialLinks = (profile.socialLinks as Record<string, string> | null) ?? {};
   const socialEntries = Object.entries(socialLinks).filter(([key, url]) => !!url && key !== "tiktok");
-  const tiktokUrl = socialLinks.tiktok || null;
+  const tiktokUrl = socialLinks.tiktok
+    ? memberTikTokHref(socialLinks.tiktok)
+    : member.tiktokStatsSnapshot?.uniqueId
+      ? tiktokProfileUrl(member.tiktokStatsSnapshot.uniqueId)
+      : null;
+  const tiktokHandleLabel = socialLinks.tiktok
+    ? parseTikTokUniqueId(socialLinks.tiktok)
+    : member.tiktokStatsSnapshot?.uniqueId || null;
   const pinnedVideoUrl = profile.pinnedTiktokVideoUrl || null;
   const tiktokEmbedHtml = pinnedVideoUrl ? await getTikTokEmbedHtml(pinnedVideoUrl) : null;
 
@@ -204,7 +212,7 @@ export default async function MemberProfilePage({
                   <div>
                     <p className="font-body text-sm font-semibold text-off-white">TikTok</p>
                     <p className="font-body text-xs text-off-white/50">
-                      {tiktokHandle(tiktokUrl) ?? "View profile"}
+                      {tiktokHandleLabel ? formatTikTokHandle(tiktokHandleLabel) : "View profile"}
                     </p>
                   </div>
                 </a>

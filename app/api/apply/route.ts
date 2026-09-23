@@ -12,6 +12,7 @@ import { syncNetworkMembership } from "@/lib/mnCn";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { autoApproveApplication } from "@/lib/autoApprove";
 import { resolveApplyTrack, countryLabel } from "@/lib/applyTrack";
+import { formatTikTokHandle, parseTikTokUniqueId } from "@/lib/tiktools";
 
 // A genuine applicant only ever needs to submit once (or once more after a
 // rejection). This is generous enough for real usage but blocks scripted
@@ -148,13 +149,22 @@ export async function POST(req: NextRequest) {
     hasAgency: hasAgencyBool,
   });
 
+  const tiktokFromHandle = parseTikTokUniqueId(handle);
+  const tiktokFromLink = parseTikTokUniqueId(socialLink);
+  const storedHandle = tiktokFromHandle
+    ? formatTikTokHandle(tiktokFromHandle)
+    : handle;
+  const storedSocialLink = tiktokFromLink
+    ? formatTikTokHandle(tiktokFromLink)
+    : socialLink || null;
+
   const answers = {
     name,
     platform,
-    handle,
+    handle: storedHandle,
     phone,
     smsConsent,
-    socialLink: socialLink || null,
+    socialLink: storedSocialLink,
     country,
     goals,
     whyJoin,
@@ -169,7 +179,7 @@ export async function POST(req: NextRequest) {
         name,
         email: normalizedEmail,
         platform,
-        handle,
+        handle: storedHandle,
         phone,
         smsConsent,
         socialLink: socialLink || null,

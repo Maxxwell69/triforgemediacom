@@ -53,14 +53,15 @@ export function canJoinWebinar(status: WebinarStatus) {
 const PUBLIC_LIST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Hub Webinars list (not calendar): live and past stay visible; upcoming
- * sessions only appear once they start within 24 hours.
+ * Hub Webinars list (not calendar): live sessions and those starting within
+ * 24 hours. Ended / closed webinars are archived off this list.
  */
 export function isWebinarOnHubList(
   webinar: Pick<Webinar, "status" | "scheduledAt">,
   now = new Date()
 ) {
-  if (webinar.status === "LIVE" || webinar.status === "ENDED") return true;
+  if (webinar.status === "ENDED" || webinar.status === "DRAFT") return false;
+  if (webinar.status === "LIVE") return true;
   return webinar.scheduledAt.getTime() - now.getTime() <= PUBLIC_LIST_WINDOW_MS;
 }
 

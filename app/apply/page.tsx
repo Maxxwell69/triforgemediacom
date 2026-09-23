@@ -163,9 +163,9 @@ export default function ApplyPage() {
             <input
               id="socialLink"
               name="socialLink"
-              type="url"
+              type="text"
               className={inputClass}
-              placeholder="https://..."
+              placeholder="@username or https://..."
             />
           </Field>
 

@@ -153,14 +153,16 @@ export default function ProfileForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label htmlFor="tiktokUrl" className="flex flex-col gap-1.5">
-          <span className="font-body text-sm font-medium text-off-white/80">TikTok</span>
+          <span className="font-body text-sm font-medium text-off-white/80">TikTok username</span>
           <input
             id="tiktokUrl"
             name="tiktokUrl"
-            type="url"
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
             defaultValue={defaultValues?.tiktokUrl ?? ""}
             className={inputClass}
-            placeholder="https://tiktok.com/@you"
+            placeholder="@username"
           />
         </label>
         <label htmlFor="twitchUrl" className="flex flex-col gap-1.5">

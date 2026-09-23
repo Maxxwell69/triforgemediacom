@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   checkLive,
   fetchUserProfile,
+  formatTikTokHandle,
   isTikToolsConfigured,
   parseTikTokUniqueId,
 } from "@/lib/tiktools";
@@ -43,7 +44,17 @@ export async function ensureTikTokSocialLink(userId: string): Promise<string | n
     ...((profile.socialLinks as Record<string, string> | null) ?? {}),
   };
   const existing = parseTikTokUniqueId(socialLinks.tiktok);
-  if (existing) return existing;
+  if (existing) {
+    const handle = formatTikTokHandle(existing);
+    if (socialLinks.tiktok !== handle) {
+      socialLinks.tiktok = handle;
+      await prisma.profile.update({
+        where: { userId },
+        data: { socialLinks },
+      });
+    }
+    return existing;
+  }
 
   const application = await prisma.application.findUnique({
     where: { userId },
@@ -54,24 +65,19 @@ export async function ensureTikTokSocialLink(userId: string): Promise<string | n
   const handle = asString(answers.handle);
   const appPlatform = asString(answers.platform)?.toUpperCase() ?? null;
 
-  // Prefer an explicit TikTok URL from apply
+  // Prefer an explicit TikTok URL / @handle from apply
   let uniqueId = parseTikTokUniqueId(socialLink);
 
   // Only use bare handle when we know they're a TikTok creator (avoids Twitch handles)
   const isTikTokCreator =
     profile.platform === "TIKTOK" || appPlatform === "TIKTOK";
-  if (!uniqueId && isTikTokCreator) {
+  if (!uniqueId && (isTikTokCreator || (handle && /tiktok\.com/i.test(handle)))) {
     uniqueId = parseTikTokUniqueId(handle);
   }
 
   if (!uniqueId) return null;
 
-  const tiktokUrl =
-    socialLink && parseTikTokUniqueId(socialLink) === uniqueId
-      ? socialLink
-      : `https://www.tiktok.com/@${uniqueId}`;
-
-  socialLinks.tiktok = tiktokUrl;
+  socialLinks.tiktok = formatTikTokHandle(uniqueId);
   await prisma.profile.update({
     where: { userId },
     data: { socialLinks },
@@ -80,13 +86,13 @@ export async function ensureTikTokSocialLink(userId: string): Promise<string | n
   return uniqueId;
 }
 
-/** Push TikTok URLs into Profile.socialLinks for every active member we can resolve. */
+/** Push TikTok @usernames into Profile.socialLinks for every active member we can resolve. */
 export async function backfillAllTikTokSocialLinks(): Promise<{
   checked: number;
   filled: number;
 }> {
   const users = await prisma.user.findMany({
-    where: { status: "ACTIVE", profile: { isNot: null } },
+    where: { status: { in: ["ACTIVE", "INVITED"] }, profile: { isNot: null } },
     select: { id: true },
   });
 
@@ -97,6 +103,39 @@ export async function backfillAllTikTokSocialLinks(): Promise<{
   }
 
   return { checked: users.length, filled };
+}
+
+/** Resolve @username + pull missing tik.tools snapshots so handles show as activated. */
+export async function activateAllTikTokUsernames(opts?: {
+  statsLimit?: number;
+}): Promise<{ checked: number; filled: number; activated: number }> {
+  const { checked, filled } = await backfillAllTikTokSocialLinks();
+  if (!isTikToolsConfigured()) {
+    return { checked, filled, activated: 0 };
+  }
+
+  const missing = await prisma.user.findMany({
+    where: {
+      status: { in: ["ACTIVE", "INVITED"] },
+      profile: { isNot: null },
+      OR: [
+        { tiktokStatsSnapshot: { is: null } },
+        { tiktokStatsSnapshot: { statsFetchedAt: null, liveCheckedAt: null } },
+      ],
+    },
+    select: { id: true },
+    take: opts?.statsLimit ?? 40,
+  });
+
+  let activated = 0;
+  for (const user of missing) {
+    const uniqueId = await ensureTikTokSocialLink(user.id);
+    if (!uniqueId) continue;
+    const result = await refreshTikTokStatsSnapshot(user.id, { force: true });
+    if (result.ok) activated += 1;
+  }
+
+  return { checked, filled, activated };
 }
 
 /**
@@ -141,7 +180,7 @@ export async function refreshTikTokStatsSnapshot(
   if (!uniqueId) {
     return {
       ok: false,
-      error: "Add your TikTok profile URL on this page first, then refresh stats.",
+      error: "Add your TikTok @username on this page first, then refresh stats.",
     };
   }
 
@@ -275,7 +314,7 @@ export async function refreshTikTokStatsSnapshot(
     const links = {
       ...((profile?.socialLinks as Record<string, string> | null) ?? {}),
     };
-    const canonical = `https://www.tiktok.com/@${userProfile.uniqueId}`;
+    const canonical = formatTikTokHandle(userProfile.uniqueId);
     if (links.tiktok !== canonical) {
       links.tiktok = canonical;
       await prisma.profile.update({

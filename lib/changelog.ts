@@ -186,6 +186,44 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.273",
+    date: "September 23, 2026",
+    title: "MN event lock and webinar archive",
+    summary:
+      "Media Network members cannot create events or book meetings. Closed webinars move to archive and leave the main hub list.",
+    items: [
+      {
+        kind: "fix",
+        text: "MN members cannot create calendar events, RSVP, or book staff / campaign meetings",
+      },
+      {
+        kind: "improve",
+        text: "Ending a webinar archives it — it drops off /webinars and sits in Admin → Webinars → Archive",
+      },
+    ],
+  },
+  {
+    version: "3.272",
+    date: "September 22, 2026",
+    title: "TikTok @username",
+    summary:
+      "Member TikTok identity is stored and shown as @username, and existing full links are activated from apply handles.",
+    items: [
+      {
+        kind: "fix",
+        text: "People directory and admin roster show @username instead of a full TikTok URL",
+      },
+      {
+        kind: "improve",
+        text: "Profile, apply, and admin fields accept @username and save that — not the whole link",
+      },
+      {
+        kind: "fix",
+        text: "Backfill every member we can resolve and turn on missing TikTok stats snapshots",
+      },
+    ],
+  },
+  {
     version: "3.271",
     date: "September 22, 2026",
     title: "Hub-ban build fix",

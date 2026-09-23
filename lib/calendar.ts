@@ -257,6 +257,10 @@ export function formatCalendarWhen(startsAt: Date, endsAt: Date | null) {
 
 /** Groups this user may schedule events for (admin toggle + membership). */
 export async function listEventCreatableGroups(userId: string, userRole: UserRole) {
+  const { canUseEventsAndBookings } = await import("@/lib/mnCn");
+  if (!(await canUseEventsAndBookings(userId, userRole))) {
+    return [];
+  }
   if (isAdminRole(userRole)) {
     return prisma.group.findMany({
       where: { OR: [{ canCreateEvents: true }, { isHome: true }] },

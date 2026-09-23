@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { approveApplication, rejectApplication } from "./actions";
 import { PLATFORM_LABELS as platformLabels } from "@/lib/platforms";
 import { countryLabel, resolveApplyTrack } from "@/lib/applyTrack";
+import { displayCreatorHandle, parseTikTokUniqueId, tiktokProfileUrl } from "@/lib/tiktools";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,10 @@ export default async function AdminApplicationsPage() {
                     (platformLabels as Record<string, string>)[answers.platform || ""] || "—"
                   }
                 />
-                <Detail label="Handle" value={answers.handle || "—"} />
+                <Detail
+                  label="Handle"
+                  value={displayCreatorHandle(answers.handle) || answers.handle || "—"}
+                />
                 <Detail label="Country" value={countryLabel(answers.country)} />
                 <Detail
                   label="Phone"
@@ -132,12 +136,16 @@ export default async function AdminApplicationsPage() {
                     label="Link"
                     value={
                       <a
-                        href={answers.socialLink}
+                        href={
+                          parseTikTokUniqueId(answers.socialLink)
+                            ? tiktokProfileUrl(parseTikTokUniqueId(answers.socialLink) as string)
+                            : answers.socialLink
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="text-cyan hover:underline"
                       >
-                        {answers.socialLink}
+                        {displayCreatorHandle(answers.socialLink) || answers.socialLink}
                       </a>
                     }
                   />

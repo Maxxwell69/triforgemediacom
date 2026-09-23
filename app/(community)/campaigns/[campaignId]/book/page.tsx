@@ -11,6 +11,7 @@ import {
 } from "@/lib/booking";
 import PublicBookingClient from "@/components/booking/PublicBookingClient";
 import { bookHubCampaignInterview } from "../../actions";
+import { canUseEventsAndBookings } from "@/lib/mnCn";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,9 @@ export default async function CampaignInterviewBookPage({
   });
   if (!campaign || !isInterviewCampaign(campaign.category)) notFound();
   if (campaign.status === "ARCHIVED" && !isAdminRole(user.role)) notFound();
+  if (!(await canUseEventsAndBookings(user.id, user.role))) {
+    redirect(`/campaigns/${campaignId}`);
+  }
 
   const signup = campaign.signups[0];
   if (!signup) {

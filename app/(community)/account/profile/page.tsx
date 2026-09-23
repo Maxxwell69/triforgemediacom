@@ -5,6 +5,7 @@ import { activeGoalKeys } from "@/lib/goals";
 import { hydrateProfileContactFromApplication } from "@/lib/profileContact";
 import { getMemberAvatarUrl, getMemberInitial, getTikTokUsername } from "@/lib/memberDisplay";
 import { ensureTikTokSocialLink } from "@/lib/tiktokStats";
+import { formatTikTokHandle, parseTikTokUniqueId } from "@/lib/tiktools";
 import { getControlPrisma } from "@/lib/hub/tenantPrisma";
 import ProfileEditForm from "../ProfileEditForm";
 import ProfileAvatarForm from "../ProfileAvatarForm";
@@ -59,6 +60,7 @@ export default async function AccountProfilePage() {
   const socialLinks =
     (refreshedProfile?.socialLinks as Record<string, string> | null) ??
     ((profile.socialLinks as Record<string, string> | null) ?? {});
+  const tiktokUniqueId = parseTikTokUniqueId(socialLinks.tiktok);
   const customImageUrl = identity?.image ?? null;
   const fallbackAvatarUrl = getMemberAvatarUrl({
     name: user.name ?? null,
@@ -191,7 +193,9 @@ export default async function AccountProfilePage() {
             bio: profile.bio ?? "",
             phone: contact.phone ?? "",
             country: contact.country ?? "",
-            tiktokUrl: socialLinks.tiktok ?? "",
+            tiktokUrl: tiktokUniqueId
+              ? formatTikTokHandle(tiktokUniqueId)
+              : socialLinks.tiktok ?? "",
             twitchUrl: socialLinks.twitch ?? "",
             youtubeUrl: socialLinks.youtube ?? "",
             pinnedTiktokVideoUrl: profile.pinnedTiktokVideoUrl ?? "",
