@@ -36,9 +36,9 @@ export default function CustomDomainDnsPanel({
           </h2>
           <p className="mt-2 max-w-xl font-body text-sm text-off-white/55">
             Copy Type, Name, and Value into the DNS for{" "}
-            <span className="text-off-white/80">.{zone}</span>. Name is only the left
-            part. This hub is identified by hostname — {setup.host} always loads{" "}
-            this community, not Hub 0.
+            <span className="text-off-white/80">.{zone}</span>. The CNAME is what
+            provisions HTTPS. Name is only the left part. This hub is identified by
+            hostname — {setup.host} always loads this community, not Hub 0.
           </p>
         </div>
         <form action={refreshAction}>
@@ -74,7 +74,7 @@ export default function CustomDomainDnsPanel({
             hint={
               record.type === "CNAME"
                 ? cloudflare
-                  ? `This makes ${setup.host} point at ${record.value}.`
+                  ? `This makes ${setup.host} point at ${record.value} so Cloudflare can issue HTTPS.`
                   : `This makes ${setup.host} point at Railway.`
                 : "Ownership / certificate check. Same name can appear twice with different values."
             }
