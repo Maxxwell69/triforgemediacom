@@ -50,8 +50,7 @@ export default async function WebinarsPage() {
               WEBI<span className="text-gradient">NARS</span>
             </h1>
             <p className="mt-2 font-body text-off-white/60">
-              Join sessions that are live or starting within 24 hours. Closed meetings move to
-              archive. The full schedule lives on the calendar.
+              Live and upcoming sessions. Closed meetings move to archive.
             </p>
           </div>
           {isAdminRole(user.role) && (
@@ -66,11 +65,7 @@ export default async function WebinarsPage() {
 
         {visible.length === 0 ? (
           <p className="mt-10 font-body text-off-white/50">
-            Nothing starting in the next 24 hours. Check the{" "}
-            <Link href="/calendar" className="text-cyan hover:underline">
-              calendar
-            </Link>{" "}
-            for upcoming sessions.
+            No live or upcoming webinars right now.
           </p>
         ) : (
           <div className="mt-10 flex flex-col gap-8">
