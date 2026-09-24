@@ -186,6 +186,19 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.281",
+    date: "September 23, 2026",
+    title: "Client hub sign-in copy",
+    summary:
+      "Creator-hub sign-in tells people to use an existing TriForge account or create a fan page — it no longer repeats that this is not the TriForge Hub.",
+    items: [
+      {
+        kind: "improve",
+        text: "Client hub sign-in and fan signup drop the “not TriForge” warning and point existing accounts to sign in, new people to create a fan page",
+      },
+    ],
+  },
+  {
     version: "3.280",
     date: "September 23, 2026",
     title: "Custom domain CNAME only",
