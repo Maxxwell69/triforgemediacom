@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.284",
+    date: "September 24, 2026",
+    title: "Upcoming webinars on the list",
+    summary: "The Webinars page shows every scheduled session, not only those starting in 24 hours.",
+    items: [
+      {
+        kind: "fix",
+        text: "Upcoming webinars stay on the hub list until they end; only closed meetings go to archive",
+      },
+    ],
+  },
+  {
     version: "3.283",
     date: "September 24, 2026",
     title: "No empty video-lesson cards",

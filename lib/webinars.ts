@@ -50,19 +50,12 @@ export function canJoinWebinar(status: WebinarStatus) {
   return status === "SCHEDULED" || status === "LIVE";
 }
 
-const PUBLIC_LIST_WINDOW_MS = 24 * 60 * 60 * 1000;
-
 /**
- * Hub Webinars list (not calendar): live sessions and those starting within
- * 24 hours. Ended / closed webinars are archived off this list.
+ * Hub Webinars list: live and upcoming. Ended / closed webinars are archived
+ * off this list (Admin → Webinars → Archive).
  */
-export function isWebinarOnHubList(
-  webinar: Pick<Webinar, "status" | "scheduledAt">,
-  now = new Date()
-) {
-  if (webinar.status === "ENDED" || webinar.status === "DRAFT") return false;
-  if (webinar.status === "LIVE") return true;
-  return webinar.scheduledAt.getTime() - now.getTime() <= PUBLIC_LIST_WINDOW_MS;
+export function isWebinarOnHubList(webinar: Pick<Webinar, "status">) {
+  return webinar.status === "LIVE" || webinar.status === "SCHEDULED";
 }
 
 export type WebinarJoinMode = "host" | "watch";
