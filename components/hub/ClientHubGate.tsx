@@ -104,7 +104,7 @@ export default function ClientHubSignInForm({
         </button>
       </form>
       <p className="mt-6 text-center font-body text-sm text-off-white/40">
-        This is not the TriForge Hub. Access is invite-only for {hubName}.
+        Already on TriForge? Use that same email and password.
       </p>
     </div>
   );

@@ -11,7 +11,7 @@ function SubmitButton() {
       disabled={pending}
       className="mt-2 rounded-lg bg-orange px-8 py-3 font-body font-semibold text-off-white shadow-glow transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Creating account..." : "Create fan account"}
+      {pending ? "Creating page..." : "Create fan page"}
     </button>
   );
 }
@@ -83,8 +83,8 @@ export default function ClientHubFanSignupForm({ hubName }: { hubName: string })
       </label>
       <SubmitButton />
       <p className="font-body text-xs text-off-white/40">
-        New accounts join {hubName} as a Fan. If this email is already on TriForge, your existing
-        profile is used. This is not a TriForge Hub signup.
+        New pages join {hubName} as a Fan. If this email is already on TriForge, sign in with that
+        account instead.
       </p>
     </form>
   );
