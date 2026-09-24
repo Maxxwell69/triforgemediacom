@@ -72,12 +72,12 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
         <ClientHubShell name={hub.name} signInHref="/signin">
           <p className="mb-3 text-xs uppercase tracking-[0.3em] text-cyan">{hub.name}</p>
           <h1 className="mb-2 text-center font-display text-5xl tracking-wide sm:text-6xl">
-            CREATE A <span className="text-gradient">FAN PAGE</span>
+            CREATE A <span className="text-gradient">FAN ACCOUNT</span>
           </h1>
           <p className="mb-8 max-w-md text-center font-body text-sm text-off-white/55">
             {!canAuth
               ? "This hub isn’t open for signup yet."
-              : `Create a fan page for ${hub.name}. If you already have a TriForge account, sign in with it instead.`}
+              : `Create a fan account for ${hub.name}. If you already have a TriForge account, sign in with it instead.`}
           </p>
           {canAuth ? <ClientHubFanSignupForm hubName={hub.name} /> : null}
         </ClientHubShell>
@@ -137,7 +137,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
           {!hub.tenantDbAt
             ? `${hub.name} is reserved, but its database isn’t provisioned yet.`
             : canAuth
-              ? "If you already have a TriForge account, sign in with it. If not, create a fan page."
+              ? "If you already have a TriForge account, sign in with it. If not, create a fan account."
               : `${hub.name} has a database on file, but the app couldn’t open it yet.`}
         </p>
         <ClientHubSignInForm
@@ -150,7 +150,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
           <p className="mt-6 font-body text-sm text-off-white/45">
             No account yet?{" "}
             <a href="/signup" className="text-cyan hover:underline">
-              Create a fan page
+              Create a fan account
             </a>
           </p>
         ) : null}
@@ -173,7 +173,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
         {!hub.tenantDbAt
           ? "This hub is reserved. The database hasn’t been provisioned yet, so members can’t sign in."
           : canAuth
-            ? "If you already have a TriForge account, sign in with it. If not, create a fan page."
+            ? "If you already have a TriForge account, sign in with it. If not, create a fan account."
             : "This hub is reserved, but the app couldn’t open its database yet. Ask TriForge to check provision."}
       </p>
       {canAuth ? (
@@ -182,7 +182,7 @@ export default async function ClientHubHostPage({ params, searchParams }: Props)
           <p className="mt-6 font-body text-sm text-off-white/45">
             No account yet?{" "}
             <a href="/signup" className="text-cyan hover:underline">
-              Create a fan page
+              Create a fan account
             </a>
           </p>
         </>
