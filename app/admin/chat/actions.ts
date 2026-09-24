@@ -15,7 +15,7 @@ async function requireTrueAdmin() {
 
 export async function updateDmAccessMode(formData: FormData) {
   await requireTrueAdmin();
-  const mode = String(formData.get("dmAccessMode") || "ADMIN");
+  const mode = String(formData.get("dmAccessMode") || "ALL");
   if (!DM_ACCESS_MODES.includes(mode as DmAccessMode)) {
     throw new Error("Invalid access mode");
   }

@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.286",
+    date: "September 24, 2026",
+    title: "Network DMs",
+    summary: "Members can message each other by clicking a name in chat or on the members list.",
+    items: [
+      {
+        kind: "feature",
+        text: "Everyone can start DMs; click a name in chat or on the members directory to open a thread",
+      },
+    ],
+  },
+  {
     version: "3.285",
     date: "September 24, 2026",
     title: "Past webinars with video",

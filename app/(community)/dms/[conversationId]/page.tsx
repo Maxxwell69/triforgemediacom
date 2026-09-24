@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
-import { canAccessConversation, isTrueAdmin, summarizeReactions } from "@/lib/dmAccess";
-import { markDmNotificationsRead } from "@/lib/dmSidebar";
+import { canAccessConversation, canInitiateDm, isTrueAdmin, summarizeReactions } from "@/lib/dmAccess";
+import { hubDmAvailable, markDmNotificationsRead } from "@/lib/dmSidebar";
 import { chatAuthorSelect, getMemberDisplayName } from "@/lib/memberDisplay";
 import { toChatAuthor } from "@/lib/chatAuthors";
 import DmChatView from "@/components/chat/DmChatView";
@@ -84,6 +84,7 @@ export default async function DmConversationPage({
           ? "Reply here on the hub. Don’t reply to the email."
           : "Private conversation"
       }
+      canStartDm={hubDmAvailable() && (await canInitiateDm(user.id, user.role))}
     />
   );
 }

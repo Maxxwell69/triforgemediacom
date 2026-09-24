@@ -2,9 +2,9 @@ import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, isTrueAdmin } from "@/lib/rbac";
 
-export type DmAccessMode = "ADMIN" | "ADMIN_AND_MOD" | "ALLOWLIST";
+export type DmAccessMode = "ALL" | "ADMIN" | "ADMIN_AND_MOD" | "ALLOWLIST";
 
-export const DM_ACCESS_MODES: DmAccessMode[] = ["ADMIN", "ADMIN_AND_MOD", "ALLOWLIST"];
+export const DM_ACCESS_MODES: DmAccessMode[] = ["ALL", "ADMIN", "ADMIN_AND_MOD", "ALLOWLIST"];
 
 export { isTrueAdmin };
 
@@ -12,7 +12,7 @@ export async function getChatSettings() {
   return prisma.chatSettings.upsert({
     where: { id: "global" },
     update: {},
-    create: { id: "global", dmAccessMode: "ADMIN" },
+    create: { id: "global", dmAccessMode: "ALL" },
   });
 }
 
@@ -20,6 +20,7 @@ export async function getChatSettings() {
 export async function canInitiateDm(userId: string, role: UserRole): Promise<boolean> {
   if (role === "ADMIN") return true;
   const settings = await getChatSettings();
+  if (settings.dmAccessMode === "ALL") return true;
   if (settings.dmAccessMode === "ADMIN_AND_MOD" && role === "MOD") return true;
   if (settings.dmAccessMode === "ALLOWLIST") {
     const row = await prisma.dmAllowedUser.findUnique({ where: { userId } });

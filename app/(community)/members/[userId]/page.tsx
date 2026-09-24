@@ -16,6 +16,9 @@ import ShareButton from "@/components/ShareButton";
 import TikTokEmbed from "@/components/TikTokEmbed";
 import MemberAvatar from "@/components/MemberAvatar";
 import EffectCheckbox from "@/components/admin/EffectCheckbox";
+import StartDmButton from "@/components/admin/StartDmButton";
+import { canInitiateDm } from "@/lib/dmAccess";
+import { hubDmAvailable } from "@/lib/dmSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +45,10 @@ export default async function MemberProfilePage({
 }) {
   const { user: viewer } = await requireProfile();
   const isAdmin = isAdminRole(viewer.role);
+  const canStartDm =
+    viewer.id !== params.userId &&
+    hubDmAvailable() &&
+    (await canInitiateDm(viewer.id, viewer.role));
 
   let member = await prisma.user.findFirst({
     where: {
@@ -144,6 +151,7 @@ export default async function MemberProfilePage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {canStartDm && <StartDmButton userId={member.id} userName={displayName} />}
               {isAdmin && <EffectCheckbox userId={member.id} effect={member.effect} />}
               <ShareButton
                 title={displayName}

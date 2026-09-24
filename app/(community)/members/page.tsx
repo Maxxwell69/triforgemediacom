@@ -11,7 +11,10 @@ import { getMemberDisplayName, getMemberAvatarUrl, getMemberInitial } from "@/li
 import { isOnline } from "@/lib/presence";
 import { isAdminRole } from "@/lib/rbac";
 import MemberAvatar from "@/components/MemberAvatar";
+import StartDmName from "@/components/chat/StartDmName";
 import { isClientHubRequest } from "@/lib/hub/requestHost";
+import { canInitiateDm } from "@/lib/dmAccess";
+import { hubDmAvailable } from "@/lib/dmSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +53,7 @@ export default async function MembersPage({
 }) {
   const { user: viewer } = await requireProfile();
   const isAdmin = isAdminRole(viewer.role);
+  const canStartDm = hubDmAvailable() && (await canInitiateDm(viewer.id, viewer.role));
   const effectFilter = searchParams?.effect === "1" || searchParams?.effect === "true";
 
   // Keep CN/MN tag+group in sync so chips and profile badges stay aligned.
@@ -175,14 +179,18 @@ export default async function MembersPage({
               );
 
             return (
-              <Link
+              <div
                 key={member.id}
-                href={`/members/${member.id}`}
-                className={`glass flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40 ${
+                className={`glass relative flex flex-col gap-3 rounded-2xl p-5 transition hover:border-cyan/40 ${
                   isLive ? "border border-orange/35" : ""
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <Link
+                  href={`/members/${member.id}`}
+                  className="absolute inset-0 rounded-2xl"
+                  aria-label={`View ${displayName}'s profile`}
+                />
+                <div className="pointer-events-none relative z-10 flex items-center gap-3">
                   <MemberAvatar avatarUrl={avatarUrl} initial={initial} size={44} online={online} />
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate font-body font-medium text-off-white">
@@ -193,7 +201,14 @@ export default async function MembersPage({
                           aria-hidden
                         />
                       )}
-                      {displayName}
+                      <StartDmName
+                        userId={member.id}
+                        currentUserId={viewer.id}
+                        canStartDm={canStartDm}
+                        className="pointer-events-auto truncate hover:text-cyan hover:underline"
+                      >
+                        {displayName}
+                      </StartDmName>
                       {isLive && (
                         <span className="shrink-0 rounded bg-orange/20 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
                           Live
@@ -214,7 +229,7 @@ export default async function MembersPage({
                 </div>
 
                 {groups.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="pointer-events-none relative z-10 flex flex-wrap gap-1.5">
                     {groups.map((g) => {
                       const color = networkBadgeColor(g.name, g.color, member.effect);
                       return (
@@ -231,7 +246,7 @@ export default async function MembersPage({
                 )}
 
                 {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="pointer-events-none relative z-10 flex flex-wrap gap-1.5">
                     {tags.map((tag) => {
                       const color = networkBadgeColor(tag.name, tag.color, member.effect);
                       return (
@@ -247,10 +262,10 @@ export default async function MembersPage({
                   </div>
                 )}
 
-                <p className="font-body text-sm text-off-white/50">
+                <p className="pointer-events-none relative z-10 font-body text-sm text-off-white/50">
                   {pointsTotals[member.id] ?? 0} points
                 </p>
-              </Link>
+              </div>
             );
           })}
         </div>
