@@ -51,11 +51,15 @@ export function canJoinWebinar(status: WebinarStatus) {
 }
 
 /**
- * Hub Webinars list: live and upcoming. Ended / closed webinars are archived
- * off this list (Admin → Webinars → Archive).
+ * Hub Webinars list: live, upcoming, and ended sessions that have a recording.
+ * Ended meetings with no video stay in Admin → Webinars → Archive.
  */
-export function isWebinarOnHubList(webinar: Pick<Webinar, "status">) {
-  return webinar.status === "LIVE" || webinar.status === "SCHEDULED";
+export function isWebinarOnHubList(
+  webinar: Pick<Webinar, "status"> & { recordingCount?: number }
+) {
+  if (webinar.status === "LIVE" || webinar.status === "SCHEDULED") return true;
+  if (webinar.status === "ENDED") return (webinar.recordingCount ?? 0) > 0;
+  return false;
 }
 
 export type WebinarJoinMode = "host" | "watch";

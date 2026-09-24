@@ -186,6 +186,18 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.285",
+    date: "September 24, 2026",
+    title: "Past webinars with video",
+    summary: "Ended webinars that have a recording stay on the Webinars page so members can rewatch.",
+    items: [
+      {
+        kind: "fix",
+        text: "Hub Webinars lists past sessions with recordings under a Recordings section; ended meetings without video stay in archive",
+      },
+    ],
+  },
+  {
     version: "3.284",
     date: "September 24, 2026",
     title: "Upcoming webinars on the list",
