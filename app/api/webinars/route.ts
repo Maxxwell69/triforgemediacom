@@ -23,14 +23,15 @@ export async function GET() {
     orderBy: { scheduledAt: "desc" },
     include: {
       host: { select: { id: true, name: true, email: true } },
-      _count: { select: { attendances: true } },
+      _count: { select: { attendances: true, recordings: true } },
     },
   });
 
   const visible = webinars.filter(
     (w) =>
       canViewWebinar(w, auth.user.role, auth.user.id, networkTrack) &&
-      (isAdminRole(auth.user.role) || isWebinarOnHubList(w))
+      (isAdminRole(auth.user.role) ||
+        isWebinarOnHubList({ ...w, recordingCount: w._count.recordings }))
   );
 
   return NextResponse.json({ webinars: visible });
