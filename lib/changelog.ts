@@ -186,6 +186,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.283",
+    date: "September 24, 2026",
+    title: "No empty video-lesson cards",
+    summary:
+      "Learning Center lessons no longer show a Video Lesson block when there is no video.",
+    items: [
+      {
+        kind: "fix",
+        text: "Placeholder “Video Lesson” cards are stripped from lesson HTML unless a real video is attached",
+      },
+    ],
+  },
+  {
+    version: "3.282",
+    date: "September 24, 2026",
+    title: "Fan account wording",
+    summary: "Client-hub sign-in and signup say fan account again, not fan page.",
+    items: [
+      {
+        kind: "improve",
+        text: "Create-a-fan-page links and headings now say Create a fan account",
+      },
+    ],
+  },
+  {
     version: "3.281",
     date: "September 23, 2026",
     title: "Client hub sign-in copy",

@@ -2,6 +2,7 @@ import "server-only";
 
 import DOMPurify from "isomorphic-dompurify";
 import { fixIllegibleLessonTextColors } from "@/lib/fixLessonColors";
+import { stripEmptyVideoLessonBlocks } from "@/lib/stripEmptyVideoLessonBlocks";
 
 // Allowlist for admin-authored lesson body content. Deliberately excludes
 // <script>, <iframe>, <object>, <form>, and event-handler / javascript:
@@ -35,6 +36,7 @@ const ALLOWED_ATTR = [
  */
 export function sanitizeLessonHtml(raw: string | null | undefined): string {
   if (!raw) return "";
-  const clean = DOMPurify.sanitize(raw, { ALLOWED_TAGS, ALLOWED_ATTR });
+  const withoutFakeVideo = stripEmptyVideoLessonBlocks(raw);
+  const clean = DOMPurify.sanitize(withoutFakeVideo, { ALLOWED_TAGS, ALLOWED_ATTR });
   return fixIllegibleLessonTextColors(clean);
 }
