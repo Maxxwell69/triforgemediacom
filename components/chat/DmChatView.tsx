@@ -51,6 +51,7 @@ export default function DmChatView({
   backHref = "/dms",
   backLabel = "Direct messages",
   subtitle = "Private conversation",
+  canStartDm = false,
 }: {
   conversationId: string;
   title: string;
@@ -61,6 +62,7 @@ export default function DmChatView({
   backHref?: string;
   backLabel?: string;
   subtitle?: string;
+  canStartDm?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -296,7 +298,11 @@ export default function DmChatView({
                       {formatChatTime(message.createdAt)}
                     </span>
                   </div>
-                  <MessageContent content={message.content} />
+                  <MessageContent
+                    content={message.content}
+                    currentUserId={currentUserId}
+                    canStartDm={canStartDm}
+                  />
                   <MessageReactions
                     reactions={message.reactions || []}
                     onToggle={(emoji) => toggleReaction(message.id, emoji)}

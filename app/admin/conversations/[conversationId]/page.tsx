@@ -116,6 +116,7 @@ export default async function AdminConversationThreadPage({
         backHref="/admin/conversations"
         backLabel="Conversations"
         subtitle="They get an email with a button. Reply stays on this hub."
+        canStartDm
       />
     </div>
   );

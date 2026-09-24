@@ -507,8 +507,9 @@ model MessageReaction {
 model ChatSettings {
   id          String   @id @default("global")
   // Who may start a DM besides ADMIN (ADMIN always can).
-  // ADMIN = admins only; ADMIN_AND_MOD = admins + mods; ALLOWLIST = admins + listed users.
-  dmAccessMode String  @default("ADMIN")
+  // ALL = any active member; ADMIN = admins only; ADMIN_AND_MOD = admins + mods;
+  // ALLOWLIST = admins + listed users.
+  dmAccessMode String  @default("ALL")
   updatedAt   DateTime @updatedAt
 }
 

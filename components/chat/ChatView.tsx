@@ -8,6 +8,7 @@ import { canModerate, canBeModerationTarget, isMuted, MUTE_DURATION_PRESETS_MINU
 import { buildMentionToken, getActiveMentionQuery } from "@/lib/chatMentions";
 import type { ReactionSummary } from "@/lib/dmAccess";
 import MessageContent from "@/components/chat/MessageContent";
+import StartDmName from "@/components/chat/StartDmName";
 import MessageReactions from "@/components/chat/MessageReactions";
 import EmojiPickerButton from "@/components/chat/EmojiPickerButton";
 import { truncateReplyPreview } from "@/lib/chatReplies";
@@ -69,6 +70,7 @@ export default function ChatView({
   initialMutedUntil,
   voiceEnabled,
   selfName,
+  canStartDm = false,
 }: {
   channel: { id: string; name: string; description: string | null };
   currentUserId: string;
@@ -77,6 +79,7 @@ export default function ChatView({
   initialMutedUntil: string | Date | null;
   voiceEnabled?: boolean;
   selfName?: string;
+  canStartDm?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -618,8 +621,10 @@ export default function ChatView({
                     </p>
                   )}
                   <div className="flex items-baseline gap-2">
-                    <Link
-                      href={`/members/${message.user.id}`}
+                    <StartDmName
+                      userId={message.user.id}
+                      currentUserId={currentUserId}
+                      canStartDm={canStartDm}
                       className={`inline-flex items-center gap-1.5 font-body text-sm font-semibold hover:underline ${
                         isAuthor ? "text-cyan" : "text-off-white hover:text-cyan"
                       }`}
@@ -632,7 +637,7 @@ export default function ChatView({
                         />
                       )}
                       {message.user.name || "Unknown"}
-                    </Link>
+                    </StartDmName>
                     {rank ? (
                       <span className="rounded bg-orange/15 px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide text-orange">
                         {rank}
@@ -772,7 +777,12 @@ export default function ChatView({
                       </div>
                     </div>
                   ) : (
-                    <MessageContent content={message.content} imageUrl={message.imageUrl} />
+                    <MessageContent
+                      content={message.content}
+                      imageUrl={message.imageUrl}
+                      currentUserId={currentUserId}
+                      canStartDm={canStartDm}
+                    />
                   )}
                   {!isEditing && (
                     <MessageReactions

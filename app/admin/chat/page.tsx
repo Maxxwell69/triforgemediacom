@@ -68,6 +68,23 @@ export default async function AdminChatSettingsPage() {
             <input
               type="radio"
               name="dmAccessMode"
+              value="ALL"
+              defaultChecked={settings.dmAccessMode === "ALL"}
+              className="mt-1"
+            />
+            <span>
+              <span className="block font-body text-sm font-semibold text-off-white">
+                Everyone
+              </span>
+              <span className="font-body text-xs text-off-white/45">
+                Any active member can start a DM. Click a name in chat or on the members list.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 rounded-lg border border-off-white/10 p-3">
+            <input
+              type="radio"
+              name="dmAccessMode"
               value="ADMIN"
               defaultChecked={settings.dmAccessMode === "ADMIN"}
               className="mt-1"
@@ -75,7 +92,7 @@ export default async function AdminChatSettingsPage() {
             <span>
               <span className="block font-body text-sm font-semibold text-off-white">Admins only</span>
               <span className="font-body text-xs text-off-white/45">
-                Default. Only ADMIN accounts can open a new DM.
+                Only ADMIN accounts can open a new DM.
               </span>
             </span>
           </label>

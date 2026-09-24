@@ -1,12 +1,16 @@
-import Link from "next/link";
 import { parseMentionSegments } from "@/lib/chatMentions";
+import StartDmName from "@/components/chat/StartDmName";
 
 export default function MessageContent({
   content,
   imageUrl,
+  currentUserId,
+  canStartDm = false,
 }: {
   content: string;
   imageUrl?: string | null;
+  currentUserId: string;
+  canStartDm?: boolean;
 }) {
   const trimmed = content.trim();
   const segments = trimmed ? parseMentionSegments(trimmed) : [];
@@ -17,13 +21,15 @@ export default function MessageContent({
         <p className="whitespace-pre-wrap break-words font-body text-sm text-off-white/85">
           {segments.map((seg, i) =>
             seg.type === "mention" ? (
-              <Link
+              <StartDmName
                 key={`${seg.userId}-${i}`}
-                href={`/members/${seg.userId}`}
+                userId={seg.userId}
+                currentUserId={currentUserId}
+                canStartDm={canStartDm}
                 className="rounded bg-cyan/15 px-1 font-semibold text-cyan transition hover:bg-cyan/25"
               >
                 @{seg.name}
-              </Link>
+              </StartDmName>
             ) : (
               <span key={i}>{seg.value}</span>
             )

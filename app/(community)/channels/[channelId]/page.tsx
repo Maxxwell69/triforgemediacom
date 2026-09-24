@@ -9,6 +9,8 @@ import { markChannelRead } from "@/lib/channelReads";
 import { replyToInclude } from "@/lib/chatReplies";
 import ChatView from "@/components/chat/ChatView";
 import { channelVoiceEnabled } from "@/lib/voiceAccess";
+import { canInitiateDm } from "@/lib/dmAccess";
+import { hubDmAvailable } from "@/lib/dmSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,7 @@ export default async function ChannelPage({
       initialMutedUntil={dbUser?.mutedUntil ?? null}
       voiceEnabled={channelVoiceEnabled(channel)}
       selfName={user.name ?? "Member"}
+      canStartDm={hubDmAvailable() && (await canInitiateDm(user.id, user.role))}
     />
   );
 }
