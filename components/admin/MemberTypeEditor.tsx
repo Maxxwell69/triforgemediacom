@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { deleteMemberType, updateMemberType } from "@/app/admin/member-types/actions";
-import { MEMBER_TYPE_SYSTEMS } from "@/lib/hub/memberTypeCatalog";
 
 const fieldClass =
   "w-full rounded-lg border border-off-white/15 bg-off-white/5 px-3 py-2 font-body text-sm text-off-white outline-none transition focus:border-cyan/60";
