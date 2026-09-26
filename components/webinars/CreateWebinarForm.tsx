@@ -9,11 +9,16 @@ import { attachDeviceTimeZone } from "@/lib/timeClient";
 import AdminWebinarInvitePanel, {
   type WebinarInviteMember,
 } from "@/components/webinars/AdminWebinarInvitePanel";
+import MemberTypeAudienceFields from "@/components/admin/MemberTypeAudienceFields";
 
 export default function CreateWebinarForm({
   members,
+  memberTypes = [],
+  clientHub = false,
 }: {
   members: WebinarInviteMember[];
+  memberTypes?: { id: string; name: string }[];
+  clientHub?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -178,7 +183,10 @@ export default function CreateWebinarForm({
           defaultValue="ALL"
           className="rounded-lg border border-off-white/15 bg-charcoal px-3 py-2 text-off-white outline-none focus:border-orange"
         >
-          {WEBINAR_AUDIENCE_OPTIONS.map((opt) => (
+          {(clientHub
+            ? WEBINAR_AUDIENCE_OPTIONS.filter((opt) => opt.value === "ALL" || opt.value === "ADMIN")
+            : WEBINAR_AUDIENCE_OPTIONS
+          ).map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -188,6 +196,7 @@ export default function CreateWebinarForm({
           Who can see and join this webinar in the hub. Admins always see every webinar.
         </span>
       </label>
+      {clientHub && <MemberTypeAudienceFields types={memberTypes} />}
 
       <label className="flex items-start gap-3 rounded-lg border border-off-white/10 bg-charcoal/60 px-3 py-3 font-body text-sm text-off-white/70">
         <input

@@ -186,6 +186,31 @@ export const PLATFORM_PROGRAMS: PlatformProgram[] = [
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: "3.288",
+    date: "September 26, 2026",
+    title: "Service+ Setup course",
+    summary:
+      "A six-lesson Learning Center course that walks Hub 0 creators through joining Service+, writing the page, setting the DM shortcut, and pinning on a rhythm.",
+    items: [
+      {
+        kind: "feature",
+        text: "Service+ Setup: six lessons, certification exam (pass 80), Service+ Certified badge, and a Lesson 6 pin-rhythm assignment",
+      },
+    ],
+  },
+  {
+    version: "3.287",
+    date: "September 26, 2026",
+    title: "Hub member types",
+    summary: "Hub admins can name Fan, Superfan, and custom types, pick the systems each type can see, and filter webinars and events by those types.",
+    items: [
+      {
+        kind: "feature",
+        text: "Client hubs: name member types, choose which systems they can open, assign people from Users, and limit webinars or events to those types",
+      },
+    ],
+  },
+  {
     version: "3.286",
     date: "September 24, 2026",
     title: "Network DMs",

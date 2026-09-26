@@ -89,7 +89,7 @@ export async function POST(
     prisma.webinar.findUnique({ where: { id: params.webinarId } }),
     getUserNetworkTrack(auth.user.id),
   ]);
-  if (!webinar || !canViewWebinar(webinar, auth.user.role, auth.user.id, networkTrack)) {
+  if (!webinar || !canViewWebinar(webinar, auth.user.role, auth.user.id, networkTrack, auth.user.memberTypeId)) {
     return NextResponse.json({ error: "Webinar not found" }, { status: 404 });
   }
 

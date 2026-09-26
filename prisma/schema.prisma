@@ -90,6 +90,8 @@ model User {
   /// Set once on the first successful login — “came into the hub.”
   firstLoginAt  DateTime?
   lastSeenAt    DateTime? // heartbeat while the hub is open — drives online green dots
+  /// Client-hub audience type (Fan, Superfan, or a custom name). Null = infer from role.
+  memberTypeId  String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -194,6 +196,7 @@ model User {
   onboardingProgress         UserOnboardingProgress[]
   onboardingAssigned         UserOnboardingProgress[] @relation("OnboardingAssignedBy")
   onboardingLogs             OnboardingDismissalLog[]
+  memberType                 HubMemberType? @relation(fields: [memberTypeId], references: [id], onDelete: SetNull)
 }
 
 // ---------- Application / invite flow ----------
@@ -511,6 +514,22 @@ model ChatSettings {
   // ALLOWLIST = admins + listed users.
   dmAccessMode String  @default("ALL")
   updatedAt   DateTime @updatedAt
+}
+
+/// Admin-named audience types on a hub (Fan, Superfan, VIP, …).
+model HubMemberType {
+  id             String   @id @default(cuid())
+  /// Built-in key: fan | superfan | member. Null for custom types.
+  key            String?  @unique
+  name           String
+  sortOrder      Int      @default(0)
+  /// Member-menu ids this type can see. Empty = every enabled hub system.
+  allowedMenuIds String[]
+  /// Public signup / auto-join as fan uses this type.
+  signupDefault  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  users          User[]
 }
 
 /// Per-hub member sidebar Menu order, visibility, and custom links.
@@ -1277,6 +1296,8 @@ model Webinar {
   status          WebinarStatus @default(DRAFT)
   /// Who in the hub can see this webinar: all members, CN, MN, or admins only.
   audience        WebinarAudience @default(ALL)
+  /// When set, only these HubMemberType ids (plus staff) see the webinar.
+  audienceMemberTypeIds String[] @default([])
   hostUserId      String
   /// Optional branded host photo shown on webinar cards / detail (not the User.image).
   hostAvatarUrl   String?
@@ -1745,6 +1766,8 @@ model CalendarEvent {
   description String?
   kind        CalendarEventKind       @default(EVENT)
   visibility  CalendarEventVisibility @default(HUB)
+  /// When set with HUB visibility, only these HubMemberType ids (plus staff) see the event.
+  audienceMemberTypeIds String[] @default([])
   startsAt    DateTime
   endsAt      DateTime?
   location    String?

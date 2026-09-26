@@ -31,7 +31,7 @@ export default async function WebinarDetailPage({
     },
   });
 
-  if (!webinar || !canViewWebinar(webinar, user.role, user.id, networkTrack)) {
+  if (!webinar || !canViewWebinar(webinar, user.role, user.id, networkTrack, user.memberTypeId)) {
     notFound();
   }
 

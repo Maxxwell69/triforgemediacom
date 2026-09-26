@@ -10,6 +10,17 @@ import {
   assertCalendarProfileMembers,
   calendarProfileIdsFromParsed,
 } from "@/lib/calendar";
+import { parseMemberTypeIdsFromForm } from "@/lib/hub/memberTypes";
+
+async function validEventMemberTypeIds(formData: FormData) {
+  const raw = parseMemberTypeIdsFromForm(formData);
+  if (raw.length === 0) return [];
+  const rows = await prisma.hubMemberType.findMany({
+    where: { id: { in: raw } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
 
 async function requireAdmin() {
   const session = await auth();
@@ -87,6 +98,7 @@ export async function createAdminCalendarEvent(formData: FormData) {
       featuredUserId: profiles.featuredUserId,
       opponentUserId: profiles.opponentUserId,
       createdById: session.user.id,
+      audienceMemberTypeIds: visibility === "HUB" ? await validEventMemberTypeIds(formData) : [],
     },
     select: { id: true },
   });
@@ -152,6 +164,7 @@ export async function updateAdminCalendarEvent(formData: FormData) {
       groupId: parsed.data.groupId || null,
       featuredUserId: profiles.featuredUserId,
       opponentUserId: profiles.opponentUserId,
+      audienceMemberTypeIds: visibility === "HUB" ? await validEventMemberTypeIds(formData) : [],
     },
   });
 

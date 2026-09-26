@@ -28,7 +28,14 @@ export function webinarIsCalendarReady(status: WebinarStatus): boolean {
 
 type WebinarCalendarSource = Pick<
   Webinar,
-  "id" | "title" | "description" | "scheduledAt" | "status" | "audience" | "hostUserId"
+  | "id"
+  | "title"
+  | "description"
+  | "scheduledAt"
+  | "status"
+  | "audience"
+  | "hostUserId"
+  | "audienceMemberTypeIds"
 >;
 
 /**
@@ -64,6 +71,7 @@ export async function syncCalendarEventForWebinar(webinar: WebinarCalendarSource
       endsAt,
       createdById: webinar.hostUserId,
       webinarId: webinar.id,
+      audienceMemberTypeIds: webinar.audienceMemberTypeIds ?? [],
     },
     update: {
       title: webinar.title,
@@ -72,6 +80,7 @@ export async function syncCalendarEventForWebinar(webinar: WebinarCalendarSource
       endsAt,
       kind: "WEBINAR",
       visibility: "HUB",
+      audienceMemberTypeIds: webinar.audienceMemberTypeIds ?? [],
     },
   });
 }
@@ -155,16 +164,22 @@ export function canViewEvent(
     createdById: string;
     groupId: string | null;
     attendees: { userId: string }[];
+    audienceMemberTypeIds?: string[];
   },
   userId: string,
   userRole: UserRole,
-  userGroupIds: string[]
+  userGroupIds: string[],
+  memberTypeId?: string | null
 ): boolean {
   if (isAdminRole(userRole)) return true;
   if (event.createdById === userId) return true;
   if (event.attendees.some((a) => a.userId === userId)) return true;
 
-  if (event.visibility === "HUB") return true;
+  if (event.visibility === "HUB") {
+    const ids = event.audienceMemberTypeIds ?? [];
+    if (ids.length === 0) return true;
+    return !!memberTypeId && ids.includes(memberTypeId);
+  }
   if (event.visibility === "GROUP") {
     return Boolean(event.groupId && userGroupIds.includes(event.groupId));
   }
@@ -178,6 +193,10 @@ export async function listVisibleCalendarEvents(
   to: Date
 ) {
   const userGroupIds = await getUserGroupIds(userId);
+  const viewer = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { memberTypeId: true },
+  });
   const events = await prisma.calendarEvent.findMany({
     where: {
       startsAt: { gte: from, lt: to },
@@ -194,7 +213,9 @@ export async function listVisibleCalendarEvents(
     },
   });
 
-  return events.filter((e) => canViewEvent(e, userId, userRole, userGroupIds));
+  return events.filter((e) =>
+    canViewEvent(e, userId, userRole, userGroupIds, viewer?.memberTypeId)
+  );
 }
 
 /** Open FREE availability windows others can book. */

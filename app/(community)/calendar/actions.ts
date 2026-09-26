@@ -25,7 +25,7 @@ async function requireActiveUser() {
   if (!session?.user?.id) throw new Error("Not authorized");
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, status: true, role: true },
+    select: { id: true, status: true, role: true, memberTypeId: true },
   });
   if (!dbUser || dbUser.status !== "ACTIVE") throw new Error("Not authorized");
   return dbUser;
@@ -295,6 +295,7 @@ export async function rsvpCalendarEvent(
       webinarId: true,
       visibility: true,
       groupId: true,
+      audienceMemberTypeIds: true,
       attendees: { select: { userId: true } },
     },
   });
@@ -304,7 +305,7 @@ export async function rsvpCalendarEvent(
   }
 
   const userGroupIds = await getUserGroupIds(user.id);
-  if (!canViewEvent(event, user.id, user.role, userGroupIds)) {
+  if (!canViewEvent(event, user.id, user.role, userGroupIds, user.memberTypeId)) {
     return { error: "Event not found" };
   }
   // Private appointments are invite-only — don't let RSVP expand the attendee list.

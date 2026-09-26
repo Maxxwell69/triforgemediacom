@@ -43,6 +43,7 @@ import OnboardingMenuGate from "@/components/onboarding/OnboardingMenuGate";
 import MemberMenu from "@/components/MemberMenu";
 import { customMenuPrefixes } from "@/lib/siteMenu";
 import { getSiteMenuItems } from "@/lib/siteMenu.server";
+import { getMemberTypeForUser, memberTypeAllowsMenu } from "@/lib/hub/memberTypes";
 
 async function countUnreadHubNotifications(userId: string): Promise<number> {
   try {
@@ -142,7 +143,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
   );
 
   const isAdmin = isAdminRole(user.role);
-  const canMenu = (id: string) => canSeeOnboardingMenuItem(menuLock, id);
+  const memberType = await getMemberTypeForUser({
+    memberTypeId: "memberTypeId" in user ? user.memberTypeId : null,
+    role: user.role,
+  });
+  const canMenu = (id: string) =>
+    canSeeOnboardingMenuItem(menuLock, id) && memberTypeAllowsMenu(memberType, id, user.role);
   const showGroupChrome = canMenu("groups") || canMenu("chat");
   // Network categories (showInList=false) stay out of the rail / active-space switcher.
   const listableGroups = allGroups.filter((g) => g.isHome || g.showInList);

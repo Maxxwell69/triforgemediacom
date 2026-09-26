@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/session";
+import { getMemberTypeForUser, memberTypeAllowsMenu } from "@/lib/hub/memberTypes";
+import { notFound } from "next/navigation";
 import { canViewWebinar, isWebinarOnHubList } from "@/lib/webinars";
 import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 import { getUserNetworkTrack } from "@/lib/mnCn";
@@ -20,6 +22,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function WebinarsPage() {
   const { user } = await requireProfile();
+  const memberType = await getMemberTypeForUser({
+    memberTypeId: user.memberTypeId,
+    role: user.role,
+  });
+  if (!memberTypeAllowsMenu(memberType, "webinars", user.role)) notFound();
   const networkTrack = await getUserNetworkTrack(user.id);
 
   const webinars = await prisma.webinar.findMany({
@@ -32,7 +39,7 @@ export default async function WebinarsPage() {
 
   const visible = webinars.filter(
     (w) =>
-      canViewWebinar(w, user.role, user.id, networkTrack) &&
+      canViewWebinar(w, user.role, user.id, networkTrack, user.memberTypeId) &&
       isWebinarOnHubList({ ...w, recordingCount: w._count.recordings })
   );
 

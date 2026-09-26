@@ -29,7 +29,7 @@ export async function GET() {
 
   const visible = webinars.filter(
     (w) =>
-      canViewWebinar(w, auth.user.role, auth.user.id, networkTrack) &&
+      canViewWebinar(w, auth.user.role, auth.user.id, networkTrack, auth.user.memberTypeId) &&
       (isAdminRole(auth.user.role) ||
         isWebinarOnHubList({ ...w, recordingCount: w._count.recordings }))
   );

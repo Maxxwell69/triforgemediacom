@@ -51,7 +51,7 @@ export default async function CalendarEventPage({
     },
   });
 
-  if (!event || !canViewEvent(event, user.id, user.role, userGroupIds)) {
+  if (!event || !canViewEvent(event, user.id, user.role, userGroupIds, user.memberTypeId)) {
     notFound();
   }
 

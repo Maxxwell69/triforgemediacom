@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getTenantPrisma } from "@/lib/hub/tenantPrisma";
+import { ensureTenantMemberTypeSchema, getTenantPrisma } from "@/lib/hub/tenantPrisma";
 
 const DEFAULT_CHANNELS: { name: string; description: string; minRole: "FAN" | "MEMBER" | "CREATOR" | "MOD" }[] =
   [
@@ -13,7 +13,26 @@ const DEFAULT_CHANNELS: { name: string; description: string; minRole: "FAN" | "M
 
 /** Idempotent starter data so a new hub isn’t an empty shell after provision. */
 export async function seedTenantDefaults(schema: string) {
+  await ensureTenantMemberTypeSchema(schema);
   const db = getTenantPrisma(schema);
+  const typeDefaults = [
+    { key: "fan", name: "Fan", sortOrder: 0, signupDefault: true },
+    { key: "superfan", name: "Superfan", sortOrder: 1, signupDefault: false },
+    { key: "member", name: "Member", sortOrder: 2, signupDefault: false },
+  ] as const;
+  for (const def of typeDefaults) {
+    const existing = await db.hubMemberType.findUnique({ where: { key: def.key } });
+    if (existing) continue;
+    await db.hubMemberType.create({
+      data: {
+        key: def.key,
+        name: def.name,
+        sortOrder: def.sortOrder,
+        signupDefault: def.signupDefault,
+        allowedMenuIds: [],
+      },
+    });
+  }
   const home =
     (await db.group.findFirst({ where: { isHome: true } })) ??
     (await db.group.upsert({
