@@ -6,6 +6,8 @@ import { getUserPointsTotals } from "@/lib/points";
 import { backfillNetworkMemberships } from "@/lib/mnCn";
 import { adjustUserPoints } from "./actions";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
+import MemberTypeSelect from "@/components/admin/MemberTypeSelect";
+import { ensureDefaultMemberTypes, roleToMemberTypeKey } from "@/lib/hub/memberTypes";
 import BanButton from "@/components/admin/BanButton";
 import AdminUserMembershipPills from "@/components/admin/AdminUserMembershipPills";
 import AddMemberForm from "@/components/admin/AddMemberForm";
@@ -82,6 +84,7 @@ export default async function AdminUsersPage({
   const session = await auth();
   const currentUserId = session!.user.id;
   const clientHub = isClientHubRequest();
+  const memberTypes = clientHub ? await ensureDefaultMemberTypes() : [];
   const showOnboarding = hubHas("onboardingChecklist");
   const trackFilter =
     searchParams?.track === "CN" || searchParams?.track === "MN"
@@ -466,6 +469,19 @@ export default async function AdminUsersPage({
                     disabledReason={statusLock}
                     clientHub={clientHub}
                   />
+                  {clientHub && (
+                    <MemberTypeSelect
+                      userId={user.id}
+                      currentTypeId={
+                        user.memberTypeId ??
+                        memberTypes.find((t) => t.key === roleToMemberTypeKey(user.role))?.id ??
+                        null
+                      }
+                      types={memberTypes.map((t) => ({ id: t.id, name: t.name }))}
+                      disabled={isSelf || Boolean(statusLock)}
+                      disabledReason={statusLock}
+                    />
+                  )}
                   <BanButton
                     userId={user.id}
                     banned={isBanned}

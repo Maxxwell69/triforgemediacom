@@ -51,6 +51,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         sku: "core",
       },
       {
+        href: "/admin/member-types",
+        label: "Member types",
+        description: "Name Fan, Superfan, and custom types, and pick the systems they can see",
+        sku: "core",
+        clientOnly: true,
+      },
+      {
         href: "/admin/onboarding",
         label: "Onboarding",
         description: "Named checklists: Getting Started, campaigns, custom paths",

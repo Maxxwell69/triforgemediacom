@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { adjustUserPoints } from "../actions";
 import { getUserPointsTotal } from "@/lib/points";
 import UserRoleSelect from "@/components/admin/UserRoleSelect";
+import MemberTypeSelect from "@/components/admin/MemberTypeSelect";
+import { ensureDefaultMemberTypes, roleToMemberTypeKey } from "@/lib/hub/memberTypes";
 import BanButton from "@/components/admin/BanButton";
 import AdminUserMemberships from "@/components/admin/AdminUserMemberships";
 import ResendInviteButton from "@/components/admin/ResendInviteButton";
@@ -93,6 +95,7 @@ export default async function AdminUserDetailPage({
   const session = await auth();
   const currentUserId = session!.user.id;
   const clientHub = isClientHubRequest();
+  const memberTypes = clientHub ? await ensureDefaultMemberTypes() : [];
   const canDm = await canInitiateDm(currentUserId, session!.user.role);
   const insightsStatus = searchParams?.insights;
   const insightsMessage = searchParams?.insights_message;
@@ -286,6 +289,22 @@ export default async function AdminUserDetailPage({
               clientHub={clientHub}
             />
           </div>
+          {clientHub && (
+            <div className="flex items-center gap-2">
+              <span className="font-body text-xs text-off-white/40">Type</span>
+              <MemberTypeSelect
+                userId={user.id}
+                currentTypeId={
+                  user.memberTypeId ??
+                  memberTypes.find((t) => t.key === roleToMemberTypeKey(user.role))?.id ??
+                  null
+                }
+                types={memberTypes.map((t) => ({ id: t.id, name: t.name }))}
+                disabled={isSelf || Boolean(statusLock)}
+                disabledReason={statusLock}
+              />
+            </div>
+          )}
           <BanButton
             userId={user.id}
             banned={isBanned}

@@ -12,6 +12,8 @@ import MemberAvatar from "@/components/MemberAvatar";
 import LocalWhen from "@/components/LocalWhen";
 import { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 import type { WebinarAudience, WebinarStatus } from "@prisma/client";
+import { isClientHubRequest } from "@/lib/hub/requestHost";
+import { ensureDefaultMemberTypes } from "@/lib/hub/memberTypes";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,9 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default async function AdminWebinarsPage() {
+  const clientHub = isClientHubRequest();
+  const memberTypes = clientHub ? await ensureDefaultMemberTypes() : [];
+  const typeOptions = memberTypes.map((t) => ({ id: t.id, name: t.name }));
   const webinars = await prisma.webinar.findMany({
     orderBy: { scheduledAt: "desc" },
     include: {
@@ -52,10 +57,10 @@ export default async function AdminWebinarsPage() {
         WEBI<span className="text-gradient">NARS</span>
       </h1>
       <p className="mt-2 font-body text-off-white/60">
-        Schedule webinars for all members, Creator Network (CN), Media Network (MN), or admins
-        only. Turn on Repeat weekly to publish multiple sessions across the week. Optionally open
-        a secure outside signup page for people who are not in the network. After a session, attach
-        screen recordings so members can rewatch on the webinar page.
+        Schedule webinars for everyone or a member type. Turn on Repeat weekly to publish multiple
+        sessions across the week. Optionally open a secure outside signup page for people who are
+        not in the network. After a session, attach screen recordings so members can rewatch on
+        the webinar page.
       </p>
 
       {!livekitReady && (
@@ -68,14 +73,22 @@ export default async function AdminWebinarsPage() {
 
       <div className="mt-8 glass rounded-2xl p-6">
         <h2 className="font-display text-2xl tracking-wide">Create webinar</h2>
-        <CreateWebinarForm />
+        <CreateWebinarForm memberTypes={typeOptions} clientHub={clientHub} />
       </div>
 
-      <AdminWebinarList title="Active webinars" empty="No active webinars." webinars={active} />
+      <AdminWebinarList
+        title="Active webinars"
+        empty="No active webinars."
+        webinars={active}
+        clientHub={clientHub}
+        memberTypes={typeOptions}
+      />
       <AdminWebinarList
         title="Archive"
         empty="No archived webinars yet. Ended meetings land here so they stay off the main hub list."
         webinars={archived}
+        clientHub={clientHub}
+        memberTypes={typeOptions}
       />
     </main>
   );
@@ -85,9 +98,13 @@ function AdminWebinarList({
   title,
   empty,
   webinars,
+  clientHub,
+  memberTypes,
 }: {
   title: string;
   empty: string;
+  clientHub: boolean;
+  memberTypes: { id: string; name: string }[];
   webinars: {
     id: string;
     title: string;
@@ -95,6 +112,7 @@ function AdminWebinarList({
     scheduledAt: Date;
     status: WebinarStatus;
     audience: WebinarAudience;
+    audienceMemberTypeIds: string[];
     seriesId: string | null;
     hostAvatarUrl: string | null;
     externalSignupEnabled: boolean;
@@ -171,7 +189,13 @@ function AdminWebinarList({
                     <AdminWebinarActions webinarId={w.id} status={w.status} />
                   </div>
                 </div>
-                <AdminWebinarAudience webinarId={w.id} audience={w.audience} />
+                <AdminWebinarAudience
+                  webinarId={w.id}
+                  audience={w.audience}
+                  audienceMemberTypeIds={w.audienceMemberTypeIds}
+                  memberTypes={memberTypes}
+                  clientHub={clientHub}
+                />
                 <AdminWebinarHostAvatar webinarId={w.id} hostAvatarUrl={w.hostAvatarUrl} />
                 <AdminWebinarExternalSignup
                   webinarId={w.id}

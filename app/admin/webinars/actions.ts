@@ -15,6 +15,7 @@ import {
   webinarRecordingSchema,
 } from "@/lib/validations/webinar";
 import { syncCalendarEventForWebinar } from "@/lib/calendar";
+import { parseMemberTypeIdsFromForm } from "@/lib/hub/memberTypes";
 import { formTimeZone, parseZonedDateTime } from "@/lib/time";
 import { expandWeeklyWebinarTimes, parseRepeatWeekdays } from "@/lib/webinarRecurrence";
 
@@ -47,6 +48,7 @@ async function insertWebinar(input: {
   hostUserId: string;
   externalSignupEnabled: boolean;
   seriesId: string | null;
+  audienceMemberTypeIds?: string[];
 }) {
   const webinar = await prisma.webinar.create({
     data: {
@@ -55,6 +57,7 @@ async function insertWebinar(input: {
       scheduledAt: input.scheduledAt,
       status: input.status,
       audience: input.audience,
+      audienceMemberTypeIds: input.audienceMemberTypeIds ?? [],
       hostAvatarUrl: input.hostAvatarUrl,
       hostUserId: input.hostUserId,
       livekitRoomName: `webinar_pending_${Date.now()}_${randomBytes(4).toString("hex")}`,
@@ -116,6 +119,8 @@ export async function createWebinarAction(formData: FormData) {
     description: parsed.data.description || null,
     status: parsed.data.status as WebinarStatus,
     audience: parsed.data.audience,
+    audienceMemberTypeIds:
+      parsed.data.audience === "ADMIN" ? [] : await validMemberTypeIds(formData),
     hostAvatarUrl: parsed.data.hostAvatarUrl || null,
     hostUserId: session.user.id,
     externalSignupEnabled: parsed.data.externalSignupEnabled,
@@ -333,10 +338,21 @@ export async function deleteWebinarRecordingAction(recordingId: string) {
   return { error: null };
 }
 
+async function validMemberTypeIds(formData: FormData) {
+  const raw = parseMemberTypeIdsFromForm(formData);
+  if (raw.length === 0) return [];
+  const rows = await prisma.hubMemberType.findMany({
+    where: { id: { in: raw } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
 /** Change who in the hub can see this webinar (CN / MN / all / admins). */
 export async function setWebinarAudienceAction(
   webinarId: string,
-  audience: string
+  audience: string,
+  memberTypeIds: string[] = []
 ) {
   await requireAdmin();
 
@@ -348,9 +364,19 @@ export async function setWebinarAudienceAction(
     return { error: parsed.error?.issues[0]?.message || "Invalid audience" };
   }
 
+  const types =
+    parsed.data.audience === "ADMIN"
+      ? []
+      : (
+          await prisma.hubMemberType.findMany({
+            where: { id: { in: memberTypeIds } },
+            select: { id: true },
+          })
+        ).map((r) => r.id);
+
   const updated = await prisma.webinar.update({
     where: { id: webinarId },
-    data: { audience: parsed.data.audience },
+    data: { audience: parsed.data.audience, audienceMemberTypeIds: types },
   });
 
   await syncCalendarEventForWebinar(updated);

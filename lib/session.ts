@@ -39,14 +39,14 @@ export async function getFreshSessionUser() {
 
   const identity = await getControlPrisma().user.findUnique({
     where: { id: session.user.id },
-    select: { email: true, name: true, image: true, role: true, status: true, platformAccess: true },
+    select: { email: true, name: true, image: true, role: true, status: true, platformAccess: true, memberTypeId: true },
   });
   if (!identity || identity.status === "BANNED") return null;
 
   const ctx = await getRequestHubContext();
   if (ctx.kind === "platform") {
     if (!identity.platformAccess) return null;
-    return { ...session.user, role: identity.role, status: identity.status };
+    return { ...session.user, role: identity.role, status: identity.status, memberTypeId: identity.memberTypeId };
   }
 
   if (ctx.kind !== "client" || !ctx.prisma || !ctx.hub) return null;
@@ -60,18 +60,18 @@ export async function getFreshSessionUser() {
   const lookupIds = [membership.tenantUserId, session.user.id].filter(
     (id, index, all): id is string => !!id && all.indexOf(id) === index
   );
-  let tenantUser: { id: string; role: UserRole; status: UserStatus } | null = null;
+  let tenantUser: { id: string; role: UserRole; status: UserStatus; memberTypeId: string | null } | null = null;
   for (const id of lookupIds) {
     tenantUser = await ctx.prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, status: true },
+      select: { id: true, role: true, status: true, memberTypeId: true },
     });
     if (tenantUser) break;
   }
   if (!tenantUser) {
     tenantUser = await ctx.prisma.user.findUnique({
       where: { email: identity.email },
-      select: { id: true, role: true, status: true },
+      select: { id: true, role: true, status: true, memberTypeId: true },
     });
   }
   if (!tenantUser && ctx.hub.tenantDbName) {
@@ -89,7 +89,7 @@ export async function getFreshSessionUser() {
       });
       tenantUser = await ctx.prisma.user.findUnique({
         where: { id: tenantId },
-        select: { id: true, role: true, status: true },
+        select: { id: true, role: true, status: true, memberTypeId: true },
       });
     } catch (err) {
       console.error("heal tenant member on session failed", session.user.id, err);
@@ -97,7 +97,12 @@ export async function getFreshSessionUser() {
   }
   if (!tenantUser || tenantUser.status === "BANNED") return null;
 
-  return { ...session.user, role: tenantUser.role, status: tenantUser.status };
+  return {
+    ...session.user,
+    role: tenantUser.role,
+    status: tenantUser.status,
+    memberTypeId: tenantUser.memberTypeId,
+  };
 }
 
 export async function requireUser() {

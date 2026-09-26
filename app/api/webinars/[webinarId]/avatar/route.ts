@@ -26,14 +26,15 @@ const urlBodySchema = z.object({
 async function requireJoinedParticipant(
   webinarId: string,
   userId: string,
-  userRole: UserRole
+  userRole: UserRole,
+  memberTypeId?: string | null
 ) {
   const [webinar, networkTrack] = await Promise.all([
     prisma.webinar.findUnique({ where: { id: webinarId } }),
     getUserNetworkTrack(userId),
   ]);
   if (!webinar) return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
-  if (!canViewWebinar(webinar, userRole, userId, networkTrack)) {
+  if (!canViewWebinar(webinar, userRole, userId, networkTrack, memberTypeId)) {
     return { error: NextResponse.json({ error: "Webinar not found" }, { status: 404 }) };
   }
   if (!canJoinWebinar(webinar.status)) {
@@ -90,7 +91,8 @@ export async function POST(
   const gate = await requireJoinedParticipant(
     params.webinarId,
     auth.user.id,
-    auth.user.role
+    auth.user.role,
+    auth.user.memberTypeId
   );
   if ("error" in gate) return gate.error;
 
@@ -153,7 +155,8 @@ export async function PATCH(
   const gate = await requireJoinedParticipant(
     params.webinarId,
     auth.user.id,
-    auth.user.role
+    auth.user.role,
+    auth.user.memberTypeId
   );
   if ("error" in gate) return gate.error;
 

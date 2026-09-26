@@ -108,6 +108,60 @@ export async function updateUserRole(userId: string, role: string) {
       where: { userId, clientHubId: ctx.hub.id },
       data: { role: role as UserRole },
     });
+    const typeKey = role === "FAN" ? "fan" : role === "SUPERFAN" ? "superfan" : "member";
+    const type = await prisma.hubMemberType.findUnique({ where: { key: typeKey } });
+    if (type && !isAdminRole(role as UserRole)) {
+      await prisma.user.update({ where: { id: userId }, data: { memberTypeId: type.id } });
+    }
+  }
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+}
+
+export async function updateUserMemberType(userId: string, memberTypeId: string) {
+  const session = await requireAdmin();
+  if (!isClientHubRequest()) throw new Error("Member types are for hub admins");
+  if (userId === session.user.id) throw new Error("You can't change your own type");
+
+  const type = await prisma.hubMemberType.findUnique({ where: { id: memberTypeId } });
+  if (!type) throw new Error("Type not found");
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, email: true },
+  });
+  if (!target) throw new Error("User not found");
+  await assertHubHostCanChangeStatus({
+    actorId: session.user.id,
+    email: target.email,
+    role: target.role,
+  });
+  if (isAdminRole(target.role) && session.user.role !== "ADMIN") {
+    throw new Error("Only an admin can change an admin or mod");
+  }
+
+  const nextRole =
+    type.key === "fan" && !isAdminRole(target.role)
+      ? "FAN"
+      : type.key === "superfan" && !isAdminRole(target.role)
+        ? "SUPERFAN"
+        : type.key === "member" && (target.role === "FAN" || target.role === "SUPERFAN")
+          ? "MEMBER"
+          : null;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      memberTypeId: type.id,
+      ...(nextRole ? { role: nextRole } : {}),
+    },
+  });
+  const ctx = await getRequestHubContext();
+  if (ctx.kind === "client" && ctx.hub && nextRole) {
+    await getControlPrisma().hubMembership.updateMany({
+      where: { userId, clientHubId: ctx.hub.id },
+      data: { role: nextRole },
+    });
   }
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);

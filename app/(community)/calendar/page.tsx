@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/session";
+import { getMemberTypeForUser, memberTypeAllowsMenu } from "@/lib/hub/memberTypes";
 import {
   addDays,
   calendarMemberLabel,
@@ -25,6 +27,11 @@ const LEGEND = [
 
 export default async function CalendarPage() {
   const { user } = await requireProfile();
+  const memberType = await getMemberTypeForUser({
+    memberTypeId: user.memberTypeId,
+    role: user.role,
+  });
+  if (!memberTypeAllowsMenu(memberType, "calendar", user.role)) notFound();
 
   const from = startOfDay(addDays(new Date(), -45));
   const to = addDays(from, 120);

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/rbac";
 import { getChatDisplayName } from "@/lib/memberDisplay";
 import type { NetworkTrack } from "@/lib/mnCnDisplay";
+import { memberCanSeeAudience } from "@/lib/hub/memberTypes";
 
 export { WEBINAR_AUDIENCE_LABELS } from "@/lib/validations/webinar";
 
@@ -21,10 +22,13 @@ export function webinarRoomName(webinarId: string) {
  * (outsiders use /w/[token]).
  */
 export function canViewWebinar(
-  webinar: Pick<Webinar, "status" | "hostUserId" | "externalSignupEnabled" | "audience">,
+  webinar: Pick<Webinar, "status" | "hostUserId" | "externalSignupEnabled" | "audience"> & {
+    audienceMemberTypeIds?: string[];
+  },
   userRole: UserRole,
   userId: string,
-  networkTrack?: NetworkTrack | null
+  networkTrack?: NetworkTrack | null,
+  memberTypeId?: string | null
 ) {
   const isStaffOrHost = isAdminRole(userRole) || webinar.hostUserId === userId;
 
@@ -43,6 +47,9 @@ export function canViewWebinar(
   if (webinar.audience === "ADMIN") return false;
   if (webinar.audience === "CN") return networkTrack === "CN";
   if (webinar.audience === "MN") return networkTrack === "MN";
+  if (!memberCanSeeAudience(memberTypeId ?? null, webinar.audienceMemberTypeIds, userRole)) {
+    return false;
+  }
   return true;
 }
 

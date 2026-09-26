@@ -25,6 +25,7 @@ export async function ensureTenantMember(opts: {
       },
     });
     await copyControlProfileToTenant(opts.user.id, opts.user.id, db);
+    await ensureUserMemberType(db, byId.id, seniorRole(byId.role, opts.role));
     return byId.id;
   }
 
@@ -40,6 +41,7 @@ export async function ensureTenantMember(opts: {
       },
     });
     await copyControlProfileToTenant(opts.user.id, byEmail.id, db);
+    await ensureUserMemberType(db, byEmail.id, seniorRole(byEmail.role, opts.role));
     return byEmail.id;
   }
 
@@ -55,7 +57,32 @@ export async function ensureTenantMember(opts: {
     },
   });
   await copyControlProfileToTenant(opts.user.id, opts.user.id, db);
+  await ensureUserMemberType(db, opts.user.id, opts.role);
   return opts.user.id;
+}
+
+async function ensureUserMemberType(
+  db: ReturnType<typeof getTenantPrisma>,
+  userId: string,
+  role: UserRole
+) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { memberTypeId: true },
+    });
+    if (user?.memberTypeId) return;
+    const key = role === "FAN" ? "fan" : role === "SUPERFAN" ? "superfan" : "member";
+    const type =
+      (role === "FAN"
+        ? await db.hubMemberType.findFirst({ where: { signupDefault: true } })
+        : null) ??
+      (await db.hubMemberType.findUnique({ where: { key } }));
+    if (!type) return;
+    await db.user.update({ where: { id: userId }, data: { memberTypeId: type.id } });
+  } catch (err) {
+    console.error("ensureUserMemberType skipped", userId, err);
+  }
 }
 
 /** Network people keep their Forge profile. Brand-new fans get a stub so they skip onboarding. */
